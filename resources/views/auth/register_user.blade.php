@@ -10,7 +10,7 @@
     <!-- Fav Icon  -->
     <link rel="shortcut icon" href="{{ asset("backAssets/images/favicon.png") }}">
     <!-- Page Title  -->
-    <title>Register | EPQA</title>
+    <title>Register | LIMS</title>
     <!-- StyleSheets  -->
     <link rel="stylesheet" href="{{ asset('backAssets/css/dashlite.css') }}">
     <link id="skin-default" rel="stylesheet" href="{{ asset('backAssets/css/theme.css') }}">

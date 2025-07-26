@@ -22,7 +22,7 @@ class AuthController extends Controller
                 'txt_password.required' => 'Password is required.',
             ]);
             // $pass =  Hash::make($request->txt_password);
-            // dd($request);
+            // dd($pass);
             if ($validator->fails()) {
                 return redirect()->back()
                     ->withErrors($validator)
@@ -30,6 +30,7 @@ class AuthController extends Controller
             }
             $admin = Admin::where('m00_email', $request->txt_email)->first();
             if ($admin && Hash::check($request->txt_password, $admin->m00_password)) {
+                // dd($admin);
                 session([
                     'admin_id'    => $admin->m00_admin_id,
                     'name'  => $admin->m00_name,

@@ -1,104 +1,50 @@
 @extends('layouts.app_back')
+
 @section('content')
     <div class="container-fluid">
-        <div class="nk-content-inner">
-            <div class="nk-content-body">
-                <div class="components-preview wide-lg mx-auto">
-                    <div class="nk-block nk-block-lg">
-                        <div class="nk-block-head">
-                            <div class="nk-block-head-content">
-                                <h4 class="nk-block-title">District List</h4>
-                                <div class="nk-block-des d-flex justify-content-end">
-                                    <a href="#" onclick="window.history.back()" class="btn btn-primary">
-                                        <em class="icon ni ni-chevron-left"></em> &nbsp; Back
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="card card-bordered card-preview">
-                            <div class="card-inner">
-                                <table class="datatable-init-export nowrap table" data-export-title="Export">
-                                    <thead>
-                                        <tr>
-                                            <th>ID</th>
-                                            <th>District</th>
-                                            <th>State</th>
-                                            <th>Status</th>
-                                            <th>Action</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @foreach ($districts as $key => $district)
-                                            <tr>
-                                                <td>{{ $key + 1 }}</td>
-                                                <td>{{ $district->m02_name }}</td>
-                                                <td>{{ $district->state->m01_name ?? '-' }}</td>
-                                                <td id="status-{{ $district->m02_district_id }}"
-                                                    class="text-{{ $district->m02_status == 'ACTIVE' ? 'success' : 'danger' }}">
-                                                    <strong>{{ $district->m02_status }}</strong>
-                                                </td>
-
-                                                <td>
-                                                    <ul class="nk-tb-actions gx-1 my-n1">
-                                                        <li class="me-n1">
-                                                            <div class="dropdown">
-                                                                <a href="#"
-                                                                    class="dropdown-toggle btn btn-icon btn-trigger"
-                                                                    data-bs-toggle="dropdown">
-                                                                    <em class="icon ni ni-more-h"></em>
-                                                                </a>
-                                                                <div class="dropdown-menu dropdown-menu-end">
-                                                                    <ul class="link-list-opt no-bdr">
-                                                                        <li>
-                                                                            <a href="#" class="btn edit-btn"
-                                                                                data-id="{{ $district->m02_district_id }}"
-                                                                                data-name="{{ $district->m02_name }}"
-                                                                                data-state-id="{{ $district->m01_state_id }}"
-                                                                                data-bs-toggle="modal"
-                                                                                data-bs-target="#modalZoom">
-                                                                                <em class="icon ni ni-edit"></em>
-                                                                                <span>Edit</span>
-                                                                            </a>
-                                                                        </li>
-                                                                        <li><a class="btn eg-swal-av3"
-                                                                                data-id="{{ $district->m02_district_id }}"
-                                                                                data-status="{{ $district->m02_status }}"><em
-                                                                                    class="icon ni ni-trash"></em><span>Change
-                                                                                    Status</span></a>
-                                                                        </li>
-                                                                    </ul>
-                                                                </div>
-                                                            </div>
-                                                        </li>
-                                                    </ul>
-                                                </td>
-                                            </tr>
-                                        @endforeach
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div><!-- .card-preview -->
-                    </div> <!-- nk-block -->
-                </div><!-- .components-preview -->
+        <div class="nk-block nk-block-lg">
+            <div class="nk-block-head">
+                <div class="nk-block-head-content">
+                    <h4 class="nk-block-title">District List</h4>
+                    <div class="nk-block-des d-flex justify-content-end">
+                        <a href="#" onclick="window.history.back()" class="btn btn-primary">
+                            <em class="icon ni ni-chevron-left"></em> &nbsp; Back
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="card card-bordered card-preview">
+                <div class="card-inner">
+                    <table class="nowrap table" id="districts-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>District</th>
+                                <th>State</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Edit Modal -->
     <div class="modal fade zoom" tabindex="-1" id="modalZoom">
         <div class="modal-dialog" role="document">
             <div class="modal-content">
                 <form method="POST" action="{{ route('update_district') }}" class="form-validate is-alter">
                     @csrf
                     <input type="hidden" name="district_id" id="district_id">
-
                     <div class="modal-header">
                         <h5 class="modal-title">Update District</h5>
                         <a href="#" class="close" data-bs-dismiss="modal" aria-label="Close">
                             <em class="icon ni ni-cross"></em>
                         </a>
                     </div>
-
                     <div class="modal-body">
                         <div class="row">
                             <div class="form-group col-md-6">
@@ -108,7 +54,6 @@
                                         required>
                                 </div>
                             </div>
-
                             <div class="form-group col-md-6">
                                 <label class="form-label" for="state_id">State</label>
                                 <div class="form-control-wrap">
@@ -122,7 +67,6 @@
                             </div>
                         </div>
                     </div>
-
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                         <button type="submit" class="btn btn-primary">Update</button>
@@ -134,16 +78,54 @@
 
     <script>
         $(document).ready(function() {
-            $('.edit-btn').on('click', function() {
+            $('#districts-table').DataTable({
+                processing: true,
+                serverSide: true,
+                ajax: {
+                    url: "{{ route('view_districts') }}",
+                    dataSrc: function(json) {
+                        console.log('AJAX response:', json);
+                        return json.data;
+                    },
+                    error: function(xhr) {
+                        console.error('DataTables AJAX Error:', xhr.responseText);
+                    }
+                },
+                columns: [{
+                        data: 'DT_RowIndex',
+                        name: 'DT_RowIndex',
+                        orderable: false,
+                        searchable: false
+                    },
+                    {
+                        data: 'district_name',
+                        name: 'm02_name'
+                    },
+                    {
+                        data: 'state_name',
+                        name: 'state.m01_name'
+                    },
+                    {
+                        data: 'status',
+                        name: 'm02_status'
+                    },
+                    {
+                        data: 'action',
+                        name: 'action',
+                        orderable: false,
+                        searchable: false
+                    },
+                ]
+            });
+
+            $(document).on('click', '.edit-btn', function() {
                 $('#district_id').val($(this).data('id'));
                 $('#district_name').val($(this).data('name'));
                 $('#state_id').val($(this).data('state-id'));
             });
 
-            //status change
-            $('.eg-swal-av3').on('click', function(e) {
+            $(document).on('click', '.eg-swal-av3', function(e) {
                 e.preventDefault();
-
                 let districtId = $(this).data('id');
                 let currentStatus = $(this).data('status');
                 let newStatus = currentStatus === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
@@ -172,9 +154,10 @@
                                         title: 'Updated!',
                                         text: data.message,
                                         timer: 1500,
-                                        showConfirmButton: false                                  
+                                        showConfirmButton: false
                                     }).then(() => {
-                                        location.reload();
+                                        $('#districts-table').DataTable().ajax
+                                            .reload();
                                     });
                                 }
                             },
@@ -185,7 +168,6 @@
                     }
                 });
             });
-
         });
     </script>
 @endsection

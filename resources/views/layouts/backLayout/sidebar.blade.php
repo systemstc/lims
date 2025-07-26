@@ -20,9 +20,9 @@
                         <h6 class="overline-title text-primary-alt">Dashboards</h6>
                     </li><!-- .nk-menu-item -->
                     <li class="nk-menu-item">
-                        <a href="html/index.html" class="nk-menu-link">
+                        <a href="{{ route('view_employees') }}" class="nk-menu-link">
                             <span class="nk-menu-icon"><em class="icon ni ni-cart-fill"></em></span>
-                            <span class="nk-menu-text">Default</span>
+                            <span class="nk-menu-text">Employees</span>
                         </a>
                     </li><!-- .nk-menu-item -->
                     <li class="nk-menu-heading">
@@ -39,6 +39,9 @@
                             </li>
                             <li class="nk-menu-item">
                                 <a href="{{ route('view_districts') }}" class="nk-menu-link"><span class="nk-menu-text">Districts</span></a>
+                            </li>
+                            <li class="nk-menu-item">
+                                <a href="{{ route('view_roles') }}" class="nk-menu-link"><span class="nk-menu-text">Roles</span></a>
                             </li>
                         </ul><!-- .nk-menu-sub -->
                     </li><!-- .nk-menu-item -->
