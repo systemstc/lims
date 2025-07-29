@@ -41,35 +41,33 @@
                                         </div>
                                     </div>
                                 </div>
-                                <form action="{{ route('login_user') }}" method="post">
+                                <form action="{{ route('user_login') }}" method="post">
                                     @csrf
                                     <div class="form-group">
                                         <div class="form-label-group">
-                                            <label class="form-label" for="default-01">Email</label>
+                                            <label class="form-label" for="txt_email">Email</label>
                                         </div>
                                         <div class="form-control-wrap">
-                                            <input type="text" class="form-control form-control-lg" id="default-01" placeholder="Enter your email address or username">
+                                            <input type="text" class="form-control form-control-lg" id="txt_email" name="txt_email" placeholder="Enter your email address">
                                         </div>
                                     </div>
                                     <div class="form-group">
                                         <div class="form-label-group">
-                                            <label class="form-label" for="password">Password</label>
-                                            <a class="link link-primary link-sm" href="html/pages/auths/auth-reset-v2.html">Forgot Password?</a>
+                                            <label class="form-label" for="txt_password">Password</label>
+                                            <a class="link link-primary link-sm" href="javaCScript:void(0)">Forgot Password?</a>
                                         </div>
                                         <div class="form-control-wrap">
                                             <a href="#" class="form-icon form-icon-right passcode-switch lg" data-target="password">
                                                 <em class="passcode-icon icon-show icon ni ni-eye"></em>
                                                 <em class="passcode-icon icon-hide icon ni ni-eye-off"></em>
                                             </a>
-                                            <input type="password" class="form-control form-control-lg" id="password" placeholder="Enter your passcode">
+                                            <input type="password" class="form-control form-control-lg" id="txt_password" name="txt_password" placeholder="Enter your passcode">
                                         </div>
                                     </div>
                                     <div class="form-group">
                                         <button class="btn btn-lg btn-primary btn-block" type="submit">Sign in</button>
                                     </div>
                                 </form>
-                                <div class="form-note-s2 text-center pt-4"> New on our platform? <a href="{{ route('register_user') }}">Create an account</a>
-                                </div>
                             </div>
                         </div>
                     </div>

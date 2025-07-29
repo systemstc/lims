@@ -93,7 +93,7 @@ class MasterController extends Controller
             if ($validator->fails()) {
                 return redirect()->back()->withErrors($validator)->withInput();
             }
-            $create = Role::create(['m04_name' => $request->txt_role]);
+            $create = Role::create(['m03_name' => $request->txt_role]);
             if ($create) {
                 Session::flash('type', 'success');
                 Session::flash('message', 'Role created Successfully!');
@@ -106,12 +106,12 @@ class MasterController extends Controller
         if ($request->isMethod('post')) {
             $validator = Validator::make($request->all(), [
                 'txt_edit_role' => 'required|string|max:255',
-                'txt_edit_id' => 'required|exists:m04_roles,m04_role_id'
+                'txt_edit_id' => 'required|exists:m03_roles,m03_role_id'
             ]);
             if ($validator->fails()) {
                 return redirect()->back()->withErrors($validator)->withInput();
             }
-            $update = Role::where('m04_role_id', $request->txt_edit_id)->update(['m04_name' => $request->txt_edit_role]);
+            $update = Role::where('m03_role_id', $request->txt_edit_id)->update(['m03_name' => $request->txt_edit_role]);
             if ($update) {
                 Session::flash('type', 'success');
                 Session::flash('message', 'Role created Successfully!');
@@ -120,14 +120,28 @@ class MasterController extends Controller
         }
     }
 
-    public function changeRoleStatus(Request $request) {
+    public function changeRoleStatus(Request $request)
+    {
         $role = Role::findOrFail($request->id);
-        $role->m04_status = $role->m04_status == 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+
+        $role->m03_status = $role->m03_status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
         $role->save();
 
         return response()->json([
             'status' => 'success',
-            'message' => 'Status has been updated to' . $role->m04_status
+            'message' => 'Status has been updated to ' . $role->m03_status
         ]);
+    }
+
+    public function getDistricts(Request $request)
+    {
+        $stateId = $request->state_id;
+
+        $districts = District::where('m01_state_id', $stateId)
+            ->where('m02_status', 'ACTIVE')
+            ->orderBy('m02_name')
+            ->get(['m02_district_id', 'm02_name']);
+
+        return response()->json($districts);
     }
 }

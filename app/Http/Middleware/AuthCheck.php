@@ -16,7 +16,7 @@ class AuthCheck
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (!Session::has('admin_id') && Session::get('admin_id') != 1) {
+        if (!Session::has('role_id')) {
             return to_route('admin_login')->with('error', 'Please login first.');
         }
         return $next($request);

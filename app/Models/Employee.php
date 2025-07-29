@@ -7,35 +7,35 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Employee extends Model
 {
-    protected $table = 'm05_employees';
-    protected $primaryKey = 'm05_employee_id';
+    protected $table = 'm06_employees';
+    protected $primaryKey = 'm06_employee_id';
     protected $fillable = [
-        'm06_user_id',
-        'm05_name',
-        'm05_email',
-        'm05_phone',
-        'm05_gender',
-        'm03_ro_id',
-        'm04_role_id',
-        'm01_state_is',
-        'm02_district_id'
+        'tr01_user_id',
+        'm06_name',
+        'm06_email',
+        'm06_phone',
+        'm04_ro_id',
+        'm03_role_id',
+        'm01_state_id',
+        'm02_district_id',
+        'm06_status'
     ];
 
     public function user(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'm06_user_id');
+        return $this->belongsTo(User::class, 'tr01_user_id');
     }
     public function ro(): BelongsTo
     {
-        return $this->belongsTo(Ro::class, 'm03_ro_id');
+        return $this->belongsTo(Ro::class, 'm04_ro_id');
     }
     public function role(): BelongsTo
     {
-        return $this->belongsTo(Role::class, 'm04_role_id');
+        return $this->belongsTo(Role::class, 'm03_role_id');
     }
     public function state(): BelongsTo
     {
-        return $this->belongsTo(State::class, 'm01_state_is');
+        return $this->belongsTo(State::class, 'm01_state_id');
     }
     public function district(): BelongsTo
     {

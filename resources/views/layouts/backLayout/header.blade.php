@@ -122,7 +122,10 @@
                             </div>
                             <div class="dropdown-inner">
                                 <ul class="link-list">
-                                    <li><a href="{{ route('admin_logout') }}"><em class="icon ni ni-signout"></em><span>Sign out</span></a></li>
+                                    @php
+                                    $route =  Session::get('role_id') == -1 ? 'admin_logout' : 'user_logout';
+                                    @endphp
+                                    <li><a href="{{ route($route) }}"><em class="icon ni ni-signout"></em><span>Sign out</span></a></li>
                                 </ul>
                             </div>
                         </div>

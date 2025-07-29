@@ -3,14 +3,14 @@
     <div class="container-fluid">
         <div class="nk-content-inner">
             <div class="nk-content-body">
-                <div class="components-preview wide-lg mx-auto">
+                <div class="components-preview wide-xl mx-auto">
                     <div class="nk-block nk-block-lg">
                         <div class="nk-block-head">
                             <div class="nk-block-head-content">
                                 <h4 class="nk-block-title">Employee List</h4>
                                 <div class="nk-block-des d-flex justify-content-end">
                                         <a href="{{ route('create_employee') }}" class="btn btn-primary"><em
-                                            class="icon ni ni-plus"></em> &nbsp; Create Role</a>
+                                            class="icon ni ni-plus"></em> &nbsp; Create Employee</a>
                                 </div>
                             </div>
                         </div>
@@ -33,13 +33,13 @@
                                         @foreach ($employees as $key => $employee)
                                             <tr>
                                                 <td>{{ $key + 1 }}</td>
-                                                <td>{{ $employee->m05_name }}</td>
-                                                <td>{{ $employee->m05_email }}</td>
-                                                <td>{{ $employee->role->m04_name }}</td>
-                                                <td>{{ $employee->ro->m03_name }}</td>
+                                                <td>{{ $employee->m06_name }}</td>
+                                                <td>{{ $employee->m06_email }}</td>
+                                                <td>{{ $employee->role->m03_name }}</td>
+                                                <td>{{ $employee->ro->m04_name }}</td>
                                                 <td
-                                                    class="text-{{ $employee->m05_status == 'ACTIVE' ? 'success' : 'danger' }}">
-                                                    <strong>{{ $employee->m05_status }}</strong>
+                                                    class="text-{{ $employee->m06_status == 'ACTIVE' ? 'success' : 'danger' }}">
+                                                    <strong>{{ $employee->m06_status }}</strong>
                                                 </td>
                                                 <td class="nk-tb-col nk-tb-col-tools">
                                                     <ul class="nk-tb-actions gx-1 my-n1">

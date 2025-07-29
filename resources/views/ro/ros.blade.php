@@ -7,10 +7,10 @@
                     <div class="nk-block nk-block-lg">
                         <div class="nk-block-head">
                             <div class="nk-block-head-content">
-                                <h4 class="nk-block-title">State List</h4>
+                                <h4 class="nk-block-title">Regional Offices</h4>
                                 <div class="nk-block-des d-flex justify-content-end">
-                                    <a data-bs-toggle="modal" data-bs-target="#createRole" class="btn btn-primary"><em
-                                            class="icon ni ni-plus"></em> &nbsp; Create Role</a>
+                                    <a data-bs-toggle="modal" data-bs-target="#createRo" class="btn btn-primary"><em
+                                            class="icon ni ni-plus"></em> &nbsp; Create Ro User</a>
                                 </div>
                             </div>
                         </div>
@@ -21,18 +21,22 @@
                                     <thead>
                                         <tr>
                                             <th>ID</th>
-                                            <th>Role</th>
+                                            <th>Ro Name</th>
+                                            <th>Email</th>
+                                            <th>Phone</th>
                                             <th>Status</th>
                                             <th>Action</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        @foreach ($roles as $key => $role)
+                                        @foreach ($ros as $key => $ro)
                                             <tr>
                                                 <td>{{ $key + 1 }}</td>
-                                                <td>{{ $role->m03_name }}</td>
-                                                <td class="text-{{ $role->m03_status == 'ACTIVE' ? 'success' : 'danger' }}">
-                                                    <strong>{{ $role->m03_status }}</strong>
+                                                <td>{{ $ro->m04_name }}</td>
+                                                <td>{{ $ro->m04_email }}</td>
+                                                <td>{{ $ro->m04_phone }}</td>
+                                                <td class="text-{{ $ro->m04_status == 'ACTIVE' ? 'success' : 'danger' }}">
+                                                    <strong>{{ $ro->m04_status }}</strong>
                                                 </td>
                                                 <td class="nk-tb-col nk-tb-col-tools">
                                                     <ul class="nk-tb-actions gx-1 my-n1">
@@ -45,14 +49,16 @@
                                                                 <div class="dropdown-menu dropdown-menu-end">
                                                                     <ul class="link-list-opt no-bdr">
                                                                         <li><a data-bs-toggle="modal" class="edit-btn btn"
-                                                                                data-name="{{ $role->m03_name }}"
-                                                                                data-id="{{ $role->m03_role_id }}"
-                                                                                data-bs-target="#updateRole"><em
+                                                                                data-name="{{ $ro->m04_name }}"
+                                                                                data-email="{{ $ro->m04_email }}"
+                                                                                data-phone="{{ $ro->m04_phone }}"
+                                                                                data-id="{{ $ro->m04_ro_id }}"
+                                                                                data-bs-target="#updateRo"><em
                                                                                     class="icon ni ni-edit"></em><span>Edit
                                                                                 </span></a></li>
                                                                         <li><a class="btn eg-swal-av3"
-                                                                                data-id="{{ $role->m03_role_id }}"
-                                                                                data-status="{{ $role->m03_status }}"><em
+                                                                                data-id="{{ $ro->m04_ro_id }}"
+                                                                                data-status="{{ $ro->m04_status }}"><em
                                                                                     class="icon ni ni-trash"></em><span>Change
                                                                                     Status</span></a></li>
                                                                     </ul>
@@ -74,23 +80,34 @@
     </div>
 
     {{-- Create Model --}}
-    <div class="modal fade zoom" tabindex="-1" id="createRole">
-        <div class="modal-dialog" role="document">
+    <div class="modal fade zoom" tabindex="-1" id="createRo">
+        <div class="modal-dialog modal-lg" role="document">
             <div class="modal-content">
-                <form method="POST" action="{{ route('create_role') }}" class="form-validate is-alter">
+                <form method="POST" action="{{ route('create_ro') }}" class="form-validate is-alter">
                     @csrf
-                    <input type="hidden" name="district_id" id="district_id">
                     <div class="modal-header">
-                        <h5 class="modal-title">Create Role</h5>
+                        <h5 class="modal-title">Create Regional Office Login</h5>
                         <a href="#" class="close" data-bs-dismiss="modal" aria-label="Close">
                             <em class="icon ni ni-cross"></em>
                         </a>
                     </div>
-                    <div class="modal-body">
-                        <div class="form-group">
-                            <label class="form-label" for="txt_role">Role Name</label>
+                    <div class="modal-body row">
+                        <div class="form-group col-md-6">
+                            <label class="form-label" for="txt_name">Name</label>
                             <div class="form-control-wrap">
-                                <input type="text" class="form-control" name="txt_role" id="txt_role" required>
+                                <input type="text" class="form-control" name="txt_name" id="txt_name" required>
+                            </div>
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label class="form-label" for="txt_email">Email</label>
+                            <div class="form-control-wrap">
+                                <input type="text" class="form-control" name="txt_email" id="txt_email" required>
+                            </div>
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label class="form-label" for="txt_phone">Phone Number</label>
+                            <div class="form-control-wrap">
+                                <input type="text" class="form-control" name="txt_phone" id="txt_phone" required>
                             </div>
                         </div>
                     </div>
@@ -104,24 +121,37 @@
     </div>
 
     {{-- Edit & Update Model --}}
-    <div class="modal fade zoom" tabindex="-1" id="updateRole">
-        <div class="modal-dialog" role="document">
+    <div class="modal fade zoom" tabindex="-1" id="updateRo">
+        <div class="modal-dialog modal-lg" role="document">
             <div class="modal-content">
-                <form method="POST" action="{{ route('update_role') }}" class="form-validate is-alter">
+                <form method="POST" action="{{ route('update_ro') }}" class="form-validate is-alter">
                     @csrf
-                    <input type="hidden" name="district_id" id="district_id">
                     <div class="modal-header">
-                        <h5 class="modal-title">Edit Role</h5>
+                        <h5 class="modal-title">Edit Regional Office Details</h5>
                         <a href="#" class="close" data-bs-dismiss="modal" aria-label="Close">
                             <em class="icon ni ni-cross"></em>
                         </a>
                     </div>
                     <input type="hidden" name="txt_edit_id" id="txt_edit_id">
-                    <div class="modal-body">
-                        <div class="form-group">
-                            <label class="form-label" for="txt_edit_role">Role Name</label>
+                    <div class="modal-body row">
+                        <div class="form-group col-md-6">
+                            <label class="form-label" for="txt_edit_name">Name</label>
                             <div class="form-control-wrap">
-                                <input type="text" class="form-control" name="txt_edit_role" id="txt_edit_role"
+                                <input type="text" class="form-control" name="txt_edit_name" id="txt_edit_name"
+                                    required>
+                            </div>
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label class="form-label" for="txt_edit_email">Email</label>
+                            <div class="form-control-wrap">
+                                <input type="text" class="form-control" name="txt_edit_email" id="txt_edit_email"
+                                    required>
+                            </div>
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label class="form-label" for="txt_edit_phone">Phone number</label>
+                            <div class="form-control-wrap">
+                                <input type="text" class="form-control" name="txt_edit_phone" id="txt_edit_phone"
                                     required>
                             </div>
                         </div>
@@ -139,13 +169,15 @@
         $(document).ready(function() {
             $(document).on('click', '.edit-btn', function() {
                 $('#txt_edit_id').val($(this).data('id'));
-                $('#txt_edit_role').val($(this).data('name'));
+                $('#txt_edit_name').val($(this).data('name'));
+                $('#txt_edit_email').val($(this).data('email'));
+                $('#txt_edit_phone').val($(this).data('phone'));
             });
 
 
             $(document).on('click', '.eg-swal-av3', function(e) {
                 e.preventDefault();
-                let roleId = $(this).data('id');
+                let roId = $(this).data('id');
                 let currentStatus = $(this).data('status');
                 let newStatus = currentStatus === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
 
@@ -158,13 +190,13 @@
                 }).then((result) => {
                     if (result.isConfirmed) {
                         $.ajax({
-                            url: '/change-role-status',
+                            url: '/change-status-ro',
                             method: 'POST',
                             headers: {
                                 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
                             },
                             data: {
-                                id: roleId
+                                id: roId
                             },
                             success: function(data) {
                                 if (data.status === 'success') {
