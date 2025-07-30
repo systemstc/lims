@@ -80,7 +80,8 @@ class AuthController extends Controller
                         'user_id'    => $employee->m06_employee_id,
                         'name'  => $employee->m06_name,
                         'email' => $employee->m06_email,
-                        'role_id' => $employee->m03_role_id
+                        'role_id' => $employee->m03_role_id,
+                        'ro_id' => $employee->m04_ro_id
                     ]);
                     // Session::flash('type', 'success');
                     // Session::flash('message', 'Logged In Successfully !');
@@ -91,7 +92,8 @@ class AuthController extends Controller
                         'user_id'    => $ro->m04_ro_id,
                         'name'  => $ro->m04_name,
                         'email' => $ro->m04_email,
-                        'role_id' => $ro->m03_role_id
+                        'role_id' => $ro->m03_role_id,
+                        'ro_id' => $ro->m04_ro_id
                     ]);
                 }
                 Session::flash('type', 'success');

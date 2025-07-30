@@ -74,7 +74,7 @@ class EmployeeController extends Controller
                 return to_route('view_employees');
             } catch (\Exception $e) {
                 DB::rollBack();
-                \Log::error('Employee creation failed', ['error' => $e->getMessage()]);
+                // \Log::error('Employee creation failed', ['error' => $e->getMessage()]);
                 Session::flash('type', 'error');
                 Session::flash('message', 'Failed to create employee. Please try again.');
                 return redirect()->back();

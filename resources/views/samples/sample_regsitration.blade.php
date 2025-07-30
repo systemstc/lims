@@ -38,11 +38,11 @@
                                         </div>
 
                                         {{-- NEW PRE-LOADED SELECT2: Populated from $customers --}}
-                                        <div class="form-group">
+                                        {{-- <div class="form-group">
                                             <label class="form-label">Select Customer (Pre-loaded from Database)</label>
                                             <div class="form-control-wrap">
-                                                <select class="form-select w-full js-select2" data-search="on" id="preloadedCustomerSelect"> {{-- NEW UNIQUE ID --}}
-                                                    <option value="">Select a customer</option> {{-- Default placeholder --}}
+                                                <select class="form-select w-full js-select2" data-search="on" id="preloadedCustomerSelect"> 
+                                                    <option value="">Select a customer</option> 
                                                     @isset($customers)
                                                         @foreach ($customers as $customer)
                                                             <option value="{{ $customer->id }}">{{ $customer->name }}</option>
@@ -50,7 +50,7 @@
                                                     @endisset
                                                 </select>
                                             </div>
-                                        </div>
+                                        </div> --}}
                                     </div>
                                     {{-- Sidebar for JSON Response --}}
                                     <div class="col-sm-4"> {{-- Column for the sidebar --}}

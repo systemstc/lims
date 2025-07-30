@@ -16,7 +16,7 @@
         </div>
     </div>
     @include('layouts.backLayout.scripts')
-    <script>
+    {{-- <script>
         const hasMessage = @json(Session::has('message'));
         const hasErrors = @json($errors->any());
         const message = @json(Session::get('message'));
@@ -40,7 +40,23 @@
                 });
             }
         });
+    </script> --}}
+
+    <script>
+        const hasMessage = @json(Session::has('message'));
+        const message = @json(Session::get('message'));
+        const type = @json(Session::get('type'));
+
+        $(document).ready(function() {
+            if (hasMessage && type && message) {
+                toastr.clear();
+                NioApp.Toast(message, type, {
+                    position: 'top-right'
+                });
+            }
+        });
     </script>
+
 
 </body>
 

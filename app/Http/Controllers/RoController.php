@@ -45,35 +45,25 @@ class RoController extends Controller
                 $user = User::create([
                     'tr01_email'    => $request->txt_email,
                     'tr01_password' => Hash::make('Default@123'),
-                    'tr01_type' => 'EMPLOYEE'
+                    'tr01_type' => 'RO'
                 ]);
-                $data = [
+                Ro::create([
+                    'tr01_user_id' => $user->tr01_user_id,
                     'm04_name' => $request->txt_name,
                     'm04_email' => $request->txt_email,
                     'm04_phone' => $request->txt_phone,
-                    'm04_password' => Hash::make($request->txt_phone)
-                ];
+                ]);
                 DB::commit();
                 Session::flash('type', 'success');
-                Session::flash('message', 'Employee created successfully.');
+                Session::flash('message', 'Ro Created Successfully!');
                 return to_route('view_employees');
             } catch (\Exception $e) {
                 DB::rollBack();
-                \Log::error('Employee creation failed', ['error' => $e->getMessage()]);
+                // \Log::error('Employee creation failed', ['error' => $e->getMessage()]);
                 Session::flash('type', 'error');
-                Session::flash('message', 'Failed to create employee. Please try again.');
+                Session::flash('message', 'Failed to create RO. Please try again.');
                 return redirect()->back();
             }
-
-            $create = Ro::create($data);
-            if ($create) {
-                Session::flash('type', 'success');
-                Session::flash('message', 'Ro Created Successfully!');
-                return to_route('view_ros');
-            }
-            Session::flash('type', 'error');
-            Session::flash('message', 'Something wents Wrong. Please try again!');
-            return to_route('view_ros');
         }
     }
 
@@ -103,7 +93,6 @@ class RoController extends Controller
                 'm04_name' => $request->txt_edit_name,
                 'm04_email' => $request->txt_edit_email,
                 'm04_phone' => $request->txt_edit_phone,
-                'm04_password' => Hash::make($request->txt_edit_phone)
             ];
 
             $ro = Ro::findOrFail($request->txt_edit_id);

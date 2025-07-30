@@ -23,7 +23,7 @@ class SampleController extends Controller
 
     public function registerSample()
     {
-        $customers = Customer::all();
-        return view('samples.sample_regsitration', compact('customers'));
+        // $customers = Customer::all();
+        return view('samples.sample_regsitration');
     }
 }

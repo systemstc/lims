@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\CustomerSearchController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\MasterController;
@@ -45,15 +46,26 @@ Route::middleware(['check_permission'])->group(function () {
 
     Route::get('employees', [EmployeeController::class, 'viewEmployee'])->name('view_employees');
     Route::match(['get', 'post'], 'create-employee', [EmployeeController::class, 'createEmployee'])->name('create_employee');
-    Route::get('/get-districts', [MasterController::class, 'getDistricts'])->name('get_districts');
-
-
+    
+    
     Route::get('sample-registration', [SampleController::class, 'registerSample'])->name('sample_registration');
-
+    
     Route::get('/search-names', [SampleController::class, 'searchNames'])->name('search.names');
-
+    
+    // Ros
     Route::get('ros', [RoController::class, 'ros'])->name('view_ros');
     Route::post('create-ro', [RoController::class, 'createRo'])->name('create_ro');
     Route::post('update-ro', [RoController::class, 'updateRo'])->name('update_ro');
     Route::post('change-status-ro', [RoController::class, 'changeRoStatus'])->name('change_ro_status');
+    
+    // Customer Routes
+    Route::match(['get', 'post'], 'create-customer', [CustomerController::class, 'createCustomer'])->name('create_customer');
+
+    // Customer types 
+    Route::get('view-customer-types', [CustomerController::class, 'viewCustomerTypes'])->name('view_customer_type');
+    Route::post('create-customer-type', [CustomerController::class, 'createCustomerType'])->name('create_customer_type');
+    Route::post('update-customer-type', [CustomerController::class, 'updateCustomerType'])->name('update_customer_type');
+    Route::post('delete-customer-type', [CustomerController::class, 'deleteCustomerType'])->name('delete_customer_type');
 });
+
+Route::get('/get-districts', [MasterController::class, 'getDistricts'])->name('get_districts');
