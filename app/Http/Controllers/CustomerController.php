@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Validator;
+use Symfony\Component\CssSelector\XPath\Extension\FunctionExtension;
 
 class CustomerController extends Controller
 {
@@ -116,6 +117,14 @@ class CustomerController extends Controller
             'new_status' => $customerType->m09_status
         ]);
     }
+
+    public function customerAll()
+    {
+        $customers = Customer::with('customerType', 'locations', 'district')->get();
+        // dd($customers);
+        return view('customers', compact('customers'));
+    }
+
     public function createCustomer(Request $request)
     {
         if ($request->isMethod('post')) {
@@ -254,5 +263,197 @@ class CustomerController extends Controller
         $ros = Ro::get(['m04_ro_id', 'm04_name']);
         $customerTypes = CustomerType::get(['m09_customer_type_id', 'm09_name']);
         return view('create_customer', compact('states', 'ros', 'customerTypes'));
+    }
+
+    public function  deleteCustomer(Request $request)
+    {
+        $customer = Customer::findOrFail($request->id);
+        $customer->m07_status = $customer->m07_status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+        $customer->save();
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Customer status updated to ' . $customer->m07_status,
+            'new_status' => $customer->m07_status
+        ]);
+    }
+
+    public function updateCustomer(Request $request, $id)
+    {
+        $customer = Customer::with('locations')->findOrFail($id);
+
+        if ($request->isMethod('post')) {
+            $validator = Validator::make($request->all(), [
+                'txt_edit_customer_type_id' => 'required|integer|exists:m09_customer_types,m09_customer_type_id',
+                'txt_edit_name'             => 'required|string|max:255',
+                'txt_edit_email'            => 'required|email|max:255',
+                'txt_edit_phone'            => 'required|string|max:15',
+                'txt_edit_gst'              => 'nullable|string|max:15',
+                'txt_edit_iec'              => 'nullable|string|max:20',
+                'txt_edit_contact_person'   => 'required|string|max:255',
+                'txt_edit_state_id'         => 'required|integer|exists:m01_states,m01_state_id',
+                'txt_edit_district_id'      => 'required|integer|exists:m02_districts,m02_district_id',
+                'txt_edit_pincode'          => 'required|string|max:10',
+                'txt_edit_address'          => 'required|string|max:500',
+
+                'locations'                 => 'nullable|array',
+                'locations.*.id'            => 'nullable|integer|exists:m08_customer_locations,m08_customer_location_id',
+                'locations.*.contact_person' => 'required|string|max:255',
+                'locations.*.email'         => 'required|email|max:255',
+                'locations.*.phone'         => 'required|string|max:15',
+                'locations.*.gst'           => 'nullable|string|max:15',
+                'locations.*.state_id'      => 'required|integer|exists:m01_states,m01_state_id',
+                'locations.*.district_id'   => 'required|integer|exists:m02_districts,m02_district_id',
+                'locations.*.pincode'       => 'required|string|max:10',
+                'locations.*.address'       => 'required|string|max:500',
+            ], [
+                'txt_edit_customer_type_id.required' => 'The customer type field is required.',
+                'txt_edit_customer_type_id.integer' => 'The customer type must be an integer.',
+                'txt_edit_customer_type_id.exists' => 'The selected customer type is invalid.',
+
+                'txt_edit_name.required' => 'The name field is required.',
+                'txt_edit_name.string' => 'The name must be a string.',
+                'txt_edit_name.max' => 'The name may not be greater than :max characters.',
+
+                'txt_edit_email.required' => 'The email field is required.',
+                'txt_edit_email.email' => 'Please enter a valid email address.',
+                'txt_edit_email.max' => 'The email may not be greater than :max characters.',
+
+                'txt_edit_phone.required' => 'The phone field is required.',
+                'txt_edit_phone.string' => 'The phone must be a string.',
+                'txt_edit_phone.max' => 'The phone may not be greater than :max characters.',
+
+                'txt_edit_gst.string' => 'The GST must be a string.',
+                'txt_edit_gst.max' => 'The GST may not be greater than :max characters.',
+
+                'txt_edit_iec.string' => 'The IEC must be a string.',
+                'txt_edit_iec.max' => 'The IEC may not be greater than :max characters.',
+
+                'txt_edit_contact_person.required' => 'The contact person field is required.',
+                'txt_edit_contact_person.string' => 'The contact person must be a string.',
+                'txt_edit_contact_person.max' => 'The contact person may not be greater than :max characters.',
+
+                'txt_edit_state_id.required' => 'The state field is required.',
+                'txt_edit_state_id.integer' => 'The state must be an integer.',
+                'txt_edit_state_id.exists' => 'The selected state is invalid.',
+
+                'txt_edit_district_id.required' => 'The district field is required.',
+                'txt_edit_district_id.integer' => 'The district must be an integer.',
+                'txt_edit_district_id.exists' => 'The selected district is invalid.',
+
+                'txt_edit_pincode.required' => 'The pincode field is required.',
+                'txt_edit_pincode.string' => 'The pincode must be a string.',
+                'txt_edit_pincode.max' => 'The pincode may not be greater than :max characters.',
+
+                'txt_edit_address.required' => 'The address field is required.',
+                'txt_edit_address.string' => 'The address must be a string.',
+                'txt_edit_address.max' => 'The address may not be greater than :max characters.',
+
+                'locations.array' => 'The locations must be an array.',
+
+                'locations.*.id.integer' => 'A location ID must be an integer.',
+                'locations.*.id.exists' => 'The selected location ID is invalid.',
+
+                'locations.*.contact_person.required' => 'The location contact person is required.',
+                'locations.*.contact_person.string' => 'A location contact person must be a string.',
+                'locations.*.contact_person.max' => 'A location contact person may not be greater than :max characters.',
+
+                'locations.*.email.required' => 'The location email field is required.',
+                'locations.*.email.email' => 'Please enter a valid email address for the location.',
+                'locations.*.email.max' => 'A location email may not be greater than :max characters.',
+
+                'locations.*.phone.required' => 'The location phone field is required.',
+                'locations.*.phone.string' => 'A location phone must be a string.',
+                'locations.*.phone.max' => 'A location phone may not be greater than :max characters.',
+
+                'locations.*.gst.string' => 'A location GST must be a string.',
+                'locations.*.gst.max' => 'A location GST may not be greater than :max characters.',
+
+                'locations.*.state_id.required' => 'The location state field is required.',
+                'locations.*.state_id.integer' => 'A location state must be an integer.',
+                'locations.*.state_id.exists' => 'The selected location state is invalid.',
+
+                'locations.*.district_id.required' => 'The location district field is required.',
+                'locations.*.district_id.integer' => 'A location district must be an integer.',
+                'locations.*.district_id.exists' => 'The selected location district is invalid.',
+
+                'locations.*.pincode.required' => 'The location pincode field is required.',
+                'locations.*.pincode.string' => 'A location pincode must be a string.',
+                'locations.*.pincode.max' => 'A location pincode may not be greater than :max characters.',
+
+                'locations.*.address.required' => 'The location address field is required.',
+                'locations.*.address.string' => 'A location address must be a string.',
+                'locations.*.address.max' => 'A location address may not be greater than :max characters.',
+            ]);
+
+            if ($validator->fails()) {
+                return redirect()->back()->withErrors($validator)->withInput();
+            }
+
+            DB::beginTransaction();
+            try {
+                $customer->update([
+                    'm09_customer_type_id' => $request->txt_edit_customer_type_id,
+                    'm07_name'             => $request->txt_edit_name,
+                    'm07_email'            => $request->txt_edit_email,
+                    'm07_phone'            => $request->txt_edit_phone,
+                    'm07_gst'              => $request->txt_edit_gst,
+                    'm07_iec_code'         => $request->txt_edit_iec,
+                    'm07_contact_person'   => $request->txt_edit_contact_person,
+                    'm01_state_id'         => $request->txt_edit_state_id,
+                    'm02_district_id'      => $request->txt_edit_district_id,
+                    'm07_pincode'          => $request->txt_edit_pincode,
+                    'm07_address'          => $request->txt_edit_address,
+                ]);
+                $submittedLocations = $request->input('locations', []);
+                $submittedLocationIds = collect($submittedLocations)->pluck('id')->filter()->all();
+
+                CustomerLocation::where('m07_customer_id', $customer->m07_customer_id)
+                    ->whereNotIn('m08_customer_location_id', $submittedLocationIds)
+                    ->delete();
+
+                foreach ($submittedLocations as $locationData) {
+                    if (empty($locationData['address']) && empty($locationData['contact_person'])) {
+                        continue;
+                    }
+
+                    $dataToUpdateOrCreate = [
+                        'm08_contact_person' => $locationData['contact_person'],
+                        'm08_email'          => $locationData['email'],
+                        'm08_phone'          => $locationData['phone'],
+                        'm08_gst'            => $locationData['gst'],
+                        'm01_state_id'       => $locationData['state_id'],
+                        'm02_district_id'    => $locationData['district_id'],
+                        'm08_pincode'        => $locationData['pincode'],
+                        'm08_address'        => $locationData['address'],
+                    ];
+
+                    CustomerLocation::updateOrCreate(
+                        [
+                            'm08_customer_location_id' => $locationData['id'] ?? null,
+                            'm07_customer_id'          => $customer->m07_customer_id
+                        ],
+                        $dataToUpdateOrCreate
+                    );
+                }
+
+                DB::commit();
+
+                Session::flash('type', 'success');
+                Session::flash('message', 'Customer updated successfully!');
+                return to_route('customers');
+            } catch (\Exception $e) {
+                DB::rollBack();
+                // Log::error('Customer Update Failed: ' . $e->getMessage());
+                Session::flash('type', 'error');
+                Session::flash('message', 'An error occurred while updating the customer. Please try again.');
+                return redirect()->back()->withInput();
+            }
+        }
+        $states = State::get(['m01_state_id', 'm01_name']);
+        $ros = Ro::get(['m04_ro_id', 'm04_name']);
+        $customerTypes = CustomerType::get(['m09_customer_type_id', 'm09_name']);
+        $customer->locations = $customer->locations->toArray();
+
+        return view('edit_customer', compact('customer', 'states', 'ros', 'customerTypes'));
     }
 }
