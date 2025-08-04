@@ -5,6 +5,7 @@ use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\CustomerSearchController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\MasterController;
+use App\Http\Controllers\MeasurementController;
 use App\Http\Controllers\RoController;
 use App\Http\Controllers\SampleController;
 use App\Models\Employee;
@@ -68,6 +69,63 @@ Route::middleware(['check_permission'])->group(function () {
     Route::post('create-customer-type', [CustomerController::class, 'createCustomerType'])->name('create_customer_type');
     Route::post('update-customer-type', [CustomerController::class, 'updateCustomerType'])->name('update_customer_type');
     Route::post('delete-customer-type', [CustomerController::class, 'deleteCustomerType'])->name('delete_customer_type');
+
+    // Samples 
+    Route::get('samples', [MasterController::class, 'viewSamples'])->name('view_samples');
+    Route::post('create-sample', [MasterController::class, 'createSample'])->name('create_sample');
+    Route::post('update-sample', [MasterController::class, 'updateSample'])->name('update_sample');
+    Route::post('delete-sample', [MasterController::class, 'deleteSample'])->name('delete_sample');
+
+    // Groups
+    Route::get('groups', [MasterController::class, 'viewGroups'])->name('view_groups');
+    Route::post('create-group', [MasterController::class, 'createGroup'])->name('create_group');
+    Route::post('update-group', [MasterController::class, 'updateGroup'])->name('update_group');
+    Route::post('delete-group', [MasterController::class, 'deleteGroup'])->name('delete_group');
+
+    // Departments
+    Route::get('departments', [MasterController::class, 'viewDepartments'])->name('view_departments');
+    Route::post('create-department', [MasterController::class, 'createDepartment'])->name('create_department');
+    Route::post('update-department', [MasterController::class, 'updateDepartment'])->name('update_department');
+    Route::post('delete-department', [MasterController::class, 'deleteDepartment'])->name('delete_department');
+
+    // Lab Samples
+    Route::get('lab_samples', [MasterController::class, 'viewLabSamples'])->name('view_lab_samples');
+    Route::post('create-lab-sample', [MasterController::class, 'createLabSamples'])->name('create_lab_sample');
+    Route::post('update-lab-sample', [MasterController::class, 'updateLabSamples'])->name('update_lab_sample');
+    Route::post('delete-lab-sample', [MasterController::class, 'deleteLabSamples'])->name('delete_lab_sample');
+
+    // Tests
+    Route::get('tests', [MasterController::class, 'viewTests'])->name('view_tests');
+    Route::match(['get', 'post'], 'create-test', [MasterController::class, 'createTest'])->name('create_test');
+    Route::match(['get', 'post'], 'update-test/{id}', [MasterController::class, 'updateTest'])->name('update_test');
+    Route::post('delete-test', [MasterController::class, 'deleteTest'])->name('delete_test');
+
+    // Standards
+    Route::get('standards', [MasterController::class, 'viewStandards'])->name('view_standards');
+    Route::match(['get', 'post'], 'create-standard', [MasterController::class, 'createStandard'])->name('create_standard');
+    Route::match(['get', 'post'], 'update-standard/{id}', [MasterController::class, 'updateStandard'])->name('update_standard');
+    Route::post('delete-standard', [MasterController::class, 'deleteStandard'])->name('delete_standard');
+
+    // Primary Tests
+    Route::get('primary-tests', [MasterController::class, 'viewPrimaryTests'])->name('view_primary_tests');
+    Route::match(['get', 'post'], 'create-primary-test', [MasterController::class, 'createPrimaryTest'])->name('create_primary_test');
+    Route::match(['get', 'post'], 'update-primary-test/{id}', [MasterController::class, 'updatePrimaryTest'])->name('update_primary_test');
+    Route::post('delete-primary-test', [MasterController::class, 'deletePrimaryTest'])->name('delete_primary_test');
+
+    // Secondary test 
+    Route::get('secondary-tests', [MasterController::class, 'viewSecondaryTests'])->name('view_secondary_tests');
+    Route::match(['get', 'post'], 'create-secondary-test', [MasterController::class, 'createSecondaryTest'])->name('create_secondary_test');
+    Route::match(['get', 'post'], 'update-secondary-test/{id}', [MasterController::class, 'updateSecondaryTest'])->name('update_secondary_test');
+    Route::post('delete-secondary-test', [MasterController::class, 'deleteSecondaryTest'])->name('delete_secondary_test');
+
+    // For Simple and Multi Value measurements
+    Route::get('measurements', [MeasurementController::class, 'viewMeasurements'])->name('view_measurements');
+    Route::match(['get', 'post'], 'create-measurement', [MeasurementController::class, 'createMeasurement'])->name('create_measurement');
+    Route::match(['get', 'post'], 'update-measurement/{id}', [MeasurementController::class, 'updateMeasurement'])->name('update_measurement');
+    Route::post('delete-measurement', [MeasurementController::class, 'deleteMeasurement'])->name('delete_measurement');
 });
 
 Route::get('/get-districts', [MasterController::class, 'getDistricts'])->name('get_districts');
+Route::get('group-bysample', [MasterController::class, 'getGroups'])->name('get_groups');
+Route::get('test-bygroup', [MasterController::class, 'getTests'])->name('get_tests');
+Route::get('primarytest-bytest', [MasterController::class, 'getPrimaryTests'])->name('get_primary_tests');

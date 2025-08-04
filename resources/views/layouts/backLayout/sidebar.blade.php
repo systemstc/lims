@@ -3,24 +3,53 @@
 
     $roleId = Session::get('role_id') ?? -1;
 
+    // if ($roleId != -1) {
+    //     $menus = Menu::where('m05_status', 'ACTIVE')
+    //         ->whereNull('m05_parent_id')
+    //         ->whereRaw('FIND_IN_SET(?, m05_role_view)', [$roleId])
+    //         ->orderBy('m05_menu_id')
+    //         ->with([
+    //             'children' => function ($q) use ($roleId) {
+    //                 $q->where('m05_status', 'ACTIVE')->whereRaw('FIND_IN_SET(?, m05_role_view)', [$roleId]);
+    //             },
+    //         ])
+    //         ->get();
+    // } else {
+    //     $menus = Menu::where('m05_status', 'ACTIVE')
+    //         ->whereNull('m05_parent_id')
+    //         ->orderBy('m05_menu_id')
+    //         ->with('children')
+    //         ->get();
+    // }
+
     if ($roleId != -1) {
         $menus = Menu::where('m05_status', 'ACTIVE')
             ->whereNull('m05_parent_id')
             ->whereRaw('FIND_IN_SET(?, m05_role_view)', [$roleId])
-            ->orderBy('m05_menu_id')
+            ->orderBy('m05_order_by') // First priority
+            ->orderBy('created_at') // Second priority
             ->with([
                 'children' => function ($q) use ($roleId) {
-                    $q->where('m05_status', 'ACTIVE')->whereRaw('FIND_IN_SET(?, m05_role_view)', [$roleId]);
+                    $q->where('m05_status', 'ACTIVE')
+                        ->whereRaw('FIND_IN_SET(?, m05_role_view)', [$roleId])
+                        ->orderBy('m05_order_by') // Child ordering by same logic
+                        ->orderBy('created_at');
                 },
             ])
             ->get();
     } else {
         $menus = Menu::where('m05_status', 'ACTIVE')
             ->whereNull('m05_parent_id')
-            ->orderBy('m05_menu_id')
-            ->with('children')
+            ->orderBy('m05_order_by')
+            ->orderBy('created_at')
+            ->with([
+                'children' => function ($q) {
+                    $q->where('m05_status', 'ACTIVE')->orderBy('m05_order_by')->orderBy('created_at');
+                },
+            ])
             ->get();
     }
+
 @endphp
 
 <div class="nk-sidebar nk-sidebar-fixed is-light" data-content="sidebarMenu">

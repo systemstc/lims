@@ -54,6 +54,7 @@ class EmployeeController extends Controller
             DB::beginTransaction();
             try {
                 $user = User::create([
+                    'tr01_name' => $request->txt_name,
                     'tr01_email'    => $request->txt_email,
                     'tr01_password' => Hash::make('Default@123'),
                     'tr01_type' => 'EMPLOYEE'
