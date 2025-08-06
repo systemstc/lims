@@ -21,7 +21,6 @@
                                     <thead>
                                         <tr>
                                             <th>ID</th>
-                                            <th>Lab ID</th>
                                             <th>Sample</th>
                                             <th>Lab Sample</th>
                                             <th>Remark</th>
@@ -37,13 +36,12 @@
                                         @foreach ($labSamples as $key => $labSample)
                                             <tr>
                                                 <td>{{ $key + 1 }}</td>
-                                                <td>{{ $labSample->ro->m04_name }}</td>
-                                                <td>{{ $labSample->sample->m10_name }}</td>
+                                                <td>{{ $labSample->sample->m10_name ?? '' }}</td>
                                                 <td>{{ $labSample->m14_name }}</td>
                                                 <td>{{ $labSample->m14_remark }}</td>
                                                 <td>{{ $labSample->m14_order_by }}</td>
                                                 <td>{{ $labSample->m14_sample_no }}</td>
-                                                <td>{{ $labSample->user->tr01_name }}</td>
+                                                <td>{{ $labSample->user->tr01_name ?? '' }}</td>
                                                 <td>{{ $labSample->created_at }}</td>
                                                 <td
                                                     class="text-{{ $labSample->m14_status == 'ACTIVE' ? 'success' : 'danger' }}">

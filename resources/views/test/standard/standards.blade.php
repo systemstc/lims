@@ -41,9 +41,9 @@
                                         @foreach ($standards as $key => $standard)
                                             <tr>
                                                 <td>{{ $key + 1 }}</td>
-                                                <td>{{ $standard->sample->m10_name }}</td>
-                                                <td>{{ $standard->group->m11_name }}</td>
-                                                <td>{{ $standard->test->m12_name }}</td>
+                                                <td>{{ $standard->sample->m10_name ?? '' }}</td>
+                                                <td>{{ $standard->group->m11_name ?? '' }}</td>
+                                                <td>{{ $standard->test->m12_name ?? '' }}</td>
                                                 <td>{{ $standard->m15_method }}</td>
                                                 {{-- <td>{{ $standard->m12_description }}</td> --}}
                                                 {{-- <td>{{ $standard->m12_alias }}</td>

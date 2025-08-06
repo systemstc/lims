@@ -18,6 +18,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Validator;
+use Symfony\Component\HttpFoundation\Session\Flash\FlashBag;
 use Yajra\DataTables\Facades\DataTables;
 
 class MasterController extends Controller
@@ -496,18 +497,15 @@ class MasterController extends Controller
     public function createTest(Request $request)
     {
         if ($request->isMethod('POST')) {
-
+            // dd($request);
             $rules = [
                 "txt_sample_id"             => "required|integer|exists:m10_samples,m10_sample_id",
                 "txt_group_id"              => "required|integer|exists:m11_groups,m11_group_id",
-                "txt_department_id"         => "required|integer|exists:m13_departments,m13_department_id",
+                // "txt_department_id"         => "required|integer|exists:m13_departments,m13_department_id",
                 "txt_name"                  => "required|string|max:255",
                 "txt_category_id"           => "required|string|max:255",
                 "txt_input_mode"            => "required|string|max:255",
                 "txt_stages"                => "nullable|integer|min:1",
-                "txt_output_matrix"         => "required|array",
-                "txt_output_matrix.*.name"  => "required|string|max:255",
-                "txt_output_matrix.*.value" => "required|numeric|min:0",
                 "txt_charge"                => "required|numeric|min:0",
                 "txt_description"           => "nullable|string|max:500",
                 "txt_alias"                 => "nullable|string|max:255",
@@ -515,49 +513,85 @@ class MasterController extends Controller
                 "txt_unit"                  => "nullable|string|max:100",
                 "txt_instrument"            => "nullable|string|max:255",
                 "txt_remark"                => "nullable|string|max:500",
+
+                // ID-based validation for test configuration
+                "standard_ids"              => "required|array|min:1",
+                "standard_ids.*"            => "required|integer|exists:m15_standards,m15_standard_id", // Assuming standards table with id column
+
+                "primary_test_ids"          => "required|array|min:1",
+                "primary_test_ids.*"        => "required|integer|exists:m16_primary_tests,m16_primary_test_id", // Assuming primary_tests table
+
+                "secondary_test_ids"        => "nullable|array",
+                "secondary_test_ids.*"      => "nullable|integer|exists:m17_secondary_tests,m17_secondary_test_id", // Assuming secondary_tests table
+
+                "results"                   => "required|min:1",
+                // "results.*.name"            => "required|string|max:255",
             ];
+
             // Additional validation for MULTI STAGE
             if ($request->txt_input_mode === 'MULTI STAGE') {
                 $rules['txt_stages'] = 'required|integer|min:1|max:50';
-                $rules['stages'] = 'required|array|min:1';
-                $rules['stages.*.name'] = 'required|string|max:255';
-                $rules['stages.*.inputs'] = 'required|string';
-                $rules['stages.*.outputs'] = 'nullable|string';
             }
+
             $messages = [
+                // Basic field messages
                 'txt_sample_id.required'              => 'Please select a sample.',
                 'txt_sample_id.exists'                => 'The selected sample does not exist.',
                 'txt_group_id.required'               => 'Please select a group.',
                 'txt_group_id.exists'                 => 'The selected group does not exist.',
-                'txt_department_id.required'          => 'Please select a department.',
-                'txt_department_id.exists'            => 'The selected department does not exist.',
+                // 'txt_department_id.required'          => 'Please select a department.',
+                // 'txt_department_id.exists'            => 'The selected department does not exist.',
                 'txt_name.required'                   => 'Test name is required.',
                 'txt_name.max'                        => 'Test name should not exceed 255 characters.',
                 'txt_category_id.required'            => 'Category is required.',
                 'txt_input_mode.required'             => 'Input mode is required.',
+                'txt_stages.required'                 => 'Number of stages is required for multi-stage tests.',
                 'txt_stages.integer'                  => 'Stages must be a number.',
                 'txt_stages.min'                      => 'Stages must be at least 1.',
-                'txt_output_matrix.required'          => 'Output matrix is required.',
-                'txt_output_matrix.array'             => 'Output matrix must be an array.',
-                'txt_output_matrix.*.name.required'   => 'Each output stage must have a name.',
-                'txt_output_matrix.*.name.string'     => 'Each stage name must be a string.',
-                'txt_output_matrix.*.value.required'  => 'Each output stage must have a value.',
-                'txt_output_matrix.*.value.numeric'   => 'Each output value must be a number.',
-                'txt_output_matrix.*.value.min'       => 'Output values must be 0 or more.',
+                'txt_stages.max'                      => 'Stages cannot exceed 50.',
                 'txt_charge.required'                 => 'Charge is required.',
                 'txt_charge.numeric'                  => 'Charge must be a number.',
+                'txt_charge.min'                      => 'Charge must be 0 or more.',
                 'txt_description.max'                 => 'Description should not exceed 500 characters.',
                 'txt_alias.max'                       => 'Alias should not exceed 255 characters.',
                 'txt_weight.numeric'                  => 'Weight must be a number.',
+                'txt_weight.min'                      => 'Weight must be 0 or more.',
                 'txt_unit.max'                        => 'Unit should not exceed 100 characters.',
                 'txt_instrument.max'                  => 'Instrument should not exceed 255 characters.',
                 'txt_remark.max'                      => 'Remark should not exceed 500 characters.',
+
+                // ID-based validation messages
+                'standard_ids.required'               => 'At least one standard is required.',
+                'standard_ids.array'                  => 'Standards must be provided as an array.',
+                'standard_ids.min'                    => 'At least one standard is required.',
+                'standard_ids.*.required'             => 'Standard ID is required.',
+                'standard_ids.*.integer'              => 'Standard ID must be a number.',
+                'standard_ids.*.exists'               => 'One or more selected standards do not exist.',
+
+                'primary_test_ids.required'           => 'At least one primary test is required.',
+                'primary_test_ids.array'              => 'Primary tests must be provided as an array.',
+                'primary_test_ids.min'                => 'At least one primary test is required.',
+                'primary_test_ids.*.required'         => 'Primary test ID is required.',
+                'primary_test_ids.*.integer'          => 'Primary test ID must be a number.',
+                'primary_test_ids.*.exists'           => 'One or more selected primary tests do not exist.',
+
+                'secondary_test_ids.array'            => 'Secondary tests must be provided as an array.',
+                'secondary_test_ids.*.integer'        => 'Secondary test ID must be a number.',
+                'secondary_test_ids.*.exists'         => 'One or more selected secondary tests do not exist.',
+
+                'results.required'                    => 'At least one result is required.',
+                // 'results.array'                       => 'Results must be provided as an array.',
+                'results.min'                         => 'At least one result is required.',
+                // 'results.*.name.required'             => 'Each result must have a name.',
+                // 'results.*.name.string'               => 'Result name must be text.',
+                // 'results.*.name.max'                  => 'Result name should not exceed 255 characters.',
             ];
+
             $validator = Validator::make($request->all(), $rules, $messages);
+
             if ($validator->fails()) {
                 return redirect()->back()->withErrors($validator)->withInput();
             }
-
             DB::beginTransaction();
 
             try {
@@ -565,12 +599,15 @@ class MasterController extends Controller
                 $test = Test::create([
                     'm10_sample_id' => $request->txt_sample_id,
                     'm11_group_id' => $request->txt_group_id,
-                    'm13_department_id' => $request->txt_department_id,
+                    // 'm13_department_id' => $request->txt_department_id,
                     'm12_name' => $request->txt_name,
                     'm12_category' => $request->txt_category_id,
                     'm12_input_mode' => $request->txt_input_mode,
                     'm12_stages' => $request->txt_input_mode === 'MULTI STAGE' ? $request->txt_stages : null,
-                    'm12_output_metrics' => json_encode($request->txt_output_matrix),
+                    'm15_standard_id'       => implode(',', $request->standard_ids ?? []),
+                    'm16_primary_test_id'   => implode(',', $request->primary_test_ids ?? []),
+                    'm17_secondary_test_id' => implode(',', $request->secondary_test_ids ?? []),
+                    'm12_result'            => $request->results,
                     'm12_charge' => $request->txt_charge,
                     'm12_description' => $request->txt_description,
                     'm12_alias' => $request->txt_alias,
@@ -581,36 +618,6 @@ class MasterController extends Controller
                     'tr01_created_by' => Session::get('user_id') ?? -1,
                 ]);
 
-                // If MULTI STAGE, create stage records
-                if ($request->txt_input_mode === 'MULTI STAGE' && $request->stages) {
-                    foreach ($request->stages as $index => $stageData) {
-                        // Prepare inputs data
-                        $inputs = [];
-                        if (isset($stageData['inputs']) && is_array($stageData['inputs'])) {
-                            $inputs = array_filter($stageData['inputs'], function ($input) {
-                                return !empty($input['name']) && !empty($input['type']);
-                            });
-                        }
-
-                        // Prepare outputs data
-                        $outputs = [];
-                        if (isset($stageData['outputs']) && is_array($stageData['outputs'])) {
-                            $outputs = array_filter($stageData['outputs'], function ($output) {
-                                return !empty($output['name']);
-                            });
-                        }
-
-                        // Create stage record
-                        Stage::create([
-                            'm12_test_id' => $test->m12_test_id,
-                            'm18_name' => $stageData['name'],
-                            'm18_stage_number' => $index + 1,
-                            'm18_inputs' => $stageData['inputs'],
-                            'm18_outputs' => $stageData['outputs'] ?? '',
-                            'tr01_created_by' => Session::get('user_id') ?? -1,
-                        ]);
-                    }
-                }
                 DB::commit();
                 Session::flash('type', 'success');
                 Session::flash('message', 'Test created successfully.');
@@ -619,7 +626,7 @@ class MasterController extends Controller
                 DB::rollback();
                 Session::flash('type', 'error');
                 Session::flash('message', 'Error creating test: ' . $e->getMessage());
-                return redirect()->back();
+                return redirect()->back()->withInput();
             }
         }
 
@@ -627,6 +634,192 @@ class MasterController extends Controller
         $departments = Department::where('m13_status', 'ACTIVE')->get(['m13_department_id', 'm13_name']);
 
         return view('test.create_test', compact('samples', 'departments'));
+    }
+
+    private function cleanArrayData($data)
+    {
+        if (!is_array($data)) {
+            return [];
+        }
+        return array_filter(array_map(function ($item) {
+            if (is_array($item) && isset($item['name'])) {
+                return ['name' => trim($item['name'])];
+            }
+            return null;
+        }, $data), function ($item) {
+            return $item !== null && !empty($item['name']);
+        });
+    }
+
+    // Search for standards
+    public function searchStandards(Request $request)
+    {
+        $query = $request->get('query');
+        if (strlen($query) < 2) {
+            return response()->json([]);
+        }
+        $standards = DB::table('m15_standards')
+            ->where('m15_method', 'LIKE', '%' . $query . '%')
+            ->where('m15_status', 'ACTIVE')
+            ->select('m15_standard_id as id', 'm15_method as name')
+            ->distinct()
+            ->limit(10)
+            ->get();
+        return response()->json($standards);
+    }
+
+    // Search for primary tests
+    public function searchPrimaryTests(Request $request)
+    {
+        $query = $request->get('query');
+        if (strlen($query) < 2) {
+            return response()->json([]);
+        }
+        $primaryTests = DB::table('m16_primary_tests')
+            ->where('m16_name', 'LIKE', '%' . $query . '%')
+            ->where('m16_status', 'ACTIVE')
+            ->select('m16_primary_test_id as id', 'm16_name as name')
+            ->distinct()
+            ->limit(10)
+            ->get();
+        return response()->json($primaryTests);
+    }
+
+    // Search for secondary tests
+    public function searchSecondaryTests(Request $request)
+    {
+        $query = $request->get('query');
+        $primaryTestIds = $request->get('primary_test_ids', []);
+
+        if (empty($primaryTestIds)) {
+            return response()->json([]);
+        }
+        $secondaryTests = SecondaryTest::whereIn('m16_primary_test_id', $primaryTestIds)
+            ->where('m17_name', 'LIKE', '%' . $query . '%')
+            ->where('m17_status', 'ACTIVE')
+            ->select('m17_secondary_test_id as id', 'm17_name as name', 'm16_primary_test_id as primary_test_id')
+            ->distinct()
+            ->limit(20)
+            ->get();
+        return response()->json($secondaryTests);
+    }
+
+    // AJAX methods for creating new items
+    public function createAjaxStandard(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|string|max:255|unique:m15_standards,m15_method',
+        ]);
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => $validator->errors()->first()
+            ]);
+        }
+        try {
+            $standard = DB::table('m15_standards')->insertGetId([
+                'm15_method' => $request->name,
+                'm10_sample_id' => $request->sampleId,
+                'm11_group_id' => $request->groupId,
+                'tr01_created_by' => Session::get('user_id') ?? -1,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'id' => $standard,
+                    'name' => $request->name
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error creating standard: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    public function createAjaxPrimaryTest(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|string|max:255|unique:m16_primary_tests,m16_name'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => $validator->errors()->first()
+            ]);
+        }
+
+        try {
+            $primaryTest = DB::table('m16_primary_tests')->insertGetId([
+                'm10_sample_id' => $request->sampleId,
+                'm11_group_id' => $request->groupId,
+                'm16_name' => $request->name,
+                'tr01_created_by' => Session::get('user_id') ?? -1,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'id' => $primaryTest,
+                    'name' => $request->name
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error creating primary test: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    public function createAjaxSecondaryTest(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|string|max:255|unique:m17_secondary_tests,m17_name'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => $validator->errors()->first()
+            ]);
+        }
+
+        try {
+            $exists = SecondaryTest::where('m17_name', $request->name)
+                ->where('m16_primary_test_id', $request->primary_test_id)
+                ->exists();
+            if ($exists) {
+                Session::flash('type', 'error');
+                Session::flash('message', 'Secondary test with this name already exists for the selected primary test');
+            }
+            $secondaryTest = DB::table('m17_secondary_tests')->insertGetId([
+                'm10_sample_id' => $request->sampleId,
+                'm11_group_id' => $request->groupId,
+                'm17_name' => $request->name,
+                'm16_primary_test_id' => $request->primary_test_id,
+                'tr01_created_by' => Session::get('user_id') ?? -1,
+            ]);
+
+            $newSecondaryTest = DB::table('m17_secondary_tests')
+                ->where('m17_secondary_test_id', $secondaryTest)
+                ->select('m17_secondary_test_id as id', 'm17_name as name', 'm16_primary_test_id as primary_test_id')
+                ->first();
+
+            return response()->json([
+                'success' => true,
+                'data' => $newSecondaryTest,
+                'message' => 'Secondary test created successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error creating secondary test: ' . $e->getMessage()
+            ]);
+        }
     }
 
     // public function updateTest(Request $request, $id)
@@ -761,53 +954,218 @@ class MasterController extends Controller
     //     return view('test.edit_test', compact('test', 'samples', 'departments'));
     // }
 
+    // public function updateTest(Request $request, $id)
+    // {
+    //     $test = Test::with('stages')->findOrFail($id);
+    //     if ($request->isMethod('post')) {
+    //         $rules = [
+    //             "txt_sample_id"       => "required|integer|exists:m10_samples,m10_sample_id",
+    //             "txt_group_id"        => "required|integer|exists:m11_groups,m11_group_id",
+    //             "txt_department_id"   => "required|integer|exists:m13_departments,m13_department_id",
+    //             "txt_name"            => "required|string|max:255",
+    //             "txt_category_id"     => "required|string|max:255",
+    //             "txt_input_mode"      => "required|string|max:255",
+    //             "txt_stages"          => "nullable|integer|min:1",
+    //             "txt_output_matrix"   => "required|array",
+    //             "txt_output_matrix.*.name" => "required|string|max:255",
+    //             "txt_output_matrix.*.value" => "required|string|max:255",
+    //             "txt_charge"          => "required|numeric|min:0",
+    //             "txt_description"     => "nullable|string|max:500",
+    //             "txt_alias"           => "nullable|string|max:255",
+    //             "txt_weight"          => "nullable|numeric|min:0",
+    //             "txt_unit"            => "nullable|string|max:100",
+    //             "txt_instrument"      => "nullable|string|max:255",
+    //             "txt_remark"          => "nullable|string|max:500",
+    //         ];
+
+    //         if ($request->txt_input_mode === 'MULTI STAGE') {
+    //             $rules['txt_stages'] = 'required|integer|min:1|max:50';
+    //             $rules['stages'] = 'required|array|min:1';
+    //             $rules['stages.*.name'] = 'required|string|max:255';
+    //             $rules['stages.*.inputs'] = 'required|string';
+    //             $rules['stages.*.outputs'] = 'nullable|string';
+    //         }
+    //         $message = [
+    //             'txt_edit_sample_id.required'           => 'Please select a sample.',
+    //             'txt_edit_group_id.required'            => 'Please select a group.',
+    //             'txt_edit_department_id.required'       => 'Please select a department.',
+    //             'txt_edit_name.required'                => 'Test name is required.',
+    //             'txt_edit_category_id.required'         => 'Category is required.',
+    //             'txt_edit_input_mode.required'          => 'Input mode is required.',
+    //             'txt_edit_stages.required_if'           => 'Stages field is required for Multi Stage input mode.',
+    //             'txt_edit_output_matrix.required'       => 'Output matrix is required.',
+    //             'txt_edit_output_matrix.min'            => 'At least one output row is required.',
+    //             'txt_edit_output_matrix.*.name.required'  => 'Each output must have a name.',
+    //             'txt_edit_output_matrix.*.value.required' => 'Each output must have a value.',
+    //             'txt_edit_charge.required'              => 'Charge is required.',
+    //         ];
+
+    //         $validator = Validator::make($request->all(), $rules, $message);
+
+    //         if ($validator->fails()) {
+    //             return redirect()->back()->withErrors($validator)->withInput();
+    //         }
+
+    //         DB::beginTransaction();
+
+    //         try {
+    //             // Update the main test record
+    //             $test->update([
+    //                 'm10_sample_id' => $request->txt_sample_id,
+    //                 'm11_group_id' => $request->txt_group_id,
+    //                 'm13_department_id' => $request->txt_department_id,
+    //                 'm12_name' => $request->txt_name,
+    //                 'm12_category' => $request->txt_category_id,
+    //                 'm12_input_mode' => $request->txt_input_mode,
+    //                 'm12_stages' => $request->txt_input_mode === 'MULTI STAGE' ? $request->txt_stages : null,
+    //                 'm12_output_metrics' => json_encode($request->txt_output_matrix),
+    //                 'm12_charge' => $request->txt_charge,
+    //                 'm12_description' => $request->txt_description,
+    //                 'm12_alias' => $request->txt_alias,
+    //                 'm12_weight' => $request->txt_weight,
+    //                 'm12_unit' => $request->txt_unit,
+    //                 'm12_instrument' => $request->txt_instrument,
+    //                 'm12_remark' => $request->txt_remark,
+    //                 'tr01_updated_by' => Session::get('user_id') ?? -1,
+    //             ]);
+
+    //             // Delete old stages and create new ones if mode is MULTI STAGE
+    //             Stage::where('m12_test_id', $test->m12_test_id)->delete();
+
+    //             if ($request->txt_input_mode === 'MULTI STAGE' && $request->stages) {
+    //                 foreach ($request->stages as $index => $stageData) {
+    //                     Stage::create([
+    //                         'm12_test_id' => $test->m12_test_id,
+    //                         'm18_name' => $stageData['name'],
+    //                         'm18_stage_number' => $index + 1,
+    //                         'm18_inputs' => $stageData['inputs'],
+    //                         'm18_outputs' => $stageData['outputs'] ?? '',
+    //                         'tr01_created_by' => Session::get('user_id') ?? -1,
+    //                     ]);
+    //                 }
+    //             }
+
+    //             DB::commit();
+    //             Session::flash('type', 'success');
+    //             Session::flash('message', 'Test updated successfully.');
+    //             return to_route('view_tests');
+    //         } catch (\Exception $e) {
+    //             DB::rollback();
+    //             Session::flash('type', 'error');
+    //             Session::flash('message', 'Error updating test: ' . $e->getMessage());
+    //             return redirect()->back()->withInput();
+    //         }
+    //     }
+    //     $existingStages = $test->stages->map(function ($stage) {
+    //         return [
+    //             'name' => $stage->m18_name,
+    //             'inputs' => $stage->m18_inputs,
+    //             'outputs' => $stage->m18_outputs,
+    //         ];
+    //     })->toArray();
+    //     // Handle the GET request to show the edit form
+    //     $samples = Sample::where('m10_status', 'ACTIVE')->get(['m10_sample_id', 'm10_name']);
+    //     $departments = Department::where('m13_status', 'ACTIVE')->get(['m13_department_id', 'm13_name']);
+
+    //     return view('test.edit_test', compact('test', 'samples', 'departments', 'existingStages'));
+    // }
+
+
     public function updateTest(Request $request, $id)
     {
-        $test = Test::with('stages')->findOrFail($id);
-        if ($request->isMethod('post')) {
+        $test = Test::findOrFail($id);
+
+        if ($request->isMethod('POST')) {
             $rules = [
-                "txt_sample_id"       => "required|integer|exists:m10_samples,m10_sample_id",
-                "txt_group_id"        => "required|integer|exists:m11_groups,m11_group_id",
-                "txt_department_id"   => "required|integer|exists:m13_departments,m13_department_id",
-                "txt_name"            => "required|string|max:255",
-                "txt_category_id"     => "required|string|max:255",
-                "txt_input_mode"      => "required|string|max:255",
-                "txt_stages"          => "nullable|integer|min:1",
-                "txt_output_matrix"   => "required|array",
-                "txt_output_matrix.*.name" => "required|string|max:255",
-                "txt_output_matrix.*.value" => "required|string|max:255",
-                "txt_charge"          => "required|numeric|min:0",
-                "txt_description"     => "nullable|string|max:500",
-                "txt_alias"           => "nullable|string|max:255",
-                "txt_weight"          => "nullable|numeric|min:0",
-                "txt_unit"            => "nullable|string|max:100",
-                "txt_instrument"      => "nullable|string|max:255",
-                "txt_remark"          => "nullable|string|max:500",
+                "txt_sample_id"             => "required|integer|exists:m10_samples,m10_sample_id",
+                "txt_group_id"              => "required|integer|exists:m11_groups,m11_group_id",
+                "txt_department_id"         => "required|integer|exists:m13_departments,m13_department_id",
+                "txt_name"                  => "required|string|max:255",
+                "txt_category_id"           => "required|string|max:255",
+                "txt_input_mode"            => "required|string|max:255",
+                "txt_stages"                => "nullable|integer|min:1",
+                "txt_charge"                => "required|numeric|min:0",
+                "txt_description"           => "nullable|string|max:500",
+                "txt_alias"                 => "nullable|string|max:255",
+                "txt_weight"                => "nullable|numeric|min:0",
+                "txt_unit"                  => "nullable|string|max:100",
+                "txt_instrument"            => "nullable|string|max:255",
+                "txt_remark"                => "nullable|string|max:500",
+
+                // ID-based validation for test configuration
+                "standard_ids"              => "required|array|min:1",
+                "standard_ids.*"            => "required|integer|exists:m15_standards,m15_standard_id",
+
+                "primary_test_ids"          => "required|array|min:1",
+                "primary_test_ids.*"        => "required|integer|exists:m16_primary_tests,m16_primary_test_id",
+
+                "secondary_test_ids"        => "nullable|array",
+                "secondary_test_ids.*"      => "nullable|integer|exists:m17_secondary_tests,m17_secondary_test_id",
+
+                "results"                   => "required|array|min:1",
+                "results.*.name"            => "required|string|max:255",
             ];
 
+            // Additional validation for MULTI STAGE
             if ($request->txt_input_mode === 'MULTI STAGE') {
                 $rules['txt_stages'] = 'required|integer|min:1|max:50';
-                $rules['stages'] = 'required|array|min:1';
-                $rules['stages.*.name'] = 'required|string|max:255';
-                $rules['stages.*.inputs'] = 'required|string';
-                $rules['stages.*.outputs'] = 'nullable|string';
             }
-            $message = [
-                'txt_edit_sample_id.required'           => 'Please select a sample.',
-                'txt_edit_group_id.required'            => 'Please select a group.',
-                'txt_edit_department_id.required'       => 'Please select a department.',
-                'txt_edit_name.required'                => 'Test name is required.',
-                'txt_edit_category_id.required'         => 'Category is required.',
-                'txt_edit_input_mode.required'          => 'Input mode is required.',
-                'txt_edit_stages.required_if'           => 'Stages field is required for Multi Stage input mode.',
-                'txt_edit_output_matrix.required'       => 'Output matrix is required.',
-                'txt_edit_output_matrix.min'            => 'At least one output row is required.',
-                'txt_edit_output_matrix.*.name.required'  => 'Each output must have a name.',
-                'txt_edit_output_matrix.*.value.required' => 'Each output must have a value.',
-                'txt_edit_charge.required'              => 'Charge is required.',
+
+            $messages = [
+                // Basic field messages
+                'txt_sample_id.required'              => 'Please select a sample.',
+                'txt_sample_id.exists'                => 'The selected sample does not exist.',
+                'txt_group_id.required'               => 'Please select a group.',
+                'txt_group_id.exists'                 => 'The selected group does not exist.',
+                'txt_department_id.required'          => 'Please select a department.',
+                'txt_department_id.exists'            => 'The selected department does not exist.',
+                'txt_name.required'                   => 'Test name is required.',
+                'txt_name.max'                        => 'Test name should not exceed 255 characters.',
+                'txt_category_id.required'            => 'Category is required.',
+                'txt_input_mode.required'             => 'Input mode is required.',
+                'txt_stages.required'                 => 'Number of stages is required for multi-stage tests.',
+                'txt_stages.integer'                  => 'Stages must be a number.',
+                'txt_stages.min'                      => 'Stages must be at least 1.',
+                'txt_stages.max'                      => 'Stages cannot exceed 50.',
+                'txt_charge.required'                 => 'Charge is required.',
+                'txt_charge.numeric'                  => 'Charge must be a number.',
+                'txt_charge.min'                      => 'Charge must be 0 or more.',
+                'txt_description.max'                 => 'Description should not exceed 500 characters.',
+                'txt_alias.max'                       => 'Alias should not exceed 255 characters.',
+                'txt_weight.numeric'                  => 'Weight must be a number.',
+                'txt_weight.min'                      => 'Weight must be 0 or more.',
+                'txt_unit.max'                        => 'Unit should not exceed 100 characters.',
+                'txt_instrument.max'                  => 'Instrument should not exceed 255 characters.',
+                'txt_remark.max'                      => 'Remark should not exceed 500 characters.',
+
+                // ID-based validation messages
+                'standard_ids.required'               => 'At least one standard is required.',
+                'standard_ids.array'                  => 'Standards must be provided as an array.',
+                'standard_ids.min'                    => 'At least one standard is required.',
+                'standard_ids.*.required'             => 'Standard ID is required.',
+                'standard_ids.*.integer'              => 'Standard ID must be a number.',
+                'standard_ids.*.exists'               => 'One or more selected standards do not exist.',
+
+                'primary_test_ids.required'           => 'At least one primary test is required.',
+                'primary_test_ids.array'              => 'Primary tests must be provided as an array.',
+                'primary_test_ids.min'                => 'At least one primary test is required.',
+                'primary_test_ids.*.required'         => 'Primary test ID is required.',
+                'primary_test_ids.*.integer'          => 'Primary test ID must be a number.',
+                'primary_test_ids.*.exists'           => 'One or more selected primary tests do not exist.',
+
+                'secondary_test_ids.array'            => 'Secondary tests must be provided as an array.',
+                'secondary_test_ids.*.integer'        => 'Secondary test ID must be a number.',
+                'secondary_test_ids.*.exists'         => 'One or more selected secondary tests do not exist.',
+
+                'results.required'                    => 'At least one result is required.',
+                'results.array'                       => 'Results must be provided as an array.',
+                'results.min'                         => 'At least one result is required.',
+                'results.*.name.required'             => 'Each result must have a name.',
+                'results.*.name.string'               => 'Result name must be text.',
+                'results.*.name.max'                  => 'Result name should not exceed 255 characters.',
             ];
 
-            $validator = Validator::make($request->all(), $rules, $message);
+            $validator = Validator::make($request->all(), $rules, $messages);
 
             if ($validator->fails()) {
                 return redirect()->back()->withErrors($validator)->withInput();
@@ -825,7 +1183,10 @@ class MasterController extends Controller
                     'm12_category' => $request->txt_category_id,
                     'm12_input_mode' => $request->txt_input_mode,
                     'm12_stages' => $request->txt_input_mode === 'MULTI STAGE' ? $request->txt_stages : null,
-                    'm12_output_metrics' => json_encode($request->txt_output_matrix),
+                    'm15_standard_id'       => implode(',', $request->standard_ids ?? []),
+                    'm16_primary_test_id'   => implode(',', $request->primary_test_ids ?? []),
+                    'm17_secondary_test_id' => implode(',', $request->secondary_test_ids ?? []),
+                    'm12_result'            => json_encode($this->cleanArrayData($request->results)),
                     'm12_charge' => $request->txt_charge,
                     'm12_description' => $request->txt_description,
                     'm12_alias' => $request->txt_alias,
@@ -835,22 +1196,6 @@ class MasterController extends Controller
                     'm12_remark' => $request->txt_remark,
                     'tr01_updated_by' => Session::get('user_id') ?? -1,
                 ]);
-
-                // Delete old stages and create new ones if mode is MULTI STAGE
-                Stage::where('m12_test_id', $test->m12_test_id)->delete();
-
-                if ($request->txt_input_mode === 'MULTI STAGE' && $request->stages) {
-                    foreach ($request->stages as $index => $stageData) {
-                        Stage::create([
-                            'm12_test_id' => $test->m12_test_id,
-                            'm18_name' => $stageData['name'],
-                            'm18_stage_number' => $index + 1,
-                            'm18_inputs' => $stageData['inputs'],
-                            'm18_outputs' => $stageData['outputs'] ?? '',
-                            'tr01_created_by' => Session::get('user_id') ?? -1,
-                        ]);
-                    }
-                }
 
                 DB::commit();
                 Session::flash('type', 'success');
@@ -863,20 +1208,71 @@ class MasterController extends Controller
                 return redirect()->back()->withInput();
             }
         }
-        $existingStages = $test->stages->map(function ($stage) {
-            return [
-                'name' => $stage->m18_name,
-                'inputs' => $stage->m18_inputs,
-                'outputs' => $stage->m18_outputs,
-            ];
-        })->toArray();
+
         // Handle the GET request to show the edit form
         $samples = Sample::where('m10_status', 'ACTIVE')->get(['m10_sample_id', 'm10_name']);
         $departments = Department::where('m13_status', 'ACTIVE')->get(['m13_department_id', 'm13_name']);
 
-        return view('test.edit_test', compact('test', 'samples', 'departments', 'existingStages'));
+        return view('test.edit_test', compact('test', 'samples', 'departments'));
     }
 
+    // Helper method to get item by ID (you'll need these routes and methods)
+    public function getStandardsByIds(Request $request)
+    {
+        try {
+            $ids = $request->input('ids');
+            if (!is_array($ids)) {
+                $ids = explode(',', $ids);
+            }
+            $standards = Standard::whereIn('m15_standard_id', $ids)
+                ->where('m15_status', 'ACTIVE')
+                ->get(['m15_standard_id as id', 'm15_method as name']);
+            return response()->json($standards);
+        } catch (\Exception $e) {
+            return response()->json([], 500);
+        }
+    }
+
+
+
+
+    public function getPrimaryTestById(Request $request)
+    {
+        try {
+            $ids = $request->input('ids');
+            if (!is_array($ids)) {
+                $ids = explode(',', $ids);
+            }
+            $primaryTest = PrimaryTest::whereIn('m16_primary_test_id', $ids)
+                ->where('m16_status', 'ACTIVE')
+                ->get(['m16_primary_test_id as id', 'm16_name as name']);
+            return response()->json($primaryTest);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching primary test'
+            ]);
+        }
+    }
+
+    public function getSecondaryTestById(Request $request)
+    {
+        try {
+            $ids = $request->input('ids');
+            if (!is_array($ids)) {
+                $ids = explode(',', $ids);
+            }
+            $secondaryTest = SecondaryTest::whereIn('m17_secondary_test_id', $ids)
+                ->where('m17_status', 'ACTIVE')
+                ->get(['m17_secondary_test_id as id', 'm17_name as name']);
+            return response()->json($secondaryTest);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching secondary test'
+            ]);
+        }
+    }
     public function deleteTest(Request $request)
     {
         $test = Test::find($request->id);

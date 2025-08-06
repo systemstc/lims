@@ -26,13 +26,13 @@
         $menus = Menu::where('m05_status', 'ACTIVE')
             ->whereNull('m05_parent_id')
             ->whereRaw('FIND_IN_SET(?, m05_role_view)', [$roleId])
-            ->orderBy('m05_order_by') // First priority
-            ->orderBy('created_at') // Second priority
+            ->orderBy('m05_order_by') 
+            ->orderBy('created_at') 
             ->with([
                 'children' => function ($q) use ($roleId) {
                     $q->where('m05_status', 'ACTIVE')
                         ->whereRaw('FIND_IN_SET(?, m05_role_view)', [$roleId])
-                        ->orderBy('m05_order_by') // Child ordering by same logic
+                        ->orderBy('m05_order_by') 
                         ->orderBy('created_at');
                 },
             ])
@@ -56,9 +56,9 @@
     <div class="nk-sidebar-element nk-sidebar-head">
         <div class="nk-sidebar-brand">
             <a href="{{ url('/') }}" class="logo-link nk-sidebar-logo">
-                <img class="logo-light logo-img" src="{{ asset('backAssets/images/logo2x.png') }}" alt="logo">
-                <img class="logo-dark logo-img" src="{{ asset('backAssets/images/logo-dark.png') }}" alt="logo-dark">
-                <img class="logo-small logo-img logo-img-small" src="{{ asset('backAssets/images/logo-small.png') }}"
+                <img class="logo-light logo-img" src="{{ asset('backAssets/images/logo.png') }}" alt="logo">
+                <img class="logo-dark logo-img" src="{{ asset('backAssets/images/logo.png') }}" alt="logo">
+                <img class="logo-small logo-img logo-img-small" src="{{ asset('backAssets/images/logo.png') }}"
                     alt="logo-small">
             </a>
         </div>

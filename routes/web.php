@@ -129,3 +129,18 @@ Route::get('/get-districts', [MasterController::class, 'getDistricts'])->name('g
 Route::get('group-bysample', [MasterController::class, 'getGroups'])->name('get_groups');
 Route::get('test-bygroup', [MasterController::class, 'getTests'])->name('get_tests');
 Route::get('primarytest-bytest', [MasterController::class, 'getPrimaryTests'])->name('get_primary_tests');
+
+// Search routes for test creation
+Route::get('/search-standards', [MasterController::class, 'searchStandards'])->name('search_standards');
+Route::get('/search-primary-tests', [MasterController::class, 'searchPrimaryTests'])->name('search_primary_tests');
+Route::get('/search-secondary-tests', [MasterController::class, 'searchSecondaryTests'])->name('search_secondary_tests');
+
+// Create new item routes
+Route::post('/ajax/create-standard', [MasterController::class, 'createAjaxStandard'])->name('create_standard');
+Route::post('/ajax/create-primary-test', [MasterController::class, 'createAjaxPrimaryTest'])->name('create_primary_test');
+Route::post('/ajax/create-secondary-test', [MasterController::class, 'createAjaxSecondaryTest'])->name('create_secondary_test');
+
+// Routes for getting individual items by ID (needed for edit form)
+Route::get('/get-standard-by-id', [MasterController::class, 'getStandardsByIds'])->name('get_standards_by_ids');
+Route::get('/get-primary-test-by-id', [MasterController::class, 'getPrimaryTestById'])->name('get_primary_tests_by_ids');
+Route::get('/get-secondary-test-by-id', [MasterController::class, 'getSecondaryTestById'])->name('get_secondary_tests_by_ids');

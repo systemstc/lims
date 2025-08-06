@@ -37,9 +37,9 @@
                                     @foreach ($primaryTests as $key => $primary)
                                         <tr>
                                             <td>{{ $key + 1 }}</td>
-                                            <td>{{ $primary->sample->m10_name }}</td>
-                                            <td>{{ $primary->group->m11_name }}</td>
-                                            <td>{{ $primary->test->m12_name }}</td>
+                                            <td>{{ $primary->sample->m10_name ?? '' }}</td>
+                                            <td>{{ $primary->group->m11_name ?? ''}}</td>
+                                            <td>{{ $primary->test->m12_name ?? ''}}</td>
                                             <td>{{ $primary->m16_name }}</td>
                                             <td>{{ $primary->m16_unit }}</td>
                                             <td>{{ $primary->m16_requirement }}</td>
