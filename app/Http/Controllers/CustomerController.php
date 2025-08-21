@@ -221,6 +221,7 @@ class CustomerController extends Controller
             try {
                 DB::transaction(function () use ($request) {
                     $customer = Customer::create([
+                        'm09_customer_type_id' => $request->txt_customer_type_id,
                         'm04_ro_id' => $request->txt_ro_id,
                         'm07_name' => $request->txt_name,
                         'm07_email' => $request->txt_email,

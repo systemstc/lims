@@ -11,7 +11,6 @@ class SecondaryTest extends Model
     protected $fillable = [
         'm10_sample_id',
         'm11_group_id',
-        'm12_test_id',
         'm16_primary_test_id',
         'm17_name',
         'm17_unit',
@@ -27,11 +26,6 @@ class SecondaryTest extends Model
     public function group()
     {
         return $this->belongsTo(Group::class, 'm11_group_id');
-    }
-
-    public function test()
-    {
-        return $this->belongsTo(Test::class, 'm12_test_id');
     }
 
     public function primaryTest()

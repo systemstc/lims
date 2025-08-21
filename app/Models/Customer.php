@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Customer extends Model
 {
@@ -36,14 +37,21 @@ class Customer extends Model
         return $this->hasMany(CustomerLocation::class, 'm07_customer_id');
     }
 
-    public function state() {
+    public function state()
+    {
         return $this->belongsTo(State::class, 'm01_state_id');
     }
-    public function district() {
+    public function district()
+    {
         return $this->hasOne(District::class, 'm02_district_id');
     }
 
-    public function ro() {
+    public function ro()
+    {
         return $this->belongsTo(Ro::class, 'm04_ro_id');
+    }
+    public function packages()
+    {
+        return $this->hasMany(Package::class, 'm19_package_id');
     }
 }

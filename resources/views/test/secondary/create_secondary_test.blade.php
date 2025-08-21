@@ -17,7 +17,7 @@
                     <div class="nk-block nk-block-lg">
                         <div class="card">
                             <div class="card-inner">
-                                <form action="{{ route('create_secondary_test') }}" class="form-validate is-alter"
+                                <form action="{{ route('create_secondary') }}" class="form-validate is-alter"
                                     method="POST">
                                     @csrf
                                     <div class="row g-gs">
@@ -60,7 +60,7 @@
                                         </div>
 
                                         {{-- Test --}}
-                                        <div class="col-md-4">
+                                        {{-- <div class="col-md-4">
                                             <div class="form-group">
                                                 <label class="form-label">Test<b class="text-danger">*</b></label>
                                                 <div class="form-control-wrap">
@@ -73,7 +73,7 @@
                                                     <span class="text-danger">{{ $message }}</span>
                                                 @enderror
                                             </div>
-                                        </div>
+                                        </div> --}}
 
                                         {{-- Primary Test --}}
                                         <div class="col-md-4">
@@ -150,28 +150,28 @@
                     });
                 });
 
+                // $('#txt_group_id').on('change', function() {
+                //     let groupId = $(this).val();
+                //     $('#txt_test_id').html('<option value="">Loading...</option>');
+
+                //     $.get("{{ route('get_tests') }}", {
+                //         group_id: groupId
+                //     }, function(tests) {
+                //         let options = '<option value="">-- Select Test --</option>';
+                //         $.each(tests, function(i, test) {
+                //             options +=
+                //                 `<option value="${test.m12_test_id}" ${test.m12_test_id == "{{ old('txt_test_id') }}" ? 'selected' : ''}>${test.m12_name}</option>`;
+                //         });
+                //         $('#txt_test_id').html(options).trigger('change');
+                //     });
+                // });
+
                 $('#txt_group_id').on('change', function() {
                     let groupId = $(this).val();
-                    $('#txt_test_id').html('<option value="">Loading...</option>');
-
-                    $.get("{{ route('get_tests') }}", {
-                        group_id: groupId
-                    }, function(tests) {
-                        let options = '<option value="">-- Select Test --</option>';
-                        $.each(tests, function(i, test) {
-                            options +=
-                                `<option value="${test.m12_test_id}" ${test.m12_test_id == "{{ old('txt_test_id') }}" ? 'selected' : ''}>${test.m12_name}</option>`;
-                        });
-                        $('#txt_test_id').html(options).trigger('change');
-                    });
-                });
-
-                $('#txt_test_id').on('change', function() {
-                    let testId = $(this).val();
                     $('#txt_primary_test_id').html('<option value="">Loading...</option>');
 
                     $.get("{{ route('get_primary_tests') }}", {
-                        test_id: testId
+                        group_id: groupId
                     }, function(tests) {
                         let options = '<option value="">-- Select Primary Test --</option>';
                         $.each(tests, function(i, test) {

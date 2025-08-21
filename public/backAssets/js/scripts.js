@@ -464,8 +464,8 @@
             $self_id.validate().settings.ignore = ":disabled";
             return $self_id.valid();
           },
-          onFinished: function onFinished(event, currentIndex) {
-            window.location.href = "#";
+          onFinished: function (event, currentIndex) {
+            $self_id[0].submit();
           }
         }).validate({
           errorElement: "span",

@@ -13,11 +13,11 @@
                             </a>
                         </div>
                     </div>
-
                     <div class="nk-block nk-block-lg">
                         <div class="card">
                             <div class="card-inner">
-                                <form action="{{ route('create_test') }}" class="form-validate is-alter" method="POST">
+                                <form action="{{ route('create_test') }}" class="form-validate is-alter" method="POST"
+                                    id="test-form">
                                     @csrf
                                     <div class="row g-gs">
                                         {{-- Sample --}}
@@ -26,7 +26,7 @@
                                                 <label class="form-label" for="txt_sample_id">Sample<b
                                                         class="text-danger">*</b></label>
                                                 <div class="form-control-wrap">
-                                                    <select name="txt_sample_id" class="form-select" id="txt_sample_id"
+                                                    <select name="txt_sample_id" class="form-control" id="txt_sample_id"
                                                         required>
                                                         <option value="">Select Sample</option>
                                                         @foreach ($samples as $sample)
@@ -49,7 +49,7 @@
                                                 <label class="form-label" for="txt_group_id">Group<b
                                                         class="text-danger">*</b></label>
                                                 <div class="form-control-wrap">
-                                                    <select name="txt_group_id" class="form-select" id="txt_group_id"
+                                                    <select name="txt_group_id" class="form-control" id="txt_group_id"
                                                         required>
                                                         <option value="">Select Group</option>
                                                     </select>
@@ -60,38 +60,17 @@
                                             </div>
                                         </div>
 
-                                        {{-- Department --}}
-                                        {{-- <div class="col-md-4">
-                                            <div class="form-group">
-                                                <label class="form-label" for="txt_department_id">Department<b
-                                                        class="text-danger">*</b></label>
-                                                <div class="form-control-wrap">
-                                                    <select name="txt_department_id" class="form-select"
-                                                        id="txt_department_id" required>
-                                                        <option value="">-- Select Department --</option>
-                                                        @foreach ($departments as $department)
-                                                            <option value="{{ $department->m13_department_id }}"
-                                                                {{ old('txt_department_id') == $department->m13_department_id ? 'selected' : '' }}>
-                                                                {{ $department->m13_name }}
-                                                            </option>
-                                                        @endforeach
-                                                    </select>
-                                                </div>
-                                                @error('txt_department_id')
-                                                    <span class="text-danger">{{ $message }}</span>
-                                                @enderror
-                                            </div>
-                                        </div> --}}
-
                                         {{-- Test Name --}}
-                                        <div class="col-md-4">
+                                        <div class="col-md-4 position-relative">
                                             <div class="form-group">
-                                                <label class="form-label" for="txt_name">Test Name<b
+                                                <label class="form-label" for="txt_name">Test Name <b
                                                         class="text-danger">*</b></label>
                                                 <div class="form-control-wrap">
                                                     <input type="text" class="form-control" id="txt_name"
                                                         name="txt_name" value="{{ old('txt_name') }}"
-                                                        placeholder="Enter Test Name" required>
+                                                        placeholder="Enter Test Name" autocomplete="off" required>
+                                                    <small id="test-name-feedback" class="text-danger d-none mt-1">Test
+                                                        already exists!</small>
                                                 </div>
                                                 @error('txt_name')
                                                     <span class="text-danger">{{ $message }}</span>
@@ -129,6 +108,32 @@
                                             </div>
                                         </div>
 
+                                        {{-- Result Type --}}
+                                        <div class="col-md-4">
+                                            <div class="form-group">
+                                                <label class="form-label" for="txt_category_id">Result Type<b
+                                                        class="text-danger">*</b></label>
+                                                <div class="form-control-wrap">
+                                                    <select name="txt_category_id" class="form-control" id="txt_category_id"
+                                                        required>
+                                                        <option value="">Select Category</option>
+                                                        <option value="NUMERIC"
+                                                            {{ old('txt_category_id') == 'NUMERIC' ? 'selected' : '' }}>
+                                                            Numeric</option>
+                                                        <option value="QUALITATIVE SINGLE"
+                                                            {{ old('txt_category_id') == 'QUALITATIVE SINGLE' ? 'selected' : '' }}>
+                                                            Qualitative Single</option>
+                                                        <option value="QUALITATIVE MULTI"
+                                                            {{ old('txt_category_id') == 'QUALITATIVE MULTI' ? 'selected' : '' }}>
+                                                            Qualitative Multi</option>
+                                                    </select>
+                                                </div>
+                                                @error('txt_category_id')
+                                                    <span class="text-danger">{{ $message }}</span>
+                                                @enderror
+                                            </div>
+                                        </div>
+
                                         {{-- Standards Section --}}
                                         <div class="col-md-4" id="standards-section">
                                             <div class="form-group">
@@ -136,8 +141,8 @@
                                                 <div class="form-control-wrap position-relative">
                                                     <input type="text" id="standard-search" class="form-control"
                                                         placeholder="Search or enter standard name" autocomplete="off">
-                                                    <div class="search-dropdown standards-dropdown" style="display: none;">
-                                                    </div>
+                                                    <div class="search-dropdown standards-dropdown"
+                                                        style="display: none;"></div>
                                                 </div>
                                                 <div class="mt-2">
                                                     <div id="standards-selected-container"></div>
@@ -192,21 +197,24 @@
                                             <div class="form-group">
                                                 <label class="form-label">Secondary Tests</label>
                                                 <div class="form-control-wrap position-relative">
+                                                    <select id="primary-test-selector" class="form-control mb-2"
+                                                        style="display: none;">
+                                                        <option value="">Select Primary Test</option>
+                                                    </select>
                                                     <input type="text" id="secondary-test-search" class="form-control"
-                                                        placeholder="Search or enter secondary test name"
-                                                        autocomplete="off">
+                                                        placeholder="Select primary test first" autocomplete="off"
+                                                        disabled>
                                                     <div class="search-dropdown secondary-tests-dropdown"
                                                         style="display: none;"></div>
-                                                </div>
-                                                <div class="mt-2">
-                                                    <div id="secondary-tests-selected-container"></div>
-                                                    <div id="secondary-tests-create-section" class="mt-2"
-                                                        style="display: none;">
-                                                        <div class="alert alert-info">
-                                                            <small>Secondary test not found. Click to create: <strong
-                                                                    id="secondary-test-create-name"></strong></small>
-                                                            <button type="button" class="btn btn-sm btn-primary ms-2"
-                                                                id="create-secondary-test-btn">Create</button>
+                                                    <div class="mt-2">
+                                                        <div id="secondary-tests-create-section" class="mt-2"
+                                                            style="display: none;">
+                                                            <div class="alert alert-info">
+                                                                <small>Secondary test not found. Click to create: <strong
+                                                                        id="secondary-test-create-name"></strong></small>
+                                                                <button type="button" class="btn btn-sm btn-primary ms-2"
+                                                                    id="create-secondary-test-btn">Create</button>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -215,61 +223,31 @@
                                                 @enderror
                                             </div>
                                         </div>
+                                        <div id="secondary-tests-selected-container" class="row g-gs mt-0"></div>
 
-                                        {{-- Results Section --}}
-                                        {{-- <div class="col-md-4" id="results-section">
-                                            <div class="form-group">
-                                                <label class="form-label">Results <b class="text-danger">*</b></label>
-                                                <div id="results-wrapper">
-                                                    @php
-                                                        $oldResults = old('results')
-                                                            ? old('results')
-                                                            : [['name' => '']];
-                                                    @endphp
-                                                    @foreach ($oldResults as $index => $result)
-                                                        <div class="row g-2 align-items-center results-row mb-2">
-                                                            <div class="col-md-10">
-                                                                <input type="text"
-                                                                    name="results[{{ $index }}][name]"
-                                                                    class="form-control" placeholder="Result name"
-                                                                    value="{{ $result['name'] ?? '' }}" required>
-                                                            </div>
-                                                            <div class="col-md-2">
-                                                                <button type="button"
-                                                                    class="btn btn-primary btn-xs add-results">+</button>
-                                                                <button type="button"
-                                                                    class="btn btn-danger btn-xs remove-results">-</button>
+                                        {{-- Lab Sample Checkboxes --}}
+                                        <div class="col-md-12">
+                                            <div class="preview-block">
+                                                <span class="preview-title overline-title mb-2 d-block">Test Applicable
+                                                    On</span>
+                                                <div class="row">
+                                                    @foreach ($labSamples as $sample)
+                                                        <div class="col-md-2 mb-2">
+                                                            <div class="custom-control custom-checkbox">
+                                                                <input type="checkbox" class="custom-control-input"
+                                                                    id="labSample{{ $sample->m14_lab_sample_id }}"
+                                                                    name="lab_sample_ids[]"
+                                                                    value="{{ $sample->m14_lab_sample_id }}"
+                                                                    {{ in_array($sample->m14_lab_sample_id, old('lab_sample_ids', [])) ? 'checked' : '' }}>
+                                                                <label class="custom-control-label"
+                                                                    for="labSample{{ $sample->m14_lab_sample_id }}">
+                                                                    {{ $sample->m14_name }}
+                                                                </label>
                                                             </div>
                                                         </div>
                                                     @endforeach
                                                 </div>
-                                                @error('results')
-                                                    <span class="text-danger d-block">{{ $message }}</span>
-                                                @enderror
-                                            </div>
-                                        </div> --}}
-
-                                        {{-- CATEGORY --}}
-                                        <div class="col-md-4">
-                                            <div class="form-group">
-                                                <label class="form-label" for="txt_category_id">Result Type<b
-                                                        class="text-danger">*</b></label>
-                                                <div class="form-control-wrap">
-                                                    <select name="txt_category_id" class="form-select"
-                                                        id="txt_category_id" required>
-                                                        <option value="">Select Category</option>
-                                                        <option value="NUMERIC"
-                                                            {{ old('txt_category_id') == 'NUMERIC' ? 'selected' : '' }}>
-                                                            Numeric</option>
-                                                        <option value="QUALITATIVE SINGLE"
-                                                            {{ old('txt_category_id') == 'QUALITATIVE SINGLE' ? 'selected' : '' }}>
-                                                            Qualitative Single</option>
-                                                        <option value="QUALITATIVE MULTI"
-                                                            {{ old('txt_category_id') == 'QUALITATIVE MULTI' ? 'selected' : '' }}>
-                                                            Qualitative Multi</option>
-                                                    </select>
-                                                </div>
-                                                @error('txt_category_id')
+                                                @error('lab_sample_ids')
                                                     <span class="text-danger">{{ $message }}</span>
                                                 @enderror
                                             </div>
@@ -281,8 +259,8 @@
                                                 <label class="form-label" for="txt_input_mode">Input Mode<b
                                                         class="text-danger">*</b></label>
                                                 <div class="form-control-wrap">
-                                                    <select name="txt_input_mode" class="form-select" id="txt_input_mode"
-                                                        required>
+                                                    <select name="txt_input_mode" class="form-control"
+                                                        id="txt_input_mode" required>
                                                         <option value="">Select Method Type</option>
                                                         <option value="SINGLE"
                                                             {{ old('txt_input_mode') == 'SINGLE' ? 'selected' : '' }}>
@@ -309,7 +287,7 @@
                                                 <div class="form-control-wrap">
                                                     <input type="number" class="form-control" id="txt_stages"
                                                         name="txt_stages" value="{{ old('txt_stages') }}" min="1"
-                                                        max="10">
+                                                        max="10" required>
                                                 </div>
                                                 @error('txt_stages')
                                                     <span class="text-danger">{{ $message }}</span>
@@ -317,6 +295,7 @@
                                             </div>
                                         </div>
 
+                                        {{-- Results --}}
                                         <div class="col-md-4">
                                             <div class="form-group">
                                                 <label class="form-label">Results <b class="text-danger">*</b></label>
@@ -326,7 +305,7 @@
                                                 </div>
                                                 <div id="results-tags-container" class="mt-2"></div>
                                                 <input type="hidden" name="results" id="results-hidden"
-                                                    value="{{ old('results', $model->results ?? '') }}">
+                                                    value="{{ old('results') }}">
                                                 @error('results')
                                                     <span class="text-danger d-block">{{ $message }}</span>
                                                 @enderror
@@ -349,14 +328,13 @@
                                             </div>
                                         </div>
 
-
                                         {{-- Weight --}}
                                         <div class="col-md-4">
                                             <div class="form-group">
                                                 <label class="form-label" for="txt_weight">Weight</label>
                                                 <div class="form-control-wrap">
                                                     <input type="text" class="form-control" id="txt_weight"
-                                                        name="txt_weight" value="{{ old('txt_weight') }}"
+                                                        name="txt_weight" value="{{ old('txt_weight', 0) }}"
                                                         placeholder="Enter Weight (Optional)">
                                                 </div>
                                                 @error('txt_weight')
@@ -425,6 +403,50 @@
         </div>
     </div>
 
+    {{-- Standard Creation Modal --}}
+    <div class="modal fade" id="standardModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Create New Standard</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="standard-form">
+                        <div class="form-group mb-3">
+                            <label class="form-label">Standard Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="modal-standard-name"
+                                placeholder="Enter standard name" required>
+                        </div>
+                        <div class="form-group mb-3">
+                            <label class="form-label">Accredited <span class="text-danger">*</span></label>
+                            <div class="form-control-wrap">
+                                <div class="custom-control custom-radio">
+                                    <input type="radio" class="custom-control-input" id="accredited-yes"
+                                        name="accredited" value="YES">
+                                    <label class="custom-control-label" for="accredited-yes">Yes</label>
+                                </div>
+                                <div class="custom-control custom-radio">
+                                    <input type="radio" class="custom-control-input" id="accredited-no"
+                                        name="accredited" value="NO">
+                                    <label class="custom-control-label" for="accredited-no">No</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group mb-3">
+                            <label class="form-label">Description</label>
+                            <textarea class="form-control" id="standard-description" rows="3" placeholder="Enter description (optional)"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="confirm-create-standard">Create Standard</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <style>
         .search-dropdown {
             position: absolute;
@@ -454,18 +476,38 @@
             border-bottom: none;
         }
 
+        .search-dropdown-item.disabled {
+            color: #999;
+            cursor: not-allowed;
+        }
+
         .form-control-wrap {
             position: relative;
         }
 
         .selected-item {
             display: inline-block;
-            background: #007bff;
             color: white;
             padding: 4px 8px;
             margin: 2px;
             border-radius: 4px;
             font-size: 12px;
+        }
+
+        .selected-item.standard-accredited {
+            background: #198754;
+        }
+
+        .selected-item.standard-normal {
+            background: #007bff;
+        }
+
+        .selected-item.primary-test {
+            background: #6f42c1;
+        }
+
+        .selected-item.secondary-test {
+            background: #fd7e14;
         }
 
         .selected-item .remove-item {
@@ -478,446 +520,326 @@
             color: #ff6b6b;
         }
 
-        .remove-tag:hover {
-            color: #ff6b6b;
+        .primary-test-group {
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 8px;
+            margin-bottom: 8px;
+            background-color: #f8f9fa;
+        }
+
+        .primary-test-title {
+            font-weight: bold;
+            color: #6f42c1;
+            margin-bottom: 4px;
+        }
+
+        #secondary-tests-section.disabled {
+            opacity: 0.6;
+            pointer-events: none;
         }
     </style>
 
-    {{-- <script>
+    <script>
         $(document).ready(function() {
+            // Initialize variables
             let selectedSampleId = '';
             let selectedGroupId = '';
+            let selectedStandards = [];
+            let selectedPrimaryTests = [];
+            let selectedSecondaryTests = [];
+            let currentPrimaryTestForSecondary = null;
+            let searchTimeout;
+            let resultTags = [];
+            const searchRoutes = {
+                'standards': "{{ route('search_standards') }}",
+                'primary_tests': "{{ route('search_primary_tests') }}",
+                'secondary_tests': "{{ route('search_secondary_tests') }}"
+            };
 
+            // Restore old values on page load
+            initializeOldValues();
+
+            // Sample and Group handling
             $('#txt_sample_id').on('change', function() {
                 selectedSampleId = $(this).val();
+                loadGroups();
             });
 
             $('#txt_group_id').on('change', function() {
                 selectedGroupId = $(this).val();
             });
-            // Storage for selected items
-            let selectedStandards = [];
-            let selectedPrimaryTests = [];
-            let selectedSecondaryTests = [];
 
-            // Show/hide stages based on input mode
-            $('#stages-wrapper').hide();
+            // Input mode and stages handling
             $('#txt_input_mode').on('change', function() {
-                var selectedValue = $(this).val();
-                if (selectedValue === 'MULTI STAGE') {
+                if ($(this).val() === 'MULTI STAGE') {
                     $('#stages-wrapper').slideDown();
                     $('#txt_stages').attr('required', true);
                 } else {
                     $('#stages-wrapper').slideUp();
-                    $('#txt_stages').removeAttr('required');
-                    $('#txt_stages').val('');
+                    $('#txt_stages').removeAttr('required').val('');
                 }
             });
 
+            // Initialize stages visibility
             if ($('#txt_input_mode').val() === 'MULTI STAGE') {
                 $('#stages-wrapper').show();
                 $('#txt_stages').attr('required', true);
             }
 
-            // Results functionality (keep as is)
-            // let resultsIndex = $('#results-wrapper .results-row').length || 0;
+            // Test name existence check
+            $('#txt_name').on('keyup', function() {
+                const testName = $(this).val().trim();
+                if (testName.length >= 2) {
+                    checkTestExists(testName);
+                } else {
+                    $('#test-name-feedback').addClass('d-none');
+                }
+            });
 
-            // $(document).on('click', '.add-results', function() {
-            //     let newRow = `
-        //     <div class="row g-2 align-items-center results-row mb-2">
-        //         <div class="col-md-10">
-        //             <input type="text" name="results[${resultsIndex}][name]" class="form-control" placeholder="Result name" required>
-        //         </div>
-        //         <div class="col-md-2">
-        //             <button type="button" class="btn btn-primary btn-sm add-results me-1">+</button>
-        //             <button type="button" class="btn btn-danger btn-sm remove-results">-</button>
-        //         </div>
-        //     </div>`;
-            //     $('#results-wrapper').append(newRow);
-            //     resultsIndex++;
-            // });
-
-            // $(document).on('click', '.remove-results', function() {
-            //     if ($('#results-wrapper .results-row').length > 1) {
-            //         $(this).closest('.results-row').remove();
-            //     }
-            // });
-
-            // Search functionality with timeout
-            let searchTimeout;
-
-            // Standards search and management
+            // Standards search functionality
             $('#standard-search').on('input', function() {
-                const query = $(this).val();
-                const dropdown = $('.standards-dropdown');
-                const createSection = $('#standards-create-section');
-
-                clearTimeout(searchTimeout);
-
-                if (query.length < 1) {
-                    dropdown.hide().empty();
-                    createSection.hide();
-                    return;
-                }
-
-                searchTimeout = setTimeout(function() {
-                    $.ajax({
-                        url: "{{ route('search_standards') }}",
-                        type: "GET",
-                        data: {
-                            query: query
-                        },
-                        success: function(data) {
-                            dropdown.empty();
-                            createSection.hide();
-
-                            if (data.length > 0) {
-                                data.forEach(function(item) {
-                                    // Don't show already selected items
-                                    if (!selectedStandards.find(s => s.id ==
-                                            item.id)) {
-                                        dropdown.append(
-                                            `<div class="search-dropdown-item" data-id="${item.id}" data-name="${item.name}">${item.name}</div>`
-                                        );
-                                    }
-                                });
-                                dropdown.show();
-                            } else {
-                                // Show create option
-                                $('#standard-create-name').text(query);
-                                createSection.show();
-                                dropdown.hide();
-                            }
-                        },
-                        error: function() {
-                            dropdown.hide();
-                            createSection.hide();
-                        }
-                    });
-                }, 300);
+                const query = $(this).val().trim();
+                handleSearch('standards', query);
             });
 
-            // Primary tests search and management
+            // Primary tests search functionality
             $('#primary-test-search').on('input', function() {
-                const query = $(this).val();
-                const dropdown = $('.primary-tests-dropdown');
-                const createSection = $('#primary-tests-create-section');
-
-                clearTimeout(searchTimeout);
-
-                if (query.length < 1) {
-                    dropdown.hide().empty();
-                    createSection.hide();
-                    return;
-                }
-
-                searchTimeout = setTimeout(function() {
-                    $.ajax({
-                        url: "{{ route('search_primary_tests') }}",
-                        type: "GET",
-                        data: {
-                            query: query
-                        },
-                        success: function(data) {
-                            dropdown.empty();
-                            createSection.hide();
-
-                            if (data.length > 0) {
-                                data.forEach(function(item) {
-                                    if (!selectedPrimaryTests.find(s => s.id ==
-                                            item.id)) {
-                                        dropdown.append(
-                                            `<div class="search-dropdown-item" data-id="${item.id}" data-name="${item.name}">${item.name}</div>`
-                                        );
-                                    }
-                                });
-                                dropdown.show();
-                            } else {
-                                $('#primary-test-create-name').text(query);
-                                createSection.show();
-                                dropdown.hide();
-                            }
-                        },
-                        error: function() {
-                            dropdown.hide();
-                            createSection.hide();
-                        }
-                    });
-                }, 300);
+                const query = $(this).val().trim();
+                handleSearch('primary_tests', query);
             });
 
-            // Secondary tests search and management
-            $('#secondary-test-search').on('input', function() {
-                const query = $(this).val();
-                const dropdown = $('.secondary-tests-dropdown');
-                const createSection = $('#secondary-tests-create-section');
+            // Primary test selector for secondary tests
+            $('#primary-test-selector').on('change', function() {
+                currentPrimaryTestForSecondary = $(this).val();
+                const searchInput = $('#secondary-test-search');
 
-                clearTimeout(searchTimeout);
-
-                if (query.length < 1) {
-                    dropdown.hide().empty();
-                    createSection.hide();
-                    return;
-                }
-
-                searchTimeout = setTimeout(function() {
-                    $.ajax({
-                        url: "{{ route('search_secondary_tests') }}",
-                        type: "GET",
-                        data: {
-                            query: query
-                        },
-                        success: function(data) {
-                            dropdown.empty();
-                            createSection.hide();
-
-                            if (data.length > 0) {
-                                data.forEach(function(item) {
-                                    if (!selectedSecondaryTests.find(s => s
-                                            .id == item.id)) {
-                                        dropdown.append(
-                                            `<div class="search-dropdown-item" data-id="${item.id}" data-name="${item.name}">${item.name}</div>`
-                                        );
-                                    }
-                                });
-                                dropdown.show();
-                            } else {
-                                $('#secondary-test-create-name').text(query);
-                                createSection.show();
-                                dropdown.hide();
-                            }
-                        },
-                        error: function() {
-                            dropdown.hide();
-                            createSection.hide();
-                        }
-                    });
-                }, 300);
-            });
-
-            // Handle dropdown item selection
-            $(document).on('click', '.search-dropdown-item', function() {
-                const id = $(this).data('id');
-                const name = $(this).data('name');
-                const dropdown = $(this).parent();
-
-                if (dropdown.hasClass('standards-dropdown')) {
-                    addSelectedItem('standards', id, name);
-                    $('#standard-search').val('');
-                } else if (dropdown.hasClass('primary-tests-dropdown')) {
-                    addSelectedItem('primary-tests', id, name);
-                    $('#primary-test-search').val('');
-                } else if (dropdown.hasClass('secondary-tests-dropdown')) {
-                    addSelectedItem('secondary-tests', id, name);
-                    $('#secondary-test-search').val('');
-                }
-
-                dropdown.hide();
-            });
-
-            // Create new items
-            $('#create-standard-btn').on('click', function() {
-                const name = $('#standard-create-name').text();
-                createNewItem('standards', name);
-            });
-
-            $('#create-primary-test-btn').on('click', function() {
-                const name = $('#primary-test-create-name').text();
-                createNewItem('primary_tests', name);
-            });
-
-            $('#create-secondary-test-btn').on('click', function() {
-                const name = $('#secondary-test-create-name').text();
-                createNewItem('secondary_tests', name);
-            });
-
-            // Function to create new items via AJAX
-            function createNewItem(type, name) {
-                let url = '';
-                let searchInput = '';
-                let createSection = '';
-
-                switch (type) {
-                    case 'standards':
-                        url = "{{ route('create_standard') }}";
-                        searchInput = '#standard-search';
-                        createSection = '#standards-create-section';
-                        break;
-                    case 'primary_tests':
-                        url = "{{ route('create_primary_test') }}";
-                        searchInput = '#primary-test-search';
-                        createSection = '#primary-tests-create-section';
-                        break;
-                    case 'secondary_tests':
-                        url = "{{ route('create_secondary_test') }}";
-                        searchInput = '#secondary-test-search';
-                        createSection = '#secondary-tests-create-section';
-                        break;
-                }
-                $.ajax({
-                    url: url,
-                    type: "POST",
-                    data: {
-                        name: name,
-                        sampleId: selectedSampleId,
-                        groupId: selectedGroupId,
-                        _token: "{{ csrf_token() }}"
-                    },
-                    success: function(response) {
-                        if (response.success) {
-                            addSelectedItem(type.replace('_', '-'), response.data.id, response.data
-                                .name);
-                            $(searchInput).val('');
-                            $(createSection).hide();
-                        } else {
-                            alert('Error creating item: ' + response.message);
-                        }
-                    },
-                    error: function() {
-                        alert('Error creating item. Please try again.');
-                    }
-                });
-            }
-
-            // Function to add selected items
-            function addSelectedItem(type, id, name) {
-                let container = '';
-                let array = null;
-
-                switch (type) {
-                    case 'standards':
-                        container = '#standards-selected-container';
-                        array = selectedStandards;
-                        break;
-                    case 'primary-tests':
-                        container = '#primary-tests-selected-container';
-                        array = selectedPrimaryTests;
-                        break;
-                    case 'secondary-tests':
-                        container = '#secondary-tests-selected-container';
-                        array = selectedSecondaryTests;
-                        break;
-                }
-
-                // Check if already selected
-                if (array.find(item => item.id == id)) {
-                    return;
-                }
-
-                // Add to array
-                array.push({
-                    id: id,
-                    name: name
-                });
-
-                // Add to display
-                const selectedItem = `
-                    <span class="selected-item" data-id="${id}" data-type="${type}">
-                        ${name}
-                        <span class="remove-item" data-id="${id}" data-type="${type}">×</span>
-                    </span>
-                `;
-                $(container).append(selectedItem);
-
-                // Update hidden inputs
-                updateHiddenInputs();
-            }
-
-            // Function to remove selected items
-            $(document).on('click', '.remove-item', function() {
-                const id = $(this).data('id');
-                const type = $(this).data('type');
-
-                // Remove from display
-                $(this).parent().remove();
-
-                // Remove from array
-                switch (type) {
-                    case 'standards':
-                        selectedStandards = selectedStandards.filter(item => item.id != id);
-                        break;
-                    case 'primary-tests':
-                        selectedPrimaryTests = selectedPrimaryTests.filter(item => item.id != id);
-                        break;
-                    case 'secondary-tests':
-                        selectedSecondaryTests = selectedSecondaryTests.filter(item => item.id != id);
-                        break;
-                }
-
-                // Update hidden inputs
-                updateHiddenInputs();
-            });
-
-            // Function to update hidden inputs
-            function updateHiddenInputs() {
-                // Remove existing hidden inputs
-                $('input[name="standard_ids[]"]').remove();
-                $('input[name="primary_test_ids[]"]').remove();
-                $('input[name="secondary_test_ids[]"]').remove();
-
-                // Add standards
-                selectedStandards.forEach(function(item) {
-                    $('<input>').attr({
-                        type: 'hidden',
-                        name: 'standard_ids[]',
-                        value: item.id
-                    }).appendTo('form');
-                });
-
-                // Add primary tests
-                selectedPrimaryTests.forEach(function(item) {
-                    $('<input>').attr({
-                        type: 'hidden',
-                        name: 'primary_test_ids[]',
-                        value: item.id
-                    }).appendTo('form');
-                });
-
-                // Add secondary tests
-                selectedSecondaryTests.forEach(function(item) {
-                    $('<input>').attr({
-                        type: 'hidden',
-                        name: 'secondary_test_ids[]',
-                        value: item.id
-                    }).appendTo('form');
-                });
-            }
-
-            // Hide dropdown when clicking outside
-            $(document).on('click', function(e) {
-                if (!$(e.target).closest('.form-control-wrap').length) {
-                    $('.search-dropdown').hide();
-                    $('#standards-create-section').hide();
-                    $('#primary-tests-create-section').hide();
+                if (currentPrimaryTestForSecondary) {
+                    searchInput.prop('disabled', false).attr('placeholder',
+                        'Search or enter secondary test name');
+                } else {
+                    searchInput.prop('disabled', true).attr('placeholder', 'Select primary test first').val(
+                        '');
+                    $('.secondary-tests-dropdown').hide();
                     $('#secondary-tests-create-section').hide();
                 }
             });
 
-            // Sample -> Group AJAX
-            const groupDropdown = $('#txt_group_id');
+            // Secondary tests search functionality
+            $('#secondary-test-search').on('input', function() {
+                if (!currentPrimaryTestForSecondary) return;
 
-            $('#txt_sample_id').on('change', function() {
-                let sampleId = $(this).val();
+                const query = $(this).val().trim();
+                handleSecondaryTestSearch(query);
+            });
+
+            // Results functionality
+            $('#results-input').on('keydown', function(e) {
+                if (['Enter', ',', 'Tab'].includes(e.key)) {
+                    e.preventDefault();
+                    const value = $(this).val().trim();
+                    if (value && !resultTags.includes(value)) {
+                        resultTags.push(value);
+                        updateResultsView();
+                        $(this).val('');
+                    }
+                }
+            });
+
+            // Event handlers for dropdown selections
+            $(document).on('click', '.search-dropdown-item:not(.disabled)', function() {
+                const id = $(this).data('id');
+                const name = $(this).data('name');
+                const type = $(this).data('type');
+                const dropdown = $(this).parent();
+
+                if (dropdown.hasClass('standards-dropdown')) {
+                    const accredited = $(this).data('accredited') || 'NO';
+                    addSelectedItem('standards', {
+                        id,
+                        name,
+                        accredited
+                    });
+                    $('#standard-search').val('');
+                } else if (dropdown.hasClass('primary-tests-dropdown')) {
+                    addSelectedItem('primary_tests', {
+                        id,
+                        name
+                    });
+                    $('#primary-test-search').val('');
+                    updatePrimaryTestSelector();
+                } else if (dropdown.hasClass('secondary-tests-dropdown')) {
+                    addSelectedItem('secondary_tests', {
+                        id,
+                        name,
+                        primary_test_id: currentPrimaryTestForSecondary
+                    });
+                    $('#secondary-test-search').val('');
+                }
+                dropdown.hide();
+            });
+
+            // Create buttons
+            $('#create-standard-btn').on('click', function() {
+                const name = $('#standard-search').val();
+                showStandardModal(name);
+            });
+
+            $('#create-primary-test-btn').on('click', function() {
+                const name = $('#primary-test-search').val();
+                console.log(name);
+                createNewItem('primary_tests', name);
+            });
+
+            $('#create-secondary-test-btn').on('click', function() {
+                const name = $('#secondary-test-search').val();
+                if (currentPrimaryTestForSecondary) {
+                    createNewSecondaryTest(name, currentPrimaryTestForSecondary);
+                }
+            });
+
+            // Standard modal handling
+            $('#confirm-create-standard').on('click', function() {
+                const name = $('#modal-standard-name').val();
+                const accredited = $('input[name="accredited"]:checked').val();
+                const description = $('#standard-description').val();
+
+                if (!accredited) {
+                    alert('Please select whether the standard is accredited or not.');
+                    return;
+                }
+
+                createNewStandard(name, accredited, description);
+            });
+
+            // Remove items
+            $(document).on('click', '.remove-item', function() {
+                const id = $(this).data('id');
+                const type = $(this).data('type');
+                const primaryId = $(this).data('primary-id');
+
+                removeSelectedItem(type, id, primaryId);
+            });
+
+            // Remove result tags
+            $(document).on('click', '.remove-tag', function() {
+                const index = $(this).data('index');
+                resultTags.splice(index, 1);
+                updateResultsView();
+            });
+
+            // Hide dropdowns when clicking outside
+            $(document).on('click', function(e) {
+                if (!$(e.target).closest('.form-control-wrap').length) {
+                    $('.search-dropdown').hide();
+                    $('#standards-create-section, #primary-tests-create-section, #secondary-tests-create-section')
+                        .hide();
+                }
+            });
+
+            // Form submission
+            $('#test-form').on('submit', function() {
+                updateHiddenInputs();
+            });
+
+            // Functions
+            function initializeOldValues() {
+                // Initialize results
+                const oldResults = $('#results-hidden').val();
+                if (oldResults) {
+                    resultTags = oldResults.split(',').filter(Boolean);
+                    updateResultsView();
+                }
+
+                // Initialize standards
+                @if (old('standard_ids'))
+                    const standardIds = @json(old('standard_ids'));
+                    const standardData = @json(old('standard_data', []));
+                    standardIds.forEach((id, index) => {
+                        const raw = standardData[index] || {};
+                        const data = {
+                            name: raw.name || `Standard ${id}`,
+                            accredited: raw.accredited || 'NO'
+                        };
+                        selectedStandards.push({
+                            id: parseInt(id),
+                            ...data
+                        });
+                    });
+                    displaySelectedItems('standards');
+                @endif
+
+                // Initialize primary tests
+                @if (old('primary_test_ids'))
+                    const primaryTestIds = @json(old('primary_test_ids'));
+                    const primaryTestData = @json(old('primary_test_data', []));
+                    primaryTestIds.forEach((id, index) => {
+                        const data = primaryTestData[index] || {
+                            name: `Primary Test ${id}`
+                        };
+                        selectedPrimaryTests.push({
+                            id: parseInt(id),
+                            ...data
+                        });
+                    });
+                    displaySelectedItems('primary_tests');
+                    updatePrimaryTestSelector();
+                @endif
+
+                // Initialize secondary tests
+                @if (old('secondary_test_ids'))
+                    const secondaryTestIds = @json(old('secondary_test_ids'));
+                    const secondaryTestPrimaryIds = @json(old('secondary_test_primary_ids', []));
+                    const secondaryTestData = @json(old('secondary_test_data', []));
+                    secondaryTestIds.forEach((id, index) => {
+                        const primaryId = secondaryTestPrimaryIds[index];
+                        const data = secondaryTestData[index] || {
+                            name: `Secondary Test ${id}`
+                        };
+                        selectedSecondaryTests.push({
+                            id: parseInt(id),
+                            primary_test_id: parseInt(primaryId),
+                            ...data
+                        });
+                    });
+                    displaySelectedItems('secondary_tests');
+                @endif
+
+                // Auto-trigger sample change if old value exists
+                const oldSampleId = "{{ old('txt_sample_id') }}";
+                if (oldSampleId) {
+                    selectedSampleId = oldSampleId;
+                    loadGroups();
+                }
+            }
+
+            function loadGroups() {
+                const groupDropdown = $('#txt_group_id');
                 groupDropdown.empty().append('<option value="">Loading...</option>');
 
-                if (sampleId) {
+                if (selectedSampleId) {
                     $.ajax({
                         url: "{{ route('get_groups') }}",
                         type: "GET",
                         data: {
-                            sample_id: sampleId,
-                            _token: "{{ csrf_token() }}"
+                            sample_id: selectedSampleId
                         },
                         success: function(data) {
                             groupDropdown.empty().append(
                                 '<option value="">-- Select Group --</option>');
-                            $.each(data, function(key, group) {
-                                let selected = (group.m11_group_id ==
-                                    "{{ old('txt_group_id') }}") ? 'selected' : '';
+                            const oldGroupId = "{{ old('txt_group_id') }}";
+
+                            data.forEach(group => {
+                                const selected = (group.m11_group_id == oldGroupId) ?
+                                    'selected' : '';
                                 groupDropdown.append(
                                     `<option value="${group.m11_group_id}" ${selected}>${group.m11_name}</option>`
                                 );
                             });
+
+                            if (oldGroupId) {
+                                selectedGroupId = oldGroupId;
+                            }
                         },
                         error: function() {
                             groupDropdown.empty().append(
@@ -927,207 +849,36 @@
                 } else {
                     groupDropdown.empty().append('<option value="">-- Select Group --</option>');
                 }
-            });
-
-            // Auto-trigger if old sample value exists
-            let oldSampleId = "{{ old('txt_sample_id') }}";
-            if (oldSampleId) {
-                $('#txt_sample_id').val(oldSampleId).trigger('change');
             }
 
-            // Load old selected values if validation failed
-            @if (old('standard_ids'))
-                @foreach (old('standard_ids') as $standardId)
-                    // You would need to fetch the name for this ID via AJAX or pass it from controller
-                    // For now, just add the ID
-                    selectedStandards.push({
-                        id: {{ $standardId }},
-                        name: 'Standard {{ $standardId }}'
-                    });
-                @endforeach
-                updateHiddenInputs();
-            @endif
-
-            @if (old('primary_test_ids'))
-                @foreach (old('primary_test_ids') as $primaryTestId)
-                    selectedPrimaryTests.push({
-                        id: {{ $primaryTestId }},
-                        name: 'Primary Test {{ $primaryTestId }}'
-                    });
-                @endforeach
-                updateHiddenInputs();
-            @endif
-
-            @if (old('secondary_test_ids'))
-                @foreach (old('secondary_test_ids') as $secondaryTestId)
-                    selectedSecondaryTests.push({
-                        id: {{ $secondaryTestId }},
-                        name: 'Secondary Test {{ $secondaryTestId }}'
-                    });
-                @endforeach
-                updateHiddenInputs();
-            @endif
-        });
-    </script>
-
-    <script>
-        let resultTags = [];
-
-        function updateResultsView() {
-            let $container = $('#results-tags-container');
-            $container.empty();
-
-            resultTags.forEach((tag, index) => {
-                let $badge = $(`
-                <span class="selected-item">
-                    ${tag}
-                    <span class="remove-tag ms-1" data-index="${index}" style="cursor:pointer;">&times;</span>
-                </span>
-            `);
-                $container.append($badge);
-            });
-
-            // Update hidden input
-            $('#results-hidden').val(resultTags.join(','));
-        }
-
-        function removeResultTag(index) {
-            resultTags.splice(index, 1);
-            updateResultsView();
-        }
-
-        // Add tag on input
-        $('#results-input').on('keydown', function(e) {
-            if (e.key === 'Enter' || e.key === ',' || e.key === 'Tab') {
-                e.preventDefault();
-                let value = $(this).val().trim();
-                if (value && !resultTags.includes(value)) {
-                    resultTags.push(value);
-                    updateResultsView();
-                }
-                $(this).val('');
-            }
-        });
-
-        // Remove tag (fix class name here)
-        $(document).on('click', '.remove-tag', function() {
-            let index = $(this).data('index');
-            removeResultTag(index);
-        });
-
-        // Update hidden field before submit
-        $('form').on('submit', function() {
-            $('#results-hidden').val(resultTags.join(','));
-        });
-
-        // Prefill tags on edit
-        $(document).ready(function() {
-            let prefilled = $('#results-hidden').val();
-            if (prefilled) {
-                resultTags = prefilled.split(',').filter(Boolean);
-                updateResultsView();
-            }
-        });
-    </script> --}}
-
-
-    <script>
-        $(document).ready(function() {
-            let selectedSampleId = '';
-            let selectedGroupId = '';
-
-            $('#txt_sample_id').on('change', function() {
-                selectedSampleId = $(this).val();
-            });
-
-            $('#txt_group_id').on('change', function() {
-                selectedGroupId = $(this).val();
-            });
-
-            // Storage for selected items
-            let selectedStandards = [];
-            let selectedPrimaryTests = [];
-            let selectedSecondaryTests = []; // Now will store with primary test association
-            let availableSecondaryTests = []; // Cache for available secondary tests
-
-            // Show/hide stages based on input mode
-            $('#stages-wrapper').hide();
-            $('#txt_input_mode').on('change', function() {
-                var selectedValue = $(this).val();
-                if (selectedValue === 'MULTI STAGE') {
-                    $('#stages-wrapper').slideDown();
-                    $('#txt_stages').attr('required', true);
-                } else {
-                    $('#stages-wrapper').slideUp();
-                    $('#txt_stages').removeAttr('required');
-                    $('#txt_stages').val('');
-                }
-            });
-
-            if ($('#txt_input_mode').val() === 'MULTI STAGE') {
-                $('#stages-wrapper').show();
-                $('#txt_stages').attr('required', true);
-            }
-
-            // Search functionality with timeout
-            let searchTimeout;
-
-            // Standards search and management (unchanged)
-            $('#standard-search').on('input', function() {
-                const query = $(this).val();
-                const dropdown = $('.standards-dropdown');
-                const createSection = $('#standards-create-section');
-
-                clearTimeout(searchTimeout);
-
-                if (query.length < 1) {
-                    dropdown.hide().empty();
-                    createSection.hide();
-                    return;
-                }
-
-                searchTimeout = setTimeout(function() {
-                    $.ajax({
-                        url: "{{ route('search_standards') }}",
-                        type: "GET",
-                        data: {
-                            query: query
-                        },
-                        success: function(data) {
-                            dropdown.empty();
-                            createSection.hide();
-
-                            if (data.length > 0) {
-                                data.forEach(function(item) {
-                                    if (!selectedStandards.find(s => s.id ==
-                                            item.id)) {
-                                        dropdown.append(
-                                            `<div class="search-dropdown-item" data-id="${item.id}" data-name="${item.name}">${item.name}</div>`
-                                        );
-                                    }
-                                });
-                                dropdown.show();
-                            } else {
-                                $('#standard-create-name').text(query);
-                                createSection.show();
-                                dropdown.hide();
-                            }
-                        },
-                        error: function() {
-                            dropdown.hide();
-                            createSection.hide();
+            function checkTestExists(testName) {
+                $.ajax({
+                    url: "{{ route('check_test_exists') }}",
+                    method: 'GET',
+                    data: {
+                        name: testName
+                    },
+                    success: function(response) {
+                        if (response.exists) {
+                            $('#test-name-feedback').removeClass('d-none').text(
+                                'This Test already exists!');
+                        } else {
+                            $('#test-name-feedback').addClass('d-none');
                         }
-                    });
-                }, 300);
-            });
+                    }
+                });
+            }
 
-            // Primary tests search and management (enhanced to refresh secondary tests)
-            $('#primary-test-search').on('input', function() {
-                const query = $(this).val();
-                const dropdown = $('.primary-tests-dropdown');
-                const createSection = $('#primary-tests-create-section');
-
+            function handleSearch(type, query) {
                 clearTimeout(searchTimeout);
+                const dropdownClassMap = {
+                    'standards': '.standards-dropdown',
+                    'primary_tests': '.primary-tests-dropdown',
+                };
+
+                const dropdown = $(dropdownClassMap[type]);
+                // const dropdown = $(`.${type}-dropdown`);
+                const createSection = $(`#${type.replace('_', '-')}-create-section`);
 
                 if (query.length < 1) {
                     dropdown.hide().empty();
@@ -1135,238 +886,396 @@
                     return;
                 }
 
-                searchTimeout = setTimeout(function() {
+                if (!searchRoutes[type]) {
+                    console.error('No search route defined for type:', type);
+                    return;
+                }
+
+                // Show loading
+                dropdown.empty().append('<div class="search-dropdown-item disabled">Searching...</div>').show();
+
+                searchTimeout = setTimeout(() => {
                     $.ajax({
-                        url: "{{ route('search_primary_tests') }}",
+                        url: searchRoutes[type],
                         type: "GET",
                         data: {
-                            query: query
+                            query,
+                            selectedGroupId
                         },
                         success: function(data) {
                             dropdown.empty();
                             createSection.hide();
 
                             if (data.length > 0) {
-                                data.forEach(function(item) {
-                                    if (!selectedPrimaryTests.find(s => s.id ==
-                                            item.id)) {
-                                        dropdown.append(
-                                            `<div class="search-dropdown-item" data-id="${item.id}" data-name="${item.name}">${item.name}</div>`
-                                        );
-                                    }
-                                });
-                                dropdown.show();
-                            } else {
-                                $('#primary-test-create-name').text(query);
-                                createSection.show();
-                                dropdown.hide();
-                            }
-                        },
-                        error: function() {
-                            dropdown.hide();
-                            createSection.hide();
-                        }
-                    });
-                }, 300);
-            });
-
-            // Enhanced Secondary tests search - now filters by selected primary tests
-            $('#secondary-test-search').on('input', function() {
-                const query = $(this).val();
-                const dropdown = $('.secondary-tests-dropdown');
-                const createSection = $('#secondary-tests-create-section');
-
-                clearTimeout(searchTimeout);
-
-                if (query.length < 1) {
-                    dropdown.hide().empty();
-                    createSection.hide();
-                    return;
-                }
-
-                // Check if any primary tests are selected
-                if (selectedPrimaryTests.length === 0) {
-                    dropdown.empty().append(
-                        '<div class="search-dropdown-item disabled" style="color: #999; cursor: not-allowed;">Please select primary tests first</div>'
-                    );
-                    dropdown.show();
-                    createSection.hide();
-                    return;
-                }
-
-                searchTimeout = setTimeout(function() {
-                    // Get primary test IDs
-                    const primaryTestIds = selectedPrimaryTests.map(test => test.id);
-
-                    $.ajax({
-                        url: "{{ route('search_secondary_tests') }}",
-                        type: "GET",
-                        data: {
-                            query: query,
-                            primary_test_ids: primaryTestIds // Pass selected primary test IDs
-                        },
-                        success: function(data) {
-                            dropdown.empty();
-                            createSection.hide();
-
-                            if (data.length > 0) {
-                                data.forEach(function(item) {
-                                    // Check if this secondary test is already selected
-                                    const isSelected = selectedSecondaryTests
-                                        .some(s =>
-                                            s.id == item.id && s
-                                            .primary_test_id == item
-                                            .primary_test_id
-                                        );
-
+                                let hasResults = false;
+                                data.forEach(item => {
+                                    const isSelected = getSelectedArray(type).find(s =>
+                                        s.id == item.id);
                                     if (!isSelected) {
-                                        // Show which primary test this secondary test belongs to
-                                        const primaryTestName =
-                                            selectedPrimaryTests.find(p => p
-                                                .id == item.primary_test_id)
-                                            ?.name || 'Unknown';
+                                        hasResults = true;
+                                        console.log(item)
                                         dropdown.append(
-                                            `<div class="search-dropdown-item" data-id="${item.id}" data-name="${item.name}" data-primary-id="${item.primary_test_id}">
-                                        ${item.name} <small class="text-muted">(${primaryTestName})</small>
+                                            `<div class="search-dropdown-item"
+                                        data-id="${item.id}"
+                                        data-name="${item.name}"
+                                        data-type="${type}"
+                                        data-accredited="${item.accredited || 'NO'}">
+                                        ${item.name}
                                     </div>`
                                         );
                                     }
                                 });
 
-                                if (dropdown.children().length > 0) {
+                                if (hasResults) {
                                     dropdown.show();
                                 } else {
                                     dropdown.hide();
+                                    showCreateOption(type, query);
                                 }
                             } else {
-                                $('#secondary-test-create-name').text(query);
-                                createSection.show();
                                 dropdown.hide();
+                                showCreateOption(type, query);
                             }
                         },
-                        error: function() {
+                        error: function(xhr, status, error) {
+                            console.error('Search error:', error);
                             dropdown.hide();
-                            createSection.hide();
+                            showCreateOption(type, query);
                         }
                     });
                 }, 300);
-            });
+            }
 
-            // Handle dropdown item selection (enhanced for secondary tests)
-            $(document).on('click', '.search-dropdown-item', function() {
-                // Skip if disabled
-                if ($(this).hasClass('disabled')) return;
+            function handleSecondaryTestSearch(query) {
+                clearTimeout(searchTimeout);
+                const dropdown = $('.secondary-tests-dropdown');
+                const createSection = $('#secondary-tests-create-section');
 
-                const id = $(this).data('id');
-                const name = $(this).data('name');
-                const primaryId = $(this).data('primary-id');
-                const dropdown = $(this).parent();
-
-                if (dropdown.hasClass('standards-dropdown')) {
-                    addSelectedItem('standards', id, name);
-                    $('#standard-search').val('');
-                } else if (dropdown.hasClass('primary-tests-dropdown')) {
-                    addSelectedItem('primary-tests', id, name);
-                    $('#primary-test-search').val('');
-                    // Refresh available secondary tests when primary tests change
-                    refreshSecondaryTestsAvailability();
-                } else if (dropdown.hasClass('secondary-tests-dropdown')) {
-                    addSelectedItem('secondary-tests', id, name, primaryId);
-                    $('#secondary-test-search').val('');
-                }
-
-                dropdown.hide();
-            });
-
-            // Create new items (enhanced for secondary tests)
-            $('#create-standard-btn').on('click', function() {
-                const name = $('#standard-create-name').text();
-                createNewItem('standards', name);
-            });
-
-            $('#create-primary-test-btn').on('click', function() {
-                const name = $('#primary-test-create-name').text();
-                createNewItem('primary_tests', name);
-            });
-
-            $('#create-secondary-test-btn').on('click', function() {
-                const name = $('#secondary-test-create-name').text();
-
-                // Show modal to select which primary test this secondary test belongs to
-                showPrimaryTestSelectionModal(name);
-            });
-
-            // Function to show primary test selection modal for new secondary tests
-            function showPrimaryTestSelectionModal(secondaryTestName) {
-                if (selectedPrimaryTests.length === 0) {
-                    alert('Please select at least one primary test first.');
+                if (query.length < 1) {
+                    dropdown.hide().empty();
+                    createSection.hide();
                     return;
                 }
 
-                let modalHtml = `
-            <div class="modal fade" id="primaryTestModal" tabindex="-1">
-                <div class="modal-dialog">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title">Select Primary Test</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                        </div>
-                        <div class="modal-body">
-                            <p>Create secondary test "<strong>${secondaryTestName}</strong>" for which primary test?</p>
-                            <div class="primary-test-options">
-        `;
+                // Show loading
+                dropdown.empty().append('<div class="search-dropdown-item disabled">Searching...</div>').show();
 
-                selectedPrimaryTests.forEach(function(primaryTest) {
-                    modalHtml += `
-                <div class="form-check">
-                    <input class="form-check-input" type="radio" name="selectedPrimaryTest" id="primary_${primaryTest.id}" value="${primaryTest.id}">
-                    <label class="form-check-label" for="primary_${primaryTest.id}">
-                        ${primaryTest.name}
-                    </label>
-                </div>
-            `;
-                });
+                searchTimeout = setTimeout(() => {
+                    $.ajax({
+                        url: "{{ route('search_secondary_tests') }}",
+                        type: "GET",
+                        data: {
+                            query,
+                            primary_test_id: currentPrimaryTestForSecondary
+                        },
+                        success: function(data) {
+                            dropdown.empty();
+                            createSection.hide();
 
-                modalHtml += `
-                            </div>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                            <button type="button" class="btn btn-primary" id="confirmCreateSecondary">Create</button>
+                            if (data.length > 0) {
+                                let hasResults = false;
+                                data.forEach(item => {
+                                    const isSelected = selectedSecondaryTests.find(s =>
+                                        s.id == item.id && s.primary_test_id ==
+                                        currentPrimaryTestForSecondary
+                                    );
+                                    if (!isSelected) {
+                                        hasResults = true;
+                                        dropdown.append(
+                                            `<div class="search-dropdown-item" 
+                                        data-id="${item.id}" 
+                                        data-name="${item.name}" 
+                                        data-type="secondary_tests">
+                                        ${item.name}
+                                    </div>`
+                                        );
+                                    }
+                                });
+
+                                if (hasResults) {
+                                    dropdown.show();
+                                } else {
+                                    dropdown.hide();
+                                    showCreateOption('secondary_tests', query);
+                                }
+                            } else {
+                                dropdown.hide();
+                                showCreateOption('secondary_tests', query);
+                            }
+                        },
+                        error: function(xhr, status, error) {
+                            console.error('Search error:', error);
+                            dropdown.hide();
+                            showCreateOption('secondary_tests', query);
+                        }
+                    });
+                }, 300);
+            }
+
+            function showCreateOption(type, query) {
+                const createSection = $(`#${type.replace('_', '-')}-create-section`);
+                const createNameElement = $(`#${type.replace('_', '-')}-create-name`);
+
+                createNameElement.text(query);
+                createSection.show();
+            }
+
+            function getSelectedArray(type) {
+                switch (type) {
+                    case 'standards':
+                        return selectedStandards;
+                    case 'primary_tests':
+                        return selectedPrimaryTests;
+                    case 'secondary_tests':
+                        return selectedSecondaryTests;
+                    default:
+                        return [];
+                }
+            }
+
+            function addSelectedItem(type, data) {
+                const array = getSelectedArray(type);
+
+                // Check if already selected
+                if (type === 'secondary_tests') {
+                    if (array.find(item => item.id == data.id && item.primary_test_id == data.primary_test_id)) {
+                        return;
+                    }
+                } else {
+                    if (array.find(item => item.id == data.id)) {
+                        return;
+                    }
+                }
+
+                array.push(data);
+                displaySelectedItems(type);
+
+                if (type === 'primary_tests') {
+                    updatePrimaryTestSelector();
+                }
+
+                updateHiddenInputs();
+            }
+
+            function removeSelectedItem(type, id, primaryId = null) {
+                if (type === 'secondary_tests' && primaryId) {
+                    selectedSecondaryTests = selectedSecondaryTests.filter(item =>
+                        !(item.id == id && item.primary_test_id == primaryId)
+                    );
+                } else if (type === 'primary_tests') {
+                    selectedPrimaryTests = selectedPrimaryTests.filter(item => item.id != id);
+                    // Remove associated secondary tests
+                    selectedSecondaryTests = selectedSecondaryTests.filter(item => item.primary_test_id != id);
+                    updatePrimaryTestSelector();
+                    displaySelectedItems('secondary_tests');
+                } else if (type === 'standards') {
+                    selectedStandards = selectedStandards.filter(item => item.id != id);
+                }
+
+                displaySelectedItems(type);
+                updateHiddenInputs();
+            }
+
+            function displaySelectedItems(type) {
+                const containers = {
+                    'standards': '#standards-selected-container',
+                    'primary_tests': '#primary-tests-selected-container',
+                    'secondary_tests': '#secondary-tests-selected-container'
+                };
+
+                const container = $(containers[type]);
+                container.empty();
+
+                if (type === 'standards') {
+                    selectedStandards.forEach(item => {
+                        const cssClass = item.accredited === 'YES' ? 'standard-accredited' :
+                            'standard-normal';
+                        const selectedItem = `
+                    <span class="selected-item ${cssClass}" data-id="${item.id}" data-type="standards">
+                        ${item.name}
+                        <span class="remove-item" data-id="${item.id}" data-type="standards">×</span>
+                    </span>
+                `;
+                        container.append(selectedItem);
+                    });
+                } else if (type === 'primary_tests') {
+                    selectedPrimaryTests.forEach(item => {
+                        const selectedItem = `
+                    <span class="selected-item primary-test" data-id="${item.id}" data-type="primary_tests">
+                        ${item.name}
+                        <span class="remove-item" data-id="${item.id}" data-type="primary_tests">×</span>
+                    </span>
+                `;
+                        container.append(selectedItem);
+                    });
+                } else if (type === 'secondary_tests') {
+                    // Group by primary test
+                    const grouped = {};
+                    selectedSecondaryTests.forEach(item => {
+                        const primaryTest = selectedPrimaryTests.find(p => p.id == item.primary_test_id);
+                        const primaryName = primaryTest ? primaryTest.name : 'Unknown Primary Test';
+
+                        if (!grouped[item.primary_test_id]) {
+                            grouped[item.primary_test_id] = {
+                                primaryName,
+                                tests: []
+                            };
+                        }
+                        grouped[item.primary_test_id].tests.push(item);
+                    });
+
+                    Object.values(grouped).forEach(group => {
+                        const groupDiv = `
+                    <div class="primary-test-group col-md-4">
+                        <div class="primary-test-title">${group.primaryName}</div>
+                        <div class="secondary-tests">
+                            ${group.tests.map(test => `
+                                                    <span class="selected-item secondary-test" data-id="${test.id}" data-type="secondary_tests" data-primary-id="${test.primary_test_id}">
+                                                        ${test.name}
+                                                        <span class="remove-item" data-id="${test.id}" data-type="secondary_tests" data-primary-id="${test.primary_test_id}">×</span>
+                                                    </span>
+                                                `).join('')}
                         </div>
                     </div>
-                </div>
-            </div>
-        `;
+                `;
+                        container.append(groupDiv);
+                    });
+                }
+            }
 
-                // Remove existing modal if any
-                $('#primaryTestModal').remove();
+            function updatePrimaryTestSelector() {
+                const selector = $('#primary-test-selector');
+                selector.empty().append('<option value="">Select Primary Test</option>');
 
-                // Add modal to body
-                $('body').append(modalHtml);
+                if (selectedPrimaryTests.length > 0) {
+                    selectedPrimaryTests.forEach(test => {
+                        selector.append(`<option value="${test.id}">${test.name}</option>`);
+                    });
+                    selector.show();
+                    $('#secondary-tests-section').removeClass('disabled');
+                } else {
+                    selector.hide();
+                    $('#secondary-tests-section').addClass('disabled');
+                    $('#secondary-test-search').prop('disabled', true).attr('placeholder',
+                        'Select primary test first');
+                    currentPrimaryTestForSecondary = null;
+                }
+            }
 
-                // Show modal
-                $('#primaryTestModal').modal('show');
+            function showStandardModal(name) {
+                // console.log('Setting modal name to:', name);
+                $('#modal-standard-name').val(name);
+                $('#standard-description').val('');
+                $('input[name="accredited"]').prop('checked', false);
 
-                // Handle create button
-                $('#confirmCreateSecondary').on('click', function() {
-                    const selectedPrimaryId = $('input[name="selectedPrimaryTest"]:checked').val();
-                    if (selectedPrimaryId) {
-                        createNewSecondaryTest(secondaryTestName, selectedPrimaryId);
-                        $('#primaryTestModal').modal('hide');
-                    } else {
-                        alert('Please select a primary test.');
+                // Ensure modal is fully loaded before setting value
+                $('#standardModal').on('shown.bs.modal', function() {
+                    $('#modal-standard-name').val(name);
+                });
+
+                $('#standardModal').modal('show');
+            }
+
+            function createNewStandard(name, accredited, description) {
+                if (!selectedSampleId || !selectedGroupId) {
+                    alert('Please select sample and group first.');
+                    return;
+                }
+
+                $.ajax({
+                    url: "{{ route('create_standard') }}",
+                    type: "POST",
+                    data: {
+                        name,
+                        accredited,
+                        description,
+                        sampleId: selectedSampleId,
+                        groupId: selectedGroupId,
+                        _token: "{{ csrf_token() }}"
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            console.log(response);
+                            // addSelectedItem('standards', {
+                            //     id: response.data.id,
+                            //     name: response.data.name,
+                            //     accredited: response.data.accredited
+                            // });
+                            addSelectedItem('standards', {
+                                id: response.data.id,
+                                name: response.data.name,
+                                accredited: (response.data.accredited && response.data
+                                    .accredited.toUpperCase() === 'YES') ? 'YES' : 'NO'
+                            });
+                            $('#standard-search').val('');
+                            $('#standards-create-section').hide();
+                            $('#standardModal').modal('hide');
+                        } else {
+                            alert('Error creating standard: ' + response.message);
+                        }
+                    },
+                    error: function(xhr) {
+                        let message = 'Error creating standard. Please try again.';
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            message = xhr.responseJSON.message;
+                        }
+                        alert(message);
                     }
                 });
             }
 
-            // Function to create new secondary test with primary test association
+            function createNewItem(type, name) {
+                if (!selectedSampleId || !selectedGroupId) {
+                    alert('Please select sample and group first.');
+                    return;
+                }
+
+                const routes = {
+                    'primary_tests': "{{ route('create_primary_test') }}"
+                };
+
+                $.ajax({
+                    url: routes[type],
+                    type: "POST",
+                    data: {
+                        name,
+                        sampleId: selectedSampleId,
+                        groupId: selectedGroupId,
+                        _token: "{{ csrf_token() }}"
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            addSelectedItem(type, {
+                                id: response.data.id,
+                                name: response.data.name
+                            });
+                            $(`#${type.replace('_', '-')}-search`).val('');
+                            $(`#${type.replace('_', '-')}-create-section`).hide();
+                        } else {
+                            alert(`Error creating ${type.replace('_', ' ')}: ` + response.message);
+                        }
+                    },
+                    error: function(xhr) {
+                        let message = `Error creating ${type.replace('_', ' ')}. Please try again.`;
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            message = xhr.responseJSON.message;
+                        }
+                        alert(message);
+                    }
+                });
+            }
+
             function createNewSecondaryTest(name, primaryTestId) {
+                if (!selectedSampleId || !selectedGroupId) {
+                    alert('Please select sample and group first.');
+                    return;
+                }
+
                 $.ajax({
                     url: "{{ route('create_secondary_test') }}",
                     type: "POST",
                     data: {
-                        name: name,
+                        name,
                         primary_test_id: primaryTestId,
                         sampleId: selectedSampleId,
                         groupId: selectedGroupId,
@@ -1374,398 +1283,101 @@
                     },
                     success: function(response) {
                         if (response.success) {
-                            addSelectedItem('secondary-tests', response.data.id, response.data.name,
-                                primaryTestId);
+                            addSelectedItem('secondary_tests', {
+                                id: response.data.id,
+                                name: response.data.name,
+                                primary_test_id: primaryTestId
+                            });
                             $('#secondary-test-search').val('');
                             $('#secondary-tests-create-section').hide();
                         } else {
                             alert('Error creating secondary test: ' + response.message);
                         }
                     },
-                    error: function() {
-                        alert('Error creating secondary test. Please try again.');
+                    error: function(xhr) {
+                        let message = 'Error creating secondary test. Please try again.';
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            message = xhr.responseJSON.message;
+                        }
+                        alert(message);
                     }
                 });
             }
 
-            // Function to create new items via AJAX (enhanced)
-            function createNewItem(type, name) {
-                let url = '';
-                let searchInput = '';
-                let createSection = '';
-
-                switch (type) {
-                    case 'standards':
-                        url = "{{ route('create_standard') }}";
-                        searchInput = '#standard-search';
-                        createSection = '#standards-create-section';
-                        break;
-                    case 'primary_tests':
-                        url = "{{ route('create_primary_test') }}";
-                        searchInput = '#primary-test-search';
-                        createSection = '#primary-tests-create-section';
-                        break;
-                }
-
-                $.ajax({
-                    url: url,
-                    type: "POST",
-                    data: {
-                        name: name,
-                        sampleId: selectedSampleId,
-                        groupId: selectedGroupId,
-                        _token: "{{ csrf_token() }}"
-                    },
-                    success: function(response) {
-                        if (response.success) {
-                            addSelectedItem(type.replace('_', '-'), response.data.id, response.data
-                                .name);
-                            $(searchInput).val('');
-                            $(createSection).hide();
-
-                            // If primary test was created, refresh secondary tests availability
-                            if (type === 'primary_tests') {
-                                refreshSecondaryTestsAvailability();
-                            }
-                        } else {
-                            alert('Error creating item: ' + response.message);
-                        }
-                    },
-                    error: function() {
-                        alert('Error creating item. Please try again.');
-                    }
-                });
-            }
-
-            // Enhanced function to add selected items (supports primary test association for secondary tests)
-            function addSelectedItem(type, id, name, primaryTestId = null) {
-                let container = '';
-                let array = null;
-
-                switch (type) {
-                    case 'standards':
-                        container = '#standards-selected-container';
-                        array = selectedStandards;
-                        break;
-                    case 'primary-tests':
-                        container = '#primary-tests-selected-container';
-                        array = selectedPrimaryTests;
-                        break;
-                    case 'secondary-tests':
-                        container = '#secondary-tests-selected-container';
-                        array = selectedSecondaryTests;
-                        break;
-                }
-
-                // Check if already selected (for secondary tests, check both id and primary_test_id)
-                if (type === 'secondary-tests') {
-                    if (array.find(item => item.id == id && item.primary_test_id == primaryTestId)) {
-                        return;
-                    }
-                } else {
-                    if (array.find(item => item.id == id)) {
-                        return;
-                    }
-                }
-
-                // Add to array
-                const itemData = {
-                    id: id,
-                    name: name
-                };
-                if (type === 'secondary-tests' && primaryTestId) {
-                    itemData.primary_test_id = primaryTestId;
-                }
-                array.push(itemData);
-
-                // Add to display (enhanced for secondary tests)
-                let displayName = name;
-                if (type === 'secondary-tests' && primaryTestId) {
-                    const primaryTestName = selectedPrimaryTests.find(p => p.id == primaryTestId)?.name ||
-                        'Unknown';
-                    displayName = `${name} <span class="text-danger">(${primaryTestName})</span>`;
-                }
-
-                const selectedItem = `
-            <span class="selected-item" data-id="${id}" data-type="${type}" ${primaryTestId ? `data-primary-id="${primaryTestId}"` : ''}>
-                ${displayName}
-                <span class="remove-item" data-id="${id}" data-type="${type}" ${primaryTestId ? `data-primary-id="${primaryTestId}"` : ''}>×</span>
-            </span>
-        `;
-                $(container).append(selectedItem);
-
-                // Update hidden inputs
-                updateHiddenInputs();
-            }
-
-            // Enhanced function to remove selected items
-            $(document).on('click', '.remove-item', function() {
-                const id = $(this).data('id');
-                const type = $(this).data('type');
-                const primaryTestId = $(this).data('primary-id');
-
-                // Remove from display
-                $(this).parent().remove();
-
-                // Remove from array
-                switch (type) {
-                    case 'standards':
-                        selectedStandards = selectedStandards.filter(item => item.id != id);
-                        break;
-                    case 'primary-tests':
-                        selectedPrimaryTests = selectedPrimaryTests.filter(item => item.id != id);
-                        // Remove associated secondary tests when primary test is removed
-                        selectedSecondaryTests = selectedSecondaryTests.filter(item => item
-                            .primary_test_id != id);
-                        // Refresh secondary tests display
-                        refreshSecondaryTestsDisplay();
-                        // Clear secondary tests availability
-                        refreshSecondaryTestsAvailability();
-                        break;
-                    case 'secondary-tests':
-                        if (primaryTestId) {
-                            selectedSecondaryTests = selectedSecondaryTests.filter(item =>
-                                !(item.id == id && item.primary_test_id == primaryTestId)
-                            );
-                        } else {
-                            selectedSecondaryTests = selectedSecondaryTests.filter(item => item.id != id);
-                        }
-                        break;
-                }
-
-                // Update hidden inputs
-                updateHiddenInputs();
-            });
-
-            // Function to refresh secondary tests display when primary tests change
-            function refreshSecondaryTestsDisplay() {
-                const container = $('#secondary-tests-selected-container');
+            function updateResultsView() {
+                const container = $('#results-tags-container');
                 container.empty();
 
-                selectedSecondaryTests.forEach(function(item) {
-                    // Check if the primary test still exists
-                    const primaryTest = selectedPrimaryTests.find(p => p.id == item.primary_test_id);
-                    if (primaryTest) {
-                        const displayName =
-                            `${item.name} <small class="text-muted">(${primaryTest.name})</small>`;
-                        const selectedItem = `
-                    <span class="selected-item" data-id="${item.id}" data-type="secondary-tests" data-primary-id="${item.primary_test_id}">
-                        ${displayName}
-                        <span class="remove-item" data-id="${item.id}" data-type="secondary-tests" data-primary-id="${item.primary_test_id}">×</span>
-                    </span>
-                `;
-                        container.append(selectedItem);
-                    }
+                resultTags.forEach((tag, index) => {
+                    const badge = `
+                <span class="selected-item" style="background: #17a2b8;">
+                    ${tag}
+                    <span class="remove-tag ms-1" data-index="${index}" style="cursor:pointer;">&times;</span>
+                </span>
+            `;
+                    container.append(badge);
                 });
+
+                $('#results-hidden').val(resultTags.join(','));
             }
 
-            // Function to refresh secondary tests availability
-            function refreshSecondaryTestsAvailability() {
-                // Clear the search input and hide dropdown
-                $('#secondary-test-search').val('');
-                $('.secondary-tests-dropdown').hide().empty();
-                $('#secondary-tests-create-section').hide();
-
-                // Show/hide secondary tests section based on primary tests selection
-                if (selectedPrimaryTests.length === 0) {
-                    $('#secondary-tests-section').addClass('opacity-50');
-                    $('#secondary-test-search').attr('placeholder', 'Select primary tests first');
-                } else {
-                    $('#secondary-tests-section').removeClass('opacity-50');
-                    $('#secondary-test-search').attr('placeholder', 'Search or enter secondary test name');
-                }
-            }
-
-            // Enhanced function to update hidden inputs
             function updateHiddenInputs() {
                 // Remove existing hidden inputs
-                $('input[name="standard_ids[]"]').remove();
-                $('input[name="primary_test_ids[]"]').remove();
-                $('input[name="secondary_test_ids[]"]').remove();
-                $('input[name="secondary_test_primary_ids[]"]').remove();
+                $('input[name="standard_ids[]"], input[name="primary_test_ids[]"], input[name="secondary_test_ids[]"], input[name="secondary_test_primary_ids[]"]')
+                    .remove();
+                $('input[name="standard_data[]"], input[name="primary_test_data[]"], input[name="secondary_test_data[]"]')
+                    .remove();
 
                 // Add standards
-                selectedStandards.forEach(function(item) {
+                selectedStandards.forEach(item => {
                     $('<input>').attr({
                         type: 'hidden',
                         name: 'standard_ids[]',
                         value: item.id
-                    }).appendTo('form');
+                    }).appendTo('#test-form');
+
+                    $('<input>').attr({
+                        type: 'hidden',
+                        name: 'standard_data[]',
+                        value: JSON.stringify(item)
+                    }).appendTo('#test-form');
                 });
 
                 // Add primary tests
-                selectedPrimaryTests.forEach(function(item) {
+                selectedPrimaryTests.forEach(item => {
                     $('<input>').attr({
                         type: 'hidden',
                         name: 'primary_test_ids[]',
                         value: item.id
-                    }).appendTo('form');
+                    }).appendTo('#test-form');
+
+                    $('<input>').attr({
+                        type: 'hidden',
+                        name: 'primary_test_data[]',
+                        value: JSON.stringify(item)
+                    }).appendTo('#test-form');
                 });
 
-                // Add secondary tests with their primary test associations
-                selectedSecondaryTests.forEach(function(item) {
+                // Add secondary tests
+                selectedSecondaryTests.forEach(item => {
                     $('<input>').attr({
                         type: 'hidden',
                         name: 'secondary_test_ids[]',
                         value: item.id
-                    }).appendTo('form');
+                    }).appendTo('#test-form');
 
-                    if (item.primary_test_id) {
-                        $('<input>').attr({
-                            type: 'hidden',
-                            name: 'secondary_test_primary_ids[]',
-                            value: item.primary_test_id
-                        }).appendTo('form');
-                    }
+                    $('<input>').attr({
+                        type: 'hidden',
+                        name: 'secondary_test_primary_ids[]',
+                        value: item.primary_test_id
+                    }).appendTo('#test-form');
+
+                    $('<input>').attr({
+                        type: 'hidden',
+                        name: 'secondary_test_data[]',
+                        value: JSON.stringify(item)
+                    }).appendTo('#test-form');
                 });
-            }
-
-            // Hide dropdown when clicking outside
-            $(document).on('click', function(e) {
-                if (!$(e.target).closest('.form-control-wrap').length) {
-                    $('.search-dropdown').hide();
-                    $('#standards-create-section').hide();
-                    $('#primary-tests-create-section').hide();
-                    $('#secondary-tests-create-section').hide();
-                }
-            });
-
-            // Sample -> Group AJAX (unchanged)
-            const groupDropdown = $('#txt_group_id');
-
-            $('#txt_sample_id').on('change', function() {
-                let sampleId = $(this).val();
-                groupDropdown.empty().append('<option value="">Loading...</option>');
-
-                if (sampleId) {
-                    $.ajax({
-                        url: "{{ route('get_groups') }}",
-                        type: "GET",
-                        data: {
-                            sample_id: sampleId,
-                            _token: "{{ csrf_token() }}"
-                        },
-                        success: function(data) {
-                            groupDropdown.empty().append(
-                                '<option value="">-- Select Group --</option>');
-                            $.each(data, function(key, group) {
-                                let selected = (group.m11_group_id ==
-                                    "{{ old('txt_group_id') }}") ? 'selected' : '';
-                                groupDropdown.append(
-                                    `<option value="${group.m11_group_id}" ${selected}>${group.m11_name}</option>`
-                                );
-                            });
-                        },
-                        error: function() {
-                            groupDropdown.empty().append(
-                                '<option value="">Error loading groups</option>');
-                        }
-                    });
-                } else {
-                    groupDropdown.empty().append('<option value="">-- Select Group --</option>');
-                }
-            });
-
-            // Auto-trigger if old sample value exists
-            let oldSampleId = "{{ old('txt_sample_id') }}";
-            if (oldSampleId) {
-                $('#txt_sample_id').val(oldSampleId).trigger('change');
-            }
-
-            // Initialize secondary tests section state
-            refreshSecondaryTestsAvailability();
-
-            // Load old selected values if validation failed (enhanced)
-            @if (old('standard_ids'))
-                @foreach (old('standard_ids') as $standardId)
-                    selectedStandards.push({
-                        id: {{ $standardId }},
-                        name: 'Standard {{ $standardId }}'
-                    });
-                @endforeach
-                updateHiddenInputs();
-            @endif
-
-            @if (old('primary_test_ids'))
-                @foreach (old('primary_test_ids') as $primaryTestId)
-                    selectedPrimaryTests.push({
-                        id: {{ $primaryTestId }},
-                        name: 'Primary Test {{ $primaryTestId }}'
-                    });
-                @endforeach
-                updateHiddenInputs();
-                refreshSecondaryTestsAvailability();
-            @endif
-
-            @if (old('secondary_test_ids'))
-                @php
-                    $secondaryTestIds = old('secondary_test_ids');
-                    $secondaryTestPrimaryIds = old('secondary_test_primary_ids', []);
-                @endphp
-                @foreach ($secondaryTestIds as $index => $secondaryTestId)
-                    selectedSecondaryTests.push({
-                        id: {{ $secondaryTestId }},
-                        name: 'Secondary Test {{ $secondaryTestId }}',
-                        primary_test_id: {{ $secondaryTestPrimaryIds[$index] ?? 'null' }}
-                    });
-                @endforeach
-                updateHiddenInputs();
-                refreshSecondaryTestsDisplay();
-            @endif
-        });
-    </script>
-
-    <script>
-        let resultTags = [];
-
-        function updateResultsView() {
-            let $container = $('#results-tags-container');
-            $container.empty();
-
-            resultTags.forEach((tag, index) => {
-                let $badge = $(`
-            <span class="selected-item">
-                ${tag}
-                <span class="remove-tag ms-1" data-index="${index}" style="cursor:pointer;">&times;</span>
-            </span>
-        `);
-                $container.append($badge);
-            });
-
-            $('#results-hidden').val(resultTags.join(','));
-        }
-
-        function removeResultTag(index) {
-            resultTags.splice(index, 1);
-            updateResultsView();
-        }
-
-        $('#results-input').on('keydown', function(e) {
-            if (e.key === 'Enter' || e.key === ',' || e.key === 'Tab') {
-                e.preventDefault();
-                let value = $(this).val().trim();
-                if (value && !resultTags.includes(value)) {
-                    resultTags.push(value);
-                    updateResultsView();
-                }
-                $(this).val('');
-            }
-        });
-
-        $(document).on('click', '.remove-tag', function() {
-            let index = $(this).data('index');
-            removeResultTag(index);
-        });
-
-        $('form').on('submit', function() {
-            $('#results-hidden').val(resultTags.join(','));
-        });
-
-        $(document).ready(function() {
-            let prefilled = $('#results-hidden').val();
-            if (prefilled) {
-                resultTags = prefilled.split(',').filter(Boolean);
-                updateResultsView();
             }
         });
     </script>

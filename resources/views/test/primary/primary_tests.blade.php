@@ -8,7 +8,7 @@
                     <div class="nk-block-head">
                         <div class="nk-block-head-content d-flex justify-content-between align-items-center">
                             <h4 class="nk-block-title">Primary Test List</h4>
-                            <a href="{{ route('create_primary_test') }}" class="btn btn-primary">
+                            <a href="{{ route('create_primary') }}" class="btn btn-primary">
                                 <em class="icon ni ni-plus"></em> &nbsp; Create Primary Test
                             </a>
                         </div>
@@ -22,7 +22,7 @@
                                         <th>ID</th>
                                         <th>Sample</th>
                                         <th>Group</th>
-                                        <th>Test</th>
+                                        {{-- <th>Test</th> --}}
                                         <th>Parameter</th>
                                         <th>Unit</th>
                                         <th>Requirement</th>
@@ -39,7 +39,7 @@
                                             <td>{{ $key + 1 }}</td>
                                             <td>{{ $primary->sample->m10_name ?? '' }}</td>
                                             <td>{{ $primary->group->m11_name ?? ''}}</td>
-                                            <td>{{ $primary->test->m12_name ?? ''}}</td>
+                                            {{-- <td>{{ $primary->test->m12_name ?? ''}}</td> --}}
                                             <td>{{ $primary->m16_name }}</td>
                                             <td>{{ $primary->m16_unit }}</td>
                                             <td>{{ $primary->m16_requirement }}</td>

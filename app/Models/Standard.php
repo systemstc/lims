@@ -11,9 +11,9 @@ class Standard extends Model
     protected $fillable = [
         'm10_sample_id',
         'm11_group_id',
-        'm12_test_id',
         'm15_method',
         'm15_description',
+        'm15_accredited',
         'm15_unit',
         'm15_detection_limit',
         'm15_requirement',
@@ -29,11 +29,6 @@ class Standard extends Model
     public function group()
     {
         return $this->belongsTo(Group::class, 'm11_group_id');
-    }
-
-    public function test()
-    {
-        return $this->belongsTo(Test::class, 'm12_test_id');
     }
 
     public function user()

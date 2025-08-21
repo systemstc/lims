@@ -42,7 +42,7 @@
                                     @enderror
                                 </div>
 
-                                <div class="col-md-6">
+                                {{-- <div class="col-md-6">
                                     <label class="form-label">Test<b class="text-danger">*</b></label>
                                     <select class="form-select" name="txt_edit_test_id" id="txt_test_id">
                                         <option value="">-- Select Test --</option>
@@ -50,7 +50,7 @@
                                     @error('txt_edit_test_id')
                                         <small class="text-danger">{{ $message }}</small>
                                     @enderror
-                                </div>
+                                </div> --}}
 
                                 <div class="col-md-6">
                                     <label class="form-label">Primary Test<b class="text-danger">*</b></label>
@@ -95,7 +95,7 @@
     <script>
         $(document).ready(function() {
             let groupUrl = "{{ route('get_groups') }}";
-            let testUrl = "{{ route('get_tests') }}";
+            // let testUrl = "{{ route('get_tests') }}";
             let primaryUrl = "{{ route('get_primary_tests') }}";
 
             function loadGroups(sampleId, selectedGroup = '', callback = null) {
@@ -113,25 +113,25 @@
                 });
             }
 
-            function loadTests(groupId, selectedTest = '', callback = null) {
-                $('#txt_test_id').html('<option value="">Loading...</option>');
-                $.get(testUrl, {
-                    group_id: groupId
-                }, function(tests) {
-                    let options = '<option value="">-- Select Test --</option>';
-                    $.each(tests, function(i, test) {
-                        options +=
-                            `<option value="${test.m12_test_id}" ${selectedTest == test.m12_test_id ? 'selected' : ''}>${test.m12_name}</option>`;
-                    });
-                    $('#txt_test_id').html(options);
-                    if (callback) callback();
-                });
-            }
+            // function loadTests(groupId, selectedTest = '', callback = null) {
+            //     $('#txt_test_id').html('<option value="">Loading...</option>');
+            //     $.get(testUrl, {
+            //         group_id: groupId
+            //     }, function(tests) {
+            //         let options = '<option value="">-- Select Test --</option>';
+            //         $.each(tests, function(i, test) {
+            //             options +=
+            //                 `<option value="${test.m12_test_id}" ${selectedTest == test.m12_test_id ? 'selected' : ''}>${test.m12_name}</option>`;
+            //         });
+            //         $('#txt_test_id').html(options);
+            //         if (callback) callback();
+            //     });
+            // }
 
             function loadPrimaryTests(testId, selectedPrimary = '') {
                 $('#txt_primary_test_id').html('<option value="">Loading...</option>');
                 $.get(primaryUrl, {
-                    test_id: testId
+                    group_id: testId
                 }, function(tests) {
                     let options = '<option value="">-- Select Primary Test --</option>';
                     $.each(tests, function(i, test) {

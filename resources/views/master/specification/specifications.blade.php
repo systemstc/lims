@@ -6,12 +6,11 @@
                 <div class="components-preview wide-xl mx-auto">
                     <div class="nk-block nk-block-lg">
                         <div class="nk-block-head">
-                            <div class="nk-block-head-content">
-                                <h4 class="nk-block-title">Customer List</h4>
-                                <div class="nk-block-des d-flex justify-content-end">
-                                    <a href="{{ route('create_customer') }}" class="btn btn-primary"><em
-                                            class="icon ni ni-plus"></em> &nbsp; Create Customer</a>
-                                </div>
+                            <div class="nk-block-head-content d-flex justify-content-between align-items-center">
+                                <h4 class="nk-block-title">Specifications</h4>
+                                <a href="{{ route('create_specification') }}" class="btn btn-primary">
+                                    <em class="icon ni ni-plus"></em>&nbsp; Create
+                                </a>
                             </div>
                         </div>
 
@@ -20,33 +19,32 @@
                                 <table class="datatable-init-export nowrap table" data-export-title="Export">
                                     <thead>
                                         <tr>
-                                            <th>Sr. No</th>
-                                            {{-- <th>Customer Code</th> --}}
-                                            <th>Customer Name</th>
-                                            <th>Customer Type</th>
-                                            <th>GST</th>
-                                            <th>District</th>
-                                            <th>Other Locations</th>
-                                            <th>Created At</th>
+                                            <th>ID</th>
+                                            <th>Specification</th>
+                                            <th>Tests</th>
+                                            <th>Charge</th>
+                                            {{-- <th>Created By</th> --}}
+                                            {{-- <th>Created At</th> --}}
                                             <th>Status</th>
                                             <th>Action</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        @foreach ($customers as $key => $customer)
+                                        @foreach ($specifications as $key => $spec)
                                             <tr>
                                                 <td>{{ $key + 1 }}</td>
-                                                {{-- <td>{{ $customer->m07_customer_code }}</td> --}}
-                                                <td>{{ $customer->m07_name }}</td>
-                                                <td>{{ $customer->customerType->m09_name ?? '' }}</td>
-                                                <td><b>{{ $customer->m07_gst }}</b></td>
-                                                <td>{{ $customer->district->m02_name }}</td>
-                                                <td><span class="badge bg-success">{{ count($customer->locations) }}</span>
+                                                <td>{{ $spec->m19_name }}</td>
+                                                <td>
+                                                    @foreach ($spec->packageTests as $pkgTest)
+                                                        <span class="badge bg-primary">
+                                                            {{ $pkgTest->test->m12_name ?? 'N/A' }} -
+                                                            {{ $pkgTest->standard->m15_method ?? 'N/A' }}
+                                                        </span><br>
+                                                    @endforeach
                                                 </td>
-                                                <td>{{ $customer->created_at }}</td>
-                                                <td
-                                                    class="text-{{ $customer->m07_status == 'ACTIVE' ? 'success' : 'danger' }}">
-                                                    <strong>{{ $customer->m07_status }}</strong>
+                                                <td>{{ $spec->m19_charges }}</td>
+                                                <td class="text-{{ $spec->m19_status == 'ACTIVE' ? 'success' : 'danger' }}">
+                                                    <strong>{{ $spec->m19_status }}</strong>
                                                 </td>
                                                 <td class="nk-tb-col nk-tb-col-tools">
                                                     <ul class="nk-tb-actions gx-1 my-n1">
@@ -54,19 +52,26 @@
                                                             <div class="dropdown">
                                                                 <a href="#"
                                                                     class="dropdown-toggle btn btn-icon btn-trigger"
-                                                                    data-bs-toggle="dropdown"><em
-                                                                        class="icon ni ni-more-h"></em></a>
+                                                                    data-bs-toggle="dropdown">
+                                                                    <em class="icon ni ni-more-h"></em>
+                                                                </a>
                                                                 <div class="dropdown-menu dropdown-menu-end">
                                                                     <ul class="link-list-opt no-bdr">
-                                                                        <li><a href="{{ route('update_customer', $customer->m07_customer_id) }}"
-                                                                                class="edit-btn btn"><em
-                                                                                    class="icon ni ni-edit"></em><span>Edit
-                                                                                </span></a></li>
-                                                                        <li><a class="btn eg-swal-av3"
-                                                                                data-id="{{ $customer->m07_customer_id }}"
-                                                                                data-status="{{ $customer->m07_status }}"><em
-                                                                                    class="icon ni ni-trash"></em><span>Change
-                                                                                    Status</span></a></li>
+                                                                        <li>
+                                                                            <a href="{{ route('update_specification', $spec->m19_package_id) }}"
+                                                                                class="edit-btn btn">
+                                                                                <em class="icon ni ni-edit"></em>
+                                                                                <span>Edit</span>
+                                                                            </a>
+                                                                        </li>
+                                                                        <li>
+                                                                            <a class="btn eg-swal-av3"
+                                                                                data-id="{{ $spec->m19_package_id }}"
+                                                                                data-status="{{ $spec->m19_status }}">
+                                                                                <em class="icon ni ni-trash"></em>
+                                                                                <span>Change Status</span>
+                                                                            </a>
+                                                                        </li>
                                                                     </ul>
                                                                 </div>
                                                             </div>
@@ -89,9 +94,10 @@
         $(document).ready(function() {
             $(document).on('click', '.eg-swal-av3', function(e) {
                 e.preventDefault();
-                let customerId = $(this).data('id');
+                let specId = $(this).data('id');
                 let currentStatus = $(this).data('status');
                 let newStatus = currentStatus === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+
                 Swal.fire({
                     title: 'Are you sure?',
                     text: `Change status to ${newStatus}?`,
@@ -101,13 +107,13 @@
                 }).then((result) => {
                     if (result.isConfirmed) {
                         $.ajax({
-                            url: '/delete-customer',
+                            url: "{{ route('delete_specification') }}",
                             method: 'POST',
                             headers: {
                                 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
                             },
                             data: {
-                                id: customerId
+                                id: specId
                             },
                             success: function(data) {
                                 if (data.status === 'success') {
@@ -119,7 +125,6 @@
                                         showConfirmButton: false
                                     }).then(() => {
                                         window.location.reload();
-
                                     });
                                 }
                             },

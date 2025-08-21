@@ -11,7 +11,6 @@ class PrimaryTest extends Model
     protected $fillable = [
         'm10_sample_id',
         'm11_group_id',
-        'm12_test_id',
         'm16_name',
         'm16_unit',
         'm16_requirement',
@@ -28,11 +27,6 @@ class PrimaryTest extends Model
     public function group()
     {
         return $this->belongsTo(Group::class, 'm11_group_id');
-    }
-
-    public function test()
-    {
-        return $this->belongsTo(Test::class, 'm12_test_id');
     }
 
     public function user()

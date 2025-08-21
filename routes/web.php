@@ -6,6 +6,7 @@ use App\Http\Controllers\CustomerSearchController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\MasterController;
 use App\Http\Controllers\MeasurementController;
+use App\Http\Controllers\RegistrationController;
 use App\Http\Controllers\RoController;
 use App\Http\Controllers\SampleController;
 use App\Models\Employee;
@@ -102,27 +103,55 @@ Route::middleware(['check_permission'])->group(function () {
 
     // Standards
     Route::get('standards', [MasterController::class, 'viewStandards'])->name('view_standards');
-    Route::match(['get', 'post'], 'create-standard', [MasterController::class, 'createStandard'])->name('create_standard');
+    Route::match(['get', 'post'], 'create-standard', [MasterController::class, 'createStandard'])->name('create_standard_main');
     Route::match(['get', 'post'], 'update-standard/{id}', [MasterController::class, 'updateStandard'])->name('update_standard');
     Route::post('delete-standard', [MasterController::class, 'deleteStandard'])->name('delete_standard');
 
     // Primary Tests
     Route::get('primary-tests', [MasterController::class, 'viewPrimaryTests'])->name('view_primary_tests');
-    Route::match(['get', 'post'], 'create-primary-test', [MasterController::class, 'createPrimaryTest'])->name('create_primary_test');
+    Route::match(['get', 'post'], 'create-primary-test', [MasterController::class, 'createPrimaryTest'])->name('create_primary');
     Route::match(['get', 'post'], 'update-primary-test/{id}', [MasterController::class, 'updatePrimaryTest'])->name('update_primary_test');
     Route::post('delete-primary-test', [MasterController::class, 'deletePrimaryTest'])->name('delete_primary_test');
 
     // Secondary test 
     Route::get('secondary-tests', [MasterController::class, 'viewSecondaryTests'])->name('view_secondary_tests');
-    Route::match(['get', 'post'], 'create-secondary-test', [MasterController::class, 'createSecondaryTest'])->name('create_secondary_test');
+    Route::match(['get', 'post'], 'create-secondary-test', [MasterController::class, 'createSecondaryTest'])->name('create_secondary');
     Route::match(['get', 'post'], 'update-secondary-test/{id}', [MasterController::class, 'updateSecondaryTest'])->name('update_secondary_test');
     Route::post('delete-secondary-test', [MasterController::class, 'deleteSecondaryTest'])->name('delete_secondary_test');
+
+    // For Packages 
+    Route::get('packages', [MasterController::class, 'viewPackage'])->name('view_package');
+    Route::match(['get', 'post'], 'create-package', [MasterController::class, 'createPackage'])->name('create_package');
+    Route::match(['get', 'post'], 'update-package/{id}', [MasterController::class, 'updatePackage'])->name('update_package');
+    Route::post('delete-pckage', [MasterController::class, 'deletePackage'])->name('delete_package');
+
+    // For Contracts 
+    Route::get('contracts', [MasterController::class, 'viewContract'])->name('view_contract');
+    Route::match(['get', 'post'], 'create-contract', [MasterController::class, 'createContract'])->name('create_contract');
+    Route::match(['get', 'post'], 'update-contract/{id}', [MasterController::class, 'updateContract'])->name('update_contract');
+    Route::post('delete-contract', [MasterController::class, 'deleteContract'])->name('delete_contract');
+
+    // For Specification 
+    Route::get('specifications', [MasterController::class, 'viewSpecification'])->name('view_specification');
+    Route::match(['get', 'post'], 'create-specification', [MasterController::class, 'createSpecification'])->name('create_specification');
+    Route::match(['get', 'post'], 'update-specification/{id}', [MasterController::class, 'updateSpecification'])->name('update_specification');
+    Route::post('delete-specification', [MasterController::class, 'deleteSpecification'])->name('delete_specification');
+
+    // For Specification 
+    Route::get('customs', [MasterController::class, 'viewCustom'])->name('view_custom');
+    Route::match(['get', 'post'], 'create-custom', [MasterController::class, 'createCustom'])->name('create_custom');
+    Route::match(['get', 'post'], 'update-custom/{id}', [MasterController::class, 'updateCustom'])->name('update_custom');
+    Route::post('delete-custom', [MasterController::class, 'deleteCustom'])->name('delete_custom');
 
     // For Simple and Multi Value measurements
     Route::get('measurements', [MeasurementController::class, 'viewMeasurements'])->name('view_measurements');
     Route::match(['get', 'post'], 'create-measurement', [MeasurementController::class, 'createMeasurement'])->name('create_measurement');
     Route::match(['get', 'post'], 'update-measurement/{id}', [MeasurementController::class, 'updateMeasurement'])->name('update_measurement');
     Route::post('delete-measurement', [MeasurementController::class, 'deleteMeasurement'])->name('delete_measurement');
+
+    //Sample Registration
+    Route::get('registered-sample', [RegistrationController::class, 'viewSampleRegistration'])->name('view_registered_smple');
+    Route::match(['get', 'post'], 'sample-regsitration', [RegistrationController::class, 'preRegistration'])->name('register_sample');
 });
 
 Route::get('/get-districts', [MasterController::class, 'getDistricts'])->name('get_districts');
@@ -144,3 +173,16 @@ Route::post('/ajax/create-secondary-test', [MasterController::class, 'createAjax
 Route::get('/get-standard-by-id', [MasterController::class, 'getStandardsByIds'])->name('get_standards_by_ids');
 Route::get('/get-primary-test-by-id', [MasterController::class, 'getPrimaryTestById'])->name('get_primary_tests_by_ids');
 Route::get('/get-secondary-test-by-id', [MasterController::class, 'getSecondaryTestById'])->name('get_secondary_tests_by_ids');
+
+
+Route::get('/search-tests', [MasterController::class, 'searchTest'])->name('search_tests');
+Route::get('/check-test-exists', [MasterController::class, 'checkTestExists'])->name('check_test_exists');
+
+Route::get('search-customers', [RegistrationController::class, 'searchCustomer'])->name('search_customer');
+Route::get('/search-test', [RegistrationController::class, 'searchTest'])->name('search_test');
+Route::get('/get-standards-by-test', [RegistrationController::class, 'getStandardByTest'])->name('get_standards_by_test');
+
+
+// Get packages on the basis of test types 
+Route::get('/get-package-data', [RegistrationController::class, 'getPackages'])->name('get_packages');
+Route::get('/get-test-by-package', [RegistrationController::class, 'getTestByPackage'])->name('get_tests_by_package');

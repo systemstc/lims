@@ -12,5 +12,5 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <link rel="stylesheet" href="{{ asset('backAssets/css/dashlite.css') }}">
     <link id="skin-default" rel="stylesheet" href="{{ asset('backAssets/css/theme.css') }}">
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="{{ asset('backAssets/js/jquery.js') }}"></script>
 </head>

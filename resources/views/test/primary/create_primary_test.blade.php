@@ -17,7 +17,7 @@
                     <div class="nk-block nk-block-lg">
                         <div class="card">
                             <div class="card-inner">
-                                <form action="{{ route('create_primary_test') }}" class="form-validate is-alter"
+                                <form action="{{ route('create_primary') }}" class="form-validate is-alter"
                                     method="POST">
                                     @csrf
                                     <div class="row g-gs">
@@ -62,7 +62,7 @@
                                         </div>
 
                                         {{-- Test --}}
-                                        <div class="col-md-4">
+                                        {{-- <div class="col-md-4">
                                             <div class="form-group">
                                                 <label class="form-label" for="txt_test_id">Test<b
                                                         class="text-danger">*</b></label>
@@ -76,7 +76,7 @@
                                                     <span class="text-danger">{{ $message }}</span>
                                                 @enderror
                                             </div>
-                                        </div>
+                                        </div> --}}
 
                                         {{-- Parameter --}}
                                         <div class="col-md-4">
@@ -194,7 +194,7 @@
             }
         });
     </script>
-
+{{-- 
     <script>
         $(document).ready(function() {
             const testDropdown = $('#txt_test_id');
@@ -237,5 +237,5 @@
                 $('#txt_group_id').val(oldGroupId).trigger('change');
             }
         });
-    </script>
+    </script> --}}
 @endsection

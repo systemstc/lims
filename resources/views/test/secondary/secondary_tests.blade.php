@@ -9,7 +9,7 @@
                         <!-- Title -->
                         <div class="nk-block-head d-flex justify-content-between align-items-center">
                             <h5 class="nk-block-title">Secondary Test Mast</h5>
-                            <a href="{{ route('create_secondary_test') }}" class="btn btn-primary">
+                            <a href="{{ route('create_secondary') }}" class="btn btn-primary">
                                 <em class="icon ni ni-plus"></em> &nbsp; Create Secondary Test
                             </a>
                         </div>
@@ -24,7 +24,7 @@
                                             <th>Sr. No</th>
                                             <th>Sample</th>
                                             <th>Group</th>
-                                            <th>Test</th>
+                                            {{-- <th>Test</th> --}}
                                             <th>1st Test</th>
                                             <th>2nd Test</th>
                                             <th>Unit</th>
@@ -40,7 +40,7 @@
                                                 <td>{{ $key + 1 }}</td>
                                                 <td>{{ $test->sample->m10_name ?? '' }}</td>
                                                 <td>{{ $test->group->m11_name ?? '' }}</td>
-                                                <td>{{ $test->test->m12_name ?? '' }}</td>
+                                                {{-- <td>{{ $test->test->m12_name ?? '' }}</td> --}}
                                                 <td>{{ $test->primaryTest->m16_name ?? '' }}</td>
                                                 <td>{{ $test->m17_name }}</td>
                                                 <td>{{ $test->m17_unit }}</td>

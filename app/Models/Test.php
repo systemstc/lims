@@ -16,6 +16,7 @@ class Test extends Model
         'm15_standard_id',
         'm16_primary_test_id',
         'm17_secondary_test_id',
+        'm14_lab_sample_id',
         'm12_result',
         'm12_category',
         'm12_input_mode',
@@ -55,5 +56,31 @@ class Test extends Model
     public function stages()
     {
         return $this->hasMany(Stage::class, 'm12_test_id');
+    }
+
+    public function getLabSamplesListAttribute()
+    {
+        $ids = $this->m14_lab_sample_id
+            ? explode(',', $this->m14_lab_sample_id)
+            : [];
+        return LabSample::whereIn('m14_lab_sample_id', $ids)->get();
+    }
+
+    public function getStandardsListAttribute()
+    {
+        $ids = $this->m15_standard_id
+            ? explode(',', $this->m15_standard_id)
+            : [];
+
+        return Standard::whereIn('m15_standard_id', $ids)->get();
+    }
+
+    public function getSecondaryTestsListAttribute()
+    {
+        $ids = $this->m17_secondary_test_id
+            ? explode(',', $this->m17_secondary_test_id)
+            : [];
+
+        return Test::whereIn('m12_test_id', $ids)->get();
     }
 }

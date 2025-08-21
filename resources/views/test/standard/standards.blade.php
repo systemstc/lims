@@ -8,7 +8,7 @@
                         <div class="nk-block-head">
                             <div class="nk-block-head-content d-flex justify-content-between align-items-center">
                                 <h4 class="nk-block-title">Standard (Methods) List</h4>
-                                <a href="{{ route('create_standard') }}" class="btn btn-primary"><em class="icon ni ni-plus"></em>
+                                <a href="{{ route('create_standard_main') }}" class="btn btn-primary"><em class="icon ni ni-plus"></em>
                                     &nbsp; Create standard</a>
                             </div>
                         </div>
@@ -21,7 +21,6 @@
                                             <th>ID</th>
                                             <th>Sample</th>
                                             <th>Group</th>
-                                            <th>Test</th>
                                             <th>Standard</th>
                                             {{-- <th>Description</th> --}}
                                             {{-- <th>Alias</th>
@@ -43,7 +42,6 @@
                                                 <td>{{ $key + 1 }}</td>
                                                 <td>{{ $standard->sample->m10_name ?? '' }}</td>
                                                 <td>{{ $standard->group->m11_name ?? '' }}</td>
-                                                <td>{{ $standard->test->m12_name ?? '' }}</td>
                                                 <td>{{ $standard->m15_method }}</td>
                                                 {{-- <td>{{ $standard->m12_description }}</td> --}}
                                                 {{-- <td>{{ $standard->m12_alias }}</td>
