@@ -23,7 +23,6 @@ class RegistrationController extends Controller
     public function preRegistration(Request $request)
     {
         if ($request->method() == 'POST') {
-            dd($request);
             $validator = Validator::make($request->all(), [
                 "dd_customer_type" => "required|exists:m09_customer_types,m09_customer_type_id",
                 "txt_customer_name" => "required|string",
@@ -51,10 +50,19 @@ class RegistrationController extends Controller
                 'm04_ro_id' => Session::get('ro_id') ?? -1,
                 'tr04_tracker_id' => 'ABCD',
                 'm09_customer_type_id' => $request->dd_customer_type,
-                'm07_customer_id' => $request->txt_customer_name,
-                'm07_buyer_id' => $request->txt_buyer_name,
-                'm07_third_party_id' => $request->txt_third_party,
-                'm07_cha_id' => $request->txt_cha,
+
+                'm07_customer_id' => $request->selected_customer_id,
+                'm08_customer_location_id' => $request->selected_customer_address_id == 'default' ? 0 : $request->selected_customer_address_id,
+
+                'm07_buyer_id' => $request->selected_buyer_id,
+                'm08_buyer_location_id' => $request->selected_buyer_address_id == 'default' ? 0 : $request->selected_buyer_address_id,
+
+                'm07_third_party_id' => $request->selected_third_party_id,
+                'm08_third_party_location_id' => $request->selected_third_party_address_id == 'default' ? 0 : $request->selected_third_party_address_id,
+
+                'm07_cha_id' => $request->selected_cha_id,
+                'm08_cha_location_id' => $request->selected_cha_address_id == 'default' ? 0 : $request->selected_cha_address_id,
+
                 'tr04_payment_by' => $request->txt_payment_by,
                 'tr04_report_to' => $request->txt_report_to,
                 'tr04_reference_no' => $request->txt_reference,
@@ -72,6 +80,7 @@ class RegistrationController extends Controller
                 'tr04_expected_date' => $request->txt_due_date,
                 'tr04_created_by' => Session::get('user_id') ?? -1,
             ];
+
 
             if ($request->hasFile('txt_attachment')) {
                 $folderPath = 'attachments/' . date('Y') . '/' . date('m');
@@ -99,6 +108,65 @@ class RegistrationController extends Controller
         return view('registration.preRegistration.register_sample', compact('customerTypes', 'labSamples', 'groups'));
     }
 
+    // public function searchCustomer(Request $request)
+    // {
+    //     Log::info('Search customer request', [
+    //         'query' => $request->input('query'),
+    //         'all_data' => $request->all()
+    //     ]);
+
+    //     try {
+    //         $query = $request->input('query');
+
+    //         if ($query) {
+    //             $customers = Customer::with(['locations', 'state', 'district'])
+    //                 ->where('m07_name', 'like', "%{$query}%")
+    //                 ->take(10)
+    //                 ->get()
+    //                 ->map(function ($customer) {
+    //                     return [
+    //                         'id' => $customer->m07_customer_id,
+    //                         'name' => $customer->m07_name,
+    //                         'default_address' => [
+    //                             'address' => $customer->m07_address,
+    //                             'state' => $customer->state?->m01_state_name,
+    //                             'district' => $customer->district?->m02_district_name,
+    //                             'pincode' => $customer->m07_pincode,
+    //                             'contact_person' => $customer->m07_contact_person,
+    //                             'email' => $customer->m07_email,
+    //                             'phone' => $customer->m07_phone,
+    //                             'gst' => $customer->m07_gst,
+    //                         ],
+    //                         'other_addresses' => $customer->locations->map(function ($loc) {
+    //                             return [
+    //                                 'id' => $loc->m08_customer_location_id,
+    //                                 'address' => $loc->m08_address,
+    //                                 'state' => $loc->state?->m01_state_name,
+    //                                 'district' => $loc->district?->m02_district_name,
+    //                                 'pincode' => $loc->m08_pincode,
+    //                                 'contact_person' => $loc->m08_contact_person,
+    //                                 'email' => $loc->m08_email,
+    //                                 'phone' => $loc->m08_phone,
+    //                                 'gst' => $loc->m08_gst,
+    //                             ];
+    //                         })->values(),
+    //                     ];
+    //                 });
+    //         } else {
+    //             $customers = collect();
+    //         }
+    //         // dd($customers);
+    //         return response()->json($customers);
+    //     } catch (\Exception $e) {
+    //         Log::error('Error in searchCustomer', [
+    //             'message' => $e->getMessage(),
+    //             'trace' => $e->getTraceAsString()
+    //         ]);
+
+    //         return response()->json(['error' => 'Server error'], 500);
+    //     }
+    // }
+
     public function searchCustomer(Request $request)
     {
         Log::info('Search customer request', [
@@ -119,6 +187,8 @@ class RegistrationController extends Controller
                             'id' => $customer->m07_customer_id,
                             'name' => $customer->m07_name,
                             'default_address' => [
+                                'id' => 'default_' . $customer->m07_customer_id, // Special ID for default
+                                'customer_id' => $customer->m07_customer_id,
                                 'address' => $customer->m07_address,
                                 'state' => $customer->state?->m01_state_name,
                                 'district' => $customer->district?->m02_district_name,
@@ -127,10 +197,12 @@ class RegistrationController extends Controller
                                 'email' => $customer->m07_email,
                                 'phone' => $customer->m07_phone,
                                 'gst' => $customer->m07_gst,
+                                'is_default' => true
                             ],
-                            'other_addresses' => $customer->locations->map(function ($loc) {
+                            'other_addresses' => $customer->locations->map(function ($loc) use ($customer) {
                                 return [
                                     'id' => $loc->m08_customer_location_id,
+                                    'customer_id' => $customer->m07_customer_id,
                                     'address' => $loc->m08_address,
                                     'state' => $loc->state?->m01_state_name,
                                     'district' => $loc->district?->m02_district_name,
@@ -139,6 +211,7 @@ class RegistrationController extends Controller
                                     'email' => $loc->m08_email,
                                     'phone' => $loc->m08_phone,
                                     'gst' => $loc->m08_gst,
+                                    'is_default' => false
                                 ];
                             })->values(),
                         ];
@@ -146,7 +219,7 @@ class RegistrationController extends Controller
             } else {
                 $customers = collect();
             }
-            // dd($customers);
+
             return response()->json($customers);
         } catch (\Exception $e) {
             Log::error('Error in searchCustomer', [
@@ -157,7 +230,6 @@ class RegistrationController extends Controller
             return response()->json(['error' => 'Server error'], 500);
         }
     }
-
     public function searchTest(Request $request)
     {
         $query = $request->get('query');
@@ -245,12 +317,34 @@ class RegistrationController extends Controller
 
     public function getTestByPackage(Request $request)
     {
-        $contractId = $request->contract_id;
+        $package = Package::where('m19_package_id', $request->contract_id)
+            ->with('packageTests.test', 'packageTests.standard')
+            ->firstOrFail();
 
-        $tests = Package::where('m19_package_is', $contractId)->with('packageTests.test', 'packageTests.standard')
-            ->select('m19_package_id as id', 'm19_name as name', '19_charge as charge')
-            ->get();
-
-        return response()->json(['tests' => $tests]);
+        $tests = [
+            'id' => $package->m19_package_id,
+            'name' => $package->m19_name,
+            'charge' => $package->m19_charges,
+            'type' => $package->m19_type,
+            'inc_azo_charge' => $package->m19_inc_azo_charge,
+            'exc_azo_charge' => $package->m19_exc_azo_charge,
+            'tests' => $package->packageTests->map(function ($pt) {
+                return [
+                    'id' => $pt->m20_package_test_id,
+                    'test' => $pt->test ? [
+                        'id' => $pt->test->m12_test_id,
+                        'name' => $pt->test->m12_name,
+                        'description' => $pt->test->m12_description,
+                        'charge' => $pt->test->m12_charge,
+                    ] : null,
+                    'standard' => $pt->standard ? [
+                        'id' => $pt->standard->m15_standard_id,
+                        'method' => $pt->standard->m15_method,
+                        'accredited' => $pt->standard->m15_accredited,
+                    ] : null,
+                ];
+            }),
+        ];
+        return response()->json($tests);
     }
 }

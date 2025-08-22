@@ -13,7 +13,6 @@
                                 </a>
                             </div>
                         </div>
-
                         <div class="row">
                             <!-- Main Form Section -->
                             <div class="col-md-8">
@@ -31,10 +30,10 @@
                                                     <div class="col-md-7">
                                                         <div class="form-group">
                                                             <label class="form-label" for="dd_customer_type">Customer
-                                                                Type</label>
+                                                                Type<b class="text-danger">*</b></label>
                                                             <div class="form-control-wrap">
-                                                                <select class="form-select" name="dd_customer_type"
-                                                                    id="dd_customer_type">
+                                                                <select class="form-control required" name="dd_customer_type"
+                                                                    id="dd_customer_type" required>
                                                                     <option value="" disabled selected>Select
                                                                         Customer
                                                                         Type</option>
@@ -55,9 +54,10 @@
                                                                 Customer Name<b class="text-danger">*</b>
                                                             </label>
                                                             <div class="form-control-wrap">
-                                                                <input type="text" class="form-control"
+                                                                <input type="text" class="form-control required"
                                                                     id="txt_customer_name" name="txt_customer_name"
-                                                                    placeholder="Start typing customer name...">
+                                                                    placeholder="Start typing customer name..."
+                                                                    autocomplete="off" required>
                                                             </div>
                                                             <div class="d-flex justify-content-around"><span
                                                                     id="party-contact-person"></span><span
@@ -66,6 +66,10 @@
 
                                                         </div>
                                                     </div>
+                                                    <input type="hidden" id="selected_customer_id"
+                                                        name="selected_customer_id" value="">
+                                                    <input type="hidden" id="selected_customer_address_id"
+                                                        name="selected_customer_address_id" value="">
                                                     <div class="col-md-6">
                                                         <div class="form-group">
                                                             <label class="form-label" for="party-address">Address</label>
@@ -81,7 +85,7 @@
                                                             <div class="form-control-wrap">
                                                                 <input type="text" data-msg="Required"
                                                                     class="form-control" id="txt_buyer_name"
-                                                                    name="txt_buyer_name">
+                                                                    name="txt_buyer_name" autocomplete="off">
                                                             </div>
                                                             <div class="d-flex justify-content-around"><span
                                                                     id="buyer-contact-person"></span><span
@@ -89,6 +93,10 @@
                                                             </div>
                                                         </div>
                                                     </div>
+                                                    <input type="hidden" id="selected_buyer_id" name="selected_buyer_id"
+                                                        value="">
+                                                    <input type="hidden" id="selected_buyer_address_id"
+                                                        name="selected_buyer_address_id" value="">
                                                     <div class="col-md-6">
                                                         <div class="form-group">
                                                             <label class="form-label" for="buyer-address">Address</label>
@@ -104,7 +112,7 @@
                                                             <div class="form-control-wrap">
                                                                 <input type="text" data-msg="Required"
                                                                     class="form-control" id="txt_third_party"
-                                                                    name="txt_third_party">
+                                                                    name="txt_third_party" autocomplete="off">
                                                             </div>
                                                             <div class="d-flex justify-content-around"><span
                                                                     id="third-contact-person"></span><span
@@ -112,6 +120,10 @@
                                                             </div>
                                                         </div>
                                                     </div>
+                                                    <input type="hidden" id="selected_third_party_id"
+                                                        name="selected_third_party_id" value="">
+                                                    <input type="hidden" id="selected_third_party_address_id"
+                                                        name="selected_third_party_address_id" value="">
                                                     <div class="col-md-6">
                                                         <div class="form-group">
                                                             <label class="form-label" for="third-address">Address</label>
@@ -125,7 +137,8 @@
                                                             <label class="form-label" for="txt_cha">CHA</label>
                                                             <div class="form-control-wrap">
                                                                 <input type="text" data-msg="Required"
-                                                                    class="form-control" id="txt_cha" name="txt_cha">
+                                                                    class="form-control" id="txt_cha" name="txt_cha"
+                                                                    autocomplete="off">
                                                             </div>
                                                             <div class="d-flex justify-content-around"><span
                                                                     id="cha-contact-person"></span><span
@@ -133,6 +146,10 @@
                                                             </div>
                                                         </div>
                                                     </div>
+                                                    <input type="hidden" id="selected_cha_id" name="selected_cha_id"
+                                                        value="">
+                                                    <input type="hidden" id="selected_cha_address_id"
+                                                        name="selected_cha_address_id" value="">
                                                     <div class="col-md-6">
                                                         <div class="form-group">
                                                             <label class="form-label" for="cha-address">Address</label>
@@ -144,13 +161,13 @@
                                                     <div class="col-md-12">
                                                         <div class="preview-block">
                                                             <span class="preview-title overline-title d-block">Payment
-                                                                By</span>
+                                                                By<b class="text-danger">*</b></span>
                                                             <div class="row">
                                                                 <div class="col-md-3 mb-2">
                                                                     <div class="custom-control custom-radio">
-                                                                        <input type="radio" class="custom-control-input"
+                                                                        <input type="radio" class="custom-control-input required"
                                                                             id="firstParty" name="txt_payment_by"
-                                                                            value="first_party">
+                                                                            value="first_party" required>
                                                                         <label class="custom-control-label"
                                                                             for="firstParty">First Party</label>
                                                                     </div>
@@ -189,13 +206,13 @@
                                                     <div class="col-md-12">
                                                         <div class="preview-block">
                                                             <span class="preview-title overline-title d-block">Report
-                                                                To</span>
+                                                                To<b class="text-danger">*</b></span>
                                                             <div class="row">
                                                                 <div class="col-md-3 mb-2">
                                                                     <div class="custom-control custom-radio">
-                                                                        <input type="radio" class="custom-control-input"
+                                                                        <input type="radio" class="custom-control-input required"
                                                                             id="reportFirstParty" name="txt_report_to"
-                                                                            value="first_party">
+                                                                            value="first_party" required>
                                                                         <label class="custom-control-label"
                                                                             for="reportFirstParty">First Party</label>
                                                                     </div>
@@ -244,7 +261,8 @@
                                                                 No</label>
                                                             <div class="form-control-wrap">
                                                                 <input type="text" class="form-control"
-                                                                    id="txt_reference" name="txt_reference">
+                                                                    id="txt_reference" name="txt_reference"
+                                                                    autocomplete="off">
                                                             </div>
                                                         </div>
                                                     </div>
@@ -254,7 +272,8 @@
                                                                 Date</label>
                                                             <div class="form-control-wrap">
                                                                 <input type="date" class="form-control"
-                                                                    name="txt_ref_date" id="txt_ref_date">
+                                                                    name="txt_ref_date" id="txt_ref_date"
+                                                                    autocomplete="off">
                                                             </div>
                                                         </div>
                                                     </div>
@@ -298,18 +317,19 @@
                                                         <div class="form-group">
                                                             <label class="form-label" for="txt_details">Details</label>
                                                             <div class="form-control-wrap">
-                                                                <input type="text" class="form-control required"
-                                                                    id="txt_details" name="txt_details" required>
+                                                                <input type="text" class="form-control"
+                                                                    id="txt_details" name="txt_details"
+                                                                    autocomplete="off">
                                                             </div>
                                                         </div>
                                                     </div>
                                                     <div class="col-md-6">
                                                         <div class="form-group">
                                                             <label class="form-label" for="dd_sample_type">Sample
-                                                                Type</label>
+                                                                Type<b class="text-danger">*</b></label>
                                                             <div class="form-control-wrap">
-                                                                <select class="form-select" name="dd_sample_type"
-                                                                    id="dd_sample_type">
+                                                                <select class="form-control required" name="dd_sample_type"
+                                                                    id="dd_sample_type" required>
                                                                     <option value="" selected disabled>Select Type
                                                                     </option>
                                                                     @foreach ($labSamples as $labSample)
@@ -353,10 +373,10 @@
                                                     <div class="col-md-6">
                                                         <div class="form-group">
                                                             <label class="form-label" for="txt_description">Sample
-                                                                Description</label>
+                                                                Description<b class="text-danger">*</b></label>
                                                             <div class="form-control-wrap">
-                                                                <input class="form-control" id="txt_description"
-                                                                    name="txt_description">
+                                                                <input class="form-control required" id="txt_description"
+                                                                    name="txt_description" autocomplete="off" required>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -371,10 +391,10 @@
                                                 <div class="row gy-3">
                                                     <div class="col-md-6">
                                                         <div class="form-group">
-                                                            <label class="form-label" for="dd_test_type">Type</label>
+                                                            <label class="form-label" for="dd_test_type">Type<b class="text-danger">*</b></label>
                                                             <div class="form-control-wrap">
-                                                                <select class="form-select" name="dd_test_type"
-                                                                    id="dd_test_type">
+                                                                <select class="form-control required" name="dd_test_type"
+                                                                    id="dd_test_type" required>
                                                                     <option value="" selected disabled>Select Test
                                                                         Type</option>
                                                                     <option value="CONTRACT">Contract</option>
@@ -390,20 +410,35 @@
                                                     <div class="col-md-6" id="contract-wrapper" style="display:none;">
                                                         <div class="form-group">
                                                             <label class="form-label" for="dd_contracts">Select
-                                                                </label>
+                                                            </label>
                                                             <div class="form-control-wrap">
-                                                                <select class="form-select" id="dd_contracts">
+                                                                <select class="form-select" id="dd_contracts"
+                                                                    name="dd_contracts">
                                                                     <option value="">Select Contract</option>
                                                                 </select>
                                                             </div>
                                                         </div>
                                                     </div>
 
+                                                    <div class="col-md-6" id="azo-wrapper" style="display:none;">
+                                                        <div class="form-group">
+                                                            <label class="form-label" for="dd_charge_type">Charge
+                                                                Type</label>
+                                                            <div class="form-control-wrap">
+                                                                <select class="form-select" id="dd_charge_type">
+                                                                    <option value="inc_azo">Including Azo</option>
+                                                                    <option value="exc_azo">Excluding Azo</option>
+                                                                </select>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+
                                                     <div class="col-md-6">
                                                         <div class="form-group">
                                                             <label class="form-label" for="dd_group">Group</label>
                                                             <div class="form-control-wrap">
-                                                                <select class="form-select" name="dd_group"
+                                                                <select class="form-control" name="dd_group"
                                                                     id="dd_group">
                                                                     <option value="" selected disabled>Select Group
                                                                     </option>
@@ -420,7 +455,8 @@
                                                             <label class="form-label" for="txt_standard">Test</label>
                                                             <div class="form-control-wrap">
                                                                 <input type="text" class="form-control"
-                                                                    id="txt_standard" name="txt_standard">
+                                                                    id="txt_standard" name="txt_standard"
+                                                                    autocomplete="off">
                                                             </div>
                                                         </div>
                                                     </div>
@@ -453,7 +489,7 @@
                                                             <div class="form-control-wrap">
                                                                 <input type="text" class="form-control"
                                                                     id="txt_aditional_charges" value="0"
-                                                                    name="txt_aditional_charges">
+                                                                    name="txt_aditional_charges" autocomplete="off">
                                                             </div>
                                                         </div>
                                                     </div>
@@ -686,354 +722,6 @@
         }
     </style>
 
-    {{-- <script>
-        $(document).ready(function() {
-            /** =========================
-             *  Shared Dropdown Utility
-             ========================= **/
-            function positionDropdown($input, $dropdown) {
-                const offset = $input.offset();
-                $dropdown.css({
-                    top: offset.top + $input.outerHeight(),
-                    left: offset.left,
-                    width: $input.outerWidth()
-                }).show();
-            }
-
-            function createDropdown(id) {
-                return $('<div>', {
-                    id: id,
-                    class: 'custom-dropdown'
-                }).appendTo('body').hide();
-            }
-
-            /** =========================
-             *  CUSTOMER SEARCH
-             ========================= **/
-            const CUSTOMER_INPUTS = ['#txt_customer_name', '#txt_buyer_name', '#txt_third_party', '#txt_cha'];
-            const CUSTOMER_URL = '{{ route('search_customer') }}';
-            let $customerDropdown = createDropdown('customer-dropdown');
-            let customerActiveInput = null;
-            let searchTimeout;
-
-            // Map input IDs → where to fill details
-            const CUSTOMER_MAPPING = {
-                '#txt_customer_name': {
-                    name: '#party-name',
-                    address: '#party-address',
-                    contact: '#party-contact-person',
-                    phone: '#party-phone',
-                    email: '#party-email'
-                },
-                '#txt_buyer_name': {
-                    name: null,
-                    address: '#buyer-address',
-                    contact: '#buyer-contact-person',
-                    phone: '#buyer-phone',
-                    email: '#buyer-email'
-                },
-                '#txt_third_party': {
-                    name: null,
-                    address: '#third-address',
-                    contact: '#third-contact-person',
-                    phone: '#third-phone',
-                    email: '#third-email'
-                },
-                '#txt_cha': {
-                    name: null,
-                    address: '#cha-address',
-                    contact: '#cha-contact-person',
-                    phone: '#cha-phone',
-                    email: '#cha-email'
-                }
-            };
-
-            // Input search
-            $(document).on('input', CUSTOMER_INPUTS.join(','), function() {
-                const query = $(this).val().trim();
-                customerActiveInput = $(this);
-                $(this).removeAttr('data-selected-customer-id');
-                clearTimeout(searchTimeout);
-
-                if (query.length < 2) {
-                    $customerDropdown.hide().empty();
-                    return;
-                }
-
-                searchTimeout = setTimeout(() => {
-                    positionDropdown(customerActiveInput, $customerDropdown);
-                    $customerDropdown.html('<div class="dropdown-message">Searching...</div>');
-                    $.getJSON(CUSTOMER_URL, {
-                        query
-                    }, function(customers) {
-                        $customerDropdown.empty();
-                        if (customers.length) {
-                            customers.forEach(c => $('<div>')
-                                .addClass('custom-dropdown-item')
-                                .data('customer', c)
-                                .text(c.name)
-                                .appendTo($customerDropdown));
-                        } else {
-                            $customerDropdown.html(
-                                '<div class="dropdown-message">No customers found.</div>'
-                            );
-                        }
-                    });
-                }, 300);
-            });
-
-            // Select a customer
-            $(document).on('click', '.custom-dropdown-item', function() {
-                const customer = $(this).data('customer');
-                if (customer) {
-                    selectCustomer(customer, customerActiveInput);
-                    $customerDropdown.hide().empty();
-                }
-            });
-
-            // Hide dropdown if clicked outside
-            $(document).on('click', function(e) {
-                if (!$(e.target).closest('#customer-dropdown,' + CUSTOMER_INPUTS.join(',')).length) {
-                    $customerDropdown.hide();
-                }
-            });
-
-            function selectCustomer(customer, $input) {
-                $input.val(customer.id).text(customer.name).attr('data-selected-customer-id', customer.id);
-                const mapping = CUSTOMER_MAPPING['#' + $input.attr('id')];
-                if (mapping) fillPartyDetails(mapping, customer);
-            }
-
-            // Fill name + address + contacts
-            function fillPartyDetails(mapping, customer) {
-                if (mapping.name) $(mapping.name).text(customer.name || 'N/A');
-
-                const $addressSelect = $('<select class="form-select form-select-md"></select>');
-
-                // Collect addresses
-                let allAddresses = [];
-                if (customer.default_address) allAddresses.push(customer.default_address);
-                if (customer.other_addresses?.length) allAddresses = allAddresses.concat(customer.other_addresses);
-
-                if (allAddresses.length > 0) {
-                    allAddresses.forEach((addr, index) => {
-                        $('<option>')
-                            .val(index)
-                            .text(addr.address || 'No address')
-                            .data('contact_person', addr.contact_person)
-                            .data('phone', addr.phone)
-                            .data('email', addr.email)
-                            .appendTo($addressSelect);
-                    });
-
-                    // Show first address details by default
-                    updateContactDetailsFromAddress($addressSelect.find('option:selected'), mapping);
-                } else {
-                    $addressSelect.append($('<option>').text('No addresses').val(''));
-                }
-
-                $(mapping.address).empty().append($addressSelect);
-
-                // Change event → update details
-                $addressSelect.on('change', function() {
-                    updateContactDetailsFromAddress($(this).find('option:selected'), mapping);
-                });
-            }
-
-            // Update contact fields
-            function updateContactDetailsFromAddress($option, mapping) {
-                $(mapping.contact).text($option.data('contact_person') || 'N/A');
-                $(mapping.phone).text($option.data('phone') || 'N/A');
-                $(mapping.email).text($option.data('email') || 'N/A');
-            }
-
-
-            /** =========================
-             *  TEST SEARCH
-             ========================= **/
-            const TEST_INPUT = '#txt_standard';
-            const TEST_URL = '{{ route('search_test') }}';
-            let $testDropdown = createDropdown('test-dropdown');
-            let selectedTestIds = [];
-
-            $(document).on('input', TEST_INPUT, function() {
-                const query = $(this).val().trim();
-                clearTimeout(searchTimeout);
-
-                if (query.length < 2) {
-                    $testDropdown.hide().empty();
-                    return;
-                }
-
-                const groupId = $('#dd_group').val();
-                if (!groupId) {
-                    alert('Please select a group first.');
-                    $(TEST_INPUT).val('');
-                    return;
-                }
-
-                searchTimeout = setTimeout(() => {
-                    positionDropdown($(this), $testDropdown);
-                    $testDropdown.html('<div class="dropdown-message">Searching...</div>');
-
-                    $.getJSON(TEST_URL, {
-                        query,
-                        group_id: groupId
-                    }, function(tests) {
-                        const filtered = tests.filter(t => !selectedTestIds.includes(t.id));
-                        $testDropdown.empty();
-                        if (filtered.length) {
-                            filtered.forEach(test => $('<div>')
-                                .addClass('custom-dropdown-item')
-                                .data('test', test)
-                                .text(test.test_name)
-                                .appendTo($testDropdown));
-                        } else {
-                            $testDropdown.html(
-                                '<div class="dropdown-message">No tests found.</div>');
-                        }
-                    });
-                }, 300);
-            });
-
-            $(document).on('click', '#test-dropdown .custom-dropdown-item', function() {
-                const test = $(this).data('test');
-                if (test) {
-                    addTestToTable(test);
-                    selectedTestIds.push(test.id);
-                    $(TEST_INPUT).val('');
-                    $testDropdown.hide().empty();
-                }
-            });
-
-            $(document).on('click', function(e) {
-                if (!$(e.target).closest('#test-dropdown,' + TEST_INPUT).length) {
-                    $testDropdown.hide();
-                }
-            });
-
-            /** =========================
-             *  ADD TEST ROW
-             ========================= **/
-            function addTestToTable(test) {
-                const row = `
-                <tr data-id="${test.id}">
-                    <td>${test.id}</td>
-                    <td>${test.test_name}</td>
-                    <td>
-                        <a href="#" class="choose-standard" data-test-id="${test.id}">
-                            ${test.standard?.name || 'Click to choose'}
-                        </a>
-                        <input type="hidden" name="tests[${test.id}][test_id]" value="${test.id}">
-                        <input type="hidden" name="tests[${test.id}][standard_id]" class="standard-id" value="${test.standard?.standard_id}">
-                    </td>
-                    <td class="test-charge" data-charge="${test.charge}">${test.charge}</td>
-                    <td>${test.remark || ''}</td>
-                    <td>
-                        <a href="#" class="delete-test text-danger" title="Delete">
-                            <em class="icon ni ni-trash"></em>
-                        </a>
-                    </td>
-                </tr>
-                `;
-                $(".table.table-tranx tbody").append(row);
-                calculateCharges();
-            }
-
-
-
-            function calculateCharges() {
-                let total = 0;
-                let priority = $('#dd_priority_type').val();
-                if (priority == 'Urgent') {
-                    $(".test-charge").each(function() {
-                        total += parseFloat($(this).data("charge")) || 0;
-                    });
-                    $("#txt_testing_charges").val(total.toFixed(2));
-                    let additional = parseFloat($('#txt_aditional_charges').val()) || 0;
-                    $("#txt_total_charges").val((total + (total * .50) + additional).toFixed(2));
-                } else {
-                    $(".test-charge").each(function() {
-                        total += parseFloat($(this).data("charge")) || 0;
-                    });
-                    $("#txt_testing_charges").val(total.toFixed(2));
-                    let additional = parseFloat($('#txt_aditional_charges').val()) || 0;
-                    $("#txt_total_charges").val((total + additional).toFixed(2));
-                }
-            }
-
-            // Handle delete click
-            $(document).on("click", ".delete-test", function(e) {
-                e.preventDefault();
-                let testId = $(this).closest("tr").data("id");
-                selectedTestIds = selectedTestIds.filter(id => id !== testId);
-                $(this).closest("tr").remove();
-                calculateCharges();
-            });
-
-
-            $(document).on('input', '#txt_testing_charges, #txt_aditional_charges', calculateCharges);
-
-
-        });
-        // to fetch data on the basis of test type dynmaically
-
-        // for the standard change #let $currentStandardCell = null;
-
-        // Click on standard link
-        $(document).on('click', '.choose-standard', function(e) {
-            e.preventDefault();
-            $currentStandardCell = $(this);
-
-            let testId = $(this).data('test-id');
-            loadStandards(testId); // fetch standards for this test
-            $('#standardModal').modal('show');
-        });
-
-        // Fetch standards for the selected test
-        function loadStandards(testId) {
-            $('#standard-list').html('<li class="list-group-item">Loading...</li>');
-
-            $.ajax({
-                url: '{{ route('get_standards_by_test') }}',
-                type: 'GET',
-                data: {
-                    test_id: testId
-                },
-                dataType: 'json',
-                success: function(standards) {
-                    $('#standard-list').empty();
-                    if (standards.length) {
-                        standards.forEach(function(std) {
-                            $('#standard-list').append(`
-                        <li class="list-group-item standard-item" data-id="${std.id}">
-                            ${std.name}
-                        </li>
-                    `);
-                        });
-                    } else {
-                        $('#standard-list').html(
-                            '<li class="list-group-item text-muted">No standards found.</li>');
-                    }
-                },
-                error: function() {
-                    $('#standard-list').html(
-                        '<li class="list-group-item text-danger">Error loading standards.</li>');
-                }
-            });
-        }
-
-        // When choosing a standard
-        $(document).on('click', '.standard-item', function() {
-            let standardName = $(this).text();
-            let standardId = $(this).data('id');
-
-            $currentStandardCell.text(standardName).data('standard-id', standardId);
-            $currentStandardCell.closest('td').find('.standard-id').val(standardId);
-            $('#standardModal').modal('hide');
-        });
-    </script> --}}
-
     <script>
         $(document).ready(function() {
             console.log('Document ready - initializing form...');
@@ -1149,9 +837,16 @@
                     selectedTestIds = [];
                     calculateCharges();
 
-                    if (type === "CONTRACT" || type === "PACKAGE" || type === "SPECIFICATION" || type === "CUSTOM") {
+                    if (type === "CONTRACT" || type === "PACKAGE" || type === "SPECIFICATION" || type ===
+                        "CUSTOM") {
                         console.log('Loading contracts for type:', type);
                         loadContractsByType(type);
+                        if (type === "PACKAGE") {
+                            $('#azo-wrapper').show(); // show azo selector
+                        } else {
+                            $('#azo-wrapper').hide(); // hide for other types
+                        }
+
                     } else {
                         console.log('Hiding contract wrapper for type:', type);
                         $('#contract-wrapper').hide();
@@ -1182,14 +877,6 @@
             function loadContractsByType(type) {
                 console.log('Loading contracts for type:', type);
 
-                // Multiple possible route names - try the most likely ones
-                const possibleRoutes = [
-                    "{{ route('get_packages') }}",
-                    "{{ url('/get-packages') }}",
-                    "{{ url('/get_packages') }}",
-                    "{{ url('/api/get-packages') }}"
-                ];
-
                 const ajaxUrl = "{{ route('get_packages') }}"; // Use your actual route
 
                 console.log('Using AJAX URL:', ajaxUrl);
@@ -1217,10 +904,8 @@
                         if (Array.isArray(contracts) && contracts.length > 0) {
                             $.each(contracts, function(i, contract) {
                                 // Handle different object structures
-                                const id = contract.id || contract.contract_id || contract
-                                    .package_id;
-                                const name = contract.name || contract.contract_name || contract
-                                    .package_name || contract.title;
+                                const id = contract.id;
+                                const name = contract.name;
 
                                 if (id && name) {
                                     options += `<option value="${id}">${name}</option>`;
@@ -1298,20 +983,72 @@
                         console.log('Tests response received:', response);
                         $('.table.table-tranx tbody').empty();
 
-                        // Handle different response formats
-                        let tests = response.tests || response.data || response || [];
+                        // Adjust depending on your backend
+                        let packageData = Array.isArray(response) ? response[0] : response;
+                        let tests = packageData.tests || [];
 
                         if (Array.isArray(tests) && tests.length > 0) {
-                            tests.forEach(test => {
-                                // Ensure test has required properties
-                                if (test.id && test.test_name && !selectedTestIds.includes(test
-                                        .id)) {
+                            let packageId = packageData.id; // assume all belong to same package
+                            let packageName = packageData.name;
+                            if (packageData.type === "PACKAGE") {
+                                let selectedChargeType = $('#dd_charge_type').val() || 'exc_azo';
+                                packageCharge = (selectedChargeType === 'inc_azo') ?
+                                    packageData.inc_azo_charge :
+                                    packageData.exc_azo_charge;
+                            } else {
+                                packageCharge = packageData.charge;
+                            }
+
+
+                            // Add package row once
+                            if (!$(`#package-${packageId}`).length) {
+                                let packageRow = `
+                                    <tr class="package-charge-row" id="package-${packageId}">
+                                        <td colspan="4"><strong>Package: ${packageName}</strong></td>
+                                        <td></td>
+                                        <td class="package-charge" data-charge="${packageCharge}">${packageCharge}</td>
+                                    </tr>
+                                `;
+                                $('.table.table-tranx tbody').append(packageRow);
+                            }
+
+                            // Now add tests under it (no charges here)
+                            // Replace the test row generation part with:
+                            tests.forEach(testItem => {
+                                let test = testItem.test;
+                                let standard = testItem.standard;
+
+                                if (test && !selectedTestIds.includes(test.id)) {
                                     selectedTestIds.push(test.id);
-                                    addTestToTable(test);
+
+                                    let row = `
+                                        <tr class="test-row" data-package="${packageId}" data-id="${test.id}">
+                                            <td>${test.id}</td>
+                                            <td>${test.name}</td>
+                                            <td>
+                                                <a href="#" class="choose-standard" data-test-id="${test.id}">
+                                                    ${standard ? standard.method : 'Click to choose'}
+                                                </a>
+                                                <input type="hidden" name="tests[${test.id}][test_id]" value="${test.id}">
+                                                <input type="hidden" name="tests[${test.id}][standard_id]" class="standard-id" value="${standard ? standard.id : ''}">
+                                                <input type="hidden" name="tests[${test.id}][package_id]" value="${packageId}">
+                                            </td>
+                                            <td>-</td>
+                                            <td>
+                                                <input type="text" name="tests[${test.id}][remark]" class="form-control form-control-sm" placeholder="Enter remark">
+                                            </td>
+                                            <td>
+                                                <a href="#" class="delete-test text-danger" title="Delete">
+                                                    <em class="icon ni ni-trash"></em>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    `;
+                                    $(`#package-${packageId}`).after(row);
                                 }
                             });
+
                             calculateCharges();
-                            console.log('Added', tests.length, 'tests to table');
                         } else {
                             $('.table.table-tranx tbody').html(
                                 '<tr><td colspan="6" class="text-center text-muted">No tests found for this selection</td></tr>'
@@ -1344,6 +1081,11 @@
                     }
                 });
             }
+            $(document).off('change.azo', '#dd_charge_type').on('change.azo', '#dd_charge_type', function() {
+                $('#dd_contracts').trigger('change');
+            });
+
+
 
             /** =========================
              *  CUSTOMER SEARCH EVENTS (EXISTING - WORKING)
@@ -1408,19 +1150,17 @@
                             } else {
                                 $customerDropdown.html(
                                     '<div class="dropdown-message">No customers found.</div>'
-                                    );
+                                );
                             }
                         });
                     }, 300);
                 });
 
-                // Customer selection
                 $(document).off('click.customer').on('click.customer', '#customer-dropdown .custom-dropdown-item',
                     function() {
                         const customer = $(this).data('customer');
                         if (customer && customerActiveInput) {
-                            customerActiveInput.val(customer.name).attr('data-selected-customer-id', customer
-                                .id);
+                            customerActiveInput.val(customer.name);
                             const mapping = CUSTOMER_MAPPING['#' + customerActiveInput.attr('id')];
                             if (mapping) fillPartyDetails(mapping, customer);
                             $customerDropdown.hide().empty();
@@ -1431,9 +1171,22 @@
                     const $addressSelect = $('<select class="form-select form-select-md"></select>');
                     let allAddresses = [];
 
-                    if (customer.default_address) allAddresses.push(customer.default_address);
-                    if (customer.other_addresses?.length) allAddresses = allAddresses.concat(customer
-                        .other_addresses);
+                    // Add default address with special identifier
+                    if (customer.default_address) {
+                        allAddresses.push({
+                            ...customer.default_address,
+                            id: 'default',
+                            isDefault: true
+                        });
+                    }
+
+                    // Add other addresses
+                    if (customer.other_addresses?.length) {
+                        allAddresses = allAddresses.concat(customer.other_addresses.map(addr => ({
+                            ...addr,
+                            isDefault: false
+                        })));
+                    }
 
                     if (allAddresses.length > 0) {
                         allAddresses.forEach((addr, index) => {
@@ -1443,23 +1196,42 @@
                                 .data('contact_person', addr.contact_person)
                                 .data('phone', addr.phone)
                                 .data('email', addr.email)
+                                .data('address_id', addr.id)
+                                .data('is_default', addr.isDefault)
                                 .appendTo($addressSelect);
                         });
-                        updateContactDetails($addressSelect.find('option:selected'), mapping);
+                        updateContactDetails($addressSelect.find('option:selected'), mapping, customer.id);
                     } else {
                         $addressSelect.append($('<option>').text('No addresses').val(''));
                     }
 
                     $(mapping.address).empty().append($addressSelect);
                     $addressSelect.on('change', function() {
-                        updateContactDetails($(this).find('option:selected'), mapping);
+                        updateContactDetails($(this).find('option:selected'), mapping, customer.id);
                     });
                 }
 
-                function updateContactDetails($option, mapping) {
+                function updateContactDetails($option, mapping, customerId) {
                     $(mapping.contact).text($option.data('contact_person') || 'N/A');
                     $(mapping.phone).text($option.data('phone') || 'N/A');
                     $(mapping.email).text($option.data('email') || 'N/A');
+
+                    // Store customer and address IDs based on input type
+                    const inputId = Object.keys(CUSTOMER_MAPPING).find(key => CUSTOMER_MAPPING[key] === mapping);
+
+                    if (inputId === '#txt_customer_name') {
+                        $('#selected_customer_id').val(customerId);
+                        $('#selected_customer_address_id').val($option.data('address_id'));
+                    } else if (inputId === '#txt_buyer_name') {
+                        $('#selected_buyer_id').val(customerId);
+                        $('#selected_buyer_address_id').val($option.data('address_id'));
+                    } else if (inputId === '#txt_third_party') {
+                        $('#selected_third_party_id').val(customerId);
+                        $('#selected_third_party_address_id').val($option.data('address_id'));
+                    } else if (inputId === '#txt_cha') {
+                        $('#selected_cha_id').val(customerId);
+                        $('#selected_cha_address_id').val($option.data('address_id'));
+                    }
                 }
             }
 
@@ -1507,7 +1279,7 @@
                             } else {
                                 $testDropdown.html(
                                     '<div class="dropdown-message">No tests found.</div>'
-                                    );
+                                );
                             }
                         });
                     }, 300);
@@ -1540,10 +1312,12 @@
                 $(document).off('click.standardselect').on('click.standardselect', '.standard-item', function() {
                     let standardName = $(this).text().trim();
                     let standardId = $(this).data('id');
+                    let testId = currentStandardCell.data('test-id');
 
                     if (currentStandardCell && standardId) {
                         currentStandardCell.text(standardName);
-                        currentStandardCell.closest('td').find('.standard-id').val(standardId);
+                        // Update the hidden input for this specific test
+                        $(`input[name="tests[${testId}][standard_id]"]`).val(standardId);
                         $('#standardModal').modal('hide');
                     }
                 });
@@ -1585,25 +1359,27 @@
              ========================= **/
             function addTestToTable(test) {
                 const row = `
-            <tr data-id="${test.id}">
-                <td>${test.id}</td>
-                <td>${test.test_name || test.name}</td>
-                <td>
-                    <a href="#" class="choose-standard" data-test-id="${test.id}">
-                        ${test.standard?.name || 'Click to choose'}
-                    </a>
-                    <input type="hidden" name="tests[${test.id}][test_id]" value="${test.id}">
-                    <input type="hidden" name="tests[${test.id}][standard_id]" class="standard-id" value="${test.standard?.standard_id || ''}">
-                </td>
-                <td class="test-charge" data-charge="${test.charge || 0}">${test.charge || 0}</td>
-                <td>${test.remark || ''}</td>
-                <td>
-                    <a href="#" class="delete-test text-danger" title="Delete">
-                        <em class="icon ni ni-trash"></em>
-                    </a>
-                </td>
-            </tr>
-        `;
+        <tr data-id="${test.id}">
+            <td>${test.id}</td>
+            <td>${test.test_name || test.name}</td>
+            <td>
+                <a href="#" class="choose-standard" data-test-id="${test.id}">
+                    ${test.standard?.name || 'Click to choose'}
+                </a>
+                <input type="hidden" name="tests[${test.id}][test_id]" value="${test.id}">
+                <input type="hidden" name="tests[${test.id}][standard_id]" class="standard-id" value="${test.standard?.standard_id || ''}">
+            </td>
+            <td class="test-charge" data-charge="${test.charge || 0}">${test.charge || 0}</td>
+            <td>
+                <input type="text" name="tests[${test.id}][remark]" class="form-control form-control-sm" placeholder="Enter remark" value="${test.remark || ''}">
+            </td>
+            <td>
+                <a href="#" class="delete-test text-danger" title="Delete">
+                    <em class="icon ni ni-trash"></em>
+                </a>
+            </td>
+        </tr>
+    `;
                 $(".table.table-tranx tbody").append(row);
                 calculateCharges();
             }
@@ -1619,22 +1395,35 @@
             function calculateCharges() {
                 let total = 0;
                 let priority = $('#dd_priority_type').val();
+                let testType = $('#dd_test_type').val(); // GENERAL, CONTRACT, CUSTOM, SPECIFICATION, PACKAGE
 
-                $(".test-charge").each(function() {
-                    total += parseFloat($(this).data("charge")) || 0;
-                });
+                if (testType === 'GENERAL') {
+                    // General: sum row-wise test charges
+                    $(".test-charge").each(function() {
+                        total += parseFloat($(this).data("charge")) || 0;
+                    });
+                } else {
+                    // Contract / Custom / Specification / Package
+                    $(".package-charge").each(function() {
+                        total += parseFloat($(this).data("charge")) || 0;
+                    });
+                }
 
+                // Set testing charges
                 $("#txt_testing_charges").val(total.toFixed(2));
 
+                // Add additional charges
                 let additional = parseFloat($('#txt_aditional_charges').val()) || 0;
                 let finalTotal = total + additional;
 
+                // Apply priority logic
                 if (priority === 'Urgent') {
                     finalTotal += (total * 0.50);
                 }
 
                 $("#txt_total_charges").val(finalTotal.toFixed(2));
             }
+
 
             // Calculation event handlers
             $(document).off('change.priority').on('change.priority', '#dd_priority_type', calculateCharges);

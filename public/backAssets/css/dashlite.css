@@ -35923,6 +35923,10 @@ button.close {
   display: inline-block;
   position: relative;
   color: #fff;
+  /* custom cs for btn in wizard only start */
+  padding: 5px 15px;
+  border-radius: 4px;
+  /* custom cs for btn in wizard only end */
   font-weight: 500;
   transition: all 0.4s ease;
   border-color: #3F41D1;
