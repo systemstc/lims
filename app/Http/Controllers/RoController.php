@@ -43,24 +43,25 @@ class RoController extends Controller
             DB::beginTransaction();
             try {
                 $user = User::create([
-                    'tr01_name' => $request->txt_name,
+                    'tr01_name'     => $request->txt_name,
                     'tr01_email'    => $request->txt_email,
                     'tr01_password' => Hash::make('Default@123'),
-                    'tr01_type' => 'RO'
+                    'tr01_type'     => 'RO'
                 ]);
                 Ro::create([
                     'tr01_user_id' => $user->tr01_user_id,
-                    'm04_name' => $request->txt_name,
-                    'm04_email' => $request->txt_email,
-                    'm04_phone' => $request->txt_phone,
+                    'm04_name'     => $request->txt_name,
+                    'm04_email'    => $request->txt_email,
+                    'm04_phone'    => $request->txt_phone,
+                    'm03_role_id'  => 1,
                 ]);
                 DB::commit();
                 Session::flash('type', 'success');
                 Session::flash('message', 'Ro Created Successfully!');
-                return to_route('view_employees');
+                return to_route('view_ros');
             } catch (\Exception $e) {
                 DB::rollBack();
-                // \Log::error('Employee creation failed', ['error' => $e->getMessage()]);
+                \Log::error('Employee creation failed', ['error' => $e->getMessage()]);
                 Session::flash('type', 'error');
                 Session::flash('message', 'Failed to create RO. Please try again.');
                 return redirect()->back();

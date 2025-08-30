@@ -8,21 +8,27 @@ use App\Models\Group;
 use App\Models\LabSample;
 use App\Models\Package;
 use App\Models\SampleRegistration;
+use App\Models\SampleTest;
 use App\Models\Standard;
+use App\Models\State;
 use App\Models\Test;
 // use Illuminate\Contracts\Session\Session;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use Yajra\DataTables\Facades\DataTables;
 
 class RegistrationController extends Controller
 {
     public function preRegistration(Request $request)
     {
-        if ($request->method() == 'POST') {
+        if ($request->isMethod('POST')) {
+
+            // dd($request);
             $validator = Validator::make($request->all(), [
                 "dd_customer_type" => "required|exists:m09_customer_types,m09_customer_type_id",
                 "txt_customer_name" => "required|string",
@@ -36,136 +42,119 @@ class RegistrationController extends Controller
                 "txt_received_via" => "required",
                 "txt_details" => "nullable|string",
                 "dd_sample_type" => "required|exists:m14_lab_samples,m14_lab_sample_id",
-                "dd_priority_type" => "reuired|in:Normal,Urgent",
+                "dd_priority_type" => "required|in:Normal,Urgent",
                 "txt_description" => "nullable|string",
-                "dd_test_type" => "required|in:Specification,General,Contract,Custom",
-                "txt_due_date" => "required",
-                "txt_testing_charges" => "required",
-                "txt_aditional_charges" => "nullable",
-                "txt_total_charges" => "required",
-                "tests" => "required",
-            ], []);
+                // "dd_test_type" => "required|in:SPECIFICATION,GENERAL,CONTRACT,CUATOM,PACKAGE",
+                "txt_due_date" => "required|date",
+                "txt_testing_charges" => "required|numeric",
+                "txt_aditional_charges" => "nullable|numeric",
+                "txt_total_charges" => "required|numeric",
+                "tests" => "required|array",
+            ]);
 
-            $data = [
-                'm04_ro_id' => Session::get('ro_id') ?? -1,
-                'tr04_tracker_id' => 'ABCD',
-                'm09_customer_type_id' => $request->dd_customer_type,
-
-                'm07_customer_id' => $request->selected_customer_id,
-                'm08_customer_location_id' => $request->selected_customer_address_id == 'default' ? 0 : $request->selected_customer_address_id,
-
-                'm07_buyer_id' => $request->selected_buyer_id,
-                'm08_buyer_location_id' => $request->selected_buyer_address_id == 'default' ? 0 : $request->selected_buyer_address_id,
-
-                'm07_third_party_id' => $request->selected_third_party_id,
-                'm08_third_party_location_id' => $request->selected_third_party_address_id == 'default' ? 0 : $request->selected_third_party_address_id,
-
-                'm07_cha_id' => $request->selected_cha_id,
-                'm08_cha_location_id' => $request->selected_cha_address_id == 'default' ? 0 : $request->selected_cha_address_id,
-
-                'tr04_payment_by' => $request->txt_payment_by,
-                'tr04_report_to' => $request->txt_report_to,
-                'tr04_reference_no' => $request->txt_reference,
-                'tr04_reference_date' => $request->txt_ref_date,
-                'tr04_received_via' => $request->txt_received_via,
-                'tr04_details' => $request->txt_details,
-                'm14_lab_sample_id' => $request->dd_sample_type,
-                'tr04_sample_type' => $request->dd_priority_type,
-                'tr04_sample_description' => $request->txt_description,
-                'tr04_test_type' => $request->dd_test_type,
-                'm12_test_ids' => json_encode($request->tests),
-                'tr04_testing_charges' => $request->txt_testing_charges,
-                'tr04_additional_charges' => $request->txt_aditional_charges,
-                'tr04_total_charges' => $request->txt_total_charges,
-                'tr04_expected_date' => $request->txt_due_date,
-                'tr04_created_by' => Session::get('user_id') ?? -1,
-            ];
-
-
-            if ($request->hasFile('txt_attachment')) {
-                $folderPath = 'attachments/' . date('Y') . '/' . date('m');
-                $originalName = pathinfo($request->file('txt_attachment')->getClientOriginalName(), PATHINFO_FILENAME);
-                $safeName = Str::slug($originalName);
-                $extension = $request->file('txt_attachment')->getClientOriginalExtension();
-                $uniqueName = $safeName . '-' . time() . '-' . Str::random(6) . '.' . $extension;
-                $path = $request->file('txt_attachment')->storeAs($folderPath, $uniqueName, 'public');
-                $data['tr04_attachment'] = $path;
+            if ($validator->fails()) {
+                dd($validator);
+                return redirect()->back()->withErrors($validator)->withInput();
             }
-            $create = SampleRegistration::create($data);
-            if ($create) {
+            DB::beginTransaction();
+            try {
+                $data = [
+                    'm04_ro_id' => Session::get('ro_id') ?? -1,
+                    'tr04_tracker_id' => 'ABCD',
+                    'm09_customer_type_id' => $request->dd_customer_type,
+
+                    'm07_customer_id' => $request->selected_customer_id,
+                    'm08_customer_location_id' => $request->selected_customer_address_id == 'default' ? 0 : $request->selected_customer_address_id,
+
+                    'm07_buyer_id' => $request->selected_buyer_id,
+                    'm08_buyer_location_id' => $request->selected_buyer_address_id == 'default' ? 0 : $request->selected_buyer_address_id,
+
+                    'm07_third_party_id' => $request->selected_third_party_id,
+                    'm08_third_party_location_id' => $request->selected_third_party_address_id == 'default' ? 0 : $request->selected_third_party_address_id,
+
+                    'm07_cha_id' => $request->selected_cha_id,
+                    'm08_cha_location_id' => $request->selected_cha_address_id == 'default' ? 0 : $request->selected_cha_address_id,
+
+                    'tr04_payment_by' => $request->txt_payment_by,
+                    'tr04_report_to' => $request->txt_report_to,
+                    'tr04_reference_no' => $request->txt_reference,
+                    'tr04_reference_date' => $request->txt_ref_date,
+                    'tr04_received_via' => $request->txt_received_via,
+                    'tr04_details' => $request->txt_details,
+                    'm14_lab_sample_id' => $request->dd_sample_type,
+                    'tr04_sample_type' => $request->dd_priority_type,
+                    'tr04_sample_description' => $request->txt_description,
+                    'm19_package_id' => $request->dd_contracts,
+                    'tr04_charge_type' => $request->dd_charge_type,
+                    'm12_test_ids' => json_encode($request->tests),
+                    'tr04_testing_charges' => $request->txt_testing_charges,
+                    'tr04_additional_charges' => $request->txt_aditional_charges,
+                    'tr04_total_charges' => $request->txt_total_charges,
+                    'tr04_expected_date' => $request->txt_due_date,
+                    'tr04_test_type' => $request->dd_test_type,
+                    'tr04_progress' => 'REGISTERED',
+                    'tr04_created_by' => Session::get('user_id') ?? -1,
+                ];
+                if ($request->hasFile('txt_attachment')) {
+                    $folderPath = 'attachments/' . date('Y') . '/' . date('m');
+                    $originalName = pathinfo($request->file('txt_attachment')->getClientOriginalName(), PATHINFO_FILENAME);
+                    $safeName = Str::slug($originalName);
+                    $extension = $request->file('txt_attachment')->getClientOriginalExtension();
+                    $uniqueName = $safeName . '-' . time() . '-' . Str::random(6) . '.' . $extension;
+                    $path = $request->file('txt_attachment')->storeAs($folderPath, $uniqueName, 'public');
+                    $data['tr04_attachment'] = $path;
+                }
+
+                $registration = SampleRegistration::create($data);
+                foreach ($request->tests as $test) {
+                    $testId = $test['test_id'] ?? null;
+
+                    $primaryIds = null;
+                    $secondaryIds = null;
+
+                    if ($testId) {
+                        $testRow = Test::find($testId);
+                        if ($testRow) {
+                            $primaryIds = $testRow->m16_primary_test_id ?? null;
+                            $secondaryIds = $testRow->m17_secondary_test_id ?? null;
+                        }
+                    }
+
+                    SampleTest::create([
+                        'tr04_sample_registration_id' => $registration->tr04_sample_registration_id,
+                        'm12_test_id' => $testId,
+                        'm16_primary_test_id' => $primaryIds,
+                        'm17_secondary_test_id' => $secondaryIds,
+                        'm15_standard_id' => $test['standard_id'] ?? null,
+                        'tr01_allotted_to' => null,
+                        'tr05_status' => 'PENDING',
+                        'tr05_remark' => null,
+                    ]);
+                }
+
+                DB::commit();
                 Session::flash('type', 'success');
                 Session::flash('message', 'Sample Registered Successfully!');
                 return redirect()->back();
+            } catch (\Exception $e) {
+                DB::rollBack();
+                \Log::error('Sample Registration Error: ' . $e->getMessage(), [
+                    'trace' => $e->getTraceAsString()
+                ]);
+                Session::flash('type', 'error');
+                Session::flash('message', 'Sample Registration Failed! Please try again.');
+                return redirect()->back()->withInput();
             }
-            Session::flash('type', 'error');
-            Session::flash('message', 'Sample Registered Failed!');
-            return redirect()->back();
-            // dd($data);
         }
+
+        // GET request → load form
         $customerTypes = CustomerType::where('m09_status', 'ACTIVE')->get(['m09_customer_type_id', 'm09_name']);
-        $labSamples =  LabSample::where('m14_status', 'ACTIVE')->get(['m14_lab_sample_id', 'm14_name']);
+        $labSamples = LabSample::where('m14_status', 'ACTIVE')->get(['m14_lab_sample_id', 'm14_name']);
         $groups = Group::where('m11_status', 'ACTIVE')->get(['m11_group_id', 'm11_name']);
-        return view('registration.preRegistration.register_sample', compact('customerTypes', 'labSamples', 'groups'));
+        $states = State::where('m01_status', 'ACTIVE')->get(['m01_state_id', 'm01_name']);
+        return view('registration.preRegistration.register_sample', compact('customerTypes', 'labSamples', 'groups', 'states'));
     }
 
-    // public function searchCustomer(Request $request)
-    // {
-    //     Log::info('Search customer request', [
-    //         'query' => $request->input('query'),
-    //         'all_data' => $request->all()
-    //     ]);
-
-    //     try {
-    //         $query = $request->input('query');
-
-    //         if ($query) {
-    //             $customers = Customer::with(['locations', 'state', 'district'])
-    //                 ->where('m07_name', 'like', "%{$query}%")
-    //                 ->take(10)
-    //                 ->get()
-    //                 ->map(function ($customer) {
-    //                     return [
-    //                         'id' => $customer->m07_customer_id,
-    //                         'name' => $customer->m07_name,
-    //                         'default_address' => [
-    //                             'address' => $customer->m07_address,
-    //                             'state' => $customer->state?->m01_state_name,
-    //                             'district' => $customer->district?->m02_district_name,
-    //                             'pincode' => $customer->m07_pincode,
-    //                             'contact_person' => $customer->m07_contact_person,
-    //                             'email' => $customer->m07_email,
-    //                             'phone' => $customer->m07_phone,
-    //                             'gst' => $customer->m07_gst,
-    //                         ],
-    //                         'other_addresses' => $customer->locations->map(function ($loc) {
-    //                             return [
-    //                                 'id' => $loc->m08_customer_location_id,
-    //                                 'address' => $loc->m08_address,
-    //                                 'state' => $loc->state?->m01_state_name,
-    //                                 'district' => $loc->district?->m02_district_name,
-    //                                 'pincode' => $loc->m08_pincode,
-    //                                 'contact_person' => $loc->m08_contact_person,
-    //                                 'email' => $loc->m08_email,
-    //                                 'phone' => $loc->m08_phone,
-    //                                 'gst' => $loc->m08_gst,
-    //                             ];
-    //                         })->values(),
-    //                     ];
-    //                 });
-    //         } else {
-    //             $customers = collect();
-    //         }
-    //         // dd($customers);
-    //         return response()->json($customers);
-    //     } catch (\Exception $e) {
-    //         Log::error('Error in searchCustomer', [
-    //             'message' => $e->getMessage(),
-    //             'trace' => $e->getTraceAsString()
-    //         ]);
-
-    //         return response()->json(['error' => 'Server error'], 500);
-    //     }
-    // }
 
     public function searchCustomer(Request $request)
     {
@@ -346,5 +335,121 @@ class RegistrationController extends Controller
             }),
         ];
         return response()->json($tests);
+    }
+
+    public function viewRegSamples(Request $request)
+    {
+        if ($request->ajax()) {
+            $samples = SampleRegistration::with([
+                'labSample',
+                'package',
+                'sampleTests.test',
+                'sampleTests.standard',
+                'customerType',
+            ])->select('tr04_sample_registrations.*');
+
+            return DataTables::of($samples)
+                ->addIndexColumn()
+                ->addColumn('sample_id', function ($row) {
+                    return $row->tr04_sample_registration_id ?? 'N/A';
+                })
+                ->addColumn('sample_description', function ($row) {
+                    return $row->tr04_sample_description ?? 'N/A';
+                })
+                ->addColumn('customer_type', function ($row) {
+                    return $row->customerType ? $row->customerType->m09_name : 'N/A';
+                })
+                ->addColumn('total_tests', function ($row) {
+                    return $row->sampleTests->count();
+                })
+                ->addColumn('status', function ($row) {
+                    $statusClass = '';
+                    $statusText = $row->tr04_progress ?? 'REGISTERED';
+
+                    switch (strtolower($statusText)) {
+                        case 'complete':
+                        case 'completed':
+                            $statusClass = 'bg-success';
+                            break;
+                        case 'pending':
+                            $statusClass = 'bg-warning';
+                            break;
+                        case 'processing':
+                            $statusClass = 'bg-info';
+                            break;
+                        default:
+                            $statusClass = 'bg-primary';
+                    }
+
+                    return '<span class="badge badge-dot ' . $statusClass . '">' . ucfirst($statusText) . '</span>';
+                })
+                ->addColumn('amount', function ($row) {
+                    $amount = $row->total_amount ?? 0;
+                    return '<span class="amount">$' . number_format($amount, 2) . '</span>';
+                })
+                ->addColumn('created_date', function ($row) {
+                    return $row->created_at ? $row->created_at->format('d M Y, h:ia') : 'N/A';
+                })
+                ->addColumn('action', function ($row) {
+                    return '
+                <div class="tb-odr-btns d-flex">
+                    <a href="' . route('print_sample_acknowledgement', $row->tr04_sample_registration_id) . '" target="_blank" 
+                       class="btn btn-icon btn-white btn-dim btn-sm btn-primary">
+                       <em class="icon ni ni-printer-fill"></em>
+                    </a>
+                    <a href="' . route('view_registration_pdf', $row->tr04_sample_registration_id) . '" 
+                       class="btn btn-dim btn-sm btn-primary">View</a>
+                </div>
+                <a href="' . route('view_registration_pdf', $row->tr04_sample_registration_id) . '" 
+                   class="btn btn-pd-auto d-sm-none">
+                   <em class="icon ni ni-chevron-right"></em>
+                </a>
+            ';
+                })
+                ->rawColumns(['status', 'amount', 'action'])
+                ->make(true);
+        }
+        return view('registration.view_registered_samples');
+    }
+
+    public function showSampleDetails($id)
+    {
+        $sample = SampleRegistration::with([
+            'labSample',
+            'package',
+            'sampleTests.test',
+            'sampleTests.standard',
+            'customerType',
+            'ro'
+        ])->where('tr04_sample_registration_id', $id)->first();
+
+        $sample->each(function ($sample) {
+            $sample->sampleTests->each(function ($test) {
+                $test->append(['primary_tests', 'secondary_tests']);
+            });
+        });
+
+        // dd($samples->toArray());
+
+        return view('registration.registration_details', compact('sample'));
+    }
+
+    public function printSampleDetails($id)
+    {
+        $sample = SampleRegistration::with([
+            'labSample',
+            'package',
+            'sampleTests.test',
+            'sampleTests.standard',
+            'customerType',
+            'ro'
+        ])->where('tr04_sample_registration_id', $id)->firstOrFail();
+
+        // append primary/secondary tests if needed
+        $sample->sampleTests->each(function ($test) {
+            $test->append(['primary_tests', 'secondary_tests']);
+        });
+
+        return view('registration.print_pdf_acknowledgement', compact('sample'));
     }
 }

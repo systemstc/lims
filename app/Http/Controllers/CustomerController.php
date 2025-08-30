@@ -128,7 +128,7 @@ class CustomerController extends Controller
     public function createCustomer(Request $request)
     {
         if ($request->isMethod('post')) {
-            // dd($request);
+            // dd($request->query('from'));
             $validator = Validator::make($request->all(), [
                 "txt_customer_type_id" => "required|integer|exists:m09_customer_types,m09_customer_type_id",
                 "txt_ro_id" => "required|integer",
@@ -249,14 +249,23 @@ class CustomerController extends Controller
                         }
                     }
                 });
-
-                Session::flash('type', 'success');
-                Session::flash('message', 'Customer and locations added successfully!');
-                return redirect()->back();
+                if ($request->query('from') == 'registration') {
+                    return response()->make("
+                        <script>
+                            window.opener.location.reload(); // refresh parent if needed
+                            window.close(); // close popup
+                        </script>
+                    ");
+                } else {
+                    // Normal customer creation
+                    Session::flash('type', 'success');
+                    Session::flash('message', 'Customer and locations added successfully!');
+                    return redirect()->back();
+                }
             } catch (\Exception $e) {
                 Session::flash('type', 'danger');
                 Session::flash('message', 'An error occurred while saving the data. Please try again.');
-                // Log::error($e->getMessage());
+                Log::error($e->getMessage());
                 return redirect()->back()->withInput();
             }
         }
@@ -456,5 +465,36 @@ class CustomerController extends Controller
         $customer->locations = $customer->locations->toArray();
 
         return view('edit_customer', compact('customer', 'states', 'ros', 'customerTypes'));
+    }
+
+    public function addLocation(Request $request)
+    {
+
+        $validated = $request->validate([
+            'txt_loc_customer_id' => 'required|exists:m07_customers,m07_customer_id',
+            'txt_loc_contact_person' => 'required|string|max:255',
+            'txt_loc_email' => 'nullable|email',
+            'txt_loc_phone' => 'nullable|string|max:20',
+            'txt_loc_state_id' => 'required|exists:m01_states,m01_state_id',
+            'txt_loc_district_id' => 'required|exists:m02_districts,m02_district_id',
+            'txt_loc_pincode' => 'nullable|string|max:10',
+            'txt_loc_address' => 'required|string',
+        ]);
+        $data = [
+            'm07_customer_id' => $request->txt_loc_customer_id,
+            'm08_contact_person' => $request->txt_loc_contact_person,
+            'm08_email' => $request->txt_loc_email,
+            'm08_phone' => $request->txt_loc_phone,
+            'm01_state_id' => $request->txt_loc_state_id,
+            'm02_district_id' => $request->txt_loc_district_id,
+            'm08_pincode' => $request->txt_loc_pincode,
+            'm08_address' => $request->txt_loc_address,
+        ];
+        // dd($validated);
+        $location = CustomerLocation::create($data);
+        return response()->json([
+            'success' => true,
+            'location' => $location
+        ]);
     }
 }

@@ -32,6 +32,8 @@ class SampleRegistration extends Model
         'tr04_attachment',
         'tr04_sample_description',
         'tr04_test_type',
+        'm19_package_id',
+        'tr04_charge_type',
         'm12_test_ids',
         'tr04_testing_charges',
         'tr04_additional_charges',
@@ -43,6 +45,50 @@ class SampleRegistration extends Model
         'tr04_progress',
     ];
 
+    protected $appends = ['parties', 'test_details'];
+
+    public function getPartiesAttribute()
+    {
+        return getParties($this->tr04_sample_registration_id);
+    }
+
+    public function getTestDetailsAttribute()
+    {
+        $details = [];
+        $testData = json_decode($this->m12_test_ids, true);
+        if (!is_array($testData)) {
+            return $details;
+        }
+        foreach ($testData as $id => $data) {
+            $details[] = [
+                'test'     => Test::find($data['test_id']),
+                'standard' => Standard::find($data['standard_id']),
+                'package'  => Package::find($data['package_id']),
+                'remark'   => $data['remark'] ?? null,
+            ];
+        }
+        return $details;
+    }
+
+    public function ro()
+    {
+        return $this->belongsTo(Ro::class, 'm04_ro_id', 'm04_ro_id');
+    }
+
+    public function sampleTests()
+    {
+        return $this->hasMany(SampleTest::class, 'tr04_sample_registration_id', 'tr04_sample_registration_id');
+    }
+
+    public function customerType()
+    {
+        return $this->belongsTo(CustomerType::class, 'm09_customer_type_id', 'm09_customer_type_id');
+    }
+
+    public function labSample()
+    {
+        return $this->belongsTo(LabSample::class, 'm14_lab_sample_id', 'm14_lab_sample_id');
+    }
     public function customer()
     {
         return $this->belongsTo(Customer::class, 'm07_customer_id', 'm07_customer_id');
@@ -80,5 +126,10 @@ class SampleRegistration extends Model
     public function chaLocation()
     {
         return $this->belongsTo(CustomerLocation::class, 'm08_cha_location_id', 'm08_customer_location_id');
+    }
+
+    public function package()
+    {
+        return $this->belongsTo(Package::class, 'm19_package_id', 'm19_package_id');
     }
 }

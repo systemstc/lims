@@ -13,7 +13,12 @@
                             </a>
                         </div>
                     </div>
-
+                    @if (session('customer_registerd'))
+                        <script>
+                            window.opener.location.reload();
+                            window.close();
+                        </script>
+                    @endif
                     <div class="nk-block nk-block-lg">
                         <div class="card">
                             <div class="card-inner">
@@ -55,6 +60,7 @@
                                                     <input type="text" class="form-control" id="txt_name"
                                                         name="txt_name" value="{{ old('txt_name') }}" required>
                                                 </div>
+                                                <span id="txt_name-msg" class="text-danger"></span>
                                                 @error('txt_name')
                                                     <span class="text-danger">{{ $message }}</span>
                                                 @enderror
@@ -69,6 +75,7 @@
                                                     <input type="email" class="form-control" id="txt_email"
                                                         name="txt_email" value="{{ old('txt_email') }}" required>
                                                 </div>
+                                                <span id="txt_email-msg" class="text-danger"></span>
                                                 @error('txt_email')
                                                     <span class="text-danger">{{ $message }}</span>
                                                 @enderror
@@ -88,6 +95,7 @@
                                                             id="txt_phone" value="{{ old('txt_phone') }}" required>
                                                     </div>
                                                 </div>
+                                                <span id="txt_phone-msg" class="text-danger"></span>
                                                 @error('txt_phone')
                                                     <span class="text-danger">{{ $message }}</span>
                                                 @enderror
@@ -101,6 +109,7 @@
                                                     <input type="text" class="form-control" id="txt_gst" name="txt_gst"
                                                         value="{{ old('txt_gst') }}">
                                                 </div>
+                                                <span id="txt_gst-msg" class="text-danger"></span>
                                                 @error('txt_gst')
                                                     <span class="text-danger">{{ $message }}</span>
                                                 @enderror
@@ -111,8 +120,8 @@
                                             <div class="form-group">
                                                 <label class="form-label" for="txt_iec">IEC Code</label>
                                                 <div class="form-control-wrap">
-                                                    <input type="text" class="form-control" id="txt_iec" name="txt_iec"
-                                                        value="{{ old('txt_iec') }}">
+                                                    <input type="text" class="form-control" id="txt_iec"
+                                                        name="txt_iec" value="{{ old('txt_iec') }}">
                                                 </div>
                                                 @error('txt_iec')
                                                     <span class="text-danger">{{ $message }}</span>
@@ -129,6 +138,7 @@
                                                         name="txt_contact_person" value="{{ old('txt_contact_person') }}"
                                                         required>
                                                 </div>
+                                                <span id="txt_contact_person-msg" class="text-danger"></span>
                                                 @error('txt_contact_person')
                                                     <span class="text-danger">{{ $message }}</span>
                                                 @enderror
@@ -451,35 +461,6 @@
             // Global variables
             let contactIndex = {{ count($contact_blocks) }};
 
-            // Utility function to fetch districts
-            function fetchDistricts(stateId, districtSelect, selectedDistrictId = null) {
-                if (stateId) {
-                    districtSelect.html('<option value="">Loading...</option>');
-                    $.ajax({
-                        url: '{{ route('get_districts') }}',
-                        type: 'GET',
-                        data: {
-                            state_id: stateId
-                        },
-                        success: function(response) {
-                            let options = '<option value=""></option>';
-                            $.each(response, function(index, district) {
-                                const isSelected = selectedDistrictId == district
-                                    .m02_district_id ? 'selected' : '';
-                                options +=
-                                    `<option value="${district.m02_district_id}" ${isSelected}>${district.m02_name}</option>`;
-                            });
-                            districtSelect.html(options);
-                        },
-                        error: function() {
-                            districtSelect.html('<option value="">-- Error --</option>');
-                        }
-                    });
-                } else {
-                    districtSelect.html('<option value=""></option>');
-                }
-            }
-
             // Initialize districts on page load
             function initializeAllDistricts() {
                 // Main form district
@@ -527,6 +508,27 @@
 
             // Initialize on page load
             initializeAllDistricts();
+
+
+            // Check for Existance  of the inputs 
+            $("#txt_email").on("input", function() {
+                validateField("m07_email", $(this).val(), "txt_email", 'Customer');
+            });
+
+            $("#txt_phone").on("input", function() {
+                validateField("m07_phone", $(this).val(), "txt_phone", 'Customer');
+            });
+            $("#txt_name").on("input", function() {
+                validateField("m07_name", $(this).val(), "txt_name", 'Customer');
+            });
+            $("#txt_gst").on("input", function() {
+                validateField("m07_gst", $(this).val(), "txt_gst", 'Customer');
+            });
+            $("#txt_contact_person").on("input", function() {
+                validateField("m07_contact_person", $(this).val(), "txt_contact_person", 'Customer');
+            });
+
+
         });
     </script>
 @endsection

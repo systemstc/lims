@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AllottmentController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\CustomerSearchController;
@@ -9,6 +10,8 @@ use App\Http\Controllers\MeasurementController;
 use App\Http\Controllers\RegistrationController;
 use App\Http\Controllers\RoController;
 use App\Http\Controllers\SampleController;
+use App\Http\Controllers\ValidationController;
+use App\Models\Customer;
 use App\Models\Employee;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Session;
@@ -17,9 +20,11 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+Route::middleware(['check_loggedin'])->group(function () {
+    Route::match(['get', 'post'], 'admin/login', [AuthController::class, 'adminLogin'])->name('admin_login');
+    Route::match(['get', 'post'], 'user/login', [AuthController::class, 'userLogin'])->name('user_login');
+});
 
-Route::match(['get', 'post'], 'admin/login', [AuthController::class, 'adminLogin'])->name('admin_login');
-Route::match(['get', 'post'], 'user/login', [AuthController::class, 'userLogin'])->name('user_login');
 Route::get('admin/logout', function () {
     Session::flush();
     return to_route('admin_login')->with('success', 'Logged out successfully.');
@@ -150,8 +155,31 @@ Route::middleware(['check_permission'])->group(function () {
     Route::post('delete-measurement', [MeasurementController::class, 'deleteMeasurement'])->name('delete_measurement');
 
     //Sample Registration
-    Route::get('registered-sample', [RegistrationController::class, 'viewSampleRegistration'])->name('view_registered_smple');
+    // Route::get('registered-sample', [RegistrationController::class, 'viewSampleRegistration'])->name('view_registered_smple');
     Route::match(['get', 'post'], 'sample-regsitration', [RegistrationController::class, 'preRegistration'])->name('register_sample');
+
+    Route::get('registered-samples', [RegistrationController::class, 'viewRegSamples'])->name('view_registered_samples');
+
+
+    // Sample detail routes 
+    Route::get('/samples/{id}/details', [RegistrationController::class, 'showSampleDetails'])
+        ->name('view_registration_pdf');
+
+    Route::get('/samples/{id}/print', [RegistrationController::class, 'printSampleDetails'])
+        ->name('print_sample_acknowledgement');
+
+    // aLLOTTMENT 
+    // Main dashboard - pending allotments
+    Route::get('/pending-allotments', [AllottmentController::class, 'pendingAllotments'])->name('view_allottment');
+
+    // Individual allotment operations
+    Route::post('/create-allotment', [AllottmentController::class, 'createAllottment'])->name('create_allotment');
+
+    // Reassignment
+    Route::post('/reassign', [AllottmentController::class, 'reassignTest'])->name('reassign');
+
+    // History for specific test
+    Route::get('/history/{testId}', [AllottmentController::class, 'getAllotmentHistory'])->name('history');
 });
 
 Route::get('/get-districts', [MasterController::class, 'getDistricts'])->name('get_districts');
@@ -186,3 +214,24 @@ Route::get('/get-standards-by-test', [RegistrationController::class, 'getStandar
 // Get packages on the basis of test types 
 Route::get('/get-package-data', [RegistrationController::class, 'getPackages'])->name('get_packages');
 Route::get('/get-test-by-package', [RegistrationController::class, 'getTestByPackage'])->name('get_tests_by_package');
+
+
+// dynamic search side bar
+Route::get('/global-search', [SampleController::class, 'globalSearch'])->name('global_search');
+Route::get('/recent-records', [SampleController::class, 'recentRecords'])->name('recent_records');
+Route::get('/today-stats', [SampleController::class, 'todayStats'])->name('today_stats');
+Route::get('/sample-details', [SampleController::class, 'getSampleDetails'])->name('get_sample_details');
+Route::get('/test-details', [SampleController::class, 'getTestDetails'])->name('get_test_details');
+
+// Validation
+Route::post('/validate-field', [ValidationController::class, 'checkField'])->name('validate_field');
+
+//  Create customer location 
+Route::post('add-location', [CustomerController::class, 'addLocation'])->name('create_customer_location');
+
+// Additional routes for allotment that needs to be under a middleware i had to fix it 
+Route::get('/view/{registrationId}', [AllottmentController::class, 'viewAllottment'])->name('show_allotment');
+Route::post('/transfer-tests', [AllottmentController::class, 'transferTests'])->name('transfer_tests');
+Route::post('/allot-tests', [AllottmentController::class, 'allotTests'])->name('allot_tests');
+
+Route::post('accepting-tests', [AllottmentController::class, 'acceptTransferred'])->name('accept_transferred');

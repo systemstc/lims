@@ -33,6 +33,10 @@ class Test extends Model
         'tr01_created_by',
     ];
 
+    public function standard()
+    {
+        return $this->belongsTo(Standard::class, 'm15_standard_id', 'm15_standard_id');
+    }
     public function sample()
     {
         return $this->belongsTo(Sample::class, 'm10_sample_id');

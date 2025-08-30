@@ -8,9 +8,9 @@
                         <div class="nk-block-head">
                             <div class="nk-block-head-content d-flex justify-content-between align-items-center">
                                 <h4 class="nk-block-title mb-0">Register Sample</h4>
-                                <a href="{{ url()->previous() }}" class="btn btn-primary">
+                                {{-- <a href="{{ url()->previous() }}" class="btn btn-primary">
                                     <em class="icon ni ni-back-alt-fill"></em> &nbsp; Back
-                                </a>
+                                </a> --}}
                             </div>
                         </div>
                         <div class="row">
@@ -32,8 +32,8 @@
                                                             <label class="form-label" for="dd_customer_type">Customer
                                                                 Type<b class="text-danger">*</b></label>
                                                             <div class="form-control-wrap">
-                                                                <select class="form-control required" name="dd_customer_type"
-                                                                    id="dd_customer_type" required>
+                                                                <select class="form-control required"
+                                                                    name="dd_customer_type" id="dd_customer_type" required>
                                                                     <option value="" disabled selected>Select
                                                                         Customer
                                                                         Type</option>
@@ -47,49 +47,70 @@
                                                             </div>
                                                         </div>
                                                     </div>
+                                                    <!-- CUSTOMER -->
                                                     <div class="col-md-6">
                                                         <div class="form-group dropdown-container"
                                                             style="position: relative;">
                                                             <label class="form-label" for="txt_customer_name">
                                                                 Customer Name<b class="text-danger">*</b>
                                                             </label>
-                                                            <div class="form-control-wrap">
+                                                            <div class="form-control-wrap d-flex">
                                                                 <input type="text" class="form-control required"
                                                                     id="txt_customer_name" name="txt_customer_name"
                                                                     placeholder="Start typing customer name..."
                                                                     autocomplete="off" required>
+                                                                <a href="{{ route('create_customer', ['from' => 'registration']) }}"
+                                                                    target="_blank"
+                                                                    class="btn btn-sm btn-primary ml-2">+</a>
                                                             </div>
-                                                            <div class="d-flex justify-content-around"><span
-                                                                    id="party-contact-person"></span><span
-                                                                    id="party-phone"></span><span id="party-email"></span>
+                                                            <div class="d-flex justify-content-around">
+                                                                <span id="party-contact-person"></span>
+                                                                <span id="party-phone"></span>
+                                                                <span id="party-email"></span>
                                                             </div>
-
                                                         </div>
                                                     </div>
                                                     <input type="hidden" id="selected_customer_id"
                                                         name="selected_customer_id" value="">
                                                     <input type="hidden" id="selected_customer_address_id"
                                                         name="selected_customer_address_id" value="">
+
                                                     <div class="col-md-6">
                                                         <div class="form-group">
                                                             <label class="form-label" for="party-address">Address</label>
-                                                            <div class="form-control-wrap">
-                                                                <span id="party-address"></span>
+                                                            <div class="input-group">
+                                                                <select id="party-address" class="form-control">
+                                                                    <option value="">Loading addresses...</option>
+                                                                </select>
+                                                                <div class="input-group-append">
+                                                                    <button type="button" data-type="customer"
+                                                                        class="btn btn-outline-primary add-address-btn"
+                                                                        disabled>
+                                                                        +
+                                                                    </button>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </div>
+
+
+                                                    <!-- BUYER -->
                                                     <div class="col-md-6">
                                                         <div class="form-group">
                                                             <label class="form-label" for="txt_buyer_name">Buyer
                                                                 Name</label>
-                                                            <div class="form-control-wrap">
-                                                                <input type="text" data-msg="Required"
-                                                                    class="form-control" id="txt_buyer_name"
-                                                                    name="txt_buyer_name" autocomplete="off">
+                                                            <div class="form-control-wrap d-flex">
+                                                                <input type="text" class="form-control"
+                                                                    id="txt_buyer_name" name="txt_buyer_name"
+                                                                    autocomplete="off">
+                                                                <a href="{{ route('create_customer', ['from' => 'registration']) }}"
+                                                                    target="_blank"
+                                                                    class="btn btn-sm btn-primary ml-2">+</a>
                                                             </div>
-                                                            <div class="d-flex justify-content-around"><span
-                                                                    id="buyer-contact-person"></span><span
-                                                                    id="buyer-phone"></span><span id="buyer-phone"></span>
+                                                            <div class="d-flex justify-content-around">
+                                                                <span id="buyer-contact-person"></span>
+                                                                <span id="buyer-phone"></span>
+                                                                <span id="buyer-email"></span>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -97,26 +118,44 @@
                                                         value="">
                                                     <input type="hidden" id="selected_buyer_address_id"
                                                         name="selected_buyer_address_id" value="">
+
                                                     <div class="col-md-6">
                                                         <div class="form-group">
                                                             <label class="form-label" for="buyer-address">Address</label>
-                                                            <div class="form-control-wrap">
-                                                                <span id="buyer-address"></span>
+                                                            <div class="input-group">
+                                                                <select id="buyer-address" class="form-control">
+                                                                    <option value="">Loading addresses...</option>
+                                                                </select>
+                                                                <div class="input-group-append">
+                                                                    <button type="button" data-type="buyer"
+                                                                        class="btn btn-outline-primary add-address-btn"
+                                                                        disabled>
+                                                                        +
+                                                                    </button>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </div>
+
+                                                    <!-- THIRD PARTY -->
                                                     <div class="col-md-6">
                                                         <div class="form-group">
                                                             <label class="form-label" for="txt_third_party">Third
                                                                 Party</label>
-                                                            <div class="form-control-wrap">
-                                                                <input type="text" data-msg="Required"
-                                                                    class="form-control" id="txt_third_party"
-                                                                    name="txt_third_party" autocomplete="off">
+                                                            <div class="form-control-wrap d-flex">
+                                                                <input type="text" class="form-control"
+                                                                    id="txt_third_party" name="txt_third_party"
+                                                                    autocomplete="off">
+                                                                <button type="button" class="btn btn-primary"
+                                                                    data-url="{{ route('create_customer', ['from' => 'registration']) }}"
+                                                                    onclick="openCustomerPopup(this)">
+                                                                    +
+                                                                </button>
                                                             </div>
-                                                            <div class="d-flex justify-content-around"><span
-                                                                    id="third-contact-person"></span><span
-                                                                    id="third-phone"></span><span id="third-phone"></span>
+                                                            <div class="d-flex justify-content-around">
+                                                                <span id="third-contact-person"></span>
+                                                                <span id="third-phone"></span>
+                                                                <span id="third-email"></span>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -124,25 +163,40 @@
                                                         name="selected_third_party_id" value="">
                                                     <input type="hidden" id="selected_third_party_address_id"
                                                         name="selected_third_party_address_id" value="">
+
                                                     <div class="col-md-6">
                                                         <div class="form-group">
                                                             <label class="form-label" for="third-address">Address</label>
-                                                            <div class="form-control-wrap">
-                                                                <span id="third-address"></span>
+                                                            <div class="input-group">
+                                                                <select id="third-address" class="form-control">
+                                                                    <option value="">Loading addresses...</option>
+                                                                </select>
+                                                                <div class="input-group-append">
+                                                                    <button type="button" data-type="third"
+                                                                        class="btn btn-outline-primary add-address-btn"
+                                                                        disabled>
+                                                                        +
+                                                                    </button>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </div>
+
+                                                    <!-- CHA -->
                                                     <div class="col-md-6">
                                                         <div class="form-group">
                                                             <label class="form-label" for="txt_cha">CHA</label>
-                                                            <div class="form-control-wrap">
-                                                                <input type="text" data-msg="Required"
-                                                                    class="form-control" id="txt_cha" name="txt_cha"
-                                                                    autocomplete="off">
+                                                            <div class="form-control-wrap d-flex">
+                                                                <input type="text" class="form-control" id="txt_cha"
+                                                                    name="txt_cha" autocomplete="off">
+                                                                <a href="{{ route('create_customer', ['from' => 'registration']) }}"
+                                                                    target="_blank"
+                                                                    class="btn btn-sm btn-primary ml-2">+</a>
                                                             </div>
-                                                            <div class="d-flex justify-content-around"><span
-                                                                    id="cha-contact-person"></span><span
-                                                                    id="cha-phone"></span><span id="cha-phone"></span>
+                                                            <div class="d-flex justify-content-around">
+                                                                <span id="cha-contact-person"></span>
+                                                                <span id="cha-phone"></span>
+                                                                <span id="cha-email"></span>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -150,14 +204,25 @@
                                                         value="">
                                                     <input type="hidden" id="selected_cha_address_id"
                                                         name="selected_cha_address_id" value="">
+
                                                     <div class="col-md-6">
                                                         <div class="form-group">
                                                             <label class="form-label" for="cha-address">Address</label>
-                                                            <div class="form-control-wrap">
-                                                                <span id="cha-address"></span>
+                                                            <div class="input-group">
+                                                                <select id="cha-address" class="form-control">
+                                                                    <option value="">Loading addresses...</option>
+                                                                </select>
+                                                                <div class="input-group-append">
+                                                                    <button type="button" data-type="cha"
+                                                                        class="btn btn-outline-primary add-address-btn"
+                                                                        disabled>
+                                                                        +
+                                                                    </button>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </div>
+
                                                     <div class="col-md-12">
                                                         <div class="preview-block">
                                                             <span class="preview-title overline-title d-block">Payment
@@ -165,7 +230,8 @@
                                                             <div class="row">
                                                                 <div class="col-md-3 mb-2">
                                                                     <div class="custom-control custom-radio">
-                                                                        <input type="radio" class="custom-control-input required"
+                                                                        <input type="radio"
+                                                                            class="custom-control-input required"
                                                                             id="firstParty" name="txt_payment_by"
                                                                             value="first_party" required>
                                                                         <label class="custom-control-label"
@@ -210,7 +276,8 @@
                                                             <div class="row">
                                                                 <div class="col-md-3 mb-2">
                                                                     <div class="custom-control custom-radio">
-                                                                        <input type="radio" class="custom-control-input required"
+                                                                        <input type="radio"
+                                                                            class="custom-control-input required"
                                                                             id="reportFirstParty" name="txt_report_to"
                                                                             value="first_party" required>
                                                                         <label class="custom-control-label"
@@ -328,8 +395,8 @@
                                                             <label class="form-label" for="dd_sample_type">Sample
                                                                 Type<b class="text-danger">*</b></label>
                                                             <div class="form-control-wrap">
-                                                                <select class="form-control required" name="dd_sample_type"
-                                                                    id="dd_sample_type" required>
+                                                                <select class="form-control required"
+                                                                    name="dd_sample_type" id="dd_sample_type" required>
                                                                     <option value="" selected disabled>Select Type
                                                                     </option>
                                                                     @foreach ($labSamples as $labSample)
@@ -355,7 +422,7 @@
                                                             </div>
                                                         </div>
                                                     </div>
-                                                    <div class="col-md-6">
+                                                    {{-- <div class="col-md-6">
                                                         <div class="form-group">
                                                             <label class="form-label"
                                                                 for="txt_attachment">Attachment</label>
@@ -369,7 +436,22 @@
                                                                 </div>
                                                             </div>
                                                         </div>
+                                                    </div> --}}
+                                                    <div class="col-md-6">
+                                                        <div class="form-group">
+                                                            <label class="form-label">Sample Image <b
+                                                                    class="text-danger">*</b></label><br>
+                                                            <button type="button" class="btn btn-primary"
+                                                                data-bs-toggle="modal" data-bs-target="#cameraModal">
+                                                                📷 Take Sample Image
+                                                            </button>
+                                                            <input type="hidden" name="sample_image_base64"
+                                                                id="sample_image_base64">
+                                                            <div id="previewThumbnail" class="mt-2"></div>
+                                                        </div>
                                                     </div>
+
+
                                                     <div class="col-md-6">
                                                         <div class="form-group">
                                                             <label class="form-label" for="txt_description">Sample
@@ -391,7 +473,8 @@
                                                 <div class="row gy-3">
                                                     <div class="col-md-6">
                                                         <div class="form-group">
-                                                            <label class="form-label" for="dd_test_type">Type<b class="text-danger">*</b></label>
+                                                            <label class="form-label" for="dd_test_type">Type<b
+                                                                    class="text-danger">*</b></label>
                                                             <div class="form-control-wrap">
                                                                 <select class="form-control required" name="dd_test_type"
                                                                     id="dd_test_type" required>
@@ -537,22 +620,19 @@
                                 </div>
                             </div>
 
-                            <!-- Search Results Sidebar -->
+                            <!-- Search Results Sidebar - Enhanced Dynamic Version -->
                             <div class="col-md-4">
                                 <div class="card">
                                     <div class="card-inner">
                                         <div class="card-head">
-                                            <h5 class="card-title">Search Results</h5>
+                                            <h5 class="card-title">Search & Quick Actions</h5>
                                         </div>
 
                                         <!-- Search Input -->
                                         <div class="form-group mb-3">
                                             <div class="form-control-wrap">
-                                                <input type="text" class="form-control" id="search_input"
+                                                <input type="text" class="form-control" id="global_search_input"
                                                     placeholder="Search samples, customers, tests...">
-                                                <button class="btn btn-primary btn-sm mt-2 w-100" id="search_btn">
-                                                    <em class="icon ni ni-search"></em> Search
-                                                </button>
                                             </div>
                                         </div>
 
@@ -568,100 +648,135 @@
                                                 <div id="filterOptions" class="accordion-collapse collapse"
                                                     data-bs-parent="#searchFilters">
                                                     <div class="accordion-body">
-                                                        <div class="form-group">
+                                                        <div class="form-group mb-2">
                                                             <label class="form-label">Search Type</label>
-                                                            <select class="form-select form-select-sm">
+                                                            <select class="form-select form-select-sm"
+                                                                id="search_type_filter">
                                                                 <option value="all">All Records</option>
                                                                 <option value="customers">Customers</option>
                                                                 <option value="samples">Samples</option>
                                                                 <option value="tests">Tests</option>
                                                             </select>
                                                         </div>
-                                                        <div class="form-group">
+                                                        <div class="form-group mb-2">
                                                             <label class="form-label">Date Range</label>
-                                                            <input type="date"
+                                                            <input type="date" id="date_from"
                                                                 class="form-control form-control-sm mb-1"
                                                                 placeholder="From Date">
-                                                            <input type="date" class="form-control form-control-sm"
+                                                            <input type="date" id="date_to"
+                                                                class="form-control form-control-sm"
                                                                 placeholder="To Date">
+                                                        </div>
+                                                        <div class="form-group">
+                                                            <label class="form-label">Status</label>
+                                                            <select class="form-select form-select-sm" id="status_filter">
+                                                                <option value="">All Status</option>
+                                                                <option value="active">Active</option>
+                                                                <option value="completed">Completed</option>
+                                                                <option value="pending">Pending</option>
+                                                            </select>
                                                         </div>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
 
-                                        <!-- Search Results Area -->
-                                        <div class="search-results mt-3">
-                                            <div class="alert alert-light">
+                                        <!-- Search Results -->
+                                        <div class="search-results mt-3" id="search_results_container">
+                                            <div class="alert alert-light" id="search_placeholder">
                                                 <em class="icon ni ni-info"></em>
                                                 <span>Enter search terms above to find existing records</span>
                                             </div>
 
-                                            <!-- Sample Results (Hidden by default) -->
-                                            <div class="search-result-items" style="display: none;">
-                                                <div class="search-result-item border rounded p-2 mb-2">
-                                                    <div class="d-flex justify-content-between align-items-center">
-                                                        <div>
-                                                            <h6 class="mb-1">Sample #S001</h6>
-                                                            <small class="text-muted">Customer: ABC Corp</small>
-                                                        </div>
-                                                        <button class="btn btn-sm btn-outline-primary">Select</button>
-                                                    </div>
-                                                </div>
+                                            <!-- Dynamic Results -->
+                                            <div class="search-result-items" id="dynamic_search_results"
+                                                style="display: none;">
+                                            </div>
 
-                                                <div class="search-result-item border rounded p-2 mb-2">
-                                                    <div class="d-flex justify-content-between align-items-center">
-                                                        <div>
-                                                            <h6 class="mb-1">Sample #S002</h6>
-                                                            <small class="text-muted">Customer: XYZ Ltd</small>
-                                                        </div>
-                                                        <button class="btn btn-sm btn-outline-primary">Select</button>
-                                                    </div>
-                                                </div>
+                                            <!-- No Results -->
+                                            <div class="alert alert-warning" id="no_results_message"
+                                                style="display: none;">
+                                                <em class="icon ni ni-alert-circle"></em>
+                                                <span>No records found matching your search criteria</span>
                                             </div>
                                         </div>
 
                                         <!-- Recent Records -->
-                                        <div class="recent-records mt-6">
-                                            <h6 class="card-title">Recent Records</h6>
-                                            <div class="list-group list-group-flush">
-                                                <div
-                                                    class="list-group-item d-flex justify-content-between align-items-center px-0">
-                                                    <div>
-                                                        <small class="text-muted">Last Sample:</small>
-                                                        <br><span class="fw-bold">#S001 - Water Analysis</span>
-                                                    </div>
-                                                    <button class="btn btn-sm btn-outline-secondary">View</button>
-                                                </div>
-                                                <div
-                                                    class="list-group-item d-flex justify-content-between align-items-center px-0">
-                                                    <div>
-                                                        <small class="text-muted">Last Customer:</small>
-                                                        <br><span class="fw-bold">ABC Corporation</span>
-                                                    </div>
-                                                    <button class="btn btn-sm btn-outline-secondary">Use</button>
-                                                </div>
+                                        <div class="recent-records mt-4" id="recent_records_section">
+                                            <h6 class="card-title d-flex justify-content-between align-items-center">
+                                                Recent Records
+                                                <button class="btn btn-sm btn-outline-secondary" id="refresh_recent">
+                                                    <em class="icon ni ni-reload"></em>
+                                                </button>
+                                            </h6>
+                                            <div class="list-group list-group-flush" id="recent_records_list">
+                                                <!-- Populated dynamically -->
                                             </div>
                                         </div>
 
                                         <!-- Quick Actions -->
-                                        <div class="quick-actions mt-6">
+                                        <div class="quick-actions mt-4">
                                             <h6 class="card-title">Quick Actions</h6>
                                             <div class="d-grid gap-2">
-                                                <button class="btn btn-outline-primary btn-sm">
+                                                <button class="btn btn-outline-primary btn-sm" id="copy_last_sample">
                                                     <em class="icon ni ni-copy"></em> Copy Last Sample
                                                 </button>
-                                                <button class="btn btn-outline-primary btn-sm">
+                                                <button class="btn btn-outline-primary btn-sm" id="add_new_customer">
                                                     <em class="icon ni ni-user-add"></em> Add New Customer
                                                 </button>
-                                                <button class="btn btn-outline-primary btn-sm">
+                                                <button class="btn btn-outline-primary btn-sm" id="schedule_test">
                                                     <em class="icon ni ni-calendar"></em> Schedule Test
                                                 </button>
+                                                <div class="dropdown">
+                                                    <button class="btn btn-outline-secondary btn-sm dropdown-toggle w-100"
+                                                        type="button" data-bs-toggle="dropdown">
+                                                        <em class="icon ni ni-more-h"></em> More Actions
+                                                    </button>
+                                                    <ul class="dropdown-menu">
+                                                        <li><a class="dropdown-item" href="#" id="export_data">
+                                                                <em class="icon ni ni-download"></em> Export Data
+                                                            </a></li>
+                                                        <li><a class="dropdown-item" href="#" id="import_samples">
+                                                                <em class="icon ni ni-upload"></em> Import Samples
+                                                            </a></li>
+                                                        <li>
+                                                            <hr class="dropdown-divider">
+                                                        </li>
+                                                        <li><a class="dropdown-item" href="#" id="clear_form">
+                                                                <em class="icon ni ni-trash"></em> Clear Form
+                                                            </a></li>
+                                                    </ul>
+                                                </div>
                                             </div>
                                         </div>
+
+                                        <!-- Stats -->
+                                        <div class="stats-section mt-4">
+                                            <div class="card card-bordered">
+                                                <div class="card-inner">
+                                                    <h6 class="card-title">Today's Stats</h6>
+                                                    <div class="row g-3">
+                                                        <div class="col-6">
+                                                            <div class="stats-count">
+                                                                <span class="amount" id="today_samples">-</span>
+                                                                <span class="sub-text">Samples</span>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-6">
+                                                            <div class="stats-count">
+                                                                <span class="amount" id="pending_tests">-</span>
+                                                                <span class="sub-text">Pending</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
                                     </div>
                                 </div>
                             </div>
+
                         </div>
                     </div><!-- .nk-block -->
                 </div><!-- .components-preview -->
@@ -685,6 +800,192 @@
         </div>
     </div>
 
+    {{-- model to take image --}}
+    <div class="modal fade" id="cameraModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Capture Sample Image</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <video id="video" width="480" height="360" autoplay playsinline
+                        style="border:1px solid #ccc; border-radius:8px;"></video>
+                    <canvas id="canvas" width="480" height="360"
+                        style="display:none; border:1px solid #ccc; border-radius:8px;"></canvas>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" id="captureBtn" class="btn btn-primary">📸 Capture</button>
+                    <button type="button" id="retakeBtn" class="btn btn-warning" style="display:none;">🔄
+                        Retake</button>
+                    <button type="button" id="saveImageBtn" class="btn btn-success" style="display:none;"
+                        data-bs-dismiss="modal">✅ Use Image</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Address Modal -->
+    <div class="modal fade" id="addAddressModal" tabindex="-1" aria-labelledby="addAddressModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <form id="addAddressForm">
+                    @csrf
+                    <input type="hidden" name="txt_loc_customer_id" id="modal_customer_id">
+                    <input type="hidden" name="type" id="modal_type">
+
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="addAddressModalLabel">Add New Address</h5>
+                        <!-- Bootstrap 5 close button -->
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+
+                    <div class="modal-body row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Contact Person</label>
+                                <input type="text" class="form-control" name="txt_loc_contact_person" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Email</label>
+                                <input type="email" class="form-control" name="txt_loc_email">
+                            </div>
+                            <div class="form-group">
+                                <label>Phone</label>
+                                <input type="text" class="form-control" name="txt_loc_phone">
+                            </div>
+                            <div class="form-group">
+                                <label>Pincode</label>
+                                <input type="text" class="form-control" name="txt_loc_pincode">
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>State</label>
+                                <select class="form-control" name="txt_loc_state_id" id="modal_state_id" required>
+                                    <option value="">Select State</option>
+                                    @foreach ($states as $state)
+                                        <option value="{{ $state->m01_state_id }}">{{ $state->m01_name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label>District</label>
+                                <select class="form-control" name="txt_loc_district_id" id="modal_district_id" required>
+                                    <option value="">Select District</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Full Address</label>
+                                <textarea class="form-control" name="txt_loc_address" rows="3" required></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <!-- Bootstrap 5 dismiss -->
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save Address</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+
+    <style>
+        /* Enhanced Sidebar Styles */
+        .search-result-items {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .search-result-item {
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .search-result-item:hover {
+            background-color: #f8f9fa;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .search-result-item.selected {
+            background-color: #e3f2fd;
+            border-color: #2196f3;
+        }
+
+        .result-meta {
+            font-size: 0.75rem;
+            color: #6c757d;
+        }
+
+        .result-actions {
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .search-result-item:hover .result-actions {
+            opacity: 1;
+        }
+
+        .recent-records .list-group-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .stats-count .amount {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #364a63;
+        }
+
+        .stats-count .sub-text {
+            font-size: 0.75rem;
+            color: #8094ae;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .quick-actions .btn:hover {
+            transform: translateY(-1px);
+        }
+
+        .badge-priority {
+            font-size: 0.65rem;
+        }
+
+        .badge-urgent {
+            background-color: #ff6b6b;
+        }
+
+        .badge-normal {
+            background-color: #51cf66;
+        }
+
+        /* Loading animation */
+        @keyframes pulse {
+            0% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+
+            100% {
+                opacity: 1;
+            }
+        }
+
+        .loading-pulse {
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+    </style>
     <style>
         /* Reusable dropdown style */
         .custom-dropdown {
@@ -725,6 +1026,31 @@
     <script>
         $(document).ready(function() {
             console.log('Document ready - initializing form...');
+            // get districts while adding address on the basis of selected state
+            $('#modal_state_id').on('change', function() {
+                let stateId = $(this).val();
+                let districtSelect = $('#modal_district_id');
+                fetchDistricts(stateId, districtSelect);
+            });
+
+            // Svas Address
+            $('#addAddressForm').on('submit', function(e) {
+                e.preventDefault();
+                $.ajax({
+                    url: "{{ route('create_customer_location') }}",
+                    type: "POST",
+                    data: $(this).serialize(),
+                    success: function(response) {
+                        $('#addAddressModal').modal('hide');
+                        toastr.success("Address added successfully!");
+                        location.reload();
+                    },
+                    error: function(xhr) {
+                        toastr.error("Failed to save address");
+                    }
+                });
+            });
+
 
             /** =========================
              *  GLOBAL VARIABLES
@@ -1095,34 +1421,55 @@
                 const CUSTOMER_URL = '{{ route('search_customer') }}';
                 let $customerDropdown = createDropdown('customer-dropdown');
 
+                // Map each input to both DOM targets and a logical "type"
                 const CUSTOMER_MAPPING = {
                     '#txt_customer_name': {
+                        type: 'customer',
                         address: '#party-address',
                         contact: '#party-contact-person',
                         phone: '#party-phone',
-                        email: '#party-email'
+                        email: '#party-email',
+                        hiddenCustomer: '#selected_customer_id',
+                        hiddenAddress: '#selected_customer_address_id',
                     },
                     '#txt_buyer_name': {
+                        type: 'buyer',
                         address: '#buyer-address',
                         contact: '#buyer-contact-person',
                         phone: '#buyer-phone',
-                        email: '#buyer-email'
+                        email: '#buyer-email',
+                        hiddenCustomer: '#selected_buyer_id',
+                        hiddenAddress: '#selected_buyer_address_id',
                     },
                     '#txt_third_party': {
+                        type: 'third',
                         address: '#third-address',
                         contact: '#third-contact-person',
                         phone: '#third-phone',
-                        email: '#third-email'
+                        email: '#third-email',
+                        hiddenCustomer: '#selected_third_party_id',
+                        hiddenAddress: '#selected_third_party_address_id',
                     },
                     '#txt_cha': {
+                        type: 'cha',
                         address: '#cha-address',
                         contact: '#cha-contact-person',
                         phone: '#cha-phone',
-                        email: '#cha-email'
+                        email: '#cha-email',
+                        hiddenCustomer: '#selected_cha_id',
+                        hiddenAddress: '#selected_cha_address_id',
                     }
                 };
 
-                // Customer search with delegation
+                // --- Delegated click for ALL "+ Add" buttons (single handler) ---
+                $(document).off('click.addAddress').on('click.addAddress', '.add-address-btn', function() {
+                    const type = $(this).data('type'); // customer/buyer/third/cha
+                    const customerId = $(this).data('customerId'); // set in fillPartyDetails
+                    if (!customerId) return; // no customer picked yet
+                    openAddAddressModal(customerId, type);
+                });
+
+                // --- Customer search with delegation (unchanged) ---
                 $(document).off('input.customer').on('input.customer', CUSTOMER_INPUTS.join(','), function() {
                     const query = $(this).val().trim();
                     customerActiveInput = $(this);
@@ -1159,19 +1506,29 @@
                 $(document).off('click.customer').on('click.customer', '#customer-dropdown .custom-dropdown-item',
                     function() {
                         const customer = $(this).data('customer');
-                        if (customer && customerActiveInput) {
-                            customerActiveInput.val(customer.name);
-                            const mapping = CUSTOMER_MAPPING['#' + customerActiveInput.attr('id')];
-                            if (mapping) fillPartyDetails(mapping, customer);
-                            $customerDropdown.hide().empty();
-                        }
+                        if (!customer || !customerActiveInput) return;
+
+                        // Put chosen name into the correct text input
+                        customerActiveInput.val(customer.name);
+
+                        // Work out mapping + type for this input
+                        const inputSelector = '#' + customerActiveInput.attr('id');
+                        const mapping = CUSTOMER_MAPPING[inputSelector];
+                        if (mapping) fillPartyDetails(mapping, customer, mapping.type);
+
+                        $customerDropdown.hide().empty();
                     });
 
-                function fillPartyDetails(mapping, customer) {
-                    const $addressSelect = $('<select class="form-select form-select-md"></select>');
-                    let allAddresses = [];
+                function fillPartyDetails(mapping, customer, type) {
+                    const $addressSelect = $(mapping.address); // existing <select>
+                    const $addBtn = $(`.add-address-btn[data-type="${type}"]`); // correct "+ Add" button
 
-                    // Add default address with special identifier
+                    // reset UI
+                    $addressSelect.empty().append('<option value="">Loading addresses...</option>');
+                    $addBtn.prop('disabled', true).removeData('customerId');
+
+                    // build address list
+                    let allAddresses = [];
                     if (customer.default_address) {
                         allAddresses.push({
                             ...customer.default_address,
@@ -1179,36 +1536,46 @@
                             isDefault: true
                         });
                     }
-
-                    // Add other addresses
                     if (customer.other_addresses?.length) {
-                        allAddresses = allAddresses.concat(customer.other_addresses.map(addr => ({
-                            ...addr,
-                            isDefault: false
-                        })));
+                        allAddresses = allAddresses.concat(
+                            customer.other_addresses.map(addr => ({
+                                ...addr,
+                                isDefault: false
+                            }))
+                        );
                     }
 
+                    // populate select
+                    $addressSelect.empty();
                     if (allAddresses.length > 0) {
-                        allAddresses.forEach((addr, index) => {
+                        allAddresses.forEach(addr => {
                             $('<option>')
-                                .val(index)
+                                .val(addr.id)
                                 .text(addr.address || 'No address')
                                 .data('contact_person', addr.contact_person)
                                 .data('phone', addr.phone)
                                 .data('email', addr.email)
-                                .data('address_id', addr.id)
-                                .data('is_default', addr.isDefault)
                                 .appendTo($addressSelect);
                         });
+                        // trigger default (first) selection details
                         updateContactDetails($addressSelect.find('option:selected'), mapping, customer.id);
                     } else {
-                        $addressSelect.append($('<option>').text('No addresses').val(''));
+                        $addressSelect.append('<option value="">No addresses found</option>');
+                        updateContactDetails($('<option>'), mapping, customer.id);
                     }
 
-                    $(mapping.address).empty().append($addressSelect);
-                    $addressSelect.on('change', function() {
+                    // enable "+ Add" button for THIS party and store the selected customerId on it
+                    if (customer.id) {
+                        $addBtn.prop('disabled', false).data('customerId', customer.id);
+                    }
+
+                    // on change, update details + hidden IDs
+                    $addressSelect.off('change.party').on('change.party', function() {
                         updateContactDetails($(this).find('option:selected'), mapping, customer.id);
                     });
+
+                    // also set hidden customer id immediately
+                    $(mapping.hiddenCustomer).val(customer.id);
                 }
 
                 function updateContactDetails($option, mapping, customerId) {
@@ -1216,24 +1583,21 @@
                     $(mapping.phone).text($option.data('phone') || 'N/A');
                     $(mapping.email).text($option.data('email') || 'N/A');
 
-                    // Store customer and address IDs based on input type
-                    const inputId = Object.keys(CUSTOMER_MAPPING).find(key => CUSTOMER_MAPPING[key] === mapping);
+                    // store selected address id
+                    $(mapping.hiddenAddress).val($option.val() || '');
+                    // customer id is already set in fillPartyDetails, but we can ensure:
+                    $(mapping.hiddenCustomer).val(customerId || '');
+                }
 
-                    if (inputId === '#txt_customer_name') {
-                        $('#selected_customer_id').val(customerId);
-                        $('#selected_customer_address_id').val($option.data('address_id'));
-                    } else if (inputId === '#txt_buyer_name') {
-                        $('#selected_buyer_id').val(customerId);
-                        $('#selected_buyer_address_id').val($option.data('address_id'));
-                    } else if (inputId === '#txt_third_party') {
-                        $('#selected_third_party_id').val(customerId);
-                        $('#selected_third_party_address_id').val($option.data('address_id'));
-                    } else if (inputId === '#txt_cha') {
-                        $('#selected_cha_id').val(customerId);
-                        $('#selected_cha_address_id').val($option.data('address_id'));
-                    }
+                // Example stub for modal call (replace with your modal logic)
+                function openAddAddressModal(customerId, type) {
+                    $('#modal_customer_id').val(customerId);
+                    $('#modal_type').val(type);
+                    $('#addAddressModal').modal('show');
                 }
             }
+
+
 
             /** =========================
              *  TEST SEARCH EVENTS (EXISTING - WORKING)
@@ -1443,5 +1807,699 @@
 
             console.log('All events initialized successfully');
         });
+    </script>
+
+    <script>
+        $(document).ready(function() {
+            initializeDynamicSidebar();
+        });
+
+        function initializeDynamicSidebar() {
+            console.log('Initializing dynamic sidebar...');
+
+            let searchTimeout;
+            const SEARCH_DELAY = 500;
+
+            // Global search input
+            $('#global_search_input').on('input', function() {
+                const query = $(this).val().trim();
+                clearTimeout(searchTimeout);
+
+                if (query.length < 2) {
+                    resetSearchResults();
+                    return;
+                }
+
+                searchTimeout = setTimeout(() => {
+                    performGlobalSearch(query);
+                }, SEARCH_DELAY);
+            });
+
+            // Search button
+            $('#global_search_btn').on('click', function(e) {
+                e.preventDefault();
+                const query = $('#global_search_input').val().trim();
+                if (query.length >= 2) {
+                    performGlobalSearch(query);
+                }
+            });
+
+            // Filters
+            $('#search_type_filter, #status_filter, #date_from, #date_to').on('change', function() {
+                const query = $('#global_search_input').val().trim();
+                if (query.length >= 2) {
+                    performGlobalSearch(query);
+                }
+            });
+
+            // Load initial data
+            loadRecentRecords();
+            loadTodayStats();
+
+            initializeQuickActions();
+
+            // Auto refresh every 30s
+            setInterval(function() {
+                loadRecentRecords();
+                loadTodayStats();
+            }, 30000);
+        }
+
+        // ADD THESE 3 MISSING FUNCTIONS TO YOUR SCRIPT
+
+        // --------------------
+        // GLOBAL SEARCH (Live)
+        // --------------------
+        function performGlobalSearch(query) {
+            console.log('Performing global search for:', query);
+
+            const searchType = $('#search_type_filter').val();
+            const status = $('#status_filter').val();
+            const dateFrom = $('#date_from').val();
+            const dateTo = $('#date_to').val();
+
+            showSearchLoading(true);
+
+            $.ajax({
+                url: '{{ route('global_search') }}',
+                type: 'GET',
+                data: {
+                    query: query,
+                    type: searchType,
+                    status: status,
+                    date_from: dateFrom,
+                    date_to: dateTo
+                },
+                success: function(response) {
+                    displaySearchResults(response);
+                },
+                error: function(xhr, status, error) {
+                    console.error('Search error:', error);
+                    resetSearchResults();
+                    showNotification('Error fetching search results', 'danger');
+                },
+                complete: function() {
+                    showSearchLoading(false);
+                }
+            });
+        }
+
+        // --------------------
+        // RECENT RECORDS (Live)
+        // --------------------
+        function loadRecentRecords() {
+            console.log('Loading recent records...');
+
+            const $container = $('#recent_records_list');
+            $container.html(`
+        <div class="list-group-item px-0" id="recent_loading">
+            <div class="d-flex align-items-center">
+                <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                <span>Loading recent records...</span>
+            </div>
+        </div>
+    `);
+
+            $.ajax({
+                url: '{{ route('recent_records') }}',
+                type: 'GET',
+                success: function(records) {
+                    displayRecentRecords(records);
+                },
+                error: function() {
+                    $container.html(`
+                <div class="list-group-item px-0 text-center text-muted">
+                    <em class="icon ni ni-alert-circle"></em>
+                    <br><small>Error loading recent records</small>
+                </div>
+            `);
+                }
+            });
+        }
+
+        // --------------------
+        // TODAY'S STATS (Live)
+        // --------------------
+        function loadTodayStats() {
+            console.log('Loading today stats...');
+
+            $.ajax({
+                url: '{{ route('today_stats') }}',
+                type: 'GET',
+                success: function(stats) {
+                    $('#today_samples').text(stats.today_samples || 0);
+                    $('#pending_tests').text(stats.pending_tests || 0);
+                },
+                error: function() {
+                    $('#today_samples').text('-');
+                    $('#pending_tests').text('-');
+                }
+            });
+        }
+
+        // --------------------
+        // DISPLAY FUNCTIONS
+        // --------------------
+        function displaySearchResults(results) {
+            const $container = $('#dynamic_search_results');
+            const $placeholder = $('#search_placeholder');
+            const $noResults = $('#no_results_message');
+
+            $placeholder.hide();
+            $noResults.hide();
+
+            if (!results || results.length === 0) {
+                $container.hide();
+                $noResults.show();
+                return;
+            }
+
+            $container.empty().show();
+
+            results.forEach(function(result) {
+                const resultItem = createSearchResultItem(result);
+                $container.append(resultItem);
+            });
+        }
+
+        function createSearchResultItem(result) {
+            const statusBadge = getStatusBadge(result.status, result.type);
+            const priorityBadge = result.priority ? getPriorityBadge(result.priority) : '';
+            const dateText = result.date ? `<small class="text-muted">${result.date}</small>` : '';
+            const customerText = result.customer ? `<small class="text-info">Customer: ${result.customer}</small>` : '';
+
+            return $(`
+        <div class="search-result-item border rounded p-3 mb-2" data-type="${result.type}" data-id="${result.id}">
+            <div class="d-flex justify-content-between align-items-start">
+                <div class="flex-grow-1">
+                    <h6 class="mb-1">
+                        <span class="badge badge-sm badge-outline-secondary me-2">${result.type}</span>
+                        ${result.title}
+                        ${priorityBadge}
+                    </h6>
+                    <p class="text-muted mb-1 small">${result.subtitle || ''}</p>
+                    <div class="d-flex gap-2 flex-wrap">
+                        ${statusBadge}
+                        ${customerText}
+                        ${dateText}
+                    </div>
+                </div>
+                <div class="result-actions">
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-outline-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            <em class="icon ni ni-more-v"></em>
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item use-result" href="#" data-action="use">
+                                <em class="icon ni ni-check"></em> Use This
+                            </a></li>
+                            <li><a class="dropdown-item copy-result" href="#" data-action="copy">
+                                <em class="icon ni ni-copy"></em> Copy Details
+                            </a></li>
+                            <li><a class="dropdown-item view-result" href="#" data-action="view">
+                                <em class="icon ni ni-eye"></em> View Details
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item add-favorite" href="#" data-action="favorite">
+                                <em class="icon ni ni-star"></em> Add to Favorites
+                            </a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `);
+        }
+
+        function displayRecentRecords(records) {
+            const $container = $('#recent_records_list');
+
+            if (!records || records.length === 0) {
+                $container.html(`
+            <div class="list-group-item px-0 text-center text-muted">
+                <em class="icon ni ni-inbox"></em>
+                <br><small>No recent records</small>
+            </div>
+        `);
+                return;
+            }
+
+            $container.empty();
+
+            records.forEach(function(record) {
+                const item = $(`
+            <div class="list-group-item list-group-item-action px-0 border-0 recent-record-item" data-type="${record.type.toLowerCase()}" data-id="${record.id}">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div class="flex-grow-1">
+                        <span class="badge badge-sm badge-outline-primary me-2">${record.type}</span>
+                        <div class="fw-medium small">${record.title}</div>
+                        <small class="text-muted">${record.date}</small>
+                    </div>
+                    <button class="btn btn-sm btn-outline-light use-recent" title="Use This Record">
+                        <em class="icon ni ni-arrow-right"></em>
+                    </button>
+                </div>
+            </div>
+        `);
+                $container.append(item);
+            });
+        }
+
+        // --------------------
+        // UTILITY FUNCTIONS
+        // --------------------
+        function getStatusBadge(status, type) {
+            const statusMap = {
+                'active': 'success',
+                'completed': 'success',
+                'pending': 'warning',
+                'cancelled': 'danger',
+                'in_progress': 'info'
+            };
+
+            const badgeClass = statusMap[status] || 'secondary';
+            return `<span class="badge badge-sm badge-${badgeClass}">${status || 'Unknown'}</span>`;
+        }
+
+        function getPriorityBadge(priority) {
+            if (priority === 'urgent') {
+                return `<span class="badge badge-sm badge-urgent ms-2">URGENT</span>`;
+            }
+            return '';
+        }
+
+        function showSearchLoading(show) {
+            const $button = $('#global_search_btn');
+            const $text = $('#search-btn-text');
+            const $spinner = $('#search-loading');
+
+            if (show) {
+                $text.addClass('d-none');
+                $spinner.removeClass('d-none');
+                $button.prop('disabled', true);
+            } else {
+                $text.removeClass('d-none');
+                $spinner.addClass('d-none');
+                $button.prop('disabled', false);
+            }
+        }
+
+        function resetSearchResults() {
+            $('#search_placeholder').show();
+            $('#dynamic_search_results').hide().empty();
+            $('#no_results_message').hide();
+        }
+
+
+        function showNotification(message, type = 'info') {
+            // Clear any existing toasts first
+            if (typeof toastr !== 'undefined') {
+                toastr.clear();
+            }
+
+            // Map types to NioApp.Toast compatible types
+            const typeMap = {
+                'info': 'info',
+                'success': 'success',
+                'warning': 'warning',
+                'danger': 'error', // NioApp uses 'error' instead of 'danger'
+                'error': 'error'
+            };
+
+            const toastType = typeMap[type] || 'info';
+
+            // Use your existing NioApp.Toast system
+            if (typeof NioApp !== 'undefined' && NioApp.Toast) {
+                NioApp.Toast(message, toastType, {
+                    position: 'top-right'
+                });
+            } else {
+                // Fallback to console if NioApp is not available
+                console.log(`[${toastType.toUpperCase()}] ${message}`);
+            }
+        }
+
+        // --------------------
+        // EVENT HANDLERS
+        // --------------------
+        function initializeQuickActions() {
+            // Use result from search
+            $(document).on('click', '.use-result', function(e) {
+                e.preventDefault();
+                const $item = $(this).closest('.search-result-item');
+                const type = $item.data('type');
+                const id = $item.data('id');
+
+                useSearchResult(type, id);
+            });
+
+            // Copy result details
+            $(document).on('click', '.copy-result', function(e) {
+                e.preventDefault();
+                const $item = $(this).closest('.search-result-item');
+                const type = $item.data('type');
+                const id = $item.data('id');
+
+                copyResultDetails(type, id);
+            });
+
+            // View result details
+            $(document).on('click', '.view-result', function(e) {
+                e.preventDefault();
+                const $item = $(this).closest('.search-result-item');
+                const type = $item.data('type');
+                const id = $item.data('id');
+
+                viewResultDetails(type, id);
+            });
+
+
+            // Use recent record
+            $(document).on('click', '.use-recent', function(e) {
+                e.preventDefault();
+                const $item = $(this).closest('.recent-record-item');
+                const type = $item.data('type');
+                const id = $item.data('id');
+
+                useSearchResult(type, id);
+            });
+
+            // Quick action buttons
+            $('#copy_last_sample').on('click', function(e) {
+                e.preventDefault();
+                copyLastSample();
+            });
+
+            $('#add_new_customer').on('click', function(e) {
+                e.preventDefault();
+                // Implement customer modal or redirect
+                alert('Add new customer functionality - implement customer modal');
+            });
+
+            $('#schedule_test').on('click', function(e) {
+                e.preventDefault();
+                // Implement test scheduling
+                alert('Schedule test functionality - implement scheduling modal');
+            });
+
+            $('#export_data').on('click', function(e) {
+                e.preventDefault();
+                exportData();
+            });
+
+            $('#import_samples').on('click', function(e) {
+                e.preventDefault();
+                // Implement import modal
+                alert('Import samples functionality - implement import modal');
+            });
+
+            $('#clear_form').on('click', function(e) {
+                e.preventDefault();
+                if (confirm('Are you sure you want to clear the form?')) {
+                    clearForm();
+                }
+            });
+
+            $('#refresh_recent').on('click', function(e) {
+                e.preventDefault();
+                loadRecentRecords();
+                loadTodayStats();
+                showNotification('Data refreshed successfully', 'success');
+            });
+        }
+
+        // --------------------
+        // ACTION FUNCTIONS
+        // --------------------
+        function useSearchResult(type, id) {
+            console.log('Using result:', type, id);
+
+            switch (type.toLowerCase()) {
+                case 'customer':
+                    loadCustomerIntoForm(id);
+                    break;
+                case 'sample':
+                    copySampleData(id);
+                    break;
+                case 'test':
+                    addTestToForm(id);
+                    break;
+                case 'contract':
+                    loadContractIntoForm(id);
+                    break;
+                default:
+                    showNotification(`Using ${type} is not implemented yet`, 'warning');
+            }
+        }
+
+        function copyResultDetails(type, id) {
+            console.log('Copying details for:', type, id);
+
+            if (type === 'sample') {
+                copySampleData(id);
+            } else {
+                showNotification(`Copy details for ${type} is not implemented yet`, 'warning');
+            }
+        }
+
+        function viewResultDetails(type, id) {
+            console.log('Viewing details for:', type, id);
+            // Implement detail view modal
+            showNotification(`View details for ${type} is not implemented yet`, 'warning');
+        }
+
+        function loadCustomerIntoForm(customerId) {
+            // This would load customer data into the main form
+            console.log('Loading customer:', customerId);
+            showNotification('Customer loading functionality needs to be implemented', 'warning');
+        }
+
+        function copySampleData(sampleId) {
+            $.ajax({
+                url: '{{ route('get_sample_details') }}',
+                type: 'GET',
+                data: {
+                    sample_id: sampleId
+                },
+                success: function(sampleData) {
+                    console.log('Sample data:', sampleData);
+
+                    // Populate form fields
+                    if (sampleData.customer) {
+                        $('#txt_customer_name').val(sampleData.customer.name);
+                        $('#selected_customer_id').val(sampleData.customer.id);
+                    }
+
+                    $('#txt_reference').val(sampleData.reference_no || '');
+                    $('#txt_ref_date').val(sampleData.reference_date || '');
+                    $('#txt_description').val(sampleData.description || '');
+
+                    if (sampleData.sample_type_id) {
+                        $('#dd_sample_type').val(sampleData.sample_type_id);
+                    }
+
+                    if (sampleData.priority) {
+                        $('#dd_priority_type').val(sampleData.priority);
+                    }
+
+                    if (sampleData.test_type) {
+                        $('#dd_test_type').val(sampleData.test_type).trigger('change');
+                    }
+
+                    // Add tests to table
+                    if (sampleData.tests && sampleData.tests.length > 0) {
+                        setTimeout(() => {
+                            sampleData.tests.forEach(test => {
+                                if (!selectedTestIds.includes(test.id)) {
+                                    addTestToTable({
+                                        id: test.id,
+                                        test_name: test.name,
+                                        name: test.name,
+                                        charge: test.charge,
+                                        remark: test.remark,
+                                        standard: {
+                                            standard_id: test.standard_id,
+                                            name: test.standard_method
+                                        }
+                                    });
+                                    selectedTestIds.push(test.id);
+                                }
+                            });
+                            calculateCharges();
+                        }, 500);
+                    }
+
+                    showNotification('Sample data copied successfully', 'success');
+                },
+                error: function() {
+                    showNotification('Error copying sample data', 'danger');
+                }
+            });
+        }
+
+        function addTestToForm(testId) {
+            $.ajax({
+                url: '{{ route('get_test_details') }}',
+                type: 'GET',
+                data: {
+                    test_id: testId
+                },
+                success: function(testData) {
+                    if (!selectedTestIds.includes(testData.id)) {
+                        addTestToTable(testData);
+                        selectedTestIds.push(testData.id);
+                        showNotification('Test added successfully', 'success');
+                    } else {
+                        showNotification('Test is already added', 'warning');
+                    }
+                },
+                error: function() {
+                    showNotification('Error adding test', 'danger');
+                }
+            });
+        }
+
+        function loadContractIntoForm(contractId) {
+            // Set contract type and select the contract
+            $('#dd_test_type').val('CONTRACT').trigger('change');
+
+            setTimeout(() => {
+                $('#dd_contracts').val(contractId).trigger('change');
+                showNotification('Contract loaded successfully', 'success');
+            }, 1000);
+        }
+
+        function copyLastSample() {
+            $.ajax({
+                url: '{{ route('recent_records') }}',
+                type: 'GET',
+                success: function(records) {
+                    const lastSample = records.find(r => r.type === 'Sample');
+                    if (lastSample) {
+                        copySampleData(lastSample.id);
+                    } else {
+                        showNotification('No recent samples found', 'warning');
+                    }
+                },
+                error: function() {
+                    showNotification('Error loading recent samples', 'danger');
+                }
+            });
+        }
+
+        function exportData() {
+            // Implement data export functionality
+            const formData = {
+                customer: $('#txt_customer_name').val(),
+                reference: $('#txt_reference').val(),
+                description: $('#txt_description').val(),
+                tests: selectedTestIds
+            };
+
+            console.log('Export data:', formData);
+            showNotification('Export functionality needs to be implemented', 'warning');
+        }
+
+        function clearForm() {
+            // Clear all form fields
+            $('form')[0].reset();
+            $('.table.table-tranx tbody').empty();
+            selectedTestIds = [];
+
+            // Clear customer details
+            $('#party-address, #buyer-address, #third-address, #cha-address').empty();
+            $('#party-contact-person, #party-phone, #party-email').empty();
+            $('#buyer-contact-person, #buyer-phone, #buyer-email').empty();
+            $('#third-contact-person, #third-phone, #third-email').empty();
+            $('#cha-contact-person, #cha-phone, #cha-email').empty();
+
+            // Clear hidden fields
+            $('input[type="hidden"]').val('');
+
+            // Reset charges
+            calculateCharges();
+
+            showNotification('Form cleared successfully', 'success');
+        }
+    </script>
+    <script>
+        $(document).ready(function() {
+            let video = document.getElementById("video");
+            let canvas = document.getElementById("canvas");
+            let context = canvas.getContext("2d");
+            let captureBtn = $("#captureBtn");
+            let retakeBtn = $("#retakeBtn");
+            let saveImageBtn = $("#saveImageBtn");
+            let inputBase64 = $("#sample_image_base64");
+            let streamRef = null;
+
+            // When modal opens → start camera
+            $('#cameraModal').on('shown.bs.modal', function() {
+                navigator.mediaDevices.getUserMedia({
+                        video: {
+                            facingMode: "environment"
+                        }
+                    })
+                    .then(function(stream) {
+                        streamRef = stream;
+                        video.srcObject = stream;
+                    })
+                    .catch(function(err) {
+                        alert("Camera not available: " + err.message);
+                    });
+            });
+
+            // When modal closes → stop camera
+            $('#cameraModal').on('hidden.bs.modal', function() {
+                if (streamRef) {
+                    streamRef.getTracks().forEach(track => track.stop());
+                }
+                $(canvas).hide();
+                $(video).show();
+                captureBtn.show();
+                retakeBtn.hide();
+                saveImageBtn.hide();
+            });
+
+            // Capture
+            captureBtn.on("click", function() {
+                context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                $(canvas).show();
+                $(video).hide();
+                captureBtn.hide();
+                retakeBtn.show();
+                saveImageBtn.show();
+            });
+
+            // Retake
+            retakeBtn.on("click", function() {
+                $(canvas).hide();
+                $(video).show();
+                captureBtn.show();
+                retakeBtn.hide();
+                saveImageBtn.hide();
+            });
+
+            // Save image (to hidden input + show thumbnail)
+            saveImageBtn.on("click", function() {
+                let base64Image = canvas.toDataURL("image/png");
+                inputBase64.val(base64Image);
+
+                // Show thumbnail preview under button
+                $("#previewThumbnail").html(
+                    `<img src="${base64Image}" width="150" class="img-thumbnail mt-2">`
+                );
+            });
+        });
+    </script>
+    <script>
+        function openCustomerPopup(el) {
+            let url = el.dataset.url;
+            window.open(
+                url,
+                "CustomerPopup",
+                "width=900,height=600"
+            );
+        }
     </script>
 @endsection

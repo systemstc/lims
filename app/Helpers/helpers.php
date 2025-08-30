@@ -25,54 +25,46 @@ if (!function_exists('getParties')) {
             'thirdPartyLocation.district',
             'cha',
             'chaLocation.state',
-            'chaLocation.district'
+            'chaLocation.district',
         ])->find($sampleId);
 
         if (!$sample) {
             return [];
         }
 
+        $formatParty = function ($party, $location, $locationId) {
+            return [
+                'name'           => $party?->m07_name,
+                'contact_person' => $locationId == 0 ? $party?->m07_contact_person : $location?->m08_contact_person,
+                'email'          => $locationId == 0 ? $party?->m07_email : $location?->m08_email,
+                'phone'          => $locationId == 0 ? $party?->m07_phone : $location?->m08_phone,
+                'gst'            => $locationId == 0 ? $party?->m07_gst : $location?->m08_gst,
+                'address'        => $locationId == 0 ? $party?->m07_address : $location?->m08_address,
+                'state'          => $locationId == 0 ? $party?->state?->m01_name : $location?->state?->m01_name,
+                'district'       => $locationId == 0 ? $party?->district?->m02_name : $location?->district?->m02_name,
+            ];
+        };
+
         return [
-            'customer' => [
-                'name'     => $sample->customer?->m07_name,
-                'contact_person' => $sample->m08_customer_location_id == 0 ? $sample->customer?->m07_contact_person : $sample->customerLocation?->m08_contact_person,
-                'email' => $sample->m08_customer_location_id == 0 ? $sample->customer?->m07_email : $sample->customerLocation?->m08_email,
-                'phone' => $sample->m08_customer_location_id == 0 ? $sample->customer?->m07_phone : $sample->customerLocation?->m08_phone,
-                'gst' => $sample->m08_customer_location_id == 0 ? $sample->customer?->m07_gst : $sample->customerLocation?->m08_gst,
-                'address'  => $sample->m08_customer_location_id == 0 ? $sample->customer?->m07_address : $sample->customerLocation?->m08_address,
-                'state'    => $sample->m08_customer_location_id == 0 ? $sample->customer?->state?->m01_name : $sample->customerLocation?->state?->m01_name,
-                'district' => $sample->m08_customer_location_id == 0 ? $sample->customer?->district?->m02_name : $sample->customerLocation?->district?->m02_name,
-            ],
-            'buyer' => [
-                'name'     => $sample->buyer?->m07_name,
-                'contact_person'  => $sample->m08_buyer_location_id == 0 ? $sample->buyer?->m07_contact_person : $sample->buyerLocation?->m08_contact_person,
-                'email'  => $sample->m08_buyer_location_id == 0 ? $sample->buyer?->m07_email : $sample->buyerLocation?->m08_email,
-                'phone'  => $sample->m08_buyer_location_id == 0 ? $sample->buyer?->m07_phone : $sample->buyerLocation?->m08_phone,
-                'gst'  => $sample->m08_buyer_location_id == 0 ? $sample->buyer?->m07_gst : $sample->buyerLocation?->m08_gst,
-                'address'  => $sample->m08_buyer_location_id == 0 ? $sample->buyer?->m07_address : $sample->buyerLocation?->m08_address,
-                'state'    => $sample->m08_buyer_location_id == 0 ? $sample->buyer?->state?->m01_name : $sample->buyerLocation?->state?->m01_name,
-                'district' => $sample->m08_buyer_location_id == 0 ? $sample->buyer?->district?->m02_name : $sample->buyerLocation?->district?->m02_name,
-            ],
-            'third_party' => [
-                'name'     => $sample->thirdParty?->m07_name,
-                'contact_person'  => $sample->m08_third_party_location_id == 0 ? $sample->thirdParty?->m07_contact_person : $sample->thirdPartyLocation?->m08_contact_person,
-                'email'  => $sample->m08_third_party_location_id == 0 ? $sample->thirdParty?->m07_email : $sample->thirdPartyLocation?->m08_email,
-                'phone'  => $sample->m08_third_party_location_id == 0 ? $sample->thirdParty?->m07_phone : $sample->thirdPartyLocation?->m08_phone,
-                'gst'  => $sample->m08_third_party_location_id == 0 ? $sample->thirdParty?->m07_gst : $sample->thirdPartyLocation?->m08_gst,
-                'address'  => $sample->m08_third_party_location_id == 0 ? $sample->thirdParty?->m07_address : $sample->thirdPartyLocation?->m08_address,
-                'state'    => $sample->m08_third_party_location_id == 0 ? $sample->thirdParty?->state?->m01_name : $sample->thirdPartyLocation?->state?->m01_name,
-                'district' => $sample->m08_third_party_location_id == 0 ? $sample->thirdParty?->district?->m02_name : $sample->thirdPartyLocation?->district?->m02_name,
-            ],
-            'cha' => [
-                'name'     => $sample->cha?->m07_name,
-                'contact_person'  => $sample->m08_cha_location_id == 0 ? $sample->cha?->m07_contact_person : $sample->chaLocation?->m08_contact_person,
-                'email'  => $sample->m08_cha_location_id == 0 ? $sample->cha?->m07_email : $sample->chaLocation?->m08_email,
-                'phone'  => $sample->m08_cha_location_id == 0 ? $sample->cha?->m07_phone : $sample->chaLocation?->m08_phone,
-                'gst'  => $sample->m08_cha_location_id == 0 ? $sample->cha?->m07_gst : $sample->chaLocation?->m08_gst,
-                'address'  => $sample->m08_cha_location_id == 0 ? $sample->cha?->m07_address : $sample->chaLocation?->m08_address,
-                'state'    => $sample->m08_cha_location_id == 0 ? $sample->cha?->state?->m01_name : $sample->chaLocation?->state?->m01_name,
-                'district' => $sample->m08_cha_location_id == 0 ? $sample->cha?->district?->m02_name : $sample->chaLocation?->district?->m02_name,
-            ],
+            'customer'    => $formatParty($sample->customer, $sample->customerLocation, $sample->m08_customer_location_id),
+            'buyer'       => $formatParty($sample->buyer, $sample->buyerLocation, $sample->m08_buyer_location_id),
+            'third_party' => $formatParty($sample->thirdParty, $sample->thirdPartyLocation, $sample->m08_third_party_location_id),
+            'cha'         => $formatParty($sample->cha, $sample->chaLocation, $sample->m08_cha_location_id),
         ];
+    }
+}
+
+if (!function_exists('getNamesFromCsv')) {
+    function getNamesFromCsv(?string $csv, string $modelClass, string $idColumn, string $nameColumn = 'name'): array
+    {
+        if (!$csv) {
+            return [];
+        }
+
+        $ids = array_filter(explode(',', $csv));
+
+        return $modelClass::whereIn($idColumn, $ids)
+            ->pluck($nameColumn)
+            ->toArray();
     }
 }

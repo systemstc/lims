@@ -95,19 +95,19 @@
                         <div class="form-group col-md-6">
                             <label class="form-label" for="txt_name">Name</label>
                             <div class="form-control-wrap">
-                                <input type="text" class="form-control" name="txt_name" id="txt_name" required>
+                                <input type="text" class="form-control" name="txt_name" id="txt_name" autocomplete="off" required>
                             </div>
                         </div>
                         <div class="form-group col-md-6">
                             <label class="form-label" for="txt_email">Email</label>
                             <div class="form-control-wrap">
-                                <input type="text" class="form-control" name="txt_email" id="txt_email" required>
+                                <input type="text" class="form-control" name="txt_email" id="txt_email" autocomplete="off" required>
                             </div>
                         </div>
                         <div class="form-group col-md-6">
                             <label class="form-label" for="txt_phone">Phone Number</label>
                             <div class="form-control-wrap">
-                                <input type="text" class="form-control" name="txt_phone" id="txt_phone" required>
+                                <input type="text" class="form-control" name="txt_phone" id="txt_phone" autocomplete="off" required>
                             </div>
                         </div>
                     </div>
@@ -138,21 +138,21 @@
                             <label class="form-label" for="txt_edit_name">Name</label>
                             <div class="form-control-wrap">
                                 <input type="text" class="form-control" name="txt_edit_name" id="txt_edit_name"
-                                    required>
+                                    autocomplete="off" required>
                             </div>
                         </div>
                         <div class="form-group col-md-6">
                             <label class="form-label" for="txt_edit_email">Email</label>
                             <div class="form-control-wrap">
                                 <input type="text" class="form-control" name="txt_edit_email" id="txt_edit_email"
-                                    required>
+                                   autocomplete="off" required>
                             </div>
                         </div>
                         <div class="form-group col-md-6">
                             <label class="form-label" for="txt_edit_phone">Phone number</label>
                             <div class="form-control-wrap">
                                 <input type="text" class="form-control" name="txt_edit_phone" id="txt_edit_phone"
-                                    required>
+                                   autocomplete="off" required>
                             </div>
                         </div>
                     </div>

@@ -87,7 +87,7 @@ class AuthController extends Controller
                     // Session::flash('message', 'Logged In Successfully !');
                     // return to_route('emp_dashboard');
                 } else {
-                    $ro = Ro::where('m04_ro_id', $user->tr01_user_id)->first();
+                    $ro = Ro::where('tr01_user_id', $user->tr01_user_id)->first();
                     session([
                         'user_id'    => $ro->m04_ro_id,
                         'name'  => $ro->m04_name,

@@ -69,9 +69,8 @@
                                                     <input type="text" class="form-control" id="txt_name"
                                                         name="txt_name" value="{{ old('txt_name') }}"
                                                         placeholder="Enter Test Name" autocomplete="off" required>
-                                                    <small id="test-name-feedback" class="text-danger d-none mt-1">Test
-                                                        already exists!</small>
                                                 </div>
+                                                <span id="txt_name-msg" class="text-danger"></span>
                                                 @error('txt_name')
                                                     <span class="text-danger">{{ $message }}</span>
                                                 @enderror
@@ -588,13 +587,8 @@
             }
 
             // Test name existence check
-            $('#txt_name').on('keyup', function() {
-                const testName = $(this).val().trim();
-                if (testName.length >= 2) {
-                    checkTestExists(testName);
-                } else {
-                    $('#test-name-feedback').addClass('d-none');
-                }
+            $("#txt_name").on("input", function() {
+                validateField("m12_name", $(this).val(), "txt_name", 'Test');
             });
 
             // Standards search functionality
@@ -849,24 +843,6 @@
                 } else {
                     groupDropdown.empty().append('<option value="">-- Select Group --</option>');
                 }
-            }
-
-            function checkTestExists(testName) {
-                $.ajax({
-                    url: "{{ route('check_test_exists') }}",
-                    method: 'GET',
-                    data: {
-                        name: testName
-                    },
-                    success: function(response) {
-                        if (response.exists) {
-                            $('#test-name-feedback').removeClass('d-none').text(
-                                'This Test already exists!');
-                        } else {
-                            $('#test-name-feedback').addClass('d-none');
-                        }
-                    }
-                });
             }
 
             function handleSearch(type, query) {
@@ -1130,11 +1106,11 @@
                         <div class="primary-test-title">${group.primaryName}</div>
                         <div class="secondary-tests">
                             ${group.tests.map(test => `
-                                                    <span class="selected-item secondary-test" data-id="${test.id}" data-type="secondary_tests" data-primary-id="${test.primary_test_id}">
-                                                        ${test.name}
-                                                        <span class="remove-item" data-id="${test.id}" data-type="secondary_tests" data-primary-id="${test.primary_test_id}">×</span>
-                                                    </span>
-                                                `).join('')}
+                                                        <span class="selected-item secondary-test" data-id="${test.id}" data-type="secondary_tests" data-primary-id="${test.primary_test_id}">
+                                                            ${test.name}
+                                                            <span class="remove-item" data-id="${test.id}" data-type="secondary_tests" data-primary-id="${test.primary_test_id}">×</span>
+                                                        </span>
+                                                    `).join('')}
                         </div>
                     </div>
                 `;
@@ -1196,11 +1172,6 @@
                     success: function(response) {
                         if (response.success) {
                             console.log(response);
-                            // addSelectedItem('standards', {
-                            //     id: response.data.id,
-                            //     name: response.data.name,
-                            //     accredited: response.data.accredited
-                            // });
                             addSelectedItem('standards', {
                                 id: response.data.id,
                                 name: response.data.name,
