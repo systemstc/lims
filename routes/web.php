@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AllottmentController;
+use App\Http\Controllers\AnalystController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\CustomerSearchController;
@@ -10,6 +11,7 @@ use App\Http\Controllers\MeasurementController;
 use App\Http\Controllers\RegistrationController;
 use App\Http\Controllers\RoController;
 use App\Http\Controllers\SampleController;
+use App\Http\Controllers\TestResultController;
 use App\Http\Controllers\ValidationController;
 use App\Models\Customer;
 use App\Models\Employee;
@@ -169,17 +171,48 @@ Route::middleware(['check_permission'])->group(function () {
         ->name('print_sample_acknowledgement');
 
     // aLLOTTMENT 
-    // Main dashboard - pending allotments
-    Route::get('/pending-allotments', [AllottmentController::class, 'pendingAllotments'])->name('view_allottment');
+    Route::prefix('allotment')->group(function () {
+        // Dashboard - pending allotments list
+        Route::get('/dashboard', [AllottmentController::class, 'pendingAllotments'])->name('view_allottment');
 
-    // Individual allotment operations
-    Route::post('/create-allotment', [AllottmentController::class, 'createAllottment'])->name('create_allotment');
+        // Individual registration allotment management
+        Route::get('/manage/{registrationId}', [AllottmentController::class, 'viewAllottment'])->name('show_allotment');
+    });
 
-    // Reassignment
-    Route::post('/reassign', [AllottmentController::class, 'reassignTest'])->name('reassign');
+    // Analyst Ruotes
+    Route::get('analyst/dashboard', [AnalystController::class, 'viewAnalystDashboard'])->name('view_analyst_dashboard');
+    Route::get('analyst/test/{id}', [AnalystController::class, 'viewTest'])->name('create_analysis');
+    Route::get('analyst/update/{id}', [AnalystController::class, 'updateStatus'])->name('update_analysis');
 
-    // History for specific test
-    Route::get('/history/{testId}', [AllottmentController::class, 'getAllotmentHistory'])->name('history');
+
+    // Test Result Management Routes
+    Route::prefix('test-results')->group(function () {
+
+        // Main CRUD routes
+        Route::get('/', [TestResultController::class, 'index'])->name('test_results');
+        Route::get('/create', [TestResultController::class, 'create'])->name('create_test_result');
+        Route::post('/', [TestResultController::class, 'store'])->name('store');
+        Route::get('/{id}', [TestResultController::class, 'show'])->name('show');
+        Route::get('/{id}/edit', [TestResultController::class, 'edit'])->name('edit');
+        Route::put('/{id}', [TestResultController::class, 'update'])->name('update');
+        Route::delete('/', [TestResultController::class, 'destroy'])->name('destroy');
+
+        // Version Management Routes
+        Route::post('/{id}/finalize', [TestResultController::class, 'finalize'])->name('finalize');
+        Route::post('/{id}/revise', [TestResultController::class, 'revise'])->name('revise');
+        Route::get('/{id}/version/{versionNumber}', [TestResultController::class, 'viewVersion'])->name('view-version');
+        Route::get('/{id}/compare', [TestResultController::class, 'compareVersions'])->name('compare-versions');
+
+        // Report Generation
+        Route::get('/{id}/report/{versionNumber?}', [TestResultController::class, 'generateReport'])->name('generate-report');
+
+        // Audit Trail
+        Route::get('/audit/trail', [TestResultController::class, 'audit'])->name('test_results_audit');
+
+        // AJAX Routes
+        Route::get('/template/{templateId}/data', [TestResultController::class, 'getTemplates'])->name('get-template');
+        Route::get('/template', [TestResultController::class, 'getTemplate'])->name('test_result_template');
+    });
 });
 
 Route::get('/get-districts', [MasterController::class, 'getDistricts'])->name('get_districts');
@@ -230,8 +263,14 @@ Route::post('/validate-field', [ValidationController::class, 'checkField'])->nam
 Route::post('add-location', [CustomerController::class, 'addLocation'])->name('create_customer_location');
 
 // Additional routes for allotment that needs to be under a middleware i had to fix it 
-Route::get('/view/{registrationId}', [AllottmentController::class, 'viewAllottment'])->name('show_allotment');
-Route::post('/transfer-tests', [AllottmentController::class, 'transferTests'])->name('transfer_tests');
-Route::post('/allot-tests', [AllottmentController::class, 'allotTests'])->name('allot_tests');
+// Allotment operations
+Route::post('/create', [AllottmentController::class, 'createAllottment'])->name('create_allotment');
+Route::post('/bulk-allot', [AllottmentController::class, 'allotTests'])->name('allot_tests');
 
-Route::post('accepting-tests', [AllottmentController::class, 'acceptTransferred'])->name('accept_transferred');
+// Transfer operations
+Route::post('/transfer', [AllottmentController::class, 'transferTests'])->name('transfer_tests');
+Route::post('/accept-transfer', [AllottmentController::class, 'acceptTransferred'])->name('accept_transferred');
+
+// Additional operations
+Route::post('/reassign', [AllottmentController::class, 'reassignTest'])->name('reassign');
+Route::get('/history/{testId}', [AllottmentController::class, 'getAllotmentHistory'])->name('history');

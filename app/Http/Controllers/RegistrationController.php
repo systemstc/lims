@@ -53,7 +53,7 @@ class RegistrationController extends Controller
             ]);
 
             if ($validator->fails()) {
-                dd($validator);
+                // dd($validator);
                 return redirect()->back()->withErrors($validator)->withInput();
             }
             DB::beginTransaction();
@@ -123,6 +123,7 @@ class RegistrationController extends Controller
                     SampleTest::create([
                         'tr04_sample_registration_id' => $registration->tr04_sample_registration_id,
                         'm12_test_id' => $testId,
+                        'm04_ro_id' => Session::get('ro_id'), 
                         'm16_primary_test_id' => $primaryIds,
                         'm17_secondary_test_id' => $secondaryIds,
                         'm15_standard_id' => $test['standard_id'] ?? null,
@@ -342,7 +343,6 @@ class RegistrationController extends Controller
         if ($request->ajax()) {
             $samples = SampleRegistration::with([
                 'labSample',
-                'package',
                 'sampleTests.test',
                 'sampleTests.standard',
                 'customerType',
