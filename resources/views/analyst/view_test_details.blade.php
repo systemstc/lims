@@ -35,10 +35,13 @@
                                                 </span>
                                             </li>
                                             <li>
-                                                <a class="btn btn-success btn-sm"
-                                                    href="{{ route('update_analysis', $sample->sampleTests[0]->tr05_sample_test_id ?? 0) }}">
-                                                    <em class="icon ni ni-check-circle-cut"></em> &nbsp; Mark it Complete
-                                                </a>
+                                                @if ($sample->sampleTests[0]->tr05_status == 'Completed')
+                                                    <a class="btn btn-success btn-sm"
+                                                        href="{{ route('update_analysis', $sample->sampleTests[0]->tr05_sample_test_id ?? 0) }}">
+                                                        <em class="icon ni ni-check-circle-cut"></em> &nbsp; Mark it
+                                                        Complete
+                                                    </a>
+                                                @endif
                                             </li>
                                         </ul>
                                     </div>
