@@ -63,7 +63,7 @@ class SampleRegistration extends Model
             $details[] = [
                 'test'     => Test::find($data['test_id']),
                 'standard' => Standard::find($data['standard_id']),
-                'package'  => Package::find($data['package_id']),
+                // 'package'  => Package::find($data['package_id']),
                 'remark'   => $data['remark'] ?? null,
             ];
         }

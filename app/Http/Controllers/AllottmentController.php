@@ -21,7 +21,6 @@ class AllottmentController extends Controller
     public function pendingAllotments(Request $request)
     {
         $roId = Session::get('ro_id');
-
         $query = $this->buildPendingQuery($roId);
         $this->applyFilters($query, $request);
         $this->applySorting($query);
@@ -156,17 +155,15 @@ class AllottmentController extends Controller
 
         $registration = SampleRegistration::findOrFail($registrationId);
 
-        // Fixed query to prevent duplicate tests from appearing
         $tests = SampleTest::where('tr04_sample_registration_id', $registrationId)
             ->where(function ($q) use ($roId) {
                 $q->where('m04_ro_id', $roId)
                     ->orWhere(function ($subQ) use ($roId) {
-                        // Only show transferred tests that are pending acceptance
                         $subQ->where('m04_transferred_to', $roId)
                             ->where('tr05_status', 'TRANSFERRED');
                     });
             })
-            ->whereNotIn('tr05_status', ['RECEIVED_ACCEPTED']) 
+            ->whereNotIn('tr05_status', ['RECEIVED_ACCEPTED'])
             ->with(['test', 'standard', 'allotedTo', 'transfers'])
             ->orderBy('tr05_sample_test_id')
             ->get();
@@ -186,15 +183,15 @@ class AllottmentController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return redirect()->back()
-                ->with('type', 'error')
-                ->with('message', 'Validation failed: ' . $validator->errors()->first());
+            Session::flash('type', 'error');
+            Session::flash('message', 'Validation failed: ' . $validator->errors()->first());
+            return redirect()->back();
         }
 
         try {
             DB::beginTransaction();
 
-            $userId = Session::get('user_id'); 
+            $userId = Session::get('user_id');
             $roId = Session::get('ro_id');
             $updatedCount = 0;
 
@@ -208,7 +205,7 @@ class AllottmentController extends Controller
                         })
                         ->update([
                             'm06_alloted_to' => $empId,
-                            'm06_alloted_by' => $userId, 
+                            'm06_alloted_by' => $userId,
                             'tr05_status' => 'ALLOTED',
                             'tr05_alloted_at' => now()
                         ]);
@@ -216,12 +213,10 @@ class AllottmentController extends Controller
                     $updatedCount += $updated;
                 }
             }
-
             DB::commit();
-
-            return redirect()->back()
-                ->with('type', 'success')
-                ->with('message', "Successfully alloted {$updatedCount} tests");
+            Session::flash('type', 'success');
+            Session::flash('message', "Successfully alloted {$updatedCount} tests");
+            return redirect()->back();
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Allotment Error: ' . $e->getMessage(), [
@@ -229,10 +224,9 @@ class AllottmentController extends Controller
                 'registration_id' => $request->txt_sample_registration_id,
                 'trace' => $e->getTraceAsString()
             ]);
-
-            return redirect()->back()
-                ->with('type', 'error')
-                ->with('message', 'Failed to allot tests: ' . $e->getMessage());
+            Session::flash('type', 'error');
+            Session::flash('message', 'Failed to allot tests: ' . $e->getMessage());
+            return redirect()->back();
         }
     }
 
@@ -244,9 +238,9 @@ class AllottmentController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return redirect()->back()
-                ->with('type', 'error')
-                ->with('message', 'Validation failed: ' . $validator->errors()->first());
+            Session::flash('type', 'error');
+            Session::flash('message', 'Validation failed: ' . $validator->errors()->first());
+            return redirect()->back();
         }
 
         try {
@@ -254,10 +248,11 @@ class AllottmentController extends Controller
 
             $testIds = array_filter(explode(',', $request->test_ids));
             if (empty($testIds)) {
-                return redirect()->back()->with('type', 'error')->with('message', 'No tests selected');
+                Session::flash('type', 'error');
+                Session::flash('message', 'No tests selected');
+                return redirect()->back();
             }
-
-            $userId = Session::get('user_id'); 
+            $userId = Session::get('user_id');
             $roId = Session::get('ro_id');
 
             // Process in batches for large datasets
@@ -273,7 +268,7 @@ class AllottmentController extends Controller
                     ->whereNull('m06_alloted_to')
                     ->update([
                         'm06_alloted_to' => $request->emp_id,
-                        'm06_alloted_by' => $userId, 
+                        'm06_alloted_by' => $userId,
                         'tr05_status' => 'ALLOTED',
                         'tr05_alloted_at' => now()
                     ]);
@@ -282,10 +277,9 @@ class AllottmentController extends Controller
             }
 
             DB::commit();
-
-            return redirect()->back()
-                ->with('type', 'success')
-                ->with('message', "Successfully alloted {$totalUpdated} tests to the selected employee");
+            Session::flash('type', 'success');
+            Session::flash('message', "Successfully alloted {$totalUpdated} tests to the selected employee");
+            return redirect()->back();
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Bulk Allotment Error: ' . $e->getMessage(), [
@@ -294,10 +288,9 @@ class AllottmentController extends Controller
                 'test_count' => count(explode(',', $request->test_ids)),
                 'trace' => $e->getTraceAsString()
             ]);
-
-            return redirect()->back()
-                ->with('type', 'error')
-                ->with('message', 'Failed to allot tests: ' . $e->getMessage());
+            Session::flash('type', 'error');
+            Session::flash('message', 'Failed to allot tests: ' . $e->getMessage());
+            return redirect()->back();
         }
     }
 
@@ -308,18 +301,16 @@ class AllottmentController extends Controller
             'ro_id' => [
                 'required',
                 'exists:m04_ros,m04_ro_id',
-                Rule::notIn([Session::get('ro_id')]) 
+                Rule::notIn([Session::get('ro_id')])
             ],
             'reason' => 'required|string|max:255',
             'remark' => 'nullable|string|max:500',
         ]);
 
         if ($validator->fails()) {
-            return redirect()->back()
-                ->withErrors($validator)
-                ->withInput()
-                ->with('type', 'error')
-                ->with('message', 'Validation failed: ' . $validator->errors()->first());
+            Session::flash('type', 'error');
+            Session::flash('message', 'Validation failed: ' . $validator->errors()->first());
+            return redirect()->back()->withErrors($validator)->withInput();
         }
 
         try {
@@ -327,7 +318,9 @@ class AllottmentController extends Controller
 
             $testIds = array_filter(explode(',', $request->test_ids));
             if (empty($testIds)) {
-                return redirect()->back()->with('type', 'error')->with('message', 'No tests selected');
+                Session::flash('type', 'error');
+                Session::flash('message', 'No tests selected');
+                return redirect()->back();
             }
 
             $userId = Session::get('user_id');
@@ -341,9 +334,9 @@ class AllottmentController extends Controller
                 ->get();
 
             if ($tests->isEmpty()) {
-                return redirect()->back()
-                    ->with('type', 'error')
-                    ->with('message', 'No valid tests found for transfer');
+                Session::flash('type', 'error');
+                Session::flash('message', 'No valid tests found for transfer');
+                return redirect()->back();
             }
 
             $transferData = [];
@@ -354,7 +347,7 @@ class AllottmentController extends Controller
                     'tr05_sample_test_id' => $test->tr05_sample_test_id,
                     'm04_from_ro_id' => $test->m04_ro_id,
                     'm04_to_ro_id' => $request->ro_id,
-                    'm06_transferred_by' => $userId, 
+                    'm06_transferred_by' => $userId,
                     'tr06_transferred_at' => $now,
                     'tr06_reason' => $request->reason,
                     'tr06_remark' => $request->remark,
@@ -366,7 +359,7 @@ class AllottmentController extends Controller
                     'tr05_sample_test_id' => $test->tr05_sample_test_id,
                     'm04_transferred_to' => $request->ro_id,
                     'm06_alloted_to' => null,
-                    'm04_transferred_by' => $roId, 
+                    'm04_transferred_by' => $roId,
                     'tr05_status' => 'TRANSFERRED',
                     'tr05_transferred_at' => $now,
                 ];
@@ -382,10 +375,9 @@ class AllottmentController extends Controller
             }
 
             DB::commit();
-
-            return redirect()->back()
-                ->with('type', 'success')
-                ->with('message', "Successfully transferred " . count($tests) . " tests to the selected RO");
+            Session::flash('type', 'success');
+            Session::flash('message', "Successfully transferred " . count($tests) . " tests to the selected RO");
+            return redirect()->back();
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error("Transfer Tests failed", [
@@ -396,10 +388,9 @@ class AllottmentController extends Controller
                 'exception' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
-
-            return redirect()->back()
-                ->with('type', 'error')
-                ->with('message', 'Failed to transfer tests: ' . $e->getMessage());
+            Session::flash('type', 'error');
+            Session::flash('message', 'Failed to transfer tests: ' . $e->getMessage());
+            return redirect()->back();
         }
     }
 
@@ -419,7 +410,7 @@ class AllottmentController extends Controller
             DB::beginTransaction();
 
             $roId = Session::get('ro_id');
-            $userId = Session::get('user_id'); 
+            $userId = Session::get('user_id');
 
             $test = SampleTest::where('tr05_sample_test_id', $request->test_id)
                 ->where('m04_transferred_to', $roId)
@@ -431,7 +422,7 @@ class AllottmentController extends Controller
                 ->where('m04_to_ro_id', $roId)
                 ->whereNull('m06_received_by')
                 ->update([
-                    'm06_received_by' => $userId, 
+                    'm06_received_by' => $userId,
                     'tr06_received_at' => now(),
                 ]);
 
@@ -447,10 +438,9 @@ class AllottmentController extends Controller
             ]);
 
             DB::commit();
-
-            return redirect()->back()
-                ->with('type', 'success')
-                ->with('message', 'Test accepted successfully and added to your pending tests');
+            Session::flash('type', 'success');
+            Session::flash('message', 'Test accepted successfully and added to your pending tests');
+            return redirect()->back();
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Accept Transfer Error: ' . $e->getMessage(), [
@@ -459,10 +449,9 @@ class AllottmentController extends Controller
                 'test_id' => $request->test_id,
                 'trace' => $e->getTraceAsString()
             ]);
-
-            return redirect()->back()
-                ->with('type', 'error')
-                ->with('message', 'Failed to accept test: ' . $e->getMessage());
+            Session::flash('type', 'error');
+            Session::flash('message', 'Failed to accept test: ' . $e->getMessage());
+            return redirect()->back();
         }
     }
 
@@ -475,9 +464,9 @@ class AllottmentController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return redirect()->back()
-                ->with('type', 'error')
-                ->with('message', 'Validation failed: ' . $validator->errors()->first());
+            Session::flash('type', 'error');
+            Session::flash('message', 'Validation failed: ' . $validator->errors()->first());
+            return redirect()->back();
         }
 
         try {
@@ -491,9 +480,9 @@ class AllottmentController extends Controller
                 ->firstOrFail();
 
             if ($test->m06_alloted_to != $request->from_user_id) {
-                return redirect()->back()
-                    ->with('type', 'error')
-                    ->with('message', 'Test is not currently alloted to the specified user');
+                Session::flash('type', 'error');
+                Session::flash('message', 'Test is not currently alloted to the specified user');
+                return redirect()->back();
             }
 
             $test->update([
@@ -503,10 +492,9 @@ class AllottmentController extends Controller
             ]);
 
             DB::commit();
-
-            return redirect()->back()
-                ->with('type', 'success')
-                ->with('message', 'Test reassigned successfully');
+            Session::flash('type', 'success');
+            Session::flash('message', 'Test reassigned successfully');
+            return redirect()->back();
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Reassign Test Error: ' . $e->getMessage(), [
@@ -516,10 +504,9 @@ class AllottmentController extends Controller
                 'to_user_id' => $request->to_user_id,
                 'trace' => $e->getTraceAsString()
             ]);
-
-            return redirect()->back()
-                ->with('type', 'error')
-                ->with('message', 'Failed to reassign test: ' . $e->getMessage());
+            Session::flash('type', 'error');
+            Session::flash('message', 'Failed to reassign test: ' . $e->getMessage());
+            return redirect()->back();
         }
     }
 
@@ -527,7 +514,6 @@ class AllottmentController extends Controller
     {
         $roId = Session::get('ro_id');
 
-        // Get the test to ensure user has access
         $test = SampleTest::where('tr05_sample_test_id', $testId)
             ->where(function ($query) use ($roId) {
                 $query->where('m04_ro_id', $roId)
@@ -536,7 +522,6 @@ class AllottmentController extends Controller
             ->with(['test', 'registration'])
             ->firstOrFail();
 
-        // Get transfer history
         $history = TestTransfer::where('tr05_sample_test_id', $testId)
             ->with([
                 'fromRo:m04_ro_id,m04_name',
@@ -547,7 +532,6 @@ class AllottmentController extends Controller
             ->orderBy('tr06_transferred_at', 'desc')
             ->get();
 
-        // Get allotment history from the test record itself
         $allotmentHistory = collect();
         if ($test->m06_alloted_to) {
             $allotmentHistory->push((object)[
@@ -557,7 +541,6 @@ class AllottmentController extends Controller
                 'status' => $test->tr05_status
             ]);
         }
-
         return view('allottment.allotment_history', compact('test', 'history', 'allotmentHistory'));
     }
 }

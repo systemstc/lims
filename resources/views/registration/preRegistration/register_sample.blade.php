@@ -445,9 +445,9 @@
                                                                 data-bs-toggle="modal" data-bs-target="#cameraModal">
                                                                 📷 Take Sample Image
                                                             </button>
-                                                            <input type="hidden" name="sample_image_base64"
-                                                                id="sample_image_base64">
-                                                            <div id="previewThumbnail" class="mt-2"></div>
+                                                            <input type="text" name="txt_sample_image"
+                                                                id="txt_sample_image">
+                                                            <div id="preview" class="mt-2"></div>
                                                         </div>
                                                     </div>
 
@@ -2437,6 +2437,12 @@
             $('#cameraModal').on('shown.bs.modal', function() {
                 navigator.mediaDevices.getUserMedia({
                         video: {
+                            width: {
+                                ideal: 1280
+                            }, // HD resolution
+                            height: {
+                                ideal: 720
+                            },
                             facingMode: "environment"
                         }
                     })
@@ -2449,20 +2455,9 @@
                     });
             });
 
-            // When modal closes → stop camera
-            $('#cameraModal').on('hidden.bs.modal', function() {
-                if (streamRef) {
-                    streamRef.getTracks().forEach(track => track.stop());
-                }
-                $(canvas).hide();
-                $(video).show();
-                captureBtn.show();
-                retakeBtn.hide();
-                saveImageBtn.hide();
-            });
-
-            // Capture
             captureBtn.on("click", function() {
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
                 context.drawImage(video, 0, 0, canvas.width, canvas.height);
                 $(canvas).show();
                 $(video).hide();
@@ -2482,14 +2477,16 @@
 
             // Save image (to hidden input + show thumbnail)
             saveImageBtn.on("click", function() {
-                let base64Image = canvas.toDataURL("image/png");
-                inputBase64.val(base64Image);
+                let base64Image = canvas.toDataURL("image/jpeg", 0.9); // 90% quality JPEG
+                console.log(base64Image);
 
-                // Show thumbnail preview under button
-                $("#previewThumbnail").html(
-                    `<img src="${base64Image}" width="150" class="img-thumbnail mt-2">`
+                $("#txt_sample_image").val(base64Image);
+
+                $("#preview").html(
+                    `<img src="${base64Image}" width="200" class="img-thumbnail mt-2">`
                 );
             });
+
         });
     </script>
     <script>

@@ -124,50 +124,8 @@
                 $('#state_id').val($(this).data('state-id'));
             });
 
-            $(document).on('click', '.eg-swal-av3', function(e) {
-                e.preventDefault();
-                let districtId = $(this).data('id');
-                let currentStatus = $(this).data('status');
-                let newStatus = currentStatus === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
-
-                Swal.fire({
-                    title: 'Are you sure?',
-                    text: `Change status to ${newStatus}?`,
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonText: 'Yes, change it!'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        $.ajax({
-                            url: '/district/change-status',
-                            method: 'POST',
-                            headers: {
-                                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                            },
-                            data: {
-                                id: districtId
-                            },
-                            success: function(data) {
-                                if (data.status === 'success') {
-                                    Swal.fire({
-                                        icon: 'success',
-                                        title: 'Updated!',
-                                        text: data.message,
-                                        timer: 1500,
-                                        showConfirmButton: false
-                                    }).then(() => {
-                                        $('#districts-table').DataTable().ajax
-                                            .reload();
-                                    });
-                                }
-                            },
-                            error: function() {
-                                Swal.fire('Error!', 'Something went wrong.', 'error');
-                            }
-                        });
-                    }
-                });
-            });
+            // To change the status 
+            bindToggleStatus('.eg-swal-av3', "{{ route('change_district_status') }}");
         });
     </script>
 @endsection

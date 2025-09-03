@@ -41,7 +41,8 @@
                         <div class="nk-block">
                             <div class="invoice">
                                 <div class="invoice-action">
-                                    <a class="btn btn-icon btn-lg btn-white btn-dim btn-outline-primary" href="{{ route('print_sample_acknowledgement',$sample->tr04_sample_registration_id) }}"
+                                    <a class="btn btn-icon btn-lg btn-white btn-dim btn-outline-primary"
+                                        href="{{ route('print_sample_acknowledgement', $sample->tr04_sample_registration_id) }}"
                                         target="_blank" title="Print Sample Details">
                                         <em class="icon ni ni-printer-fill"></em>
                                     </a>
@@ -56,7 +57,8 @@
                                                     <li><em
                                                             class="icon ni ni-user-fill"></em><span>{{ $sample->parties['customer']['contact_person'] }}</span>
                                                     </li>
-                                                    <li><em class="icon ni ni-map-pin-fill"></em><span>{{ $sample->parties['customer']['address'] }} &nbsp;&nbsp;{{ $sample->parties['customer']['district'] }},
+                                                    <li><em class="icon ni ni-map-pin-fill"></em><span>{{ $sample->parties['customer']['address'] }}
+                                                            &nbsp;&nbsp;{{ $sample->parties['customer']['district'] }},
                                                             {{ $sample->parties['customer']['state'] }}</span></li>
                                                     <li><em
                                                             class="icon ni ni-call-fill"></em><span>{{ $sample->parties['customer']['phone'] }}</span>
@@ -169,24 +171,34 @@
                                         </div>
                                     @endif
 
-                                    <!-- Sample Information -->
+                                    <!-- Sample Information with Image -->
                                     <div class="invoice-bills mb-4">
                                         <div class="row">
                                             <div class="col-md-6">
                                                 <div class="card border">
                                                     <div class="card-inner">
-                                                        <h6 class="card-title mb-3">Sample Information</h6>
-                                                        <ul class="list-plain">
-                                                            <li><strong>Lab Sample:</strong>
-                                                                {{ $sample->labSample['m14_name'] ?? 'N/A' }}</li>
-                                                            <li><strong>Description:</strong>
-                                                                {{ $sample->tr04_sample_description ?? 'N/A' }}</li>
-                                                            <li><strong>Received Via:</strong>
-                                                                {{ ucfirst(str_replace('_', ' ', $sample->tr04_received_via)) }}
-                                                            </li>
-                                                            <li><strong>Customer Type:</strong>
-                                                                {{ $sample->customerType['m09_name'] ?? 'N/A' }}</li>
-                                                        </ul>
+                                                        <div class="row">
+                                                            <div class="col-6">
+                                                                <h6 class="card-title mb-3">Sample Information</h6>
+                                                                <ul class="list-plain">
+                                                                    <li><strong>Lab Sample:</strong>
+                                                                        {{ $sample->labSample['m14_name'] ?? 'N/A' }}</li>
+                                                                    <li><strong>Description:</strong>
+                                                                        {{ $sample->tr04_sample_description ?? 'N/A' }}
+                                                                    </li>
+                                                                    <li><strong>Received Via:</strong>
+                                                                        {{ ucfirst(str_replace('_', ' ', $sample->tr04_received_via)) }}
+                                                                    </li>
+                                                                </ul>
+                                                            </div>
+                                                            <div class="col-6">
+                                                                @if ($sample->tr04_attachment)
+                                                                    <img src="{{ asset('storage/' . $sample->tr04_attachment) }}"
+                                                                        alt="Sample Image" class="img-thumbnail"
+                                                                        style="width: 100%; max-width: 200px; height: auto; object-fit: cover;">
+                                                                @endif
+                                                            </div>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -204,9 +216,9 @@
                                                             <li><strong>Payment Status:</strong>
                                                                 <span
                                                                     class="badge 
-                                                                    @if ($sample->tr04_payment == 'COMPLETED') badge-success 
-                                                                    @elseif($sample->tr04_payment == 'PENDING') badge-warning 
-                                                                    @else badge-secondary @endif">
+                                                                    @if ($sample->tr04_payment == 'COMPLETED') bg-success 
+                                                                    @elseif($sample->tr04_payment == 'PENDING') bg-warning 
+                                                                    @else bg-secondary @endif">
                                                                     {{ $sample->tr04_payment }}
                                                                 </span>
                                                             </li>
@@ -237,7 +249,6 @@
                                                     </tr>
                                                 </thead>
                                                 <tbody>
-                                                    {{-- @dd($sample->sampleTests) --}}
                                                     @forelse($sample->sampleTests as $sampleTest)
                                                         <tr>
                                                             <td>{{ $sampleTest['test']['m12_test_id'] }}</td>
@@ -249,14 +260,14 @@
                                                                 @endif
                                                                 @if ($sampleTest['test']['m12_alias'])
                                                                     <br><span
-                                                                        class="badge badge-outline-info">{{ $sampleTest['test']['m12_alias'] }}</span>
+                                                                        class="badge bg-outline-info">{{ $sampleTest['test']['m12_alias'] }}</span>
                                                                 @endif
                                                             </td>
                                                             <td>
                                                                 {{ $sampleTest['standard']['m15_method'] ?? 'N/A' }}
                                                                 @if ($sampleTest['standard']['m15_accredited'] === 'YES')
                                                                     <br><span
-                                                                        class="badge badge-success badge-sm">Accredited</span>
+                                                                        class="badge bg-outline-success badge-xs">Accredited</span>
                                                                 @endif
                                                             </td>
                                                             <td>{{ $sampleTest['test']['m12_unit'] ?? 'N/A' }}</td>
@@ -305,7 +316,8 @@
                                             </table>
                                             @if ($sample->tr04_details)
                                                 <div class="nk-notes ff-italic fs-12px text-soft mt-3">
-                                                    <strong>Lab Info:</strong>Laboratory of Textiles {{ $sample->ro->m04_name }}
+                                                    <strong>Lab Info:</strong>Laboratory of Textiles
+                                                    {{ $sample->ro->m04_name ?? '' }}
                                                 </div>
                                             @endif
                                         </div>
@@ -318,4 +330,6 @@
             </div>
         </div>
     </div>
+
+
 @endsection

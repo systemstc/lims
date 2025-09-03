@@ -1,14 +1,7 @@
 <?php
 
 use App\Models\SampleRegistration;
-
-if (!function_exists('greetUser')) {
-    function greetUser($name)
-    {
-        return "Hello, " . ucfirst($name) . "!";
-    }
-}
-
+use Illuminate\Support\Facades\DB;
 
 if (!function_exists('getParties')) {
     function getParties($sampleId)
@@ -66,5 +59,27 @@ if (!function_exists('getNamesFromCsv')) {
         return $modelClass::whereIn($idColumn, $ids)
             ->pluck($nameColumn)
             ->toArray();
+    }
+}
+
+if (!function_exists('toggleStatus')) {
+    function toggleStatus($table, $idColumn, $statusColumn, $id)
+    {
+        $row = DB::table($table)->where($idColumn, $id)->first();
+        if (!$row) {
+            return ['status' => 'error', 'message' => 'Record not found'];
+        }
+        $newStatus = ($row->$statusColumn === 'ACTIVE') ? 'INACTIVE' : 'ACTIVE';
+        $update = DB::table($table)
+            ->where($idColumn, $id)
+            ->update([$statusColumn => $newStatus]);
+        if ($update) {
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Status updated to ' . $newStatus
+            ]);
+        } else {
+            return response()->json(['status' => 'error', 'message' => 'Data not found.'], 404);
+        }
     }
 }

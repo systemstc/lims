@@ -46,8 +46,7 @@
                                                 <td>{{ $test->m17_unit }}</td>
                                                 <td>{{ $test->user->tr01_name ?? '' }}</td>
                                                 <td>{{ \Carbon\Carbon::parse($test->created_at)->format('d M Y') }}</td>
-                                                <td
-                                                    class="text-{{ $test->m17_status == 'ACTIVE' ? 'success' : 'danger' }}">
+                                                <td class="text-{{ $test->m17_status == 'ACTIVE' ? 'success' : 'danger' }}">
                                                     <strong>{{ $test->m17_status }}</strong>
                                                 </td>
                                                 <td class="nk-tb-col nk-tb-col-tools">
@@ -69,7 +68,7 @@
                                                                             </a>
                                                                         </li>
                                                                         <li>
-                                                                            <a class="btn eg-swal-toggle-status"
+                                                                            <a class="btn eg-swal-av3"
                                                                                 data-id="{{ $test->m17_secondary_test_id }}"
                                                                                 data-status="{{ $test->m17_status }}">
                                                                                 <em class="icon ni ni-trash"></em><span>Change
@@ -96,47 +95,8 @@
 
         <script>
             $(document).ready(function() {
-                $(document).on('click', '.eg-swal-toggle-status', function(e) {
-                    e.preventDefault();
-                    let secondaryId = $(this).data('id');
-                    let currentStatus = $(this).data('status');
-                    let newStatus = currentStatus === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
-
-                    Swal.fire({
-                        title: 'Are you sure?',
-                        text: `Change status to ${newStatus}?`,
-                        icon: 'warning',
-                        showCancelButton: true,
-                        confirmButtonText: 'Yes, change it!'
-                    }).then((result) => {
-                        if (result.isConfirmed) {
-                            $.ajax({
-                                url: "{{ route('delete_secondary_test') }}",
-                                method: 'POST',
-                                headers: {
-                                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                                },
-                                data: {
-                                    id: secondaryId
-                                },
-                                success: function(data) {
-                                    if (data.status === 'success') {
-                                        Swal.fire({
-                                            icon: 'success',
-                                            title: 'Updated!',
-                                            text: data.message,
-                                            timer: 1500,
-                                            showConfirmButton: false
-                                        }).then(() => window.location.reload());
-                                    }
-                                },
-                                error: function() {
-                                    Swal.fire('Error!', 'Something went wrong.', 'error');
-                                }
-                            });
-                        }
-                    });
-                });
+                // To change the status 
+                bindToggleStatus('.eg-swal-av3', "{{ route('delete_secondary_test') }}");
             });
         </script>
     @endsection

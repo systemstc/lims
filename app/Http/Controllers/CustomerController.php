@@ -9,9 +9,9 @@ use App\Models\Ro;
 use App\Models\State;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Validator;
-use Symfony\Component\CssSelector\XPath\Extension\FunctionExtension;
 
 class CustomerController extends Controller
 {
@@ -108,14 +108,12 @@ class CustomerController extends Controller
 
     public function deleteCustomerType(Request $request)
     {
-        $customerType = CustomerType::findOrFail($request->id);
-        $customerType->m09_status = $customerType->m09_status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
-        $customerType->save();
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Customer type status updated to ' . $customerType->m09_status,
-            'new_status' => $customerType->m09_status
-        ]);
+        return toggleStatus(
+            'm09_customer_types',
+            'm09_customer_type_id',
+            'm09_status',
+            $request->id
+        );
     }
 
     public function customerAll()
@@ -266,7 +264,7 @@ class CustomerController extends Controller
                 Session::flash('type', 'danger');
                 Session::flash('message', 'An error occurred while saving the data. Please try again.');
                 Log::error($e->getMessage());
-                return redirect()->back()->withInput();
+                return redirect()->back();
             }
         }
         $states = State::get(['m01_state_id', 'm01_name']);
@@ -277,14 +275,12 @@ class CustomerController extends Controller
 
     public function  deleteCustomer(Request $request)
     {
-        $customer = Customer::findOrFail($request->id);
-        $customer->m07_status = $customer->m07_status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
-        $customer->save();
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Customer status updated to ' . $customer->m07_status,
-            'new_status' => $customer->m07_status
-        ]);
+        return toggleStatus(
+            'm07_customers',
+            'm07_customer_id',
+            'm07_status',
+            $request->id
+        );
     }
 
     public function updateCustomer(Request $request, $id)
@@ -453,7 +449,7 @@ class CustomerController extends Controller
                 return to_route('customers');
             } catch (\Exception $e) {
                 DB::rollBack();
-                // Log::error('Customer Update Failed: ' . $e->getMessage());
+                Log::error('Customer Update Failed: ' . $e->getMessage());
                 Session::flash('type', 'error');
                 Session::flash('message', 'An error occurred while updating the customer. Please try again.');
                 return redirect()->back()->withInput();
@@ -490,7 +486,6 @@ class CustomerController extends Controller
             'm08_pincode' => $request->txt_loc_pincode,
             'm08_address' => $request->txt_loc_address,
         ];
-        // dd($validated);
         $location = CustomerLocation::create($data);
         return response()->json([
             'success' => true,

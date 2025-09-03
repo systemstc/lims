@@ -32,7 +32,7 @@
                                     </thead>
                                     <tbody>
                                         @foreach ($customs as $key => $cust)
-                                        {{-- @dd($cust) --}}
+                                            {{-- @dd($cust) --}}
                                             <tr>
                                                 <td>{{ $key + 1 }}</td>
                                                 <td>{{ $cust->m19_name }}</td>
@@ -95,49 +95,7 @@
 
     <script>
         $(document).ready(function() {
-            $(document).on('click', '.eg-swal-av3', function(e) {
-                e.preventDefault();
-                let specId = $(this).data('id');
-                let currentStatus = $(this).data('status');
-                let newStatus = currentStatus === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
-
-                Swal.fire({
-                    title: 'Are you sure?',
-                    text: `Change status to ${newStatus}?`,
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonText: 'Yes, change it!'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        $.ajax({
-                            url: "{{ route('delete_custom') }}",
-                            method: 'POST',
-                            headers: {
-                                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                            },
-                            data: {
-                                id: specId
-                            },
-                            success: function(data) {
-                                if (data.status === 'success') {
-                                    Swal.fire({
-                                        icon: 'success',
-                                        title: 'Updated!',
-                                        text: data.message,
-                                        timer: 1500,
-                                        showConfirmButton: false
-                                    }).then(() => {
-                                        window.location.reload();
-                                    });
-                                }
-                            },
-                            error: function() {
-                                Swal.fire('Error!', 'Something went wrong.', 'error');
-                            }
-                        });
-                    }
-                });
-            });
+            bindToggleStatus('.eg-swal-av3', "{{ route('delete_package') }}");
         });
     </script>
 @endsection

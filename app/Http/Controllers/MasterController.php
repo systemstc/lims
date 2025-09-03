@@ -12,7 +12,6 @@ use App\Models\PrimaryTest;
 use App\Models\Role;
 use App\Models\Sample;
 use App\Models\SecondaryTest;
-use App\Models\Stage;
 use App\Models\Standard;
 use App\Models\State;
 use App\Models\Test;
@@ -20,8 +19,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Validator;
-use Symfony\Component\CssSelector\XPath\Extension\FunctionExtension;
-use Symfony\Component\HttpFoundation\Session\Flash\FlashBag;
 use Yajra\DataTables\Facades\DataTables;
 
 class MasterController extends Controller
@@ -81,15 +78,22 @@ class MasterController extends Controller
 
     public function changeStatus(Request $request)
     {
-        $district = District::findOrFail($request->id);
-        $district->m02_status = $district->m02_status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
-        $district->save();
-
-        return response()->json([
-            'status' => 'success',
-            'message' => 'District status updated to ' . $district->m02_status,
-            'new_status' => $district->m02_status
+        $validator = Validator::make($request->all(), [
+            'id' => 'required|exists:m02_districts,m02_district_id',
+        ], [
+            'id.required' => 'District ID is required.',
+            'id.exists'   => 'The selected district does not exist.',
         ]);
+        if ($validator->fails()) {
+            Session::flash('type', 'error');
+            Session::flash('message', $validator->errors());
+        }
+        return toggleStatus(
+            'm02_districts',
+            'm02_district_id',
+            'm02_status',
+            $request->id
+        );
     }
 
     public function viewRoles()
@@ -136,15 +140,12 @@ class MasterController extends Controller
 
     public function changeRoleStatus(Request $request)
     {
-        $role = Role::findOrFail($request->id);
-
-        $role->m03_status = $role->m03_status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
-        $role->save();
-
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Status has been updated to ' . $role->m03_status
-        ]);
+        return toggleStatus(
+            'm03_roles',
+            'm03_role_id',
+            'm03_status',
+            $request->id
+        );
     }
 
     public function getDistricts(Request $request)
@@ -234,15 +235,7 @@ class MasterController extends Controller
 
     public function deleteSample(Request $request)
     {
-        $sample = Sample::findOrFail($request->id);
-
-        $sample->m10_status = $sample->m10_status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
-        $sample->save();
-
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Status has been updated to ' . $sample->m10_status
-        ]);
+        return toggleStatus('m10_samples', 'm10_sample_id', 'm10_status', $request->id);
     }
 
     public function viewGroups()
@@ -307,19 +300,7 @@ class MasterController extends Controller
 
     public function deleteGroup(Request $request)
     {
-        $group = Group::find($request->id);
-
-        if ($group) {
-            $group->m11_status = $group->m11_status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
-            $group->save();
-
-            return response()->json([
-                'status' => 'success',
-                'message' => 'Status updated to ' . $group->m11_status
-            ]);
-        }
-
-        return response()->json(['status' => 'error', 'message' => 'Group not found.'], 404);
+        return toggleStatus('m11_groups', 'm11_group_id', 'm11_status', $request->id);
     }
 
     public function viewDepartments()
@@ -343,9 +324,7 @@ class MasterController extends Controller
             ]);
 
             if ($validator->fails()) {
-                return redirect()->back()
-                    ->withErrors($validator)
-                    ->withInput();
+                return redirect()->back()->withErrors($validator)->withInput();
             }
 
             try {
@@ -410,19 +389,7 @@ class MasterController extends Controller
 
     public function deleteDepartment(Request $request)
     {
-        $department = Department::find($request->id);
-
-        if ($department) {
-            $department->m13_status = $department->m13_status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
-            $department->save();
-
-            return response()->json([
-                'status' => 'success',
-                'message' => 'Status updated to ' . $department->m13_status
-            ]);
-        }
-
-        return response()->json(['status' => 'error', 'message' => 'Department not found.'], 404);
+        return toggleStatus('m13_departments', 'm13_department_id', 'm13_status', $request->id);
     }
 
     public function viewTests()
@@ -430,159 +397,6 @@ class MasterController extends Controller
         $tests = Test::with('group', 'sample', 'user', 'department')->get();
         return view('test.tests', compact('tests'));
     }
-
-    // public function createTest(Request $request)
-    // {
-    //     if ($request->isMethod('POST')) {
-    //         // dd($request);
-    //         $rules = [
-    //             "txt_sample_id"             => "required|integer|exists:m10_samples,m10_sample_id",
-    //             "txt_group_id"              => "required|integer|exists:m11_groups,m11_group_id",
-    //             // "txt_department_id"         => "required|integer|exists:m13_departments,m13_department_id",
-    //             "txt_name"                  => "required|string|max:255|unique:m12_tests,m12_name",
-    //             "txt_category_id"           => "required|string|max:255",
-    //             "txt_input_mode"            => "required|string|max:255",
-    //             "txt_stages"                => "nullable|integer|min:1",
-    //             "txt_charge"                => "required|numeric|min:0",
-    //             "txt_description"           => "nullable|string|max:500",
-    //             "txt_alias"                 => "nullable|string|max:255",
-    //             "txt_weight"                => "nullable|numeric|min:0",
-    //             "txt_unit"                  => "nullable|string|max:100",
-    //             "txt_instrument"            => "nullable|string|max:255",
-    //             "txt_remark"                => "nullable|string|max:500",
-
-    //             // ID-based validation for test configuration
-    //             "standard_ids"              => "required|array|min:1",
-    //             "standard_ids.*"            => "required|integer|exists:m15_standards,m15_standard_id",
-
-    //             "primary_test_ids"          => "required|array|min:1",
-    //             "primary_test_ids.*"        => "required|integer|exists:m16_primary_tests,m16_primary_test_id",
-
-    //             "secondary_test_ids"        => "nullable|array",
-    //             "secondary_test_ids.*"      => "nullable|integer|exists:m17_secondary_tests,m17_secondary_test_id",
-    //             "lab_sample_ids"        => "required|array",
-    //             "lab_sample_ids.*"      => "required|integer|exists:m14_lab_samples,m14_lab_sample_id",
-
-    //             "results"                   => "required|min:1",
-    //             // "results.*.name"            => "required|string|max:255",
-    //         ];
-
-    //         // Additional validation for MULTI STAGE
-    //         if ($request->txt_input_mode === 'MULTI STAGE') {
-    //             $rules['txt_stages'] = 'required|integer|min:1|max:50';
-    //         }
-
-    //         $messages = [
-    //             // Basic field messages
-    //             'txt_sample_id.required'              => 'Please select a sample.',
-    //             'txt_sample_id.exists'                => 'The selected sample does not exist.',
-    //             'txt_group_id.required'               => 'Please select a group.',
-    //             'txt_group_id.exists'                 => 'The selected group does not exist.',
-    //             // 'txt_department_id.required'          => 'Please select a department.',
-    //             // 'txt_department_id.exists'            => 'The selected department does not exist.',
-    //             'txt_name.required'                   => 'Test name is required.',
-    //             'txt_name.unique'                   => 'Test already exists.',
-    //             'txt_name.max'                        => 'Test name should not exceed 255 characters.',
-    //             'txt_category_id.required'            => 'Category is required.',
-    //             'txt_input_mode.required'             => 'Input mode is required.',
-    //             'txt_stages.required'                 => 'Number of stages is required for multi-stage tests.',
-    //             'txt_stages.integer'                  => 'Stages must be a number.',
-    //             'txt_stages.min'                      => 'Stages must be at least 1.',
-    //             'txt_stages.max'                      => 'Stages cannot exceed 50.',
-    //             'txt_charge.required'                 => 'Charge is required.',
-    //             'txt_charge.numeric'                  => 'Charge must be a number.',
-    //             'txt_charge.min'                      => 'Charge must be 0 or more.',
-    //             'txt_description.max'                 => 'Description should not exceed 500 characters.',
-    //             'txt_alias.max'                       => 'Alias should not exceed 255 characters.',
-    //             'txt_weight.numeric'                  => 'Weight must be a number.',
-    //             'txt_weight.min'                      => 'Weight must be 0 or more.',
-    //             'txt_unit.max'                        => 'Unit should not exceed 100 characters.',
-    //             'txt_instrument.max'                  => 'Instrument should not exceed 255 characters.',
-    //             'txt_remark.max'                      => 'Remark should not exceed 500 characters.',
-
-    //             // ID-based validation messages
-    //             'standard_ids.required'               => 'At least one standard is required.',
-    //             'standard_ids.array'                  => 'Standards must be provided as an array.',
-    //             'standard_ids.min'                    => 'At least one standard is required.',
-    //             'standard_ids.*.required'             => 'Standard ID is required.',
-    //             'standard_ids.*.integer'              => 'Standard ID must be a number.',
-    //             'standard_ids.*.exists'               => 'One or more selected standards do not exist.',
-
-    //             'primary_test_ids.required'           => 'At least one primary test is required.',
-    //             'primary_test_ids.array'              => 'Primary tests must be provided as an array.',
-    //             'primary_test_ids.min'                => 'At least one primary test is required.',
-    //             'primary_test_ids.*.required'         => 'Primary test ID is required.',
-    //             'primary_test_ids.*.integer'          => 'Primary test ID must be a number.',
-    //             'primary_test_ids.*.exists'           => 'One or more selected primary tests do not exist.',
-
-    //             'secondary_test_ids.array'            => 'Secondary tests must be provided as an array.',
-    //             'secondary_test_ids.*.integer'        => 'Secondary test ID must be a number.',
-    //             'secondary_test_ids.*.exists'         => 'One or more selected secondary tests do not exist.',
-    //             'lab_sample_ids.array'            => 'Lab Samples must be provided as an array.',
-    //             'lab_sample_ids.*.integer'        => 'Lab Samples ID must be a number.',
-    //             'lab_sample_ids.*.exists'         => 'One or more selected Lab Samples do not exist.',
-    //             'lab_sample_ids.*.required'         => 'Lab Samples are required.',
-
-    //             'results.required'                    => 'At least one result is required.',
-    //             // 'results.array'                       => 'Results must be provided as an array.',
-    //             'results.min'                         => 'At least one result is required.',
-    //             // 'results.*.name.required'             => 'Each result must have a name.',
-    //             // 'results.*.name.string'               => 'Result name must be text.',
-    //             // 'results.*.name.max'                  => 'Result name should not exceed 255 characters.',
-    //         ];
-
-    //         $validator = Validator::make($request->all(), $rules, $messages);
-
-    //         if ($validator->fails()) {
-    //             return redirect()->back()->withErrors($validator)->withInput();
-    //         }
-    //         DB::beginTransaction();
-
-    //         try {
-    //             // Create the main test record
-    //             $test = Test::create([
-    //                 'm10_sample_id' => $request->txt_sample_id,
-    //                 'm11_group_id' => $request->txt_group_id,
-    //                 // 'm13_department_id' => $request->txt_department_id,
-    //                 'm12_name' => $request->txt_name,
-    //                 'm12_category' => $request->txt_category_id,
-    //                 'm12_input_mode' => $request->txt_input_mode,
-    //                 'm12_stages' => $request->txt_input_mode === 'MULTI STAGE' ? $request->txt_stages : null,
-    //                 'm15_standard_id'       => implode(',', $request->standard_ids ?? []),
-    //                 'm16_primary_test_id'   => implode(',', $request->primary_test_ids ?? []),
-    //                 'm17_secondary_test_id' => implode(',', $request->secondary_test_ids ?? []),
-    //                 'm14_lab_sample_id' => implode(',', $request->lab_sample_ids ?? []),
-    //                 'm12_result'            => $request->results,
-    //                 'm12_charge' => $request->txt_charge,
-    //                 'm12_description' => $request->txt_description,
-    //                 'm12_alias' => $request->txt_alias,
-    //                 'm12_weight' => $request->txt_weight,
-    //                 'm12_unit' => $request->txt_unit,
-    //                 'm12_instrument' => $request->txt_instrument,
-    //                 'm12_remark' => $request->txt_remark,
-    //                 'tr01_created_by' => Session::get('user_id') ?? -1,
-    //             ]);
-
-    //             DB::commit();
-    //             Session::flash('type', 'success');
-    //             Session::flash('message', 'Test created successfully.');
-    //             return to_route('view_tests');
-    //         } catch (\Exception $e) {
-    //             DB::rollback();
-    //             Session::flash('type', 'error');
-    //             Session::flash('message', 'Error creating test: ' . $e->getMessage());
-    //             return redirect()->back()->withInput();
-    //         }
-    //     }
-
-    //     $samples = Sample::where('m10_status', 'ACTIVE')->get(['m10_sample_id', 'm10_name']);
-    //     // $departments = Department::where('m13_status', 'ACTIVE')->get(['m13_department_id', 'm13_name']);
-    //     $labSamples = LabSample::where('m14_status', 'ACTIVE')->get(['m14_lab_sample_id', 'm14_name']);
-    //     return view('test.create_test', compact('samples', 'labSamples'));
-    // }
-
-
-
 
     public function createTest(Request $request)
     {
@@ -726,9 +540,6 @@ class MasterController extends Controller
 
                     for ($i = 0; $i < count($secondaryIds); $i++) {
                         if (isset($primaryIds[$i])) {
-                            // Store the association in a pivot table or additional field
-                            // This depends on your database structure
-                            // For now, we'll assume it's stored as JSON in the test record
                             $associations = [];
                             for ($j = 0; $j < count($secondaryIds); $j++) {
                                 if (isset($primaryIds[$j])) {
@@ -738,7 +549,6 @@ class MasterController extends Controller
                                     ];
                                 }
                             }
-
                             $test->update([
                                 'm17_secondary_test_associations' => json_encode($associations)
                             ]);
@@ -814,7 +624,7 @@ class MasterController extends Controller
             ->where('m17_name', 'LIKE', "%{$query}%")
             ->where(function ($q) use ($primaryTestId) {
                 $q->where('m16_primary_test_id', $primaryTestId)
-                    ->orWhereNull('m16_primary_test_id'); // Allow unassigned secondary tests
+                    ->orWhereNull('m16_primary_test_id');
             })
             ->select('m17_secondary_test_id as id', 'm17_name as name', 'm16_primary_test_id as primary_test_id')
             ->limit(10)
@@ -976,13 +786,10 @@ class MasterController extends Controller
     }
 
 
-
     public function updateTest(Request $request, $id)
     {
         $test = Test::with('sample', 'group')->findOrFail($id);
-
         if ($request->isMethod('POST')) {
-            // dd($request);
             $rules = [
                 "txt_sample_id"             => "required|integer|exists:m10_samples,m10_sample_id",
                 "txt_group_id"              => "required|integer|exists:m11_groups,m11_group_id",
@@ -998,7 +805,6 @@ class MasterController extends Controller
                 "txt_instrument"            => "nullable|string|max:255",
                 "txt_remark"                => "nullable|string|max:500",
 
-                // ID-based validation for test configuration
                 "standard_ids"              => "required|array|min:1",
                 "standard_ids.*"            => "required|integer|exists:m15_standards,m15_standard_id",
 
@@ -1008,7 +814,6 @@ class MasterController extends Controller
                 "secondary_test_ids"        => "nullable|array",
                 "secondary_test_ids.*"      => "nullable|integer|exists:m17_secondary_tests,m17_secondary_test_id",
 
-                // Add validation for secondary test primary IDs
                 "secondary_test_primary_ids" => "nullable|array",
                 "secondary_test_primary_ids.*" => "nullable|integer|exists:m16_primary_tests,m16_primary_test_id",
 
@@ -1017,13 +822,10 @@ class MasterController extends Controller
                 "lab_sample_ids" => "required|array",
                 "lab_sample_ids.*" => "required|integer|exists:m14_lab_samples,m14_lab_sample_id",
             ];
-
-            // Additional validation for MULTI STAGE
             if ($request->txt_input_mode === 'MULTI STAGE') {
                 $rules['txt_stages'] = 'required|integer|min:1|max:50';
             }
 
-            // Custom validation to ensure secondary_test_ids and secondary_test_primary_ids have same count
             $rules['secondary_test_ids'] = [
                 'nullable',
                 'array',
@@ -1035,22 +837,17 @@ class MasterController extends Controller
                     }
                 },
             ];
-
             $messages = [
                 'secondary_test_primary_ids.array' => 'Secondary test primary IDs must be provided as an array.',
                 'secondary_test_primary_ids.*.integer' => 'Secondary test primary ID must be a number.',
                 'secondary_test_primary_ids.*.exists' => 'One or more secondary test primary associations do not exist.',
             ];
-
             $validator = Validator::make($request->all(), $rules, $messages);
-
             if ($validator->fails()) {
-                dd($validator);
                 return redirect()->back()->withErrors($validator)->withInput();
             }
 
             DB::beginTransaction();
-
             try {
                 $test->update([
                     'm10_sample_id' => $request->txt_sample_id,
@@ -1086,16 +883,11 @@ class MasterController extends Controller
                 return redirect()->back()->withInput();
             }
         }
-
-        // Handle the GET request to show the edit form
         $samples = Sample::where('m10_status', 'ACTIVE')->get(['m10_sample_id', 'm10_name']);
         $groups = Group::where('m11_status', 'ACTIVE')->get(['m11_group_id', 'm11_name']);
         $labSamples = LabSample::where('m14_status', 'ACTIVE')->get(['m14_lab_sample_id', 'm14_name']);
-
         return view('test.edit_test', compact('test', 'samples', 'groups', 'labSamples'));
     }
-
-    // Helper method to get item by ID (you'll need these routes and methods)
     public function getStandardsByIds(Request $request)
     {
         try {
@@ -1111,9 +903,6 @@ class MasterController extends Controller
             return response()->json([], 500);
         }
     }
-
-
-
 
     public function getPrimaryTestById(Request $request)
     {
@@ -1154,16 +943,7 @@ class MasterController extends Controller
     }
     public function deleteTest(Request $request)
     {
-        $test = Test::find($request->id);
-        if ($test) {
-            $test->m12_status = $test->m12_status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
-            $test->save();
-            return response()->json([
-                'status' => 'success',
-                'message' => 'Status updated to ' . $test->m12_status
-            ]);
-        }
-        return response()->json(['status' => 'error', 'message' => 'Test not found.'], 404);
+        return toggleStatus('m12_tests', 'm12_test_id', 'm12_status', $request->id);
     }
 
     public function getGroups(Request $request)
@@ -1273,16 +1053,7 @@ class MasterController extends Controller
 
     public function deleteLabSamples(Request $request)
     {
-        $labSample = LabSample::find($request->id);
-        if ($labSample) {
-            $labSample->m14_status = $labSample->m14_status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
-            $labSample->save();
-            return response()->json([
-                'status' => 'success',
-                'message' => 'Status updated to ' . $labSample->m14_status
-            ]);
-        }
-        return response()->json(['status' => 'error', 'message' => 'Lab Sample not found.'], 404);
+        return toggleStatus('m14_lab_samples', 'm14_lab_sample_id', 'm14_status', $request->id);
     }
 
     public function getTests(Request $request)
@@ -1300,7 +1071,6 @@ class MasterController extends Controller
     public function viewStandards()
     {
         $standards = Standard::with('sample', 'group', 'user')->get();
-        // $sample = Sample::where('m10_status', 'ACTIVE')->get(['m10_sample_id', 'm10_name']);
         return view('test.standard.standards', compact('standards'));
     }
 
@@ -1310,7 +1080,6 @@ class MasterController extends Controller
             $validator = Validator::make($request->all(), [
                 "txt_sample_id" => "required|integer|exists:m10_samples,m10_sample_id",
                 "txt_group_id" => "required|integer|exists:m11_groups,m11_group_id",
-                // "txt_test_id" => "required|integer|exists:m12_tests,m12_test_id",
                 "txt_method" => "required|string|max:255",
                 "txt_description" => "nullable|string",
                 "txt_unit" => "nullable|string",
@@ -1322,8 +1091,6 @@ class MasterController extends Controller
                 "txt_sample_id.exists" => "Selected sample does not exist.",
                 "txt_group_id.required" => "Group selection is required.",
                 "txt_group_id.exists" => "Selected group does not exist.",
-                // "txt_test_id.required" => "Test selection is required.",
-                // "txt_test_id.exists" => "Selected test does not exist.",
                 "txt_method.required" => "Method field is required.",
                 "txt_method.max" => "Method must not exceed 255 characters.",
                 "txt_remark.max" => "Remark must not exceed 500 characters.",
@@ -1334,7 +1101,6 @@ class MasterController extends Controller
             Standard::create([
                 'm10_sample_id' => $request->txt_sample_id,
                 'm11_group_id' => $request->txt_group_id,
-                // 'm12_test_id' => $request->txt_test_id,
                 'm15_method' => $request->txt_method,
                 'm15_description' => $request->txt_description,
                 'm15_unit' => $request->txt_unit,
@@ -1358,7 +1124,6 @@ class MasterController extends Controller
                 "txt_edit_id" => "required|exists:m15_standards,m15_standard_id",
                 "txt_edit_sample_id" => "required|exists:m10_samples,m10_sample_id",
                 "txt_edit_group_id" => "required|exists:m11_groups,m11_group_id",
-                // "txt_edit_test_id" => "required|exists:m12_tests,m12_test_id",
                 "txt_edit_method" => "required|string|max:255",
                 "txt_edit_description" => "nullable|string",
                 "txt_edit_unit" => "nullable|string",
@@ -1368,7 +1133,6 @@ class MasterController extends Controller
             ], [
                 "txt_edit_sample_id.required" => "Sample selection is required.",
                 "txt_edit_group_id.required" => "Group selection is required.",
-                // "txt_edit_test_id.required" => "Test selection is required.",
                 "txt_edit_method.required" => "Method is required.",
                 "txt_edit_remark.required" => "Remark is required.",
             ]);
@@ -1381,7 +1145,6 @@ class MasterController extends Controller
             $standard->update([
                 'm10_sample_id' => $request->txt_edit_sample_id,
                 'm11_group_id' => $request->txt_edit_group_id,
-                // 'm12_test_id' => $request->txt_edit_test_id,
                 'm15_method' => $request->txt_edit_method,
                 'm15_description' => $request->txt_edit_description,
                 'm15_unit' => $request->txt_edit_unit,
@@ -1390,7 +1153,7 @@ class MasterController extends Controller
                 'm15_remark' => $request->txt_edit_remark,
             ]);
             Session::flash('type', 'success');
-            Session::flash('type', 'Standard updated successfully.');
+            Session::flash('message', 'Standard updated successfully.');
             return to_route('view_standards');
         }
         $standard = Standard::findOrFail($id);
@@ -1401,16 +1164,7 @@ class MasterController extends Controller
 
     public function deleteStandard(Request $request)
     {
-        $standard = Standard::find($request->id);
-        if ($standard) {
-            $standard->m15_status = $standard->m15_status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
-            $standard->save();
-            return response()->json([
-                'status' => 'success',
-                'message' => 'Status updated to ' . $standard->m15_status
-            ]);
-        }
-        return response()->json(['status' => 'error', 'message' => 'Standard not found.'], 404);
+        return toggleStatus('m15_standards', 'm15_standard_id', 'm15_status', $request->id);
     }
 
 
@@ -1425,7 +1179,6 @@ class MasterController extends Controller
             $validator = Validator::make($request->all(), [
                 'txt_sample_id'   => 'required|exists:m10_samples,m10_sample_id',
                 'txt_group_id'    => 'required|exists:m11_groups,m11_group_id',
-                // 'txt_test_id'     => 'required|exists:m12_tests,m12_test_id',
                 'txt_name'        => 'required|string|max:255',
                 'txt_unit'        => 'nullable|string|max:255',
                 'txt_requirement' => 'nullable|string|max:255',
@@ -1436,9 +1189,6 @@ class MasterController extends Controller
 
                 'txt_group_id.required'    => 'Please select a group.',
                 'txt_group_id.exists'      => 'Selected group is invalid.',
-
-                // 'txt_test_id.required'     => 'Please select a test.',
-                // 'txt_test_id.exists'       => 'Selected test is invalid.',
 
                 'txt_name.required'        => 'Parameter name is required.',
                 'txt_name.string'          => 'Parameter must be a string.',
@@ -1460,7 +1210,6 @@ class MasterController extends Controller
             PrimaryTest::create([
                 'm10_sample_id'   => $request->txt_sample_id,
                 'm11_group_id'    => $request->txt_group_id,
-                // 'm12_test_id'     => $request->txt_test_id,
                 'm16_name'        => $request->txt_name,
                 'm16_unit'        => $request->txt_unit,
                 'm16_requirement' => $request->txt_requirement,
@@ -1483,7 +1232,6 @@ class MasterController extends Controller
                 "txt_edit_id" => "required|exists:m16_primary_tests,m16_primary_test_id",
                 "txt_edit_sample_id" => "required|exists:m10_samples,m10_sample_id",
                 "txt_edit_group_id" => "required|exists:m11_groups,m11_group_id",
-                // "txt_edit_test_id" => "required|exists:m12_tests,m12_test_id",
                 "txt_edit_name" => "required|string|max:255",
                 "txt_edit_unit" => "nullable|string|max:255",
                 "txt_edit_requirement" => "nullable|string|max:255",
@@ -1491,7 +1239,6 @@ class MasterController extends Controller
             ], [
                 "txt_edit_sample_id.required" => "Sample selection is required.",
                 "txt_edit_group_id.required" => "Group selection is required.",
-                // "txt_edit_test_id.required" => "Test selection is required.",
                 "txt_edit_name.required" => "Parameter name is required.",
             ]);
 
@@ -1503,7 +1250,6 @@ class MasterController extends Controller
             $primaryTest->update([
                 'm10_sample_id' => $request->txt_edit_sample_id,
                 'm11_group_id' => $request->txt_edit_group_id,
-                // 'm12_test_id' => $request->txt_edit_test_id,
                 'm16_name' => $request->txt_edit_name,
                 'm16_unit' => $request->txt_edit_unit,
                 'm16_requirement' => $request->txt_edit_requirement,
@@ -1523,29 +1269,16 @@ class MasterController extends Controller
 
     public function deletePrimaryTest(Request $request)
     {
-        $primaryTest = PrimaryTest::find($request->id);
-        if ($primaryTest) {
-            $primaryTest->m16_status = $primaryTest->m16_status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
-            $primaryTest->save();
-
-            return response()->json([
-                'status' => 'success',
-                'message' => 'Status updated to ' . $primaryTest->m16_status
-            ]);
-        }
-
-        return response()->json(['status' => 'error', 'message' => 'Primary Test not found.'], 404);
+        return toggleStatus('m16_primary_tests', 'm16_primary_test_id', 'm16_status', $request->id);
     }
 
     public function getPrimaryTests(Request $request)
     {
         $groupId = $request->group_id;
-
         $primaryTests = PrimaryTest::where('m11_group_id', $groupId)
             ->where('m16_status', 'ACTIVE')
             ->orderBy('m16_name')
             ->get(['m16_primary_test_id', 'm16_name']);
-
         return response()->json($primaryTests);
     }
     public function viewSecondaryTests()
@@ -1560,7 +1293,6 @@ class MasterController extends Controller
             $validator = Validator::make($request->all(), [
                 'txt_sample_id'       => 'required|exists:m10_samples,m10_sample_id',
                 'txt_group_id'        => 'required|exists:m11_groups,m11_group_id',
-                // 'txt_test_id'         => 'required|exists:m12_tests,m12_test_id',
                 'txt_primary_test_id' => 'required|exists:m16_primary_tests,m16_primary_test_id',
                 'txt_name'            => 'required|string|max:255',
                 'txt_unit'            => 'nullable|string|max:50',
@@ -1570,9 +1302,6 @@ class MasterController extends Controller
 
                 'txt_group_id.required'        => 'Please select a group.',
                 'txt_group_id.exists'          => 'The selected group is invalid.',
-
-                // 'txt_test_id.required'         => 'Please select a test.',
-                // 'txt_test_id.exists'           => 'The selected test is invalid.',
 
                 'txt_primary_test_id.required' => 'Please select a primary test.',
                 'txt_primary_test_id.exists'   => 'The selected primary test is invalid.',
@@ -1585,7 +1314,6 @@ class MasterController extends Controller
             $data = [
                 'm10_sample_id' => $request->txt_sample_id,
                 'm11_group_id' => $request->txt_group_id,
-                // 'm12_test_id' => $request->txt_test_id,
                 'm16_primary_test_id' => $request->txt_primary_test_id,
                 'm17_name' => $request->txt_name,
                 'm17_unit' => $request->txt_unit,
@@ -1611,7 +1339,6 @@ class MasterController extends Controller
             $validator = Validator::make($request->all(), [
                 'txt_edit_sample_id'       => 'required|exists:m10_samples,m10_sample_id',
                 'txt_edit_group_id'        => 'required|exists:m11_groups,m11_group_id',
-                // 'txt_edit_test_id'         => 'required|exists:m12_tests,m12_test_id',
                 'txt_edit_primary_test_id' => 'required|exists:m16_primary_tests,m16_primary_test_id',
                 'txt_edit_name'            => 'required|string|max:255',
                 'txt_edit_unit'            => 'nullable|string|max:50',
@@ -1621,9 +1348,6 @@ class MasterController extends Controller
 
                 'txt_edit_group_id.required'        => 'Please select a group.',
                 'txt_edit_group_id.exists'          => 'The selected group is invalid.',
-
-                // 'txt_edit_test_id.required'         => 'Please select a test.',
-                // 'txt_edit_test_id.exists'           => 'The selected test is invalid.',
 
                 'txt_edit_primary_test_id.required' => 'Please select a primary test.',
                 'txt_edit_primary_test_id.exists'   => 'The selected primary test is invalid.',
@@ -1641,7 +1365,6 @@ class MasterController extends Controller
             $data = [
                 'm10_sample_id'        => $request->txt_edit_sample_id,
                 'm11_group_id'         => $request->txt_edit_group_id,
-                // 'm12_test_id'          => $request->txt_edit_test_id,
                 'm16_primary_test_id'  => $request->txt_edit_primary_test_id,
                 'm17_name'             => $request->txt_edit_name,
                 'm17_unit'             => $request->txt_edit_unit,
@@ -1665,18 +1388,7 @@ class MasterController extends Controller
 
     public function deleteSecondaryTest(Request $request)
     {
-        $secondaryTest = SecondaryTest::find($request->id);
-        if ($secondaryTest) {
-            $secondaryTest->m17_status = $secondaryTest->m17_status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
-            $secondaryTest->save();
-
-            return response()->json([
-                'status' => 'success',
-                'message' => 'Status updated to ' . $secondaryTest->m17_status
-            ]);
-        }
-
-        return response()->json(['status' => 'error', 'message' => 'Primary Test not found.'], 404);
+        return toggleStatus('m17_secondary_tests', 'm17_secondary_test_id', 'm17_status', $request->id);
     }
 
     public function viewPackage()
@@ -1769,7 +1481,6 @@ class MasterController extends Controller
                     'm19_description' => $request->m19_description,
                 ]);
 
-                // Delete old tests and re-insert
                 PackageTest::where('m19_package_id', $package->m19_package_id)->delete();
 
                 foreach ($request->tests as $testRow) {
@@ -1779,12 +1490,15 @@ class MasterController extends Controller
                         'm15_standard_id' => $testRow['standard_id'],
                     ]);
                 }
-
                 DB::commit();
-                return redirect()->route('view_package')->with('success', 'Package updated successfully!');
+                Session::flash('type', 'success');
+                Session::flash('message', 'Package updated successfully!');
+                return to_route('view_package');
             } catch (\Exception $e) {
                 DB::rollBack();
-                return back()->with('error', 'Something went wrong. ' . $e->getMessage());
+                Session::flash('type', 'error');
+                Session::flash('message', 'Something went wrong. ' . $e->getMessage());
+                return back();
             }
         }
         $package = Package::with('packageTests.test')->findOrFail($id);
@@ -1794,16 +1508,12 @@ class MasterController extends Controller
 
     public function deletePackage(Request $request)
     {
-        $package = Package::find($request->id);
-        if ($package) {
-            $package->m19_status = $package->m19_status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
-            $package->save();
-            return response()->json([
-                'status' => 'success',
-                'message' => 'Status updated to ' . $package->m19_status
-            ]);
-        }
-        return response()->json(['status' => 'error', 'message' => 'Package not found.'], 404);
+        return toggleStatus(
+            'm19_packages',
+            'm19_package_id',
+            'm19_status',
+            $request->id
+        );
     }
     public function viewContract()
     {
@@ -1815,7 +1525,6 @@ class MasterController extends Controller
     public function createContract(Request $request)
     {
         if ($request->isMethod('POST')) {
-            // dd($request);
             $validator = Validator::make($request->all(), [
                 'txt_name' => 'required|string|max:255|unique:m19_packages,m19_name',
                 'txt_charges' => 'nullable|numeric|min:0',
@@ -1873,7 +1582,6 @@ class MasterController extends Controller
     public function updateContract(Request $request, $id)
     {
         if ($request->isMethod('POST')) {
-            // dd($request);
             $validator = Validator::make($request->all(), [
                 'txt_name' => 'required|string|max:255|unique:m19_packages,m19_name,' . $id . ',m19_package_id',
                 'txt_charges' => 'nullable|numeric|min:0',
@@ -1890,7 +1598,7 @@ class MasterController extends Controller
             ]);
 
             if ($validator->fails()) {
-                dd($validator);
+                return redirect()->back()->withErrors($validator)->withInput();
             }
 
             DB::beginTransaction();
@@ -1915,10 +1623,14 @@ class MasterController extends Controller
                 }
 
                 DB::commit();
-                return redirect()->route('view_contract')->with('success', 'Contract updated successfully!');
+                Session::flash('type', 'success');
+                Session::flash('message', 'Contract updated successfully!');
+                return to_route('view_contract');
             } catch (\Exception $e) {
                 DB::rollBack();
-                return back()->with('error', 'Something went wrong. ' . $e->getMessage());
+                Session::flash('type', 'error');
+                Session::flash('message', 'Something went wrong. ' . $e->getMessage());
+                return back();
             }
         }
         $package = Package::with('packageTests.test', 'customer')->findOrFail($id);
@@ -1926,19 +1638,6 @@ class MasterController extends Controller
         return view('master.contract.edit_contract', compact('package', 'tests'));
     }
 
-    public function deleteContract(Request $request)
-    {
-        $package = Package::find($request->id);
-        if ($package) {
-            $package->m19_status = $package->m19_status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
-            $package->save();
-            return response()->json([
-                'status' => 'success',
-                'message' => 'Status updated to ' . $package->m19_status
-            ]);
-        }
-        return response()->json(['status' => 'error', 'message' => 'Contract not found.'], 404);
-    }
 
     public function viewSpecification()
     {
@@ -1949,7 +1648,6 @@ class MasterController extends Controller
     public function createSpecification(Request $request)
     {
         if ($request->isMethod('POST')) {
-            // dd($request);
             $validator = Validator::make($request->all(), [
                 'txt_name' => 'required|string|max:255|unique:m19_packages,m19_name',
                 'txt_charges' => 'nullable|numeric|min:0',
@@ -2006,7 +1704,6 @@ class MasterController extends Controller
     public function updateSpecification(Request $request, $id)
     {
         if ($request->isMethod('POST')) {
-            // dd($request);
             $validator = Validator::make($request->all(), [
                 'txt_name' => 'required|string|max:255|unique:m19_packages,m19_name,' . $id . ',m19_package_id',
                 'txt_charges' => 'nullable|numeric|min:0',
@@ -2059,21 +1756,6 @@ class MasterController extends Controller
         return view('master.specification.edit_specification', compact('specification', 'tests'));
     }
 
-
-    public function deleteSpecification(Request $request)
-    {
-        $package = Package::find($request->id);
-        if ($package) {
-            $package->m19_status = $package->m19_status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
-            $package->save();
-            return response()->json([
-                'status' => 'success',
-                'message' => 'Status updated to ' . $package->m19_status
-            ]);
-        }
-        return response()->json(['status' => 'error', 'message' => 'Specification not found.'], 404);
-    }
-
     public function viewCustom()
     {
         $customs = Package::where('m19_type', 'CUSTOM')->with(['packageTests.test', 'packageTests.standard', 'customer'])->get();
@@ -2084,7 +1766,6 @@ class MasterController extends Controller
     public function createCustom(Request $request)
     {
         if ($request->isMethod('POST')) {
-            // dd($request);
             $validator = Validator::make($request->all(), [
                 'txt_name' => 'required|string|max:255|unique:m19_packages,m19_name',
                 'txt_charges' => 'nullable|numeric|min:0',
@@ -2134,7 +1815,6 @@ class MasterController extends Controller
                 return redirect()->back();
             }
         }
-
         $tests = Test::all();
         return view('master.custom.create_custom', compact('tests'));
     }
@@ -2142,7 +1822,6 @@ class MasterController extends Controller
     public function updateCustom(Request $request, $id)
     {
         if ($request->isMethod('POST')) {
-            // dd($request);
             $validator = Validator::make($request->all(), [
                 'txt_name' => 'required|string|max:255|unique:m19_packages,m19_name,' . $id . ',m19_package_id',
                 'txt_charges' => 'nullable|numeric|min:0',
@@ -2193,20 +1872,5 @@ class MasterController extends Controller
         $custom = Package::with('packageTests.test')->findOrFail($id);
         $tests = Test::all();
         return view('master.custom.edit_custom', compact('custom', 'tests'));
-    }
-
-
-    public function deleteCustom(Request $request)
-    {
-        $package = Package::find($request->id);
-        if ($package) {
-            $package->m19_status = $package->m19_status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
-            $package->save();
-            return response()->json([
-                'status' => 'success',
-                'message' => 'Status updated to ' . $package->m19_status
-            ]);
-        }
-        return response()->json(['status' => 'error', 'message' => 'Specification not found.'], 404);
     }
 }

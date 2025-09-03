@@ -329,18 +329,29 @@
                                             <div class="col-md-6">
                                                 <div class="card border">
                                                     <div class="card-inner">
-                                                        <h6 class="card-title mb-3">Sample Information</h6>
-                                                        <ul class="list-plain">
-                                                            <li><strong>Lab Sample:</strong>
-                                                                {{ $sample->labSample['m14_name'] ?? 'N/A' }}</li>
-                                                            <li><strong>Description:</strong>
-                                                                {{ $sample->tr04_sample_description ?? 'N/A' }}</li>
-                                                            <li><strong>Received Via:</strong>
-                                                                {{ ucfirst(str_replace('_', ' ', $sample->tr04_received_via)) }}
-                                                            </li>
-                                                            <li><strong>Customer Type:</strong>
-                                                                {{ $sample->customerType['m09_name'] ?? 'N/A' }}</li>
-                                                        </ul>
+                                                        <div class="row">
+                                                            <div class="col-6">
+                                                                <h6 class="card-title mb-3">Sample Information</h6>
+                                                                <ul class="list-plain">
+                                                                    <li><strong>Lab Sample:</strong>
+                                                                        {{ $sample->labSample['m14_name'] ?? 'N/A' }}
+                                                                    </li>
+                                                                    <li><strong>Description:</strong>
+                                                                        {{ $sample->tr04_sample_description ?? 'N/A' }}
+                                                                    </li>
+                                                                    <li><strong>Received Via:</strong>
+                                                                        {{ ucfirst(str_replace('_', ' ', $sample->tr04_received_via)) }}
+                                                                    </li>
+                                                                </ul>
+                                                            </div>
+                                                            <div class="col-6">
+                                                                @if ($sample->tr04_attachment)
+                                                                    <img src="{{ asset('storage/' . $sample->tr04_attachment) }}"
+                                                                        alt="Sample Image" class="img-thumbnail"
+                                                                        style="width: 100%; max-width: 200px; height: auto; object-fit: cover;">
+                                                                @endif
+                                                            </div>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -358,9 +369,9 @@
                                                             <li><strong>Payment Status:</strong>
                                                                 <span
                                                                     class="badge 
-                                                                    @if ($sample->tr04_payment == 'COMPLETED') badge-success 
-                                                                    @elseif($sample->tr04_payment == 'PENDING') badge-warning 
-                                                                    @else badge-secondary @endif">
+                                                                    @if ($sample->tr04_payment == 'COMPLETED') bg-success 
+                                                                    @elseif($sample->tr04_payment == 'PENDING') bg-warning 
+                                                                    @else bg-secondary @endif">
                                                                     {{ $sample->tr04_payment }}
                                                                 </span>
                                                             </li>
@@ -402,14 +413,14 @@
                                                                 @endif
                                                                 @if ($sampleTest['test']['m12_alias'])
                                                                     <br><span
-                                                                        class="badge badge-outline-info">{{ $sampleTest['test']['m12_alias'] }}</span>
+                                                                        class="badge bg-outline-info">{{ $sampleTest['test']['m12_alias'] }}</span>
                                                                 @endif
                                                             </td>
                                                             <td>
                                                                 {{ $sampleTest['standard']['m15_method'] ?? 'N/A' }}
                                                                 @if ($sampleTest['standard']['m15_accredited'] === 'YES')
                                                                     <br><span
-                                                                        class="badge badge-success badge-sm">Accredited</span>
+                                                                        class="badge bg-outline-success badge-xs">Accredited</span>
                                                                 @endif
                                                             </td>
                                                             <td>{{ $sampleTest['test']['m12_unit'] ?? 'N/A' }}</td>
@@ -417,11 +428,11 @@
                                                             </td>
                                                             <td>
                                                                 <span
-                                                                    class="badge 
-                                                                @if ($sampleTest['tr05_status'] == 'COMPLETED') badge-success 
-                                                                @elseif($sampleTest['tr05_status'] == 'PENDING') badge-warning 
-                                                                @elseif($sampleTest['tr05_status'] == 'IN_PROGRESS') badge-info 
-                                                                @else badge-secondary @endif">
+                                                                    class="bold 
+                                                                @if ($sampleTest['tr05_status'] == 'COMPLETED') text-success 
+                                                                @elseif($sampleTest['tr05_status'] == 'PENDING') text-warning 
+                                                                @elseif($sampleTest['tr05_status'] == 'IN_PROGRESS') text-info 
+                                                                @else text-secondary @endif">
                                                                     {{ ucfirst(strtolower(str_replace('_', ' ', $sampleTest['tr05_status']))) }}
                                                                 </span>
                                                             </td>
@@ -459,7 +470,7 @@
                                             @if ($sample->tr04_details)
                                                 <div class="nk-notes ff-italic fs-12px text-soft mt-3">
                                                     <strong>Lab Info:</strong> Laboratory of Textiles
-                                                    {{ $sample->ro->m04_name }}
+                                                    {{ $sample->ro->m04_name ?? '' }}
                                                 </div>
                                             @endif
                                         </div>

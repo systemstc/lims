@@ -12,14 +12,13 @@ use App\Models\SampleTest;
 use App\Models\Standard;
 use App\Models\State;
 use App\Models\Test;
-// use Illuminate\Contracts\Session\Session;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Str;
 use Yajra\DataTables\Facades\DataTables;
 
 class RegistrationController extends Controller
@@ -27,8 +26,6 @@ class RegistrationController extends Controller
     public function preRegistration(Request $request)
     {
         if ($request->isMethod('POST')) {
-
-            // dd($request);
             $validator = Validator::make($request->all(), [
                 "dd_customer_type" => "required|exists:m09_customer_types,m09_customer_type_id",
                 "txt_customer_name" => "required|string",
@@ -41,19 +38,20 @@ class RegistrationController extends Controller
                 "txt_ref_date" => "required|date",
                 "txt_received_via" => "required",
                 "txt_details" => "nullable|string",
-                "dd_sample_type" => "required|exists:m14_lab_samples,m14_lab_sample_id",
+                // "dd_sample_type" => "required|exists:m14_lab_samples,m14_lab_sample_id",
                 "dd_priority_type" => "required|in:Normal,Urgent",
                 "txt_description" => "nullable|string",
-                // "dd_test_type" => "required|in:SPECIFICATION,GENERAL,CONTRACT,CUATOM,PACKAGE",
+                'txt_sample_image' => 'required|string',
                 "txt_due_date" => "required|date",
                 "txt_testing_charges" => "required|numeric",
                 "txt_aditional_charges" => "nullable|numeric",
                 "txt_total_charges" => "required|numeric",
                 "tests" => "required|array",
+                "tests.*.test_id" => "required|exists:m12_tests,m12_test_id",
+                "tests.*.standard_id" => "nullable|exists:m15_standards,m15_standard_id",
             ]);
 
             if ($validator->fails()) {
-                // dd($validator);
                 return redirect()->back()->withErrors($validator)->withInput();
             }
             DB::beginTransaction();
@@ -62,19 +60,14 @@ class RegistrationController extends Controller
                     'm04_ro_id' => Session::get('ro_id') ?? -1,
                     'tr04_tracker_id' => 'ABCD',
                     'm09_customer_type_id' => $request->dd_customer_type,
-
                     'm07_customer_id' => $request->selected_customer_id,
                     'm08_customer_location_id' => $request->selected_customer_address_id == 'default' ? 0 : $request->selected_customer_address_id,
-
                     'm07_buyer_id' => $request->selected_buyer_id,
                     'm08_buyer_location_id' => $request->selected_buyer_address_id == 'default' ? 0 : $request->selected_buyer_address_id,
-
                     'm07_third_party_id' => $request->selected_third_party_id,
                     'm08_third_party_location_id' => $request->selected_third_party_address_id == 'default' ? 0 : $request->selected_third_party_address_id,
-
                     'm07_cha_id' => $request->selected_cha_id,
                     'm08_cha_location_id' => $request->selected_cha_address_id == 'default' ? 0 : $request->selected_cha_address_id,
-
                     'tr04_payment_by' => $request->txt_payment_by,
                     'tr04_report_to' => $request->txt_report_to,
                     'tr04_reference_no' => $request->txt_reference,
@@ -95,20 +88,31 @@ class RegistrationController extends Controller
                     'tr04_progress' => 'REGISTERED',
                     'tr04_created_by' => Session::get('user_id') ?? -1,
                 ];
-                if ($request->hasFile('txt_attachment')) {
-                    $folderPath = 'attachments/' . date('Y') . '/' . date('m');
-                    $originalName = pathinfo($request->file('txt_attachment')->getClientOriginalName(), PATHINFO_FILENAME);
-                    $safeName = Str::slug($originalName);
-                    $extension = $request->file('txt_attachment')->getClientOriginalExtension();
-                    $uniqueName = $safeName . '-' . time() . '-' . Str::random(6) . '.' . $extension;
-                    $path = $request->file('txt_attachment')->storeAs($folderPath, $uniqueName, 'public');
-                    $data['tr04_attachment'] = $path;
+                $base64Image = $request->input('txt_sample_image');
+                if (preg_match('/^data:image\/(\w+);base64,/', $base64Image, $type)) {
+                    $imageData = substr($base64Image, strpos($base64Image, ',') + 1);
+                    $type = strtolower($type[1]);
+
+                    if (!in_array($type, ['jpg', 'jpeg', 'png'])) {
+                        return back()->withErrors(['txt_sample_image' => 'Invalid image type']);
+                    }
+
+                    $imageData = base64_decode($imageData);
+                    if ($imageData === false) {
+                        return back()->withErrors(['txt_sample_image' => 'Base64 decode failed']);
+                    }
+
+                    $fileName = 'sample_' . time() . '.' . $type;
+                    Storage::disk('public')->put("samples/{$fileName}", $imageData);
+
+                    $data['tr04_attachment'] = "samples/{$fileName}";
+                } else {
+                    return back()->withErrors(['txt_sample_image' => 'Invalid image data']);
                 }
 
                 $registration = SampleRegistration::create($data);
                 foreach ($request->tests as $test) {
                     $testId = $test['test_id'] ?? null;
-
                     $primaryIds = null;
                     $secondaryIds = null;
 
@@ -123,7 +127,7 @@ class RegistrationController extends Controller
                     SampleTest::create([
                         'tr04_sample_registration_id' => $registration->tr04_sample_registration_id,
                         'm12_test_id' => $testId,
-                        'm04_ro_id' => Session::get('ro_id'), 
+                        'm04_ro_id' => Session::get('ro_id') ?? -1,
                         'm16_primary_test_id' => $primaryIds,
                         'm17_secondary_test_id' => $secondaryIds,
                         'm15_standard_id' => $test['standard_id'] ?? null,
@@ -132,14 +136,13 @@ class RegistrationController extends Controller
                         'tr05_remark' => null,
                     ]);
                 }
-
                 DB::commit();
                 Session::flash('type', 'success');
                 Session::flash('message', 'Sample Registered Successfully!');
                 return redirect()->back();
             } catch (\Exception $e) {
                 DB::rollBack();
-                \Log::error('Sample Registration Error: ' . $e->getMessage(), [
+                Log::error('Sample Registration Error: ' . $e->getMessage(), [
                     'trace' => $e->getTraceAsString()
                 ]);
                 Session::flash('type', 'error');
@@ -147,15 +150,12 @@ class RegistrationController extends Controller
                 return redirect()->back()->withInput();
             }
         }
-
-        // GET request → load form
         $customerTypes = CustomerType::where('m09_status', 'ACTIVE')->get(['m09_customer_type_id', 'm09_name']);
         $labSamples = LabSample::where('m14_status', 'ACTIVE')->get(['m14_lab_sample_id', 'm14_name']);
         $groups = Group::where('m11_status', 'ACTIVE')->get(['m11_group_id', 'm11_name']);
         $states = State::where('m01_status', 'ACTIVE')->get(['m01_state_id', 'm01_name']);
         return view('registration.preRegistration.register_sample', compact('customerTypes', 'labSamples', 'groups', 'states'));
     }
-
 
     public function searchCustomer(Request $request)
     {
@@ -177,7 +177,7 @@ class RegistrationController extends Controller
                             'id' => $customer->m07_customer_id,
                             'name' => $customer->m07_name,
                             'default_address' => [
-                                'id' => 'default_' . $customer->m07_customer_id, // Special ID for default
+                                'id' => 'default_' . $customer->m07_customer_id, 
                                 'customer_id' => $customer->m07_customer_id,
                                 'address' => $customer->m07_address,
                                 'state' => $customer->state?->m01_state_name,
@@ -310,7 +310,6 @@ class RegistrationController extends Controller
         $package = Package::where('m19_package_id', $request->contract_id)
             ->with('packageTests.test', 'packageTests.standard')
             ->firstOrFail();
-
         $tests = [
             'id' => $package->m19_package_id,
             'name' => $package->m19_name,
@@ -356,6 +355,9 @@ class RegistrationController extends Controller
                 ->addColumn('sample_description', function ($row) {
                     return $row->tr04_sample_description ?? 'N/A';
                 })
+                ->addColumn('sanple_image', function($row){
+                    return $row->tr04_attachment ? asset('storage/' . $row->tr04_attachment) : null;
+                })
                 ->addColumn('customer_type', function ($row) {
                     return $row->customerType ? $row->customerType->m09_name : 'N/A';
                 })
@@ -384,8 +386,8 @@ class RegistrationController extends Controller
                     return '<span class="badge badge-dot ' . $statusClass . '">' . ucfirst($statusText) . '</span>';
                 })
                 ->addColumn('amount', function ($row) {
-                    $amount = $row->total_amount ?? 0;
-                    return '<span class="amount">$' . number_format($amount, 2) . '</span>';
+                    $amount = $row->tr04_total_charges ?? 0;
+                    return '<span class="amount">&#8377; &nbsp;' . number_format($amount, 2) . '</span>';
                 })
                 ->addColumn('created_date', function ($row) {
                     return $row->created_at ? $row->created_at->format('d M Y, h:ia') : 'N/A';
@@ -428,9 +430,6 @@ class RegistrationController extends Controller
                 $test->append(['primary_tests', 'secondary_tests']);
             });
         });
-
-        // dd($samples->toArray());
-
         return view('registration.registration_details', compact('sample'));
     }
 

@@ -4,14 +4,14 @@
 
 <body class="nk-body bg-lighter npc-default has-sidebar">
     <!-- Loader Overlay -->
-<!-- Loader Overlay -->
-<div id="global-loader" style="display:none;">
-  <div class="loader">
-    <div class="dot dot1"></div>
-    <div class="dot dot2"></div>
-  </div>
-  <div class="loader-text">Loading...</div>
-</div>
+    <!-- Loader Overlay -->
+    <div id="global-loader" style="display:none;">
+        <div class="loader">
+            <div class="dot dot1"></div>
+            <div class="dot dot2"></div>
+        </div>
+        <div class="loader-text">Loading...</div>
+    </div>
 
 
 
@@ -31,6 +31,54 @@
     </div>
     @include('layouts.backLayout.scripts')
     <script>
+        // Function that toggles status between active and inactive 
+        function bindToggleStatus(className = '.eg-swal-av3', route = null) {
+            $(document).on('click', className, function(e) {
+                e.preventDefault();
+                let recordId = $(this).data('id');
+                Swal.fire({
+                    title: 'Are you sure?',
+                    text: `Change status?`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Yes, change it!'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: route || "/toggle-status",
+                            method: 'POST',
+                            headers: {
+                                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                            },
+                            data: {
+                                id: recordId,
+                            },
+                            success: function(data) {
+                                if (data.status === 'success') {
+                                    Swal.fire({
+                                        icon: 'success',
+                                        title: 'Updated!',
+                                        text: data.message,
+                                        timer: 1500,
+                                        showConfirmButton: false
+                                    }).then(() => {
+                                        window.location.reload();
+                                    });
+                                } else {
+                                    Swal.fire('Error!', data.message, 'error');
+                                }
+                            },
+                            error: function() {
+                                Swal.fire('Error!', 'Something went wrong.', 'error');
+                            }
+                        });
+                    }
+                });
+            });
+        }
+
+
+        // Toaster that toast on top right side for each session messages 
         const hasMessage = @json(Session::has('message'));
         const message = @json(Session::get('message'));
         const type = @json(Session::get('type'));

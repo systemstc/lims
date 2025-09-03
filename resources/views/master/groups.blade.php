@@ -14,7 +14,6 @@
                                 </div>
                             </div>
                         </div>
-
                         <div class="card card-bordered card-preview">
                             <div class="card-inner">
                                 <table class="datatable-init-export nowrap table" data-export-title="Export">
@@ -176,7 +175,6 @@
         </div>
     </div>
 
-
     {{-- Edit & Update Model --}}
     <div class="modal fade zoom" tabindex="-1" id="updateGroup">
         <div class="modal-dialog modal-lg" role="document"> {{-- Large modal --}}
@@ -189,9 +187,7 @@
                             <em class="icon ni ni-cross"></em>
                         </a>
                     </div>
-
                     <input type="hidden" name="txt_edit_group_id" id="txt_edit_group_id">
-
                     <div class="modal-body">
                         <div class="row">
                             {{-- Sample Dropdown --}}
@@ -259,7 +255,6 @@
                             </div>
                         </div> <!-- .row -->
                     </div>
-
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                         <button type="submit" class="btn btn-primary">Update</button>
@@ -286,7 +281,6 @@
         </script>
     @endif
 
-
     <script>
         $(document).ready(function() {
             $(document).on('click', '.edit-btn', function() {
@@ -296,52 +290,8 @@
                 $('#txt_edit_sample_id').val($(this).data('sample'));
                 $('#txt_edit_remark').val($(this).data('remark'));
             });
-
-
-            $(document).on('click', '.eg-swal-av3', function(e) {
-                e.preventDefault();
-                let groupId = $(this).data('id');
-                let currentStatus = $(this).data('status');
-                let newStatus = currentStatus === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
-
-                Swal.fire({
-                    title: 'Are you sure?',
-                    text: `Change status to ${newStatus}?`,
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonText: 'Yes, change it!'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        $.ajax({
-                            url: '/delete-group',
-                            method: 'POST',
-                            headers: {
-                                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                            },
-                            data: {
-                                id: groupId
-                            },
-                            success: function(data) {
-                                if (data.status === 'success') {
-                                    Swal.fire({
-                                        icon: 'success',
-                                        title: 'Updated!',
-                                        text: data.message,
-                                        timer: 1500,
-                                        showConfirmButton: false
-                                    }).then(() => {
-                                        window.location.reload();
-
-                                    });
-                                }
-                            },
-                            error: function() {
-                                Swal.fire('Error!', 'Something went wrong.', 'error');
-                            }
-                        });
-                    }
-                });
-            });
+            // To change the status 
+            bindToggleStatus('.eg-swal-av3', "{{ route('delete_group') }}");
         });
     </script>
 @endsection

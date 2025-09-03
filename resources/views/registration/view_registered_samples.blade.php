@@ -23,6 +23,7 @@
                                                     <th>Sample ID</th>
                                                     <th>Date</th>
                                                     <th>Sample Description</th>
+                                                    <th>Sample Image</th>
                                                     <th>Customer Type</th>
                                                     <th>Amount</th>
                                                     <th>Status</th>
@@ -39,6 +40,21 @@
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Image Preview Modal -->
+    <div class="modal fade" id="imageModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Sample Image</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <img id="sampleImagePreview" src="" alt="Sample Image" class="img-fluid rounded">
                 </div>
             </div>
         </div>
@@ -65,6 +81,19 @@
                         data: 'sample_description',
                         name: 'sample_description'
                     },
+                    {
+                        data: 'sanple_image',
+                        name: 'sanple_image',
+                        render: function(data, type, row) {
+                            if (data) {
+                                return `<button class="btn view-image" data-image="${data}">
+                                <em class="icon ni ni-eye-fill"></em></button>`;
+                            } else {
+                                return `<span class="text-muted">No Image</span>`;
+                            }
+                        }
+                    },
+
                     {
                         data: 'customer_type',
                         name: 'customer_type'
@@ -101,6 +130,11 @@
                     emptyTable: "No registered samples found",
                     zeroRecords: "No matching records found"
                 }
+            });
+            $(document).on('click', '.view-image', function() {
+                var imageUrl = $(this).data('image');
+                $('#sampleImagePreview').attr('src', imageUrl);
+                $('#imageModal').modal('show');
             });
         });
     </script>

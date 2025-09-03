@@ -4,7 +4,6 @@ use App\Http\Controllers\AllottmentController;
 use App\Http\Controllers\AnalystController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CustomerController;
-use App\Http\Controllers\CustomerSearchController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\MasterController;
 use App\Http\Controllers\MeasurementController;
@@ -13,8 +12,6 @@ use App\Http\Controllers\RoController;
 use App\Http\Controllers\SampleController;
 use App\Http\Controllers\TestResultController;
 use App\Http\Controllers\ValidationController;
-use App\Models\Customer;
-use App\Models\Employee;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Session;
 
@@ -136,19 +133,16 @@ Route::middleware(['check_permission'])->group(function () {
     Route::get('contracts', [MasterController::class, 'viewContract'])->name('view_contract');
     Route::match(['get', 'post'], 'create-contract', [MasterController::class, 'createContract'])->name('create_contract');
     Route::match(['get', 'post'], 'update-contract/{id}', [MasterController::class, 'updateContract'])->name('update_contract');
-    Route::post('delete-contract', [MasterController::class, 'deleteContract'])->name('delete_contract');
 
     // For Specification 
     Route::get('specifications', [MasterController::class, 'viewSpecification'])->name('view_specification');
     Route::match(['get', 'post'], 'create-specification', [MasterController::class, 'createSpecification'])->name('create_specification');
     Route::match(['get', 'post'], 'update-specification/{id}', [MasterController::class, 'updateSpecification'])->name('update_specification');
-    Route::post('delete-specification', [MasterController::class, 'deleteSpecification'])->name('delete_specification');
 
-    // For Specification 
+    // For Custom 
     Route::get('customs', [MasterController::class, 'viewCustom'])->name('view_custom');
     Route::match(['get', 'post'], 'create-custom', [MasterController::class, 'createCustom'])->name('create_custom');
     Route::match(['get', 'post'], 'update-custom/{id}', [MasterController::class, 'updateCustom'])->name('update_custom');
-    Route::post('delete-custom', [MasterController::class, 'deleteCustom'])->name('delete_custom');
 
     // For Simple and Multi Value measurements
     Route::get('measurements', [MeasurementController::class, 'viewMeasurements'])->name('view_measurements');
@@ -157,25 +151,16 @@ Route::middleware(['check_permission'])->group(function () {
     Route::post('delete-measurement', [MeasurementController::class, 'deleteMeasurement'])->name('delete_measurement');
 
     //Sample Registration
-    // Route::get('registered-sample', [RegistrationController::class, 'viewSampleRegistration'])->name('view_registered_smple');
     Route::match(['get', 'post'], 'sample-regsitration', [RegistrationController::class, 'preRegistration'])->name('register_sample');
-
     Route::get('registered-samples', [RegistrationController::class, 'viewRegSamples'])->name('view_registered_samples');
 
-
     // Sample detail routes 
-    Route::get('/samples/{id}/details', [RegistrationController::class, 'showSampleDetails'])
-        ->name('view_registration_pdf');
-
-    Route::get('/samples/{id}/print', [RegistrationController::class, 'printSampleDetails'])
-        ->name('print_sample_acknowledgement');
+    Route::get('/samples/{id}/details', [RegistrationController::class, 'showSampleDetails'])->name('view_registration_pdf');
+    Route::get('/samples/{id}/print', [RegistrationController::class, 'printSampleDetails'])->name('print_sample_acknowledgement');
 
     // aLLOTTMENT 
     Route::prefix('allotment')->group(function () {
-        // Dashboard - pending allotments list
         Route::get('/dashboard', [AllottmentController::class, 'pendingAllotments'])->name('view_allottment');
-
-        // Individual registration allotment management
         Route::get('/manage/{registrationId}', [AllottmentController::class, 'viewAllottment'])->name('show_allotment');
     });
 
@@ -187,7 +172,6 @@ Route::middleware(['check_permission'])->group(function () {
 
     // Test Result Management Routes
     Route::prefix('test-results')->group(function () {
-
         // Main CRUD routes
         Route::get('/', [TestResultController::class, 'index'])->name('test_results');
         Route::get('/create', [TestResultController::class, 'create'])->name('create_test_result');
