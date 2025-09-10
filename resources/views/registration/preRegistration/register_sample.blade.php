@@ -372,9 +372,9 @@
                                                                     <div class="custom-control custom-radio">
                                                                         <input type="radio" class="custom-control-input"
                                                                             id="byHand" name="txt_received_via"
-                                                                            value="by_post">
+                                                                            value="by_hand">
                                                                         <label class="custom-control-label"
-                                                                            for="byHand">By</label>
+                                                                            for="byHand">By Hand</label>
                                                                     </div>
                                                                 </div>
                                                             </div>
@@ -392,8 +392,27 @@
                                                     </div>
                                                     <div class="col-md-6">
                                                         <div class="form-group">
+                                                            <label class="form-label" for="dd_department">Lab Department<b
+                                                                    class="text-danger">*</b></label>
+                                                            <div class="form-control-wrap">
+                                                                <select class="form-control required" name="dd_department"
+                                                                    id="dd_department" required>
+                                                                    <option value="" selected disabled>Select Lab
+                                                                        Department
+                                                                    </option>
+                                                                    @foreach ($departments as $department)
+                                                                        <option
+                                                                            value="{{ $department->m13_department_id }}">
+                                                                            {{ $department->m13_name }}</option>
+                                                                    @endforeach
+                                                                </select>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <div class="form-group">
                                                             <label class="form-label" for="dd_sample_type">Sample
-                                                                Type<b class="text-danger">*</b></label>
+                                                                Charactor<b class="text-danger">*</b></label>
                                                             <div class="form-control-wrap">
                                                                 <select class="form-control required"
                                                                     name="dd_sample_type" id="dd_sample_type" required>
@@ -411,8 +430,8 @@
                                                     </div>
                                                     <div class="col-md-6">
                                                         <div class="form-group">
-                                                            <label class="form-label" for="dd_priority_type">Sample
-                                                                Type</label>
+                                                            <label class="form-label"
+                                                                for="dd_priority_type">Priority</label>
                                                             <div class="form-control-wrap">
                                                                 <select class="form-select" name="dd_priority_type"
                                                                     id="dd_priority_type">
@@ -422,21 +441,34 @@
                                                             </div>
                                                         </div>
                                                     </div>
-                                                    {{-- <div class="col-md-6">
+                                                    <div class="col-md-6">
                                                         <div class="form-group">
-                                                            <label class="form-label"
-                                                                for="txt_attachment">Attachment</label>
+                                                            <label class="form-label" for="txt_number_of_samples">
+                                                                Number of Samples
+                                                            </label>
                                                             <div class="form-control-wrap">
-                                                                <div class="form-file">
-                                                                    <input type="file" class="form-file-input"
-                                                                        name="txt_attachment" id="txt_attachment">
-                                                                    <label class="form-file-label"
-                                                                        for="txt_attachment">Choose
-                                                                        file</label>
+                                                                <div class="d-flex align-items-center">
+                                                                    <input type="number" class="form-control me-2"
+                                                                        name="txt_number_of_samples"
+                                                                        id="txt_number_of_samples"
+                                                                        placeholder="Enter number of samples"
+                                                                        min="1">
+
+                                                                    <div class="form-check ms-2">
+                                                                        <input type="checkbox" class="form-check-input"
+                                                                            name="txt_unknown_sample"
+                                                                            id="txt_unknown_sample" value="1">
+                                                                        <label class="form-check-label"
+                                                                            for="txt_unknown_sample">
+                                                                            Unknown
+                                                                        </label>
+                                                                    </div>
                                                                 </div>
                                                             </div>
                                                         </div>
-                                                    </div> --}}
+                                                    </div>
+
+
                                                     <div class="col-md-6">
                                                         <div class="form-group">
                                                             <label class="form-label">Sample Image <b
@@ -445,8 +477,6 @@
                                                                 data-bs-toggle="modal" data-bs-target="#cameraModal">
                                                                 📷 Take Sample Image
                                                             </button>
-                                                            <input type="text" name="txt_sample_image"
-                                                                id="txt_sample_image">
                                                             <div id="preview" class="mt-2"></div>
                                                         </div>
                                                     </div>
@@ -1131,7 +1161,7 @@
             }
 
             /** =========================
-             *  TEST TYPE & CONTRACT EVENTS - FIXED
+             *  TEST TYPE & CONTRACT EVENTS
              ========================= **/
             function initializeTestTypeEvents() {
                 console.log('Initializing test type events...');
@@ -1159,7 +1189,7 @@
                     $('#dd_contracts').html('<option value="">Loading...</option>');
 
                     // Clear previous data
-                    $('.table.table-tranx tbody').empty();
+                    $('.table.table-tranx tbody');
                     selectedTestIds = [];
                     calculateCharges();
 
@@ -1203,15 +1233,22 @@
             function loadContractsByType(type) {
                 console.log('Loading contracts for type:', type);
 
-                const ajaxUrl = "{{ route('get_packages') }}"; // Use your actual route
+                // Get selected customer IDs
+                const customerIds = {
+                    customer_id: $('#selected_customer_id').val(),
+                    buyer_id: $('#selected_buyer_id').val(),
+                    third_party_id: $('#selected_third_party_id').val(),
+                    cha_id: $('#selected_cha_id').val()
+                };
 
-                console.log('Using AJAX URL:', ajaxUrl);
+                const ajaxUrl = "{{ route('get_packages') }}";
 
                 $.ajax({
                     url: ajaxUrl,
                     type: "GET",
                     data: {
-                        type: type
+                        type: type,
+                        ...customerIds // Pass customer IDs
                     },
                     dataType: 'json',
                     timeout: 10000, // 10 second timeout
@@ -1759,36 +1796,26 @@
             function calculateCharges() {
                 let total = 0;
                 let priority = $('#dd_priority_type').val();
-                let testType = $('#dd_test_type').val(); // GENERAL, CONTRACT, CUSTOM, SPECIFICATION, PACKAGE
+                $(".package-charge").each(function() {
+                    total += parseFloat($(this).data("charge")) || 0;
+                });
+                $(".test-charge").each(function() {
+                    let $testRow = $(this).closest('tr');
+                    let isInPackage = $testRow.data('package');
 
-                if (testType === 'GENERAL') {
-                    // General: sum row-wise test charges
-                    $(".test-charge").each(function() {
+                    if (!isInPackage) {
                         total += parseFloat($(this).data("charge")) || 0;
-                    });
-                } else {
-                    // Contract / Custom / Specification / Package
-                    $(".package-charge").each(function() {
-                        total += parseFloat($(this).data("charge")) || 0;
-                    });
-                }
+                    }
+                });
 
-                // Set testing charges
                 $("#txt_testing_charges").val(total.toFixed(2));
-
-                // Add additional charges
                 let additional = parseFloat($('#txt_aditional_charges').val()) || 0;
                 let finalTotal = total + additional;
-
-                // Apply priority logic
                 if (priority === 'Urgent') {
                     finalTotal += (total * 0.50);
                 }
-
                 $("#txt_total_charges").val(finalTotal.toFixed(2));
             }
-
-
             // Calculation event handlers
             $(document).off('change.priority').on('change.priority', '#dd_priority_type', calculateCharges);
             $(document).off('input.additional').on('input.additional', '#txt_aditional_charges', calculateCharges);
@@ -2486,7 +2513,6 @@
                     `<img src="${base64Image}" width="200" class="img-thumbnail mt-2">`
                 );
             });
-
         });
     </script>
     <script>
@@ -2498,5 +2524,18 @@
                 "width=900,height=600"
             );
         }
+    </script>
+
+    <script>
+        $(document).ready(function() {
+            $(document).on('change', '#txt_unknown_sample', function() {
+                let numberInput = $('#txt_number_of_samples');
+                if (this.checked) {
+                    numberInput.prop('disabled', true).val('');
+                } else {
+                    numberInput.prop('disabled', false);
+                }
+            });
+        });
     </script>
 @endsection

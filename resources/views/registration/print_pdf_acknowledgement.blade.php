@@ -12,7 +12,7 @@
     <script src="{{ asset('backAssets/js/jquery.js') }}"></script>
     <style>
         /* Print-specific styles */
-        @media print {
+         @media print {
             body {
                 -webkit-print-color-adjust: exact !important;
                 color-adjust: exact !important;
@@ -110,7 +110,7 @@
                 box-shadow: none !important;
                 margin-bottom: 1rem !important;
             }
-
+/* 
             .table {
                 border-collapse: collapse !important;
             }
@@ -131,17 +131,17 @@
                 text-transform: uppercase !important;
                 color: #8094ae !important;
             }
-
+*/
             .page-break {
                 page-break-before: always !important;
-            }
+            } 
 
             /* Ensure icons don't break */
             .icon {
                 font-size: 14px !important;
                 margin-right: 5px !important;
             }
-        }
+        } */
 
         /* Screen styles */
         @media screen {
@@ -169,8 +169,7 @@
                         <div class="nk-block nk-block-lg">
                             <div class="nk-block-head-content">
                                 <h3 class="nk-block-title page-title">Sample Details
-                                    <strong
-                                        class="text-primary small">#{{ $sample->tr04_sample_registration_id }}</strong>
+                                    <strong class="text-primary small">#{{ $sample->tr04_reference_id }}</strong>
                                 </h3>
                                 <div class="nk-block-des text-soft">
                                     <ul class="list-inline">
@@ -417,13 +416,13 @@
                                                                 @endif
                                                             </td>
                                                             <td>
-                                                                {{ $sampleTest['standard']['m15_method'] ?? 'N/A' }}
-                                                                @if ($sampleTest['standard']['m15_accredited'] === 'YES')
+                                                                {{ $sampleTest['standard']['m15_method'] ?? '_' }}
+                                                                @if (!empty($sampleTest['standard']) && $sampleTest['standard']['m15_accredited'] === 'YES')
                                                                     <br><span
                                                                         class="badge bg-outline-success badge-xs">Accredited</span>
                                                                 @endif
                                                             </td>
-                                                            <td>{{ $sampleTest['test']['m12_unit'] ?? 'N/A' }}</td>
+                                                            <td>{{ $sampleTest['test']['m12_unit'] ?? '_' }}</td>
                                                             <td>&#8377;{{ number_format($sampleTest['test']['m12_charge'], 2) }}
                                                             </td>
                                                             <td>
@@ -432,6 +431,7 @@
                                                                 @if ($sampleTest['tr05_status'] == 'COMPLETED') text-success 
                                                                 @elseif($sampleTest['tr05_status'] == 'PENDING') text-warning 
                                                                 @elseif($sampleTest['tr05_status'] == 'IN_PROGRESS') text-info 
+                                                                @elseif($sampleTest['tr05_status'] == 'TRANSFERRED') text-primary 
                                                                 @else text-secondary @endif">
                                                                     {{ ucfirst(strtolower(str_replace('_', ' ', $sampleTest['tr05_status']))) }}
                                                                 </span>
@@ -443,26 +443,48 @@
                                                         </tr>
                                                     @endforelse
                                                 </tbody>
-                                                <tfoot>
+                                                <tfoot class="bg-light">
                                                     <tr>
-                                                        <td colspan="4"></td>
-                                                        <td><strong>Testing Charges</strong></td>
-                                                        <td><strong>&#8377;{{ number_format($sample->tr04_testing_charges, 2) }}</strong>
+                                                        <!-- QR Code Cell -->
+                                                        <td rowspan ='3'><small class="my-auto text-muted">Scan to
+                                                                view
+                                                                registration >>></small></td>
+                                                        <td
+                                                            rowspan="{{ $sample->tr04_additional_charges > 0 ? 3 : 2 }}">
+                                                            <div class="d-flex flex-column align-items-center p-2">
+                                                                {!! QrCode::size(100)->generate(route('view_registration_pdf', $sample->tr04_sample_registration_id)) !!}
+                                                                <strong class="text-dark fw-semibold">
+                                                                    {{ $sample->tr04_tracker_id }}</strong>
+                                                            </div>
+                                                        </td>
+
+                                                        <!-- Testing Charges -->
+                                                        <td class="py-2" colspan="2">
+                                                            <strong>Testing Charges</strong>
+                                                        </td>
+                                                        <td class="text-end py-2">
+                                                            <span class="fw-semibold">&#8377;
+                                                                {{ number_format($sample->tr04_testing_charges, 2) }}</span>
                                                         </td>
                                                     </tr>
                                                     @if ($sample->tr04_additional_charges > 0)
                                                         <tr>
-                                                            <td colspan="4"></td>
-                                                            <td><strong>Additional Charges</strong></td>
-                                                            <td><strong>&#8377;{{ number_format($sample->tr04_additional_charges, 2) }}</strong>
+                                                            <td class="py-2" colspan="2">
+                                                                <strong>Additional Charges</strong>
+                                                            </td>
+                                                            <td class="text-end py-2">
+                                                                <span class="fw-semibold">&#8377;
+                                                                    {{ number_format($sample->tr04_additional_charges, 2) }}</span>
                                                             </td>
                                                         </tr>
                                                     @endif
-                                                    <tr>
-                                                        <td colspan="4"></td>
-                                                        <td><strong>Grand Total</strong></td>
-                                                        <td><strong
-                                                                class="text-primary">&#8377;{{ number_format($sample->tr04_total_charges, 2) }}</strong>
+                                                    <tr class="bg-white">
+                                                        <td class=" py-3" colspan="2">
+                                                            <strong class="fs-6 text-dark">Grand Total</strong>
+                                                        </td>
+                                                        <td class="text-end py-3">
+                                                            <strong class="text-primary fs-5">&#8377;
+                                                                {{ number_format($sample->tr04_total_charges, 2) }}</strong>
                                                         </td>
                                                     </tr>
                                                 </tfoot>

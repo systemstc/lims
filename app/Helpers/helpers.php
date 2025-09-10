@@ -2,6 +2,7 @@
 
 use App\Models\SampleRegistration;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Session;
 
 if (!function_exists('getParties')) {
     function getParties($sampleId)
@@ -81,5 +82,41 @@ if (!function_exists('toggleStatus')) {
         } else {
             return response()->json(['status' => 'error', 'message' => 'Data not found.'], 404);
         }
+    }
+}
+
+if (!function_exists('generateCode')) {
+    function generateReferenceId($sampleType)
+    {
+        return DB::transaction(function () use ($sampleType) {
+            $roId = str_pad(Session::get('ro_id') ?? '0', 2, '0', STR_PAD_LEFT);
+            $year = date('Y');
+            $type = str_pad($sampleType, 2, '0', STR_PAD_LEFT);
+            $prefix = $year . $type . $roId;
+
+            $lastRecord = SampleRegistration::lockForUpdate()
+                ->orderBy('tr04_sample_registration_id', 'desc')
+                ->first();
+
+            if ($lastRecord && !empty($lastRecord->tr04_reference_id)) {
+                preg_match('/(\d{4})$/', $lastRecord->tr04_reference_id, $matches);
+                $lastNumber = isset($matches[1]) ? intval($matches[1]) : 0;
+                $nextNumber = $lastNumber + 1;
+            } else {
+                $nextNumber = 1;
+            }
+
+            $formattedNumber = str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
+            return $prefix . $formattedNumber;
+        });
+    }
+}
+
+if (!function_exists('generateTrackerId')) {
+    function generateTrackerId($referenceId)
+    {
+        $intVal = intval($referenceId);
+        $hex = strtoupper(dechex($intVal));
+        return substr(str_pad($hex, 6, '0', STR_PAD_LEFT), -6);
     }
 }

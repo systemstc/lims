@@ -27,8 +27,10 @@ class SampleRegistration extends Model
         'tr04_reference_date',
         'tr04_received_via',
         'tr04_details',
+        'm13_department_id',
         'm14_lab_sample_id',
         'tr04_sample_type',
+        'tr04_number_of_samples',
         'tr04_attachment',
         'tr04_sample_description',
         'tr04_test_type',
@@ -85,6 +87,10 @@ class SampleRegistration extends Model
         return $this->belongsTo(CustomerType::class, 'm09_customer_type_id', 'm09_customer_type_id');
     }
 
+    public function department()
+    {
+        return $this->belongsTo(Department::class, 'm13_department_id', 'm13_department_id');
+    }
     public function labSample()
     {
         return $this->belongsTo(LabSample::class, 'm14_lab_sample_id', 'm14_lab_sample_id');

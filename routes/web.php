@@ -154,9 +154,14 @@ Route::middleware(['check_permission'])->group(function () {
     Route::match(['get', 'post'], 'sample-regsitration', [RegistrationController::class, 'preRegistration'])->name('register_sample');
     Route::get('registered-samples', [RegistrationController::class, 'viewRegSamples'])->name('view_registered_samples');
 
+    // Blank Registration
+    Route::match(['get', 'post'], 'blank-registration', [RegistrationController::class, 'blankRegistration'])->name('blank_registration');
+    
+
     // Sample detail routes 
     Route::get('/samples/{id}/details', [RegistrationController::class, 'showSampleDetails'])->name('view_registration_pdf');
     Route::get('/samples/{id}/print', [RegistrationController::class, 'printSampleDetails'])->name('print_sample_acknowledgement');
+    Route::post('/samples/upgrade', [RegistrationController::class, 'upgradeToUrgent'])->name('upgrade_to_urgent');
 
     // aLLOTTMENT 
     Route::prefix('allotment')->group(function () {
