@@ -6,21 +6,31 @@
             <div class="nk-block-head">
                 <div class="nk-block-head-content d-flex justify-content-between align-items-center">
                     <h4 class="nk-block-title">Manage Test Allotments</h4>
-                    <p>Registration ID: <strong>#{{ $registration->tr04_sample_registration_id }}</strong></p>
+                    <p>Registration ID: <strong>#{{ $registration->tr04_reference_id }}</strong></p>
                     <a href="{{ route('view_allottment') }}" class="btn btn-primary">
                         <em class="icon ni ni-back-alt-fill"></em> &nbsp; Back.
                     </a>
                 </div>
             </div>
         </div>
-
+        {{-- @dd($registration) --}}
         <!-- Registration Summary -->
         <div class="card card-bordered mb-4">
             <div class="card-inner">
                 <div class="row g-4">
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <div class="form-group">
-                            <label class="form-label">Sample Type</label>
+                            <label class="form-label">Department</label>
+                            <div class="form-control-wrap">
+                                <span class="badge bg-primary">
+                                    {{ $registration->department->m13_name }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label class="form-label">Priority</label>
                             <div class="form-control-wrap">
                                 <span
                                     class="badge {{ $registration->tr04_sample_type === 'Urgent' ? 'bg-danger' : 'bg-info' }}">
@@ -29,7 +39,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <div class="form-group">
                             <label class="form-label">Status</label>
                             <div class="form-control-wrap">
@@ -37,7 +47,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <div class="form-group">
                             <label class="form-label">Total Tests</label>
                             <div class="form-control-wrap">
@@ -45,13 +55,20 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <div class="form-group">
                             <label class="form-label">Received Date</label>
                             <div class="form-control-wrap">
                                 <span>{{ $registration->created_at->format('d M Y, h:i A') }}</span>
                             </div>
                         </div>
+                    </div>
+                    <div class="col-2">
+                        @if ($registration->tr04_attachment)
+                            <img src="{{ asset('storage/' . $registration->tr04_attachment) }}" alt="Sample Image"
+                                class="img-thumbnail"
+                                style="width: 100%; max-width: 200px; height: auto; object-fit: cover;">
+                        @endif
                     </div>
                 </div>
             </div>

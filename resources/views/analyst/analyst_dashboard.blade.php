@@ -66,25 +66,48 @@
                                     @foreach ($allottedTests as $test)
                                         <div class="col-md-4">
                                             <div class="card card-bordered h-100">
-                                                <div class="card-inner">
-                                                    <div class="d-flex justify-content-between">
-                                                        <h6 class="card-title">Sample ID:
-                                                            {{ $test->tr04_sample_registration_id }}
+                                                <div class="card-inner d-flex flex-column">
+                                                    <div class="d-flex justify-content-between align-items-center">
+                                                        <h6 class="card-title mb-0">
+                                                            Sample ID: {{ $test->registration->tr04_reference_id }}
                                                         </h6>
-                                                        <a class="btn btn-primary btn-sm py-0 px-2"
-                                                            href="{{ route('create_analysis', $test->tr05_sample_test_id) }}">Start</a>
+                                                        <a class="btn btn-outline-primary btn-sm"
+                                                            href="{{ route('create_analysis', $test->tr05_sample_test_id) }}">
+                                                            Start
+                                                        </a>
                                                     </div>
-                                                    <p>Status:
+
+                                                    <p class="mt-2 mb-1">
+                                                        Status:
                                                         <span
-                                                            class="badge 
-                                                            @if ($test->tr05_status === 'ALLOTED') bg-primary 
-                                                            @elseif ($test->tr05_status === 'IN_PROGRESS') bg-warning 
-                                                            @elseif ($test->tr05_status === 'COMPLETED') bg-success 
-                                                            @else bg-secondary @endif">
+                                                            class="badge
+                                            @if ($test->tr05_status === 'ALLOTED') bg-primary
+                                            @elseif ($test->tr05_status === 'IN_PROGRESS') bg-warning
+                                            @elseif ($test->tr05_status === 'COMPLETED') bg-success
+                                            @else bg-secondary @endif">
                                                             {{ $test->tr05_status }}
                                                         </span>
                                                     </p>
-                                                    <p>Allotted At: {{ $test->created_at->format('d M Y H:i') }}</p>
+
+                                                    <p class="small text-muted mb-3">
+                                                        Allotted At: {{ $test->created_at->format('d M Y H:i') }}
+                                                    </p>
+
+                                                    <div class="mt-auto d-flex justify-content-between">
+                                                        @if ($test->tr05_status !== 'COMPLETED')
+                                                            <form
+                                                                action="{{ route('update_analysis', $test->tr05_sample_test_id) }}"
+                                                                method="POST">
+                                                                @csrf
+                                                                <button type="submit" class="btn btn-danger btn-sm w-100">
+                                                                    <i class="ni ni-check-circle me-1 fs-6"></i> Mark Complete
+                                                                </button>
+                                                            </form>
+                                                        @else
+                                                            <span
+                                                                class="badge bg-success w-100 text-center">Completed</span>
+                                                        @endif
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -98,6 +121,7 @@
                         </div>
                     </div>
                 </div>
+
             </div>
         </div>
     </div>

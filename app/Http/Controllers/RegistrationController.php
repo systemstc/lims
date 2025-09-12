@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Accreditation;
 use App\Models\Customer;
 use App\Models\CustomerType;
 use App\Models\Department;
@@ -464,7 +465,7 @@ class RegistrationController extends Controller
             'labSample',
             'package',
             'sampleTests.test',
-            'sampleTests.standard',
+            'sampleTests.standard.accreditationForCurrentRo',
             'customerType',
             'ro'
         ])->where('tr04_sample_registration_id', $id)->first();
@@ -483,7 +484,7 @@ class RegistrationController extends Controller
             'labSample',
             'package',
             'sampleTests.test',
-            'sampleTests.standard',
+            'sampleTests.standard.accreditationForCurrentRo',
             'customerType',
             'ro'
         ])->where('tr04_sample_registration_id', $id)->firstOrFail();

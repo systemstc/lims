@@ -35,4 +35,9 @@ class Standard extends Model
     {
         return $this->belongsTo(User::class, 'tr01_created_by', 'tr01_user_id');
     }
+    public function accreditationForCurrentRo()
+    {
+        return $this->hasOne(Accreditation::class, 'm15_standard_id', 'm15_standard_id')
+            ->where('m04_ro_id', session('ro_id'));
+    }
 }

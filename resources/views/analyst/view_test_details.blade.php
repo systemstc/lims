@@ -11,8 +11,7 @@
                             <div class="d-flex justify-content-between align-items-center">
                                 <div class="nk-block-head-content">
                                     <h3 class="nk-block-title page-title">Sample Details
-                                        <strong
-                                            class="text-primary small">#{{ $sample->tr04_sample_registration_id }}</strong>
+                                        <strong class="text-primary small">#{{ $sample->tr04_reference_id }}</strong>
                                     </h3>
                                     <div class="nk-block-des text-soft">
                                         <ul class="list-inline">
@@ -46,11 +45,9 @@
                                         </ul>
                                     </div>
                                 </div>
-                                <!-- Back Button -->
                                 <div>
-                                    <a href="{{ route('view_analyst_dashboard') }}"
-                                        class="btn btn-sm btn-outline-secondary">
-                                        <em class="icon ni ni-arrow-left"></em> Back
+                                    <a href="{{ route('view_analyst_dashboard') }}" class="btn btn-sm btn-primary">
+                                        <em class="icon ni ni-back-alt-fill"></em> &nbsp; Back
                                     </a>
                                 </div>
                             </div>
@@ -59,7 +56,6 @@
                         <div class="nk-block">
                             <div class="invoice">
                                 <div class="invoice-wrap">
-
                                     <!-- Test Details Table -->
                                     <div class="invoice-bills">
                                         <h5 class="mb-3">Test Details</h5>

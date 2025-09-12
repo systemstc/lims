@@ -46,15 +46,16 @@ class AllottmentController extends Controller
             '=',
             'tr05_sample_tests.tr04_sample_registration_id'
         )
-            ->selectRaw('
-            tr05_sample_tests.tr04_sample_registration_id,
-            COUNT(*) as total_tests,
-            COUNT(CASE WHEN tr05_sample_tests.m06_alloted_to IS NOT NULL THEN 1 END) as allotted_tests,
-            COUNT(CASE WHEN tr05_sample_tests.m06_alloted_to IS NULL THEN 1 END) as pending_tests,
-            COUNT(CASE WHEN tr05_sample_tests.tr05_status = "TRANSFERRED" AND tr05_sample_tests.m04_transferred_to = ? THEN 1 END) as received_tests,
-            COUNT(CASE WHEN tr05_sample_tests.tr05_status = "TRANSFERRED" AND tr05_sample_tests.m04_ro_id = ? THEN 1 END) as transferred_tests
-        ', [$roId, $roId])
+            ->selectRaw("
+        tr05_sample_tests.tr04_sample_registration_id,
+        COUNT(*) as total_tests,
+        COUNT(CASE WHEN tr05_sample_tests.m06_alloted_to IS NOT NULL THEN 1 END) as allotted_tests,
+        COUNT(CASE WHEN tr05_sample_tests.m06_alloted_to IS NULL THEN 1 END) as pending_tests,
+        COUNT(CASE WHEN tr05_sample_tests.tr05_status = 'TRANSFERRED' AND tr05_sample_tests.m04_transferred_to = {$roId} THEN 1 END) as received_tests,
+        COUNT(CASE WHEN tr05_sample_tests.tr05_status = 'TRANSFERRED' AND tr05_sample_tests.m04_ro_id = {$roId} THEN 1 END) as transferred_tests
+    ")
             ->addSelect([
+                'sr.tr04_reference_id', 
                 'sr.tr04_sample_type',
                 'sr.tr04_progress',
                 'sr.tr04_status',
@@ -64,13 +65,14 @@ class AllottmentController extends Controller
                 $query->where('tr05_sample_tests.m04_ro_id', $roId)
                     ->orWhere('tr05_sample_tests.m04_transferred_to', $roId);
             })
-            ->groupBy([
+            ->groupBy(
                 'tr05_sample_tests.tr04_sample_registration_id',
+                'sr.tr04_reference_id',   
                 'sr.tr04_sample_type',
                 'sr.tr04_progress',
                 'sr.tr04_status',
                 'sr.created_at'
-            ])
+            )
             ->havingRaw('allotted_tests < total_tests OR received_tests > 0');
     }
 
@@ -153,7 +155,7 @@ class AllottmentController extends Controller
     {
         $roId = Session::get('ro_id');
 
-        $registration = SampleRegistration::findOrFail($registrationId);
+        $registration = SampleRegistration::with('department')->findOrFail($registrationId);
 
         $tests = SampleTest::where('tr04_sample_registration_id', $registrationId)
             ->where(function ($q) use ($roId) {

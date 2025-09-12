@@ -27,7 +27,7 @@
                         <div class="form-group">
                             <label class="form-label">Registration ID</label>
                             <div class="form-control-wrap">
-                                <strong>#{{ $test->tr04_sample_registration_id }}</strong>
+                                <strong>#{{ $test->registration->tr04_reference_id }}</strong>
                             </div>
                         </div>
                     </div>

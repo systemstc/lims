@@ -12,7 +12,7 @@
     <script src="{{ asset('backAssets/js/jquery.js') }}"></script>
     <style>
         /* Print-specific styles */
-         @media print {
+        @media print {
             body {
                 -webkit-print-color-adjust: exact !important;
                 color-adjust: exact !important;
@@ -110,7 +110,8 @@
                 box-shadow: none !important;
                 margin-bottom: 1rem !important;
             }
-/* 
+
+            /*
             .table {
                 border-collapse: collapse !important;
             }
@@ -134,15 +135,16 @@
 */
             .page-break {
                 page-break-before: always !important;
-            } 
+            }
 
             /* Ensure icons don't break */
             .icon {
                 font-size: 14px !important;
                 margin-right: 5px !important;
             }
-        } */
+        }
 
+        */
         /* Screen styles */
         @media screen {
             body {
@@ -417,9 +419,13 @@
                                                             </td>
                                                             <td>
                                                                 {{ $sampleTest['standard']['m15_method'] ?? '_' }}
-                                                                @if (!empty($sampleTest['standard']) && $sampleTest['standard']['m15_accredited'] === 'YES')
+                                                                @if (!empty($sampleTest['standard']['accreditationForCurrentRo']) &&
+                                                                        $sampleTest['standard']['accreditationForCurrentRo']['m21_is_accredited'] === 'YES')
                                                                     <br><span
-                                                                        class="badge bg-outline-success badge-xs">Accredited</span>
+                                                                        class="badge bg-outline-success badge-xs">
+                                                                        Accredited (till
+                                                                        {{ \Carbon\Carbon::parse($sampleTest['standard']['accreditationForCurrentRo']['m21_valid_till'])->format('d M Y') }})
+                                                                    </span>
                                                                 @endif
                                                             </td>
                                                             <td>{{ $sampleTest['test']['m12_unit'] ?? '_' }}</td>

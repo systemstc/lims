@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Accreditation;
 use App\Models\Department;
 use App\Models\District;
 use App\Models\Group;
@@ -17,6 +18,7 @@ use App\Models\State;
 use App\Models\Test;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Validator;
 use Yajra\DataTables\Facades\DataTables;
@@ -581,15 +583,26 @@ class MasterController extends Controller
     {
         $query = $request->get('query', '');
         $selectedGroupId = $request->get('selectedGroupId');
+        $currentRoId = Session::get('ro_id');
         if (strlen($query) < 1 || empty($selectedGroupId)) {
             return response()->json([]);
         }
+
         $standards = Standard::where('m15_status', 'ACTIVE')
             ->where('m11_group_id', $selectedGroupId)
             ->where('m15_method', 'LIKE', "%{$query}%")
-            ->select('m15_standard_id as id', 'm15_method as name', 'm15_accredited as accredited')
+            ->select('m15_standard_id as id', 'm15_method as name')
             ->limit(10)
-            ->get();
+            ->get()
+            ->map(function ($standard) use ($currentRoId) {
+                $accreditation = Accreditation::where('m15_standard_id', $standard->id)
+                    ->where('m04_ro_id', $currentRoId)
+                    ->orderByDesc('m21_accreditation_date')
+                    ->first();
+
+                $standard->accredited = $accreditation ? $accreditation->m21_is_accredited : 'NO';
+                return $standard;
+            });
         return response()->json($standards);
     }
 
@@ -633,48 +646,73 @@ class MasterController extends Controller
         return response()->json($secondaryTests);
     }
 
-    // Create methods
     public function createAjaxStandard(Request $request)
     {
-        try {
-            $validator = Validator::make($request->all(), [
-                'name' => 'required|string|max:255|unique:m15_standards,m15_method',
-                'accredited' => 'required',
-                'description' => 'nullable|string|max:500',
-                'sampleId' => 'required|integer|exists:m10_samples,m10_sample_id',
-                'groupId' => 'required|integer|exists:m11_groups,m11_group_id'
-            ]);
+        $validator = Validator::make($request->all(), [
+            'name'        => 'required|string|max:255|unique:m15_standards,m15_method',
+            'accredited'  => 'required|in:YES,NO',
+            'description' => 'nullable|string|max:500',
+            'accExp'      => 'nullable|date',
+            'sampleId'    => 'required|integer|exists:m10_samples,m10_sample_id',
+            'groupId'     => 'required|integer|exists:m11_groups,m11_group_id',
+        ], [
+            'name.required'       => 'Standard Name is required.',
+            'name.unique'         => 'This standard already exists.',
+            'accredited.required' => 'Accreditation selection is required.',
+            'accredited.in'       => 'Please select a valid Accreditation option.',
+            'accExp.date'         => 'Please select a valid date.',
+        ]);
 
-            if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => $validator->errors()->first()
-                ], 422);
-            }
-
-            $standard = Standard::create([
-                'm15_method' => $request->name,
-                'm15_accredited' => $request->accredited,
-                'm15_description' => $request->description,
-                'm10_sample_id' => $request->sampleId,
-                'm11_group_id' => $request->groupId,
-                'tr01_created_by' => Session::get('user_id') ?? -1,
-            ]);
-            return response()->json([
-                'success' => true,
-                'data' => [
-                    'id' => $standard->m15_standard_id,
-                    'name' => $standard->m15_method,
-                    'accredited' => $standard->m15_accredited
-                ]
-            ]);
-        } catch (\Exception $e) {
+        if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error creating standard: ' . $e->getMessage()
+                'message' => $validator->errors()->first()
+            ], 422);
+        }
+        DB::beginTransaction();
+
+        try {
+            $standard = Standard::create([
+                'm15_method'      => $request->name,
+                'm15_description' => $request->description,
+                'm10_sample_id'   => $request->sampleId,
+                'm11_group_id'    => $request->groupId,
+                'tr01_created_by' => Session::get('user_id') ?? -1,
+            ]);
+
+            $accreditation = null;
+            if ($request->accredited === 'YES') {
+                $accreditation = Accreditation::create([
+                    'm15_standard_id'        => $standard->m15_standard_id,
+                    'm04_ro_id'              => Session::get('ro_id'),
+                    'm21_is_accredited'      => $request->accredited,
+                    'm21_accreditation_date' => now()->format('Y-m-d'),
+                    'm21_valid_till'         => $request->accExp,
+                    'm06_created_by'         => Session::get('user_id'),
+                ]);
+            }
+
+            DB::commit();
+            return response()->json([
+                'success' => true,
+                'message' => 'Standard & Accreditation created successfully!',
+                'data' => [
+                    'id'         => $standard->m15_standard_id,
+                    'name'       => $standard->m15_method,
+                    'accredited' => $accreditation ? $accreditation->m21_is_accredited : 'NO',
+                ]
+            ]);
+        } catch (\Throwable $th) {
+            DB::rollBack();
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create record: ' . $th->getMessage(),
             ], 500);
         }
     }
+
+
 
     public function createAjaxPrimaryTest(Request $request)
     {
@@ -1086,6 +1124,8 @@ class MasterController extends Controller
                 "txt_detection_limit" => "nullable|string",
                 "txt_requirement" => "nullable|string",
                 "txt_remark" => "nullable|string|max:500",
+                'txt_is_accredated' => 'required|in:YES,NO',
+                'txt_acc_exp' => 'nullable|date'
             ], [
                 "txt_sample_id.required" => "Sample selection is required.",
                 "txt_sample_id.exists" => "Selected sample does not exist.",
@@ -1094,24 +1134,51 @@ class MasterController extends Controller
                 "txt_method.required" => "Method field is required.",
                 "txt_method.max" => "Method must not exceed 255 characters.",
                 "txt_remark.max" => "Remark must not exceed 500 characters.",
+                'txt_is_accredated.required' => 'Accreditation is required',
+                'txt_is_accredated.in' => 'Please select a valid Accreditation',
+                'txt_acc_axp.date' => 'Please Select a proper Date'
             ]);
             if ($validator->fails()) {
                 return redirect()->back()->withErrors($validator)->withInput();
             }
-            Standard::create([
-                'm10_sample_id' => $request->txt_sample_id,
-                'm11_group_id' => $request->txt_group_id,
-                'm15_method' => $request->txt_method,
-                'm15_description' => $request->txt_description,
-                'm15_unit' => $request->txt_unit,
-                'm15_detection_limit' => $request->txt_detection_limit,
-                'm15_requirement' => $request->txt_requirement,
-                'm15_remark' => $request->txt_remark,
-                'tr01_created_by' => Session::get('user_id') ?? -1,
-            ]);
-            Session::flash('type', 'success');
-            Session::flash('message', 'Standard created successfully!');
-            return redirect()->route('view_standards');
+            DB::beginTransaction();
+
+            try {
+                $standard = Standard::create([
+                    'm10_sample_id'        => $request->txt_sample_id,
+                    'm11_group_id'         => $request->txt_group_id,
+                    'm15_method'           => $request->txt_method,
+                    'm15_description'      => $request->txt_description,
+                    'm15_unit'             => $request->txt_unit,
+                    'm15_detection_limit'  => $request->txt_detection_limit,
+                    'm15_requirement'      => $request->txt_requirement,
+                    'm15_remark'           => $request->txt_remark,
+                    'tr01_created_by'      => Session::get('user_id') ?? -1,
+                ]);
+                if ($request->txt_is_accredated === 'YES') {
+                    Accreditation::create([
+                        'm15_standard_id'       => $standard->m15_standard_id,
+                        'm04_ro_id'             => Session::get('ro_id'),
+                        'm21_is_accredited'     => $request->txt_is_accredated,
+                        'm21_accreditation_date' => now()->format('Y-m-d'),
+                        'm21_valid_till'        => $request->txt_acc_exp,
+                        'm06_created_by'        => Session::get('user_id'),
+                    ]);
+                }
+
+                DB::commit();
+                Session::flash('type', 'success');
+                Session::flash('message', 'Standard & Accreditation created successfully!');
+                return redirect()->route('view_standards');
+            } catch (\Throwable $th) {
+                DB::rollBack();
+                Log::error('Failed to create Standard/Accreditation', [
+                    'error' => $th->getMessage(),
+                ]);
+                Session::flash('type', 'error');
+                Session::flash('message', 'Failed to create record: ' . $th->getMessage());
+                return redirect()->back();
+            }
         }
         $samples = Sample::where('m10_status', 'ACTIVE')->get(['m10_sample_id', 'm10_name']);
         return view('test.standard.create_standard', compact('samples'));
@@ -1872,5 +1939,44 @@ class MasterController extends Controller
         $custom = Package::with('packageTests.test')->findOrFail($id);
         $tests = Test::all();
         return view('master.custom.edit_custom', compact('custom', 'tests'));
+    }
+    public function accreditations()
+    {
+        $ro = Session::get('ro_id');
+        if (!empty($ro)) {
+            $accreditations =  Accreditation::where('m04_ro_id', $ro)->with('ro', 'standard', 'employee')->get();
+        } else {
+            $accreditations = Accreditation::with('ro', 'standard', 'employee')->get();
+        }
+        $standards = Standard::where('m15_status', 'ACTIVE')->get(['m15_method', 'm15_standard_id']);
+        return view('master.accreditations', compact('accreditations', 'standards'));
+    }
+
+    public function createAccreditation(Request $request)
+    {
+        if ($request->isMethod('post')) {
+            $validator = Validator::make($request->all(), [
+                'dd_standard'           => 'required|exists:m15_standards,m15_standard_id',
+                'txt_accredited'        => 'required|string|in:Yes,No',
+                'txt_acc_date'          => 'required|date',
+                'txt_accredited_till'   => 'required|date|after_or_equal:txt_acc_date',
+            ]);
+            if ($validator->fails()) {
+                return redirect()->back()->withErrors($validator)->withInput();
+            }
+            Accreditation::create([
+                'm15_standard_id'        => $request->dd_standard,
+                'm04_ro_id'              => Session::get('ro_id') ?? -1,
+                'm21_is_accredited'      => $request->txt_accredited,
+                'm21_accreditation_date' => $request->txt_acc_date,
+                'm21_valid_till'         => $request->txt_accredited_till,
+                'm06_created_by'         => Session::get('user_id') ?? -1,
+            ]);
+            Session::flash('type', 'success');
+            Session::flash('message', 'Accreditation created successfully.');
+            return redirect()->back();
+        }
+        Session::flash('type', 'error');
+        Session::flash('message', 'Invalid request method.');
     }
 }

@@ -17,13 +17,14 @@
                     <div class="nk-block nk-block-lg">
                         <div class="card">
                             <div class="card-inner">
-                                <form action="{{ route('create_standard_main') }}" class="form-validate is-alter" method="POST">
+                                <form action="{{ route('create_standard_main') }}" class="form-validate is-alter"
+                                    method="POST">
                                     @csrf
                                     <div class="row g-gs">
                                         {{-- Sample --}}
                                         <div class="col-md-4">
                                             <div class="form-group">
-                                                <label class="form-label" for="txt_sample_id">Sample<b
+                                                <label class="form-label" for="txt_sample_id">Sample <b
                                                         class="text-danger">*</b></label>
                                                 <div class="form-control-wrap">
                                                     <select name="txt_sample_id" class="form-select" id="txt_sample_id"
@@ -46,7 +47,7 @@
                                         {{-- Group --}}
                                         <div class="col-md-4">
                                             <div class="form-group">
-                                                <label class="form-label" for="txt_group_id">Group<b
+                                                <label class="form-label" for="txt_group_id">Group <b
                                                         class="text-danger">*</b></label>
                                                 <div class="form-control-wrap">
                                                     <select name="txt_group_id" class="form-select" id="txt_group_id"
@@ -60,33 +61,38 @@
                                             </div>
                                         </div>
 
-                                        {{-- Group --}}
-                                        {{-- <div class="col-md-4">
-                                            <div class="form-group">
-                                                <label class="form-label" for="txt_test_id">Test Name<b
-                                                        class="text-danger">*</b></label>
-                                                <div class="form-control-wrap">
-                                                    <select name="txt_test_id" class="form-select" id="txt_test_id"
-                                                        required>
-                                                        <option value="">-- Select Group --</option>
-                                                    </select>
-                                                </div>
-                                                @error('txt_test_id')
-                                                    <span class="text-danger">{{ $message }}</span>
-                                                @enderror
-                                            </div>
-                                        </div> --}}
-
                                         {{-- Charge --}}
                                         <div class="col-md-4">
                                             <div class="form-group">
-                                                <label class="form-label" for="txt_method">Method<b
+                                                <label class="form-label" for="txt_method">Method <b
                                                         class="text-danger">*</b></label>
                                                 <div class="form-control-wrap">
                                                     <input type="text" class="form-control" id="txt_method"
                                                         name="txt_method" value="{{ old('txt_method') }}" required>
                                                 </div>
                                                 @error('txt_method')
+                                                    <span class="text-danger">{{ $message }}</span>
+                                                @enderror
+                                            </div>
+                                        </div>
+
+                                        {{-- Accreditation --}}
+                                        <div class="col-md-4">
+                                            <div class="form-group">
+                                                <label class="form-label" for="txt_is_accredated">Accreditation <b
+                                                        class="text-danger">*</b></label>
+                                                <div class="form-control-wrap">
+                                                    <select name="txt_is_accredated" class="form-select"
+                                                        id="txt_is_accredated" required>
+                                                        <option value="NO"
+                                                            {{ old('txt_is_accredated') == 'NO' ? 'selected' : '' }}>No
+                                                        </option>
+                                                        <option value="YES"
+                                                            {{ old('txt_is_accredated') == 'YES' ? 'selected' : '' }}>Yes
+                                                        </option>
+                                                    </select>
+                                                </div>
+                                                @error('txt_is_accredated')
                                                     <span class="text-danger">{{ $message }}</span>
                                                 @enderror
                                             </div>
@@ -120,10 +126,26 @@
                                             </div>
                                         </div>
 
-                                        {{-- Weight --}}
-                                        <div class="col-md-4">
+                                        {{-- Accreditation Date --}}
+                                        <div class="col-md-3" id="accreditation_expiry_wrapper" style="display:none;">
                                             <div class="form-group">
-                                                <label class="form-label" for="txt_detection_limit">Detection Limit</label>
+                                                <label class="form-label" for="txt_acc_exp">Accreditation Expiry <b
+                                                        class="text-danger">*</b></label>
+                                                <div class="form-control-wrap">
+                                                    <input type="date" class="form-control" name="txt_acc_exp"
+                                                        id="txt_acc_exp">
+                                                </div>
+                                                @error('txt_acc_exp')
+                                                    <span class="text-danger">{{ $message }}</span>
+                                                @enderror
+                                            </div>
+                                        </div>
+
+                                        {{-- Weight --}}
+                                        <div class="col-md-3">
+                                            <div class="form-group">
+                                                <label class="form-label" for="txt_detection_limit">Detection
+                                                    Limit</label>
                                                 <div class="form-control-wrap">
                                                     <input type="text" class="form-control" id="txt_detection_limit"
                                                         name="txt_detection_limit"
@@ -136,7 +158,7 @@
                                         </div>
 
                                         {{-- Unit --}}
-                                        <div class="col-md-4">
+                                        <div class="col-md-3">
                                             <div class="form-group">
                                                 <label class="form-label" for="txt_requirement">Requirement</label>
                                                 <div class="form-control-wrap">
@@ -150,7 +172,7 @@
                                         </div>
 
                                         {{-- Remark --}}
-                                        <div class="col-md-4">
+                                        <div class="col-md-3">
                                             <div class="form-group">
                                                 <label class="form-label" for="txt_remark">Remark</label>
                                                 <div class="form-control-wrap">
@@ -222,50 +244,17 @@
                 $('#txt_sample_id').val(oldSampleId).trigger('change');
             }
         });
-    </script>
-{{-- 
-    <script>
-        $(document).ready(function() {
-            const testDropdown = $('#txt_test_id');
 
-            $('#txt_group_id').on('change', function() {
-                let groupId = $(this).val();
-                testDropdown.empty().append('<option value="">Loading...</option>');
-
-                if (groupId) {
-                    $.ajax({
-                        url: "{{ route('get_tests') }}", // Make sure this route exists
-                        type: "GET",
-                        data: {
-                            group_id: groupId,
-                            _token: "{{ csrf_token() }}"
-                        },
-                        success: function(data) {
-                            testDropdown.empty().append(
-                                '<option value="">-- Select Test --</option>');
-                            $.each(data, function(index, test) {
-                                let selected = (test.m12_test_id ==
-                                    "{{ old('txt_test_id') }}") ? 'selected' : '';
-                                testDropdown.append(
-                                    `<option value="${test.m12_test_id}" ${selected}>${test.m12_name}</option>`
-                                );
-                            });
-                        },
-                        error: function() {
-                            testDropdown.empty().append(
-                                '<option value="">Error loading tests</option>');
-                        }
-                    });
-                } else {
-                    testDropdown.empty().append('<option value="">-- Select Test --</option>');
-                }
-            });
-
-            // Auto-trigger if old group value exists (for form resubmission)
-            let oldGroupId = "{{ old('txt_group_id') }}";
-            if (oldGroupId) {
-                $('#txt_group_id').val(oldGroupId).trigger('change');
+        // Show/Hide Accreditation Expiry based on selection
+        $('#txt_is_accredated').on('change', function() {
+            if ($(this).val() === 'YES') {
+                $('#accreditation_expiry_wrapper').show();
+                $('#txt_acc_exp').prop('required', true);
+            } else {
+                $('#accreditation_expiry_wrapper').hide();
+                $('#txt_acc_exp').prop('required', false).val('');
             }
         });
-    </script> --}}
+        $('#txt_is_accredated').trigger('change');
+    </script>
 @endsection

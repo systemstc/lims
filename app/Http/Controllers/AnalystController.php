@@ -29,7 +29,8 @@ class AnalystController extends Controller
         $totalSamples = SampleTest::where('m06_alloted_to', $userId)
             ->count();
 
-        $allottedTests = SampleTest::where('m06_alloted_to', $userId)
+        $allottedTests = SampleTest::where('m06_alloted_to', $userId)->whereNot('tr05_status', 'COMPLETED')
+            ->with('registration')
             ->orderBy('created_at', 'desc')
             ->take(10)
             ->get();
@@ -68,7 +69,7 @@ class AnalystController extends Controller
         return view('analyst.view_test_details', compact('sample'));
     }
 
-    public function updateStatus(Request $request, $id)
+    public function updateStatus($id)
     {
         $sampleTest = SampleTest::where('tr05_sample_test_id', $id)->firstOrFail();
         $data = [

@@ -161,11 +161,12 @@
                         </div>
 
                         @forelse($pendingRegistrations as $registration)
+                        {{-- @dd($registration) --}}
                             <div class="nk-tb-item">
                                 <div class="nk-tb-col">
                                     <div class="user-card">
                                         <div class="user-info">
-                                            <span class="tb-lead">#{{ $registration->tr04_sample_registration_id }}</span>
+                                            <span class="tb-lead">#{{ $registration->tr04_reference_id }}</span>
                                             @if ($registration->received_tests > 0)
                                                 <span class="badge bg-info ms-2">
                                                     <em class="icon ni ni-arrow-down"></em>

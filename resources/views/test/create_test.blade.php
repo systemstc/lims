@@ -417,6 +417,8 @@
                             <input type="text" class="form-control" id="modal-standard-name"
                                 placeholder="Enter standard name" required>
                         </div>
+
+                        {{-- Accreditation Yes/No --}}
                         <div class="form-group mb-3">
                             <label class="form-label">Accredited <span class="text-danger">*</span></label>
                             <div class="form-control-wrap">
@@ -427,17 +429,25 @@
                                 </div>
                                 <div class="custom-control custom-radio">
                                     <input type="radio" class="custom-control-input" id="accredited-no"
-                                        name="accredited" value="NO">
+                                        name="accredited" value="NO" checked>
                                     <label class="custom-control-label" for="accredited-no">No</label>
                                 </div>
                             </div>
                         </div>
+
+                        {{-- Accreditation Expiry (hidden by default) --}}
+                        <div class="form-group mb-3" id="modal-accreditation-expiry-wrapper" style="display:none;">
+                            <label class="form-label">Accreditation Expiry <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="modal-accreditation-expiry">
+                        </div>
+
                         <div class="form-group mb-3">
                             <label class="form-label">Description</label>
                             <textarea class="form-control" id="standard-description" rows="3" placeholder="Enter description (optional)"></textarea>
                         </div>
                     </form>
                 </div>
+
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="button" class="btn btn-primary" id="confirm-create-standard">Create Standard</button>
@@ -541,7 +551,26 @@
 
     <script>
         $(document).ready(function() {
-            // Initialize variables
+            // Show/Hide Accreditation Expiry in Modal
+            $('input[name="accredited"]').on('change', function() {
+                if ($(this).val() === 'YES') {
+                    $('#modal-accreditation-expiry-wrapper').fadeIn(200);
+                    $('#modal-accreditation-expiry').prop('required', true);
+                } else {
+                    $('#modal-accreditation-expiry-wrapper').fadeOut(200);
+                    $('#modal-accreditation-expiry').prop('required', false).val('');
+                }
+            });
+
+            // Trigger once when modal is opened (reset state)
+            $('#standardModal').on('show.bs.modal', function() {
+                // Reset to default state
+                $('input[name="accredited"][value="NO"]').prop('checked', true);
+                $('#modal-accreditation-expiry-wrapper').hide();
+                $('#modal-accreditation-expiry').prop('required', false).val('');
+            });
+
+
             let selectedSampleId = '';
             let selectedGroupId = '';
             let selectedStandards = [];
@@ -697,13 +726,14 @@
                 const name = $('#modal-standard-name').val();
                 const accredited = $('input[name="accredited"]:checked').val();
                 const description = $('#standard-description').val();
+                const accExp = $('#modal-accreditation-expiry').val();
 
                 if (!accredited) {
                     alert('Please select whether the standard is accredited or not.');
                     return;
                 }
 
-                createNewStandard(name, accredited, description);
+                createNewStandard(name, accredited, description, accExp);
             });
 
             // Remove items
@@ -1105,12 +1135,10 @@
                     <div class="primary-test-group col-md-4">
                         <div class="primary-test-title">${group.primaryName}</div>
                         <div class="secondary-tests">
-                            ${group.tests.map(test => `
-                                                        <span class="selected-item secondary-test" data-id="${test.id}" data-type="secondary_tests" data-primary-id="${test.primary_test_id}">
-                                                            ${test.name}
-                                                            <span class="remove-item" data-id="${test.id}" data-type="secondary_tests" data-primary-id="${test.primary_test_id}">×</span>
-                                                        </span>
-                                                    `).join('')}
+                            ${group.tests.map(test => `<span class="selected-item secondary-test" data-id="${test.id}" data-type="secondary_tests" data-primary-id="${test.primary_test_id}">
+                                        ${test.name}
+                                        <span class="remove-item" data-id="${test.id}" data-type="secondary_tests" data-primary-id="${test.primary_test_id}">×</span>
+                                    </span>`).join('')}
                         </div>
                     </div>
                 `;
@@ -1152,7 +1180,7 @@
                 $('#standardModal').modal('show');
             }
 
-            function createNewStandard(name, accredited, description) {
+            function createNewStandard(name, accredited, description, accExp) {
                 if (!selectedSampleId || !selectedGroupId) {
                     alert('Please select sample and group first.');
                     return;
@@ -1165,6 +1193,7 @@
                         name,
                         accredited,
                         description,
+                        accExp,
                         sampleId: selectedSampleId,
                         groupId: selectedGroupId,
                         _token: "{{ csrf_token() }}"

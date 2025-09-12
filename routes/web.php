@@ -105,6 +105,9 @@ Route::middleware(['check_permission'])->group(function () {
     Route::match(['get', 'post'], 'update-test/{id}', [MasterController::class, 'updateTest'])->name('update_test');
     Route::post('delete-test', [MasterController::class, 'deleteTest'])->name('delete_test');
 
+    // Accredations Related Routes
+    Route::get('view-accreditations', [MasterController::class, 'accreditations'])->name('view_accreditations');
+    Route::post('create-accreditation', [MasterController::class, 'createAccreditation'])->name('create_accreditation');
     // Standards
     Route::get('standards', [MasterController::class, 'viewStandards'])->name('view_standards');
     Route::match(['get', 'post'], 'create-standard', [MasterController::class, 'createStandard'])->name('create_standard_main');
@@ -172,7 +175,7 @@ Route::middleware(['check_permission'])->group(function () {
     // Analyst Ruotes
     Route::get('analyst/dashboard', [AnalystController::class, 'viewAnalystDashboard'])->name('view_analyst_dashboard');
     Route::get('analyst/test/{id}', [AnalystController::class, 'viewTest'])->name('create_analysis');
-    Route::get('analyst/update/{id}', [AnalystController::class, 'updateStatus'])->name('update_analysis');
+    Route::post('analyst/update/{id}', [AnalystController::class, 'updateStatus'])->name('update_analysis');
 
 
     // Test Result Management Routes

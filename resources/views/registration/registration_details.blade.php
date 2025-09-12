@@ -9,8 +9,7 @@
                             <div class="nk-block-head-content d-flex justify-content-between align-items-center">
                                 <div class="nk-block-head-content">
                                     <h3 class="nk-block-title page-title">Sample Details
-                                        <strong
-                                            class="text-primary small">#{{ $sample->tr04_reference_id }}</strong>
+                                        <strong class="text-primary small">#{{ $sample->tr04_reference_id }}</strong>
                                     </h3>
                                     <div class="nk-block-des text-soft">
                                         <ul class="list-inline">
@@ -249,6 +248,7 @@
                                                     </tr>
                                                 </thead>
                                                 <tbody>
+                                                    {{-- @dd($sample) --}}
                                                     @forelse($sample->sampleTests as $sampleTest)
                                                         <tr>
                                                             <td>{{ $sampleTest['test']['m12_test_id'] }}</td>
@@ -265,9 +265,13 @@
                                                             </td>
                                                             <td>
                                                                 {{ $sampleTest['standard']['m15_method'] ?? '_' }}
-                                                                @if (!empty($sampleTest['standard']) && $sampleTest['standard']['m15_accredited'] === 'YES')
-                                                                    <br><span
-                                                                        class="badge bg-outline-success badge-xs">Accredited</span>
+                                                                @if (
+                                                                    !empty($sampleTest['standard']['accreditationForCurrentRo']) &&
+                                                                        $sampleTest['standard']['accreditationForCurrentRo']['m21_is_accredited'] === 'YES')
+                                                                    <br><span class="badge bg-outline-success badge-xs">
+                                                                        Accredited (till
+                                                                        {{ \Carbon\Carbon::parse($sampleTest['standard']['accreditationForCurrentRo']['m21_valid_till'])->format('d M Y') }})
+                                                                    </span>
                                                                 @endif
                                                             </td>
                                                             <td>{{ $sampleTest['test']['m12_unit'] ?? '_' }}</td>
@@ -295,11 +299,12 @@
                                                     <tr>
                                                         <!-- QR Code Cell -->
                                                         <td rowspan ='3'><small class="my-auto text-muted">Scan to view
-                                                                    registration >>></small></td>
+                                                                registration >>></small></td>
                                                         <td rowspan="{{ $sample->tr04_additional_charges > 0 ? 3 : 2 }}">
                                                             <div class="d-flex flex-column align-items-center p-2">
                                                                 {!! QrCode::size(100)->generate(route('view_registration_pdf', $sample->tr04_sample_registration_id)) !!}
-                                                                <strong class="text-dark fw-semibold"> {{ $sample->tr04_tracker_id }}</strong>
+                                                                <strong class="text-dark fw-semibold">
+                                                                    {{ $sample->tr04_tracker_id }}</strong>
                                                             </div>
                                                         </td>
 
