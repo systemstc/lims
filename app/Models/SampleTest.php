@@ -227,9 +227,7 @@ class SampleTest extends Model
     {
         return match ($this->tr05_priority ?? 'NORMAL') {
             'URGENT' => 'bg-danger',
-            'HIGH' => 'bg-warning',
             'NORMAL' => 'bg-info',
-            'LOW' => 'bg-secondary',
             default => 'bg-light',
         };
     }

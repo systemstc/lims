@@ -7,6 +7,7 @@ use App\Models\Department;
 use App\Models\District;
 use App\Models\Group;
 use App\Models\LabSample;
+use App\Models\Menu;
 use App\Models\Package;
 use App\Models\PackageTest;
 use App\Models\PrimaryTest;
@@ -1978,5 +1979,67 @@ class MasterController extends Controller
         }
         Session::flash('type', 'error');
         Session::flash('message', 'Invalid request method.');
+    }
+    public function viewACM()
+    {
+        $inputs = ['force' => 50, 'width' => 2];
+        $formula = "((force + width)*force)/100";
+
+        foreach ($inputs as $key => $value) {
+            $formula = str_replace($key, $value, $formula);
+        }
+
+        $result = eval("return $formula;");
+        dd($result);
+        return view('master.acm.view_acm');
+    }
+
+    public function searchRole(Request $request)
+    {
+        $search = $request->get('q');
+        $roles = Role::where('m03_name', 'like', "%{$search}%")->where('m03_status', 'ACTIVE')
+            ->select('m03_role_id', 'm03_name')
+            ->get();
+
+        return response()->json($roles);
+    }
+
+    public function getMenusForRole(Request $request)
+    {
+        $roleId = $request->role_id;
+        $menus = Menu::with('children')->get();
+        return response()->json([
+            'role_id' => $roleId,
+            'menus' => $menus
+        ]);
+    }
+
+    public function updatePermission(Request $request)
+    {
+        $menu = Menu::findOrFail($request->menu_id);
+        $column = "m05_role_" . $request->permission_type;
+
+        $roles = $menu->$column ? explode(',', $menu->$column) : [];
+
+        if ($request->checked == 'true') {
+            if (!in_array($request->role_id, $roles)) {
+                $roles[] = $request->role_id;
+            }
+            $type = 'success';
+            $message = 'Permission Granted Successfully.';
+        } else {
+            $roles = array_diff($roles, [$request->role_id]);
+            $type = 'warning';
+            $message = 'Permission Revoked Successfully.';
+        }
+
+        $menu->$column = implode(',', $roles);
+        $menu->save();
+
+        return response()->json([
+            'success' => true,
+            'type' => $type,
+            'message' => $message
+        ]);
     }
 }

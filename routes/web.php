@@ -19,26 +19,18 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-Route::middleware(['check_loggedin'])->group(function () {
+Route::middleware(['access_control'])->group(function () {
     Route::match(['get', 'post'], 'admin/login', [AuthController::class, 'adminLogin'])->name('admin_login');
     Route::match(['get', 'post'], 'user/login', [AuthController::class, 'userLogin'])->name('user_login');
-});
-
-Route::get('admin/logout', function () {
-    Session::flush();
-    return to_route('admin_login')->with('success', 'Logged out successfully.');
-})->name('admin_logout');
-Route::get('user/logout', function () {
-    Session::flush();
-    return to_route('user_login')->with('success', 'Logged out successfully.');
-})->name('user_logout');
-
-
-
-Route::middleware(['auth_check'])->group(function () {
     Route::get('dashboard', [MasterController::class, 'adminDashboard'])->name('dashboard');
-});
-Route::middleware(['check_permission'])->group(function () {
+    Route::get('admin/logout', function () {
+        Session::flush();
+        return to_route('admin_login')->with('success', 'Logged out successfully.');
+    })->name('admin_logout');
+    Route::get('user/logout', function () {
+        Session::flush();
+        return to_route('user_login')->with('success', 'Logged out successfully.');
+    })->name('user_logout');
     Route::get('states', [MasterController::class, 'viewStates'])->name('view_states');
 
     Route::get('districts', [MasterController::class, 'viewDistricts'])->name('view_districts');
@@ -159,7 +151,7 @@ Route::middleware(['check_permission'])->group(function () {
 
     // Blank Registration
     Route::match(['get', 'post'], 'blank-registration', [RegistrationController::class, 'blankRegistration'])->name('blank_registration');
-    
+
 
     // Sample detail routes 
     Route::get('/samples/{id}/details', [RegistrationController::class, 'showSampleDetails'])->name('view_registration_pdf');
@@ -177,6 +169,11 @@ Route::middleware(['check_permission'])->group(function () {
     Route::get('analyst/test/{id}', [AnalystController::class, 'viewTest'])->name('create_analysis');
     Route::post('analyst/update/{id}', [AnalystController::class, 'updateStatus'])->name('update_analysis');
 
+    // ACM Routes
+    Route::get('acm-view', [MasterController::class, 'viewACM'])->name('view_acm');
+    Route::match(['get', 'post'], 'update-access-to-routes', [MasterController::class, 'updatePermission'])->name('update_acm');
+    Route::get('search-role', [MasterController::class, 'searchRole'])->name('search_role');
+    Route::post('get-menus', [MasterController::class, 'getMenusForRole'])->name('get_menus_acm');
 
     // Test Result Management Routes
     Route::prefix('test-results')->group(function () {
@@ -205,64 +202,63 @@ Route::middleware(['check_permission'])->group(function () {
         Route::get('/template/{templateId}/data', [TestResultController::class, 'getTemplates'])->name('get-template');
         Route::get('/template', [TestResultController::class, 'getTemplate'])->name('test_result_template');
     });
+
+    Route::get('/get-districts', [MasterController::class, 'getDistricts'])->name('get_districts');
+    Route::get('group-bysample', [MasterController::class, 'getGroups'])->name('get_groups');
+    Route::get('test-bygroup', [MasterController::class, 'getTests'])->name('get_tests');
+    Route::get('primarytest-bytest', [MasterController::class, 'getPrimaryTests'])->name('get_primary_tests');
+
+    // Search routes for test creation
+    Route::get('/search-standards', [MasterController::class, 'searchStandards'])->name('search_standards');
+    Route::get('/search-primary-tests', [MasterController::class, 'searchPrimaryTests'])->name('search_primary_tests');
+    Route::get('/search-secondary-tests', [MasterController::class, 'searchSecondaryTests'])->name('search_secondary_tests');
+
+    // Create new item routes
+    Route::post('/ajax/create-standard', [MasterController::class, 'createAjaxStandard'])->name('create_standard');
+    Route::post('/ajax/create-primary-test', [MasterController::class, 'createAjaxPrimaryTest'])->name('create_primary_test');
+    Route::post('/ajax/create-secondary-test', [MasterController::class, 'createAjaxSecondaryTest'])->name('create_secondary_test');
+
+    // Routes for getting individual items by ID (needed for edit form)
+    Route::get('/get-standard-by-id', [MasterController::class, 'getStandardsByIds'])->name('get_standards_by_ids');
+    Route::get('/get-primary-test-by-id', [MasterController::class, 'getPrimaryTestById'])->name('get_primary_tests_by_ids');
+    Route::get('/get-secondary-test-by-id', [MasterController::class, 'getSecondaryTestById'])->name('get_secondary_tests_by_ids');
+
+
+    Route::get('/search-tests', [MasterController::class, 'searchTest'])->name('search_tests');
+    Route::get('/check-test-exists', [MasterController::class, 'checkTestExists'])->name('check_test_exists');
+
+    Route::get('search-customers', [RegistrationController::class, 'searchCustomer'])->name('search_customer');
+    Route::get('/search-test', [RegistrationController::class, 'searchTest'])->name('search_test');
+    Route::get('/get-standards-by-test', [RegistrationController::class, 'getStandardByTest'])->name('get_standards_by_test');
+
+
+    // Get packages on the basis of test types 
+    Route::get('/get-package-data', [RegistrationController::class, 'getPackages'])->name('get_packages');
+    Route::get('/get-test-by-package', [RegistrationController::class, 'getTestByPackage'])->name('get_tests_by_package');
+
+
+    // dynamic search side bar
+    Route::get('/global-search', [SampleController::class, 'globalSearch'])->name('global_search');
+    Route::get('/recent-records', [SampleController::class, 'recentRecords'])->name('recent_records');
+    Route::get('/today-stats', [SampleController::class, 'todayStats'])->name('today_stats');
+    Route::get('/sample-details', [SampleController::class, 'getSampleDetails'])->name('get_sample_details');
+
+    // Validation
+    Route::post('/validate-field', [ValidationController::class, 'checkField'])->name('validate_field');
+
+    //  Create customer location 
+    Route::post('add-location', [CustomerController::class, 'addLocation'])->name('create_customer_location');
+
+    // Additional routes for allotment that needs to be under a middleware i had to fix it 
+    // Allotment operations
+    Route::post('/create', [AllottmentController::class, 'createAllottment'])->name('create_allotment');
+    Route::post('/bulk-allot', [AllottmentController::class, 'allotTests'])->name('allot_tests');
+
+    // Transfer operations
+    Route::post('/transfer', [AllottmentController::class, 'transferTests'])->name('transfer_tests');
+    Route::post('/accept-transfer', [AllottmentController::class, 'acceptTransferred'])->name('accept_transferred');
+
+    // Additional operations
+    Route::post('/reassign', [AllottmentController::class, 'reassignTest'])->name('reassign');
+    Route::get('/history/{testId}', [AllottmentController::class, 'getAllotmentHistory'])->name('history');
 });
-
-Route::get('/get-districts', [MasterController::class, 'getDistricts'])->name('get_districts');
-Route::get('group-bysample', [MasterController::class, 'getGroups'])->name('get_groups');
-Route::get('test-bygroup', [MasterController::class, 'getTests'])->name('get_tests');
-Route::get('primarytest-bytest', [MasterController::class, 'getPrimaryTests'])->name('get_primary_tests');
-
-// Search routes for test creation
-Route::get('/search-standards', [MasterController::class, 'searchStandards'])->name('search_standards');
-Route::get('/search-primary-tests', [MasterController::class, 'searchPrimaryTests'])->name('search_primary_tests');
-Route::get('/search-secondary-tests', [MasterController::class, 'searchSecondaryTests'])->name('search_secondary_tests');
-
-// Create new item routes
-Route::post('/ajax/create-standard', [MasterController::class, 'createAjaxStandard'])->name('create_standard');
-Route::post('/ajax/create-primary-test', [MasterController::class, 'createAjaxPrimaryTest'])->name('create_primary_test');
-Route::post('/ajax/create-secondary-test', [MasterController::class, 'createAjaxSecondaryTest'])->name('create_secondary_test');
-
-// Routes for getting individual items by ID (needed for edit form)
-Route::get('/get-standard-by-id', [MasterController::class, 'getStandardsByIds'])->name('get_standards_by_ids');
-Route::get('/get-primary-test-by-id', [MasterController::class, 'getPrimaryTestById'])->name('get_primary_tests_by_ids');
-Route::get('/get-secondary-test-by-id', [MasterController::class, 'getSecondaryTestById'])->name('get_secondary_tests_by_ids');
-
-
-Route::get('/search-tests', [MasterController::class, 'searchTest'])->name('search_tests');
-Route::get('/check-test-exists', [MasterController::class, 'checkTestExists'])->name('check_test_exists');
-
-Route::get('search-customers', [RegistrationController::class, 'searchCustomer'])->name('search_customer');
-Route::get('/search-test', [RegistrationController::class, 'searchTest'])->name('search_test');
-Route::get('/get-standards-by-test', [RegistrationController::class, 'getStandardByTest'])->name('get_standards_by_test');
-
-
-// Get packages on the basis of test types 
-Route::get('/get-package-data', [RegistrationController::class, 'getPackages'])->name('get_packages');
-Route::get('/get-test-by-package', [RegistrationController::class, 'getTestByPackage'])->name('get_tests_by_package');
-
-
-// dynamic search side bar
-Route::get('/global-search', [SampleController::class, 'globalSearch'])->name('global_search');
-Route::get('/recent-records', [SampleController::class, 'recentRecords'])->name('recent_records');
-Route::get('/today-stats', [SampleController::class, 'todayStats'])->name('today_stats');
-Route::get('/sample-details', [SampleController::class, 'getSampleDetails'])->name('get_sample_details');
-Route::get('/test-details', [SampleController::class, 'getTestDetails'])->name('get_test_details');
-
-// Validation
-Route::post('/validate-field', [ValidationController::class, 'checkField'])->name('validate_field');
-
-//  Create customer location 
-Route::post('add-location', [CustomerController::class, 'addLocation'])->name('create_customer_location');
-
-// Additional routes for allotment that needs to be under a middleware i had to fix it 
-// Allotment operations
-Route::post('/create', [AllottmentController::class, 'createAllottment'])->name('create_allotment');
-Route::post('/bulk-allot', [AllottmentController::class, 'allotTests'])->name('allot_tests');
-
-// Transfer operations
-Route::post('/transfer', [AllottmentController::class, 'transferTests'])->name('transfer_tests');
-Route::post('/accept-transfer', [AllottmentController::class, 'acceptTransferred'])->name('accept_transferred');
-
-// Additional operations
-Route::post('/reassign', [AllottmentController::class, 'reassignTest'])->name('reassign');
-Route::get('/history/{testId}', [AllottmentController::class, 'getAllotmentHistory'])->name('history');

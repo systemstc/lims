@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\AccessControl;
 use App\Http\Middleware\AuthCheck;
 use App\Http\Middleware\CheckRolePermission;
 use App\Http\Middleware\PrevLogin;
@@ -15,9 +16,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
-            'auth_check' => AuthCheck::class,
-            'check_permission' => CheckRolePermission::class,
-            'check_loggedin' => PrevLogin::class,
+            'access_control' => AccessControl::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

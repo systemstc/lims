@@ -457,7 +457,7 @@
                                                                     <div class="form-check ms-2">
                                                                         <input type="checkbox" class="form-check-input"
                                                                             name="txt_unknown_sample"
-                                                                            id="txt_unknown_sample" value="1">
+                                                                            id="txt_unknown_sample" value="Unknown">
                                                                         <label class="form-check-label"
                                                                             for="txt_unknown_sample">
                                                                             Unknown
@@ -655,136 +655,21 @@
                                 <div class="card">
                                     <div class="card-inner">
                                         <div class="card-head">
-                                            <h5 class="card-title">Search & Quick Actions</h5>
+                                            <h5 class="card-title">Quick Actions & Stats</h5>
                                         </div>
 
-                                        <!-- Search Input -->
-                                        <div class="form-group mb-3">
-                                            <div class="form-control-wrap">
-                                                <input type="text" class="form-control" id="global_search_input"
-                                                    placeholder="Search samples, customers, tests...">
-                                            </div>
-                                        </div>
-
-                                        <!-- Search Filters -->
-                                        <div class="accordion" id="searchFilters">
-                                            <div class="accordion-item">
-                                                <h2 class="accordion-header">
-                                                    <button class="accordion-button collapsed" type="button"
-                                                        data-bs-toggle="collapse" data-bs-target="#filterOptions">
-                                                        <em class="icon ni ni-filter"></em> &nbsp; Filters
-                                                    </button>
-                                                </h2>
-                                                <div id="filterOptions" class="accordion-collapse collapse"
-                                                    data-bs-parent="#searchFilters">
-                                                    <div class="accordion-body">
-                                                        <div class="form-group mb-2">
-                                                            <label class="form-label">Search Type</label>
-                                                            <select class="form-select form-select-sm"
-                                                                id="search_type_filter">
-                                                                <option value="all">All Records</option>
-                                                                <option value="customers">Customers</option>
-                                                                <option value="samples">Samples</option>
-                                                                <option value="tests">Tests</option>
-                                                            </select>
-                                                        </div>
-                                                        <div class="form-group mb-2">
-                                                            <label class="form-label">Date Range</label>
-                                                            <input type="date" id="date_from"
-                                                                class="form-control form-control-sm mb-1"
-                                                                placeholder="From Date">
-                                                            <input type="date" id="date_to"
-                                                                class="form-control form-control-sm"
-                                                                placeholder="To Date">
-                                                        </div>
-                                                        <div class="form-group">
-                                                            <label class="form-label">Status</label>
-                                                            <select class="form-select form-select-sm" id="status_filter">
-                                                                <option value="">All Status</option>
-                                                                <option value="active">Active</option>
-                                                                <option value="completed">Completed</option>
-                                                                <option value="pending">Pending</option>
-                                                            </select>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <!-- Search Results -->
-                                        <div class="search-results mt-3" id="search_results_container">
-                                            <div class="alert alert-light" id="search_placeholder">
-                                                <em class="icon ni ni-info"></em>
-                                                <span>Enter search terms above to find existing records</span>
-                                            </div>
-
-                                            <!-- Dynamic Results -->
-                                            <div class="search-result-items" id="dynamic_search_results"
-                                                style="display: none;">
-                                            </div>
-
-                                            <!-- No Results -->
-                                            <div class="alert alert-warning" id="no_results_message"
-                                                style="display: none;">
-                                                <em class="icon ni ni-alert-circle"></em>
-                                                <span>No records found matching your search criteria</span>
-                                            </div>
-                                        </div>
-
-                                        <!-- Recent Records -->
-                                        <div class="recent-records mt-4" id="recent_records_section">
-                                            <h6 class="card-title d-flex justify-content-between align-items-center">
-                                                Recent Records
-                                                <button class="btn btn-sm btn-outline-secondary" id="refresh_recent">
-                                                    <em class="icon ni ni-reload"></em>
-                                                </button>
-                                            </h6>
-                                            <div class="list-group list-group-flush" id="recent_records_list">
-                                                <!-- Populated dynamically -->
-                                            </div>
-                                        </div>
-
-                                        <!-- Quick Actions -->
-                                        <div class="quick-actions mt-4">
-                                            <h6 class="card-title">Quick Actions</h6>
-                                            <div class="d-grid gap-2">
-                                                <button class="btn btn-outline-primary btn-sm" id="copy_last_sample">
-                                                    <em class="icon ni ni-copy"></em> Copy Last Sample
-                                                </button>
-                                                <button class="btn btn-outline-primary btn-sm" id="add_new_customer">
-                                                    <em class="icon ni ni-user-add"></em> Add New Customer
-                                                </button>
-                                                <button class="btn btn-outline-primary btn-sm" id="schedule_test">
-                                                    <em class="icon ni ni-calendar"></em> Schedule Test
-                                                </button>
-                                                <div class="dropdown">
-                                                    <button class="btn btn-outline-secondary btn-sm dropdown-toggle w-100"
-                                                        type="button" data-bs-toggle="dropdown">
-                                                        <em class="icon ni ni-more-h"></em> More Actions
-                                                    </button>
-                                                    <ul class="dropdown-menu">
-                                                        <li><a class="dropdown-item" href="#" id="export_data">
-                                                                <em class="icon ni ni-download"></em> Export Data
-                                                            </a></li>
-                                                        <li><a class="dropdown-item" href="#" id="import_samples">
-                                                                <em class="icon ni ni-upload"></em> Import Samples
-                                                            </a></li>
-                                                        <li>
-                                                            <hr class="dropdown-divider">
-                                                        </li>
-                                                        <li><a class="dropdown-item" href="#" id="clear_form">
-                                                                <em class="icon ni ni-trash"></em> Clear Form
-                                                            </a></li>
-                                                    </ul>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <!-- Stats -->
-                                        <div class="stats-section mt-4">
+                                        <!-- Today's Stats -->
+                                        <div class="stats-section mb-4">
                                             <div class="card card-bordered">
                                                 <div class="card-inner">
-                                                    <h6 class="card-title">Today's Stats</h6>
+                                                    <h6
+                                                        class="card-title d-flex justify-content-between align-items-center">
+                                                        Today's Stats
+                                                        <button class="btn btn-sm btn-outline-secondary"
+                                                            id="refresh_stats">
+                                                            <em class="icon ni ni-reload"></em>
+                                                        </button>
+                                                    </h6>
                                                     <div class="row g-3">
                                                         <div class="col-6">
                                                             <div class="stats-count">
@@ -803,10 +688,32 @@
                                             </div>
                                         </div>
 
+                                        <!-- Quick Action - Copy Last Sample -->
+                                        <div class="quick-actions mb-4">
+                                            <h6 class="card-title">Quick Actions</h6>
+                                            <div class="d-grid gap-2">
+                                                <button class="btn btn-primary" id="copy_last_sample">
+                                                    <em class="icon ni ni-copy"></em> Copy Last Sample
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <!-- Recent Samples -->
+                                        <div class="recent-samples" id="recent_samples_section">
+                                            <h6 class="card-title d-flex justify-content-between align-items-center">
+                                                Recent Samples
+                                                <button class="btn btn-sm btn-outline-secondary" id="refresh_recent">
+                                                    <em class="icon ni ni-reload"></em>
+                                                </button>
+                                            </h6>
+                                            <div class="list-group list-group-flush" id="recent_samples_list">
+                                                <!-- Populated dynamically -->
+                                            </div>
+                                        </div>
+
                                     </div>
                                 </div>
                             </div>
-
                         </div>
                     </div><!-- .nk-block -->
                 </div><!-- .components-preview -->
@@ -926,50 +833,15 @@
         </div>
     </div>
 
-
     <style>
-        /* Enhanced Sidebar Styles */
-        .search-result-items {
-            max-height: 300px;
-            overflow-y: auto;
-        }
-
-        .search-result-item {
-            transition: all 0.2s ease;
-            cursor: pointer;
-        }
-
-        .search-result-item:hover {
-            background-color: #f8f9fa;
-            transform: translateY(-1px);
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-
-        .search-result-item.selected {
-            background-color: #e3f2fd;
-            border-color: #2196f3;
-        }
-
-        .result-meta {
-            font-size: 0.75rem;
-            color: #6c757d;
-        }
-
-        .result-actions {
-            opacity: 0;
-            transition: opacity 0.2s ease;
-        }
-
-        .search-result-item:hover .result-actions {
-            opacity: 1;
-        }
-
-        .recent-records .list-group-item:hover {
-            background-color: #f8f9fa;
+        /* Additional styles for better UI */
+        .stats-count {
+            text-align: center;
         }
 
         .stats-count .amount {
-            font-size: 1.25rem;
+            display: block;
+            font-size: 1.5rem;
             font-weight: 600;
             color: #364a63;
         }
@@ -981,39 +853,47 @@
             letter-spacing: 0.5px;
         }
 
-        .quick-actions .btn:hover {
-            transform: translateY(-1px);
+        .recent-sample-item {
+            transition: all 0.2s ease;
+            cursor: pointer;
         }
 
-        .badge-priority {
-            font-size: 0.65rem;
+        .recent-sample-item:hover {
+            background-color: #f5f6fa;
         }
 
-        .badge-urgent {
-            background-color: #ff6b6b;
+        .copy-sample-btn {
+            opacity: 0;
+            transition: opacity 0.2s ease;
         }
 
-        .badge-normal {
-            background-color: #51cf66;
+        .recent-sample-item:hover .copy-sample-btn {
+            opacity: 1;
         }
 
-        /* Loading animation */
-        @keyframes pulse {
+        .badge-outline-primary {
+            border: 1px solid #526484;
+            color: #526484;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 1rem;
+            height: 1rem;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #526484;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
             0% {
-                opacity: 1;
-            }
-
-            50% {
-                opacity: 0.5;
+                transform: rotate(0deg);
             }
 
             100% {
-                opacity: 1;
+                transform: rotate(360deg);
             }
-        }
-
-        .loading-pulse {
-            animation: pulse 1.5s ease-in-out infinite;
         }
     </style>
     <style>
@@ -1838,137 +1718,92 @@
 
     <script>
         $(document).ready(function() {
-            initializeDynamicSidebar();
+            initializeSimplifiedSidebar();
         });
 
-        function initializeDynamicSidebar() {
-            console.log('Initializing dynamic sidebar...');
+        function initializeSimplifiedSidebar() {
 
-            let searchTimeout;
-            const SEARCH_DELAY = 500;
-
-            // Global search input
-            $('#global_search_input').on('input', function() {
-                const query = $(this).val().trim();
-                clearTimeout(searchTimeout);
-
-                if (query.length < 2) {
-                    resetSearchResults();
-                    return;
-                }
-
-                searchTimeout = setTimeout(() => {
-                    performGlobalSearch(query);
-                }, SEARCH_DELAY);
-            });
-
-            // Search button
-            $('#global_search_btn').on('click', function(e) {
-                e.preventDefault();
-                const query = $('#global_search_input').val().trim();
-                if (query.length >= 2) {
-                    performGlobalSearch(query);
-                }
-            });
-
-            // Filters
-            $('#search_type_filter, #status_filter, #date_from, #date_to').on('change', function() {
-                const query = $('#global_search_input').val().trim();
-                if (query.length >= 2) {
-                    performGlobalSearch(query);
-                }
-            });
-
-            // Load initial data
-            loadRecentRecords();
+            loadRecentSamples();
             loadTodayStats();
 
-            initializeQuickActions();
+            initializeEventHandlers();
 
-            // Auto refresh every 30s
             setInterval(function() {
-                loadRecentRecords();
+                loadRecentSamples();
                 loadTodayStats();
-            }, 30000);
+            }, 60000);
         }
-
-        // ADD THESE 3 MISSING FUNCTIONS TO YOUR SCRIPT
-
         // --------------------
-        // GLOBAL SEARCH (Live)
+        // EVENT HANDLERS
         // --------------------
-        function performGlobalSearch(query) {
-            console.log('Performing global search for:', query);
+        function initializeEventHandlers() {
+            $('#copy_last_sample').on('click', function(e) {
+                e.preventDefault();
+                copyLastSample();
+            });
 
-            const searchType = $('#search_type_filter').val();
-            const status = $('#status_filter').val();
-            const dateFrom = $('#date_from').val();
-            const dateTo = $('#date_to').val();
+            $(document).on('click', '.copy-sample-btn', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                const sampleId = $(this).data('sample-id');
+                copySampleData(sampleId);
+            });
 
-            showSearchLoading(true);
+            $('#refresh_stats').on('click', function(e) {
+                e.preventDefault();
+                loadTodayStats();
+                showNotification('Stats refreshed successfully', 'success');
+            });
 
-            $.ajax({
-                url: '{{ route('global_search') }}',
-                type: 'GET',
-                data: {
-                    query: query,
-                    type: searchType,
-                    status: status,
-                    date_from: dateFrom,
-                    date_to: dateTo
-                },
-                success: function(response) {
-                    displaySearchResults(response);
-                },
-                error: function(xhr, status, error) {
-                    console.error('Search error:', error);
-                    resetSearchResults();
-                    showNotification('Error fetching search results', 'danger');
-                },
-                complete: function() {
-                    showSearchLoading(false);
+            $('#refresh_recent').on('click', function(e) {
+                e.preventDefault();
+                loadRecentSamples();
+                showNotification('Recent samples refreshed successfully', 'success');
+            });
+
+            $(document).on('click', '.recent-sample-item', function(e) {
+                if (!$(e.target).hasClass('copy-sample-btn') && !$(e.target).closest('.copy-sample-btn').length) {
+                    const sampleId = $(this).data('sample-id');
+                    copySampleData(sampleId);
                 }
             });
         }
-
         // --------------------
-        // RECENT RECORDS (Live)
+        // DATA LOADING FUNCTIONS
         // --------------------
-        function loadRecentRecords() {
-            console.log('Loading recent records...');
+        function loadRecentSamples() {
+            console.log('Loading recent samples...');
 
-            const $container = $('#recent_records_list');
+            const $container = $('#recent_samples_list');
             $container.html(`
-        <div class="list-group-item px-0" id="recent_loading">
-            <div class="d-flex align-items-center">
-                <div class="spinner-border spinner-border-sm me-2" role="status"></div>
-                <span>Loading recent records...</span>
-            </div>
-        </div>
-    `);
-
+                    <div class="list-group-item px-0" id="recent_loading">
+                        <div class="d-flex align-items-center">
+                            <div class="loading-spinner me-2"></div>
+                            <span>Loading recent samples...</span>
+                        </div>
+                    </div>
+                `);
             $.ajax({
                 url: '{{ route('recent_records') }}',
                 type: 'GET',
                 success: function(records) {
-                    displayRecentRecords(records);
+                    displayRecentSamples(records);
                 },
                 error: function() {
                     $container.html(`
-                <div class="list-group-item px-0 text-center text-muted">
-                    <em class="icon ni ni-alert-circle"></em>
-                    <br><small>Error loading recent records</small>
-                </div>
-            `);
+                    <div class="list-group-item px-0 text-center text-muted">
+                        <em class="icon ni ni-alert-circle"></em>
+                        <br><small>Error loading recent samples</small>
+                    </div>
+                `);
                 }
             });
         }
 
-        // --------------------
-        // TODAY'S STATS (Live)
-        // --------------------
         function loadTodayStats() {
-            console.log('Loading today stats...');
+            // Show loading state
+            $('#today_samples').html('<div class="loading-spinner"></div>');
+            $('#pending_tests').html('<div class="loading-spinner"></div>');
 
             $.ajax({
                 url: '{{ route('today_stats') }}',
@@ -1983,325 +1818,83 @@
                 }
             });
         }
-
         // --------------------
         // DISPLAY FUNCTIONS
         // --------------------
-        function displaySearchResults(results) {
-            const $container = $('#dynamic_search_results');
-            const $placeholder = $('#search_placeholder');
-            const $noResults = $('#no_results_message');
+        function displayRecentSamples(records) {
+            const $container = $('#recent_samples_list');
+            // Filter only samples from the records
+            const samples = records.filter(record => record.type === 'Sample');
 
-            $placeholder.hide();
-            $noResults.hide();
-
-            if (!results || results.length === 0) {
-                $container.hide();
-                $noResults.show();
-                return;
-            }
-
-            $container.empty().show();
-
-            results.forEach(function(result) {
-                const resultItem = createSearchResultItem(result);
-                $container.append(resultItem);
-            });
-        }
-
-        function createSearchResultItem(result) {
-            const statusBadge = getStatusBadge(result.status, result.type);
-            const priorityBadge = result.priority ? getPriorityBadge(result.priority) : '';
-            const dateText = result.date ? `<small class="text-muted">${result.date}</small>` : '';
-            const customerText = result.customer ? `<small class="text-info">Customer: ${result.customer}</small>` : '';
-
-            return $(`
-        <div class="search-result-item border rounded p-3 mb-2" data-type="${result.type}" data-id="${result.id}">
-            <div class="d-flex justify-content-between align-items-start">
-                <div class="flex-grow-1">
-                    <h6 class="mb-1">
-                        <span class="badge badge-sm badge-outline-secondary me-2">${result.type}</span>
-                        ${result.title}
-                        ${priorityBadge}
-                    </h6>
-                    <p class="text-muted mb-1 small">${result.subtitle || ''}</p>
-                    <div class="d-flex gap-2 flex-wrap">
-                        ${statusBadge}
-                        ${customerText}
-                        ${dateText}
-                    </div>
-                </div>
-                <div class="result-actions">
-                    <div class="dropdown">
-                        <button class="btn btn-sm btn-outline-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                            <em class="icon ni ni-more-v"></em>
-                        </button>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item use-result" href="#" data-action="use">
-                                <em class="icon ni ni-check"></em> Use This
-                            </a></li>
-                            <li><a class="dropdown-item copy-result" href="#" data-action="copy">
-                                <em class="icon ni ni-copy"></em> Copy Details
-                            </a></li>
-                            <li><a class="dropdown-item view-result" href="#" data-action="view">
-                                <em class="icon ni ni-eye"></em> View Details
-                            </a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item add-favorite" href="#" data-action="favorite">
-                                <em class="icon ni ni-star"></em> Add to Favorites
-                            </a></li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `);
-        }
-
-        function displayRecentRecords(records) {
-            const $container = $('#recent_records_list');
-
-            if (!records || records.length === 0) {
+            if (!samples || samples.length === 0) {
                 $container.html(`
-            <div class="list-group-item px-0 text-center text-muted">
-                <em class="icon ni ni-inbox"></em>
-                <br><small>No recent records</small>
-            </div>
-        `);
+                <div class="list-group-item px-0 text-center text-muted">
+                    <em class="icon ni ni-inbox"></em>
+                    <br><small>No recent samples found</small>
+                </div>
+            `);
                 return;
             }
-
             $container.empty();
-
-            records.forEach(function(record) {
+            samples.slice(0, 5).forEach(function(sample) {
                 const item = $(`
-            <div class="list-group-item list-group-item-action px-0 border-0 recent-record-item" data-type="${record.type.toLowerCase()}" data-id="${record.id}">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div class="flex-grow-1">
-                        <span class="badge badge-sm badge-outline-primary me-2">${record.type}</span>
-                        <div class="fw-medium small">${record.title}</div>
-                        <small class="text-muted">${record.date}</small>
+                <div class="list-group-item list-group-item-action px-0 border-0 recent-sample-item" 
+                     data-sample-id="${sample.id}" 
+                     title="Click to copy this sample data">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="flex-grow-1">
+                            <div class="d-flex align-items-center mb-1">
+                                <div class="fw-medium small">${sample.title}</div>
+                            </div>
+                            <small class="text-muted">${sample.date}</small>
+                        </div>
+                        <button class="btn btn-sm btn-outline-primary copy-sample-btn" 
+                                data-sample-id="${sample.id}"
+                                title="Copy Sample Data">
+                            <em class="icon ni ni-copy"></em>
+                        </button>
                     </div>
-                    <button class="btn btn-sm btn-outline-light use-recent" title="Use This Record">
-                        <em class="icon ni ni-arrow-right"></em>
-                    </button>
                 </div>
-            </div>
-        `);
+            `);
                 $container.append(item);
-            });
-        }
-
-        // --------------------
-        // UTILITY FUNCTIONS
-        // --------------------
-        function getStatusBadge(status, type) {
-            const statusMap = {
-                'active': 'success',
-                'completed': 'success',
-                'pending': 'warning',
-                'cancelled': 'danger',
-                'in_progress': 'info'
-            };
-
-            const badgeClass = statusMap[status] || 'secondary';
-            return `<span class="badge badge-sm badge-${badgeClass}">${status || 'Unknown'}</span>`;
-        }
-
-        function getPriorityBadge(priority) {
-            if (priority === 'urgent') {
-                return `<span class="badge badge-sm badge-urgent ms-2">URGENT</span>`;
-            }
-            return '';
-        }
-
-        function showSearchLoading(show) {
-            const $button = $('#global_search_btn');
-            const $text = $('#search-btn-text');
-            const $spinner = $('#search-loading');
-
-            if (show) {
-                $text.addClass('d-none');
-                $spinner.removeClass('d-none');
-                $button.prop('disabled', true);
-            } else {
-                $text.removeClass('d-none');
-                $spinner.addClass('d-none');
-                $button.prop('disabled', false);
-            }
-        }
-
-        function resetSearchResults() {
-            $('#search_placeholder').show();
-            $('#dynamic_search_results').hide().empty();
-            $('#no_results_message').hide();
-        }
-
-
-        function showNotification(message, type = 'info') {
-            // Clear any existing toasts first
-            if (typeof toastr !== 'undefined') {
-                toastr.clear();
-            }
-
-            // Map types to NioApp.Toast compatible types
-            const typeMap = {
-                'info': 'info',
-                'success': 'success',
-                'warning': 'warning',
-                'danger': 'error', // NioApp uses 'error' instead of 'danger'
-                'error': 'error'
-            };
-
-            const toastType = typeMap[type] || 'info';
-
-            // Use your existing NioApp.Toast system
-            if (typeof NioApp !== 'undefined' && NioApp.Toast) {
-                NioApp.Toast(message, toastType, {
-                    position: 'top-right'
-                });
-            } else {
-                // Fallback to console if NioApp is not available
-                console.log(`[${toastType.toUpperCase()}] ${message}`);
-            }
-        }
-
-        // --------------------
-        // EVENT HANDLERS
-        // --------------------
-        function initializeQuickActions() {
-            // Use result from search
-            $(document).on('click', '.use-result', function(e) {
-                e.preventDefault();
-                const $item = $(this).closest('.search-result-item');
-                const type = $item.data('type');
-                const id = $item.data('id');
-
-                useSearchResult(type, id);
-            });
-
-            // Copy result details
-            $(document).on('click', '.copy-result', function(e) {
-                e.preventDefault();
-                const $item = $(this).closest('.search-result-item');
-                const type = $item.data('type');
-                const id = $item.data('id');
-
-                copyResultDetails(type, id);
-            });
-
-            // View result details
-            $(document).on('click', '.view-result', function(e) {
-                e.preventDefault();
-                const $item = $(this).closest('.search-result-item');
-                const type = $item.data('type');
-                const id = $item.data('id');
-
-                viewResultDetails(type, id);
-            });
-
-
-            // Use recent record
-            $(document).on('click', '.use-recent', function(e) {
-                e.preventDefault();
-                const $item = $(this).closest('.recent-record-item');
-                const type = $item.data('type');
-                const id = $item.data('id');
-
-                useSearchResult(type, id);
-            });
-
-            // Quick action buttons
-            $('#copy_last_sample').on('click', function(e) {
-                e.preventDefault();
-                copyLastSample();
-            });
-
-            $('#add_new_customer').on('click', function(e) {
-                e.preventDefault();
-                // Implement customer modal or redirect
-                alert('Add new customer functionality - implement customer modal');
-            });
-
-            $('#schedule_test').on('click', function(e) {
-                e.preventDefault();
-                // Implement test scheduling
-                alert('Schedule test functionality - implement scheduling modal');
-            });
-
-            $('#export_data').on('click', function(e) {
-                e.preventDefault();
-                exportData();
-            });
-
-            $('#import_samples').on('click', function(e) {
-                e.preventDefault();
-                // Implement import modal
-                alert('Import samples functionality - implement import modal');
-            });
-
-            $('#clear_form').on('click', function(e) {
-                e.preventDefault();
-                if (confirm('Are you sure you want to clear the form?')) {
-                    clearForm();
-                }
-            });
-
-            $('#refresh_recent').on('click', function(e) {
-                e.preventDefault();
-                loadRecentRecords();
-                loadTodayStats();
-                showNotification('Data refreshed successfully', 'success');
             });
         }
 
         // --------------------
         // ACTION FUNCTIONS
         // --------------------
-        function useSearchResult(type, id) {
-            console.log('Using result:', type, id);
+        function copyLastSample() {
+            console.log('Copying last sample...');
 
-            switch (type.toLowerCase()) {
-                case 'customer':
-                    loadCustomerIntoForm(id);
-                    break;
-                case 'sample':
-                    copySampleData(id);
-                    break;
-                case 'test':
-                    addTestToForm(id);
-                    break;
-                case 'contract':
-                    loadContractIntoForm(id);
-                    break;
-                default:
-                    showNotification(`Using ${type} is not implemented yet`, 'warning');
-            }
-        }
+            // Show loading state on button
+            const $btn = $('#copy_last_sample');
+            const originalText = $btn.html();
+            $btn.html('<div class="loading-spinner me-2"></div>Loading...').prop('disabled', true);
 
-        function copyResultDetails(type, id) {
-            console.log('Copying details for:', type, id);
-
-            if (type === 'sample') {
-                copySampleData(id);
-            } else {
-                showNotification(`Copy details for ${type} is not implemented yet`, 'warning');
-            }
-        }
-
-        function viewResultDetails(type, id) {
-            console.log('Viewing details for:', type, id);
-            // Implement detail view modal
-            showNotification(`View details for ${type} is not implemented yet`, 'warning');
-        }
-
-        function loadCustomerIntoForm(customerId) {
-            // This would load customer data into the main form
-            console.log('Loading customer:', customerId);
-            showNotification('Customer loading functionality needs to be implemented', 'warning');
+            $.ajax({
+                url: '{{ route('recent_records') }}',
+                type: 'GET',
+                success: function(records) {
+                    const samples = records.filter(r => r.type === 'Sample');
+                    if (samples.length > 0) {
+                        const lastSample = samples[0];
+                        copySampleData(lastSample.id);
+                    } else {
+                        showNotification('No recent samples found to copy', 'warning');
+                    }
+                },
+                error: function() {
+                    showNotification('Error loading recent samples', 'danger');
+                },
+                complete: function() {
+                    $btn.html(originalText).prop('disabled', false);
+                }
+            });
         }
 
         function copySampleData(sampleId) {
+            showNotification('Copying sample data...', 'info');
+
             $.ajax({
                 url: '{{ route('get_sample_details') }}',
                 type: 'GET',
@@ -2309,144 +1902,153 @@
                     sample_id: sampleId
                 },
                 success: function(sampleData) {
-                    console.log('Sample data:', sampleData);
-
-                    // Populate form fields
+                    clearFormData();
+                    // Populate customer information
                     if (sampleData.customer) {
-                        $('#txt_customer_name').val(sampleData.customer.name);
-                        $('#selected_customer_id').val(sampleData.customer.id);
+                        $('#dd_customer_type').val(sampleData.customer_type);
+                        $('#txt_customer_name').val(sampleData.customer.name || '');
+                        $('#selected_customer_id').val(sampleData.customer.id || '');
                     }
-
-                    $('#txt_reference').val(sampleData.reference_no || '');
+                    $('input[name="txt_payment_by"][value="' + (sampleData.payment_by || '') + '"]').prop(
+                        'checked', true);
+                    $('input[name="txt_report_to"][value="' + (sampleData.report_to || '') + '"]').prop(
+                        'checked', true);
+                    $('input[name="txt_received_via"][value="' + (sampleData.received_via || '') + '"]').prop(
+                        'checked', true);
+                    $('#txt_details').val(sampleData.details || ''),
+                        // Populate sample details
+                        $('#txt_reference').val(sampleData.reference_no || '');
                     $('#txt_ref_date').val(sampleData.reference_date || '');
                     $('#txt_description').val(sampleData.description || '');
-
+                    // Populate dropdowns
                     if (sampleData.sample_type_id) {
-                        $('#dd_sample_type').val(sampleData.sample_type_id);
+                        $('#dd_sample_type').val(sampleData.sample_type_id).trigger('change');
                     }
-
                     if (sampleData.priority) {
-                        $('#dd_priority_type').val(sampleData.priority);
+                        $('#dd_priority_type').val(sampleData.priority).trigger('change');
                     }
-
                     if (sampleData.test_type) {
                         $('#dd_test_type').val(sampleData.test_type).trigger('change');
                     }
-
-                    // Add tests to table
+                    if (sampleData.department) {
+                        $('#dd_department').val(sampleData.department).trigger('change');
+                    }
+                    if (sampleData.sample_numbers === 'Unknown') {
+                        $('#txt_unknown_sample').prop('checked', sampleData.sample_numbers === 'Unknown');
+                        $('#txt_number_of_samples').val('').prop('disabled', true);
+                    } else {
+                        $('#txt_number_of_samples').prop('disabled', false);
+                        $('#txt_number_of_samples').val(sampleData.sample_numbers || '');
+                    }
+                    $('#txt_testing_charges').val(sampleData.testing_charges || 0.00);
+                    $('#txt_aditional_charges').val(sampleData.additional_charges || 0.00);
+                    $('#txt_total_charges').val(sampleData.total_charges || 0.00);
+                    // Add tests to table if they exist
                     if (sampleData.tests && sampleData.tests.length > 0) {
                         setTimeout(() => {
                             sampleData.tests.forEach(test => {
-                                if (!selectedTestIds.includes(test.id)) {
+                                // Check if test is not already in the selected list
+                                if (typeof selectedTestIds !== 'undefined' && !selectedTestIds
+                                    .includes(test.id)) {
                                     addTestToTable({
                                         id: test.id,
                                         test_name: test.name,
                                         name: test.name,
-                                        charge: test.charge,
-                                        remark: test.remark,
+                                        charge: test.charge || 0,
+                                        remark: test.remark || '',
                                         standard: {
-                                            standard_id: test.standard_id,
-                                            name: test.standard_method
+                                            standard_id: test.standard_id || null,
+                                            name: test.standard_method || ''
                                         }
                                     });
                                     selectedTestIds.push(test.id);
                                 }
                             });
-                            calculateCharges();
+
+                            // Recalculate charges if function exists
+                            if (typeof calculateCharges === 'function') {
+                                calculateCharges();
+                            }
                         }, 500);
                     }
 
                     showNotification('Sample data copied successfully', 'success');
+                    $(`.recent-sample-item[data-sample-id="${sampleId}"]`)
+                        .addClass('bg-light')
+                        .delay(2000)
+                        .queue(function(next) {
+                            $(this).removeClass('bg-light');
+                            next();
+                        });
+
                 },
-                error: function() {
-                    showNotification('Error copying sample data', 'danger');
+                error: function(xhr, status, error) {
+                    console.error('Error copying sample data:', error);
+                    showNotification('Error copying sample data. Please try again.', 'danger');
                 }
             });
         }
+        // --------------------
+        // UTILITY FUNCTIONS
+        // --------------------
+        function clearFormData() {
+            // Clear text inputs
+            $('#txt_customer_name, #txt_reference, #txt_ref_date, #txt_description').val('');
+            // Clear hidden fields
+            $('#selected_customer_id').val('');
+            // Reset dropdowns to default
+            $('#dd_sample_type, #dd_priority_type, #dd_test_type').val('').trigger('change');
+            // Clear test table if it exists
+            if ($('.table.table-tranx tbody').length) {
+                $('.table.table-tranx tbody').empty();
+            }
+            // Clear selected test IDs array if it exists
+            if (typeof selectedTestIds !== 'undefined') {
+                selectedTestIds.length = 0;
+            }
 
-        function addTestToForm(testId) {
-            $.ajax({
-                url: '{{ route('get_test_details') }}',
-                type: 'GET',
-                data: {
-                    test_id: testId
-                },
-                success: function(testData) {
-                    if (!selectedTestIds.includes(testData.id)) {
-                        addTestToTable(testData);
-                        selectedTestIds.push(testData.id);
-                        showNotification('Test added successfully', 'success');
-                    } else {
-                        showNotification('Test is already added', 'warning');
-                    }
-                },
-                error: function() {
-                    showNotification('Error adding test', 'danger');
-                }
-            });
-        }
-
-        function loadContractIntoForm(contractId) {
-            // Set contract type and select the contract
-            $('#dd_test_type').val('CONTRACT').trigger('change');
-
-            setTimeout(() => {
-                $('#dd_contracts').val(contractId).trigger('change');
-                showNotification('Contract loaded successfully', 'success');
-            }, 1000);
-        }
-
-        function copyLastSample() {
-            $.ajax({
-                url: '{{ route('recent_records') }}',
-                type: 'GET',
-                success: function(records) {
-                    const lastSample = records.find(r => r.type === 'Sample');
-                    if (lastSample) {
-                        copySampleData(lastSample.id);
-                    } else {
-                        showNotification('No recent samples found', 'warning');
-                    }
-                },
-                error: function() {
-                    showNotification('Error loading recent samples', 'danger');
-                }
-            });
-        }
-
-        function exportData() {
-            // Implement data export functionality
-            const formData = {
-                customer: $('#txt_customer_name').val(),
-                reference: $('#txt_reference').val(),
-                description: $('#txt_description').val(),
-                tests: selectedTestIds
-            };
-
-            console.log('Export data:', formData);
-            showNotification('Export functionality needs to be implemented', 'warning');
-        }
-
-        function clearForm() {
-            // Clear all form fields
-            $('form')[0].reset();
-            $('.table.table-tranx tbody').empty();
-            selectedTestIds = [];
-
-            // Clear customer details
+            // Clear customer address sections
             $('#party-address, #buyer-address, #third-address, #cha-address').empty();
             $('#party-contact-person, #party-phone, #party-email').empty();
             $('#buyer-contact-person, #buyer-phone, #buyer-email').empty();
             $('#third-contact-person, #third-phone, #third-email').empty();
             $('#cha-contact-person, #cha-phone, #cha-email').empty();
+        }
 
-            // Clear hidden fields
-            $('input[type="hidden"]').val('');
+        function showNotification(message, type = 'info') {
+            // Clear any existing toasts first
+            if (typeof toastr !== 'undefined') {
+                toastr.clear();
+            }
+            const typeMap = {
+                'info': 'info',
+                'success': 'success',
+                'warning': 'warning',
+                'danger': 'error',
+                'error': 'error'
+            };
 
-            // Reset charges
-            calculateCharges();
+            const toastType = typeMap[type] || 'info';
 
-            showNotification('Form cleared successfully', 'success');
+            if (typeof NioApp !== 'undefined' && NioApp.Toast) {
+                NioApp.Toast(message, toastType, {
+                    position: 'top-right'
+                });
+            } else if (typeof toastr !== 'undefined') {
+                toastr[toastType](message);
+            } else {
+                console.log(`[${toastType.toUpperCase()}] ${message}`);
+            }
+        }
+        // --------------------
+        // HELPER FUNCTIONS FOR FORM INTEGRATION
+        // --------------------
+        function addTestToTable(testData) {
+            if (typeof window.addTestToTable === 'function') {
+                window.addTestToTable(testData);
+            } else {
+                console.warn('addTestToTable function not found. Please ensure it exists in your main form.');
+            }
         }
     </script>
     <script>
