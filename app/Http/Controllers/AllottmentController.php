@@ -29,7 +29,6 @@ class AllottmentController extends Controller
         $stats = $this->calculateLabManagerStats($roId);
         $employees = $this->getLabEmployees($roId);
         $ros = Ro::select('m04_ro_id', 'm04_name')->where('m04_ro_id', '!=', $roId)->orderBy('m04_name')->get();
-
         return view('allottment.allotment_dashboard', compact(
             'pendingRegistrations',
             'stats',
@@ -40,38 +39,26 @@ class AllottmentController extends Controller
 
     private function buildPendingQuery($roId)
     {
-        return SampleTest::join(
-            'tr04_sample_registrations as sr',
-            'sr.tr04_sample_registration_id',
-            '=',
-            'tr05_sample_tests.tr04_sample_registration_id'
-        )
-            ->selectRaw("
-        tr05_sample_tests.tr04_sample_registration_id,
-        COUNT(*) as total_tests,
-        COUNT(CASE WHEN tr05_sample_tests.m06_alloted_to IS NOT NULL THEN 1 END) as allotted_tests,
-        COUNT(CASE WHEN tr05_sample_tests.m06_alloted_to IS NULL THEN 1 END) as pending_tests,
-        COUNT(CASE WHEN tr05_sample_tests.tr05_status = 'TRANSFERRED' AND tr05_sample_tests.m04_transferred_to = {$roId} THEN 1 END) as received_tests,
-        COUNT(CASE WHEN tr05_sample_tests.tr05_status = 'TRANSFERRED' AND tr05_sample_tests.m04_ro_id = {$roId} THEN 1 END) as transferred_tests
-    ")
-            ->addSelect([
-                'sr.tr04_reference_id', 
-                'sr.tr04_sample_type',
-                'sr.tr04_progress',
-                'sr.tr04_status',
-                'sr.created_at'
-            ])
+        return SampleRegistration::selectRaw("
+            tr04_sample_registrations.*,
+            COUNT(st.tr05_sample_test_id) as total_tests,
+            COUNT(CASE WHEN st.m06_alloted_to IS NOT NULL THEN 1 END) as allotted_tests,
+            COUNT(CASE WHEN st.m06_alloted_to IS NULL THEN 1 END) as pending_tests,
+            COUNT(CASE WHEN st.tr05_status = 'TRANSFERRED' AND st.m04_transferred_to = {$roId} THEN 1 END) as received_tests,
+            COUNT(CASE WHEN st.tr05_status = 'TRANSFERRED' AND st.m04_ro_id = {$roId} THEN 1 END) as transferred_tests
+        ")
+            ->join('tr05_sample_tests as st', 'st.tr04_sample_registration_id', '=', 'tr04_sample_registrations.tr04_sample_registration_id')
             ->where(function ($query) use ($roId) {
-                $query->where('tr05_sample_tests.m04_ro_id', $roId)
-                    ->orWhere('tr05_sample_tests.m04_transferred_to', $roId);
+                $query->where('st.m04_ro_id', $roId)
+                    ->orWhere('st.m04_transferred_to', $roId);
             })
             ->groupBy(
-                'tr05_sample_tests.tr04_sample_registration_id',
-                'sr.tr04_reference_id',   
-                'sr.tr04_sample_type',
-                'sr.tr04_progress',
-                'sr.tr04_status',
-                'sr.created_at'
+                'tr04_sample_registrations.tr04_sample_registration_id',
+                'tr04_sample_registrations.tr04_reference_id',
+                'tr04_sample_registrations.tr04_sample_type',
+                'tr04_sample_registrations.tr04_progress',
+                'tr04_sample_registrations.tr04_status',
+                'tr04_sample_registrations.created_at'
             )
             ->havingRaw('allotted_tests < total_tests OR received_tests > 0');
     }
@@ -79,21 +66,21 @@ class AllottmentController extends Controller
     private function applyFilters($query, Request $request)
     {
         if ($request->filled('priority')) {
-            $query->where('sr.tr04_sample_type', $request->priority);
+            $query->where('tr04_sample_registrations.tr04_sample_type', $request->priority);
         }
 
         if ($request->filled('days_pending')) {
             $days = (int) $request->days_pending;
-            $query->where('sr.created_at', '<=', now()->subDays($days));
+            $query->where('tr04_sample_registrations.created_at', '<=', now()->subDays($days));
         }
 
         if ($request->filled('status')) {
             match ($request->status) {
-                'NEW' => $query->having('allotted_tests', '=', 0),
-                'PERTIAL' => $query->havingRaw('allotted_tests > 0 AND allotted_tests < total_tests'),
-                'URGENT' => $query->where(function ($q) {
-                    $q->where('sr.tr04_sample_type', 'Urgent')
-                        ->orWhere('sr.created_at', '<=', now()->subDays(3));
+                'new' => $query->having('allotted_tests', '=', 0),
+                'partial' => $query->havingRaw('allotted_tests > 0 AND allotted_tests < total_tests'),
+                'urgent' => $query->where(function ($q) {
+                    $q->where('tr04_sample_registrations.tr04_sample_type', 'Urgent')
+                        ->orWhere('tr04_sample_registrations.created_at', '<=', now()->subDays(3));
                 }),
                 default => null
             };
@@ -104,11 +91,11 @@ class AllottmentController extends Controller
     {
         $query->orderByRaw("
             CASE 
-                WHEN sr.tr04_sample_type = 'Urgent' THEN 1
-                WHEN sr.tr04_sample_type = 'Normal' THEN 2
+                WHEN tr04_sample_registrations.tr04_sample_type = 'Urgent' THEN 1
+                WHEN tr04_sample_registrations.tr04_sample_type = 'Normal' THEN 2
                 ELSE 3
             END
-        ")->orderBy('sr.created_at', 'asc');
+        ")->orderBy('tr04_sample_registrations.created_at', 'asc');
     }
 
     private function calculateLabManagerStats($roId)
@@ -119,8 +106,11 @@ class AllottmentController extends Controller
         });
 
         return [
-            'new_samples' => (clone $baseQuery)->whereNull('m06_alloted_to')
-                ->where('tr05_status', 'PENDING')->count(),
+            'new_samples' => SampleRegistration::whereHas('sampleTests', function ($query) use ($roId) {
+                $query->where(function ($q) use ($roId) {
+                    $q->where('m04_ro_id', $roId)->orWhere('m04_transferred_to', $roId);
+                })->whereNull('m06_alloted_to');
+            })->count(),
             'pending_tests' => (clone $baseQuery)->whereNull('m06_alloted_to')
                 ->whereNotIn('tr05_status', ['TRANSFERRED', 'COMPLETED'])->count(),
             'partial_allotted' => SampleRegistration::withCount([
@@ -174,6 +164,307 @@ class AllottmentController extends Controller
         $ros = Ro::where('m04_ro_id', '!=', $roId)->orderBy('m04_name')->get();
 
         return view('allottment.allottment', compact('registration', 'tests', 'employees', 'ros'));
+    }
+
+    // Bulk Allot Samples
+    public function bulkAllotSamples(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'sample_ids' => 'required|string',
+            'emp_id' => 'required|exists:m06_employees,m06_employee_id'
+        ]);
+
+        if ($validator->fails()) {
+            Session::flash('type', 'error');
+            Session::flash('message', 'Validation failed: ' . $validator->errors()->first());
+            return redirect()->back();
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $sampleIds = array_filter(explode(',', $request->sample_ids));
+            if (empty($sampleIds)) {
+                Session::flash('type', 'error');
+                Session::flash('message', 'No samples selected');
+                return redirect()->back();
+            }
+
+            $userId = Session::get('user_id');
+            $roId = Session::get('ro_id');
+            $totalUpdated = 0;
+
+            foreach ($sampleIds as $sampleId) {
+                $tests = SampleTest::where('tr04_sample_registration_id', $sampleId)
+                    ->where(function ($query) use ($roId) {
+                        $query->where('m04_ro_id', $roId)
+                            ->orWhere('m04_transferred_to', $roId);
+                    })
+                    ->whereNull('m06_alloted_to')
+                    ->whereNotIn('tr05_status', ['COMPLETED', 'TRANSFERRED'])
+                    ->get();
+
+                foreach ($tests as $test) {
+                    $test->update([
+                        'm06_alloted_to' => $request->emp_id,
+                        'm06_alloted_by' => $userId,
+                        'tr05_status' => 'ALLOTED',
+                        'tr05_alloted_at' => now()
+                    ]);
+                    $totalUpdated++;
+                }
+            }
+
+            DB::commit();
+            Session::flash('type', 'success');
+            Session::flash('message', "Successfully allotted {$totalUpdated} tests from " . count($sampleIds) . " samples to the selected analyst");
+            return redirect()->back();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Bulk Sample Allotment Error: ' . $e->getMessage(), [
+                'user_id' => Session::get('user_id'),
+                'emp_id' => $request->emp_id,
+                'sample_count' => count(explode(',', $request->sample_ids)),
+                'trace' => $e->getTraceAsString()
+            ]);
+            Session::flash('type', 'error');
+            Session::flash('message', 'Failed to allot samples: ' . $e->getMessage());
+            return redirect()->back();
+        }
+    }
+
+    // Bulk Transfer Samples
+    public function bulkTransferSamples(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'sample_ids' => 'required|string',
+            'ro_id' => [
+                'required',
+                'exists:m04_ros,m04_ro_id',
+                Rule::notIn([Session::get('ro_id')])
+            ],
+            'reason' => 'required|string|max:255',
+            'remark' => 'nullable|string|max:500',
+        ]);
+
+        if ($validator->fails()) {
+            Session::flash('type', 'error');
+            Session::flash('message', 'Validation failed: ' . $validator->errors()->first());
+            return redirect()->back();
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $sampleIds = array_filter(explode(',', $request->sample_ids));
+            if (empty($sampleIds)) {
+                Session::flash('type', 'error');
+                Session::flash('message', 'No samples selected');
+                return redirect()->back();
+            }
+
+            $userId = Session::get('user_id');
+            $roId = Session::get('ro_id');
+            $now = now();
+            $totalTransferred = 0;
+
+            foreach ($sampleIds as $sampleId) {
+                $tests = SampleTest::where('tr04_sample_registration_id', $sampleId)
+                    ->where('m04_ro_id', $roId)
+                    ->whereNotIn('tr05_status', ['COMPLETED', 'TRANSFERRED'])
+                    ->get();
+
+                $transferData = [];
+                foreach ($tests as $test) {
+                    $transferData[] = [
+                        'tr05_sample_test_id' => $test->tr05_sample_test_id,
+                        'm04_from_ro_id' => $test->m04_ro_id,
+                        'm04_to_ro_id' => $request->ro_id,
+                        'm06_transferred_by' => $userId,
+                        'tr06_transferred_at' => $now,
+                        'tr06_reason' => $request->reason,
+                        'tr06_remark' => $request->remark,
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ];
+
+                    $test->update([
+                        'm04_transferred_to' => $request->ro_id,
+                        'm06_alloted_to' => null,
+                        'm04_transferred_by' => $roId,
+                        'tr05_status' => 'TRANSFERRED',
+                        'tr05_transferred_at' => $now,
+                    ]);
+                    $totalTransferred++;
+                }
+
+                if (!empty($transferData)) {
+                    TestTransfer::insert($transferData);
+                }
+            }
+
+            DB::commit();
+            Session::flash('type', 'success');
+            Session::flash('message', "Successfully transferred {$totalTransferred} tests from " . count($sampleIds) . " samples to the selected RO");
+            return redirect()->back();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Bulk Sample Transfer Error: ' . $e->getMessage(), [
+                'user_id' => Session::get('user_id'),
+                'ro_id' => Session::get('ro_id'),
+                'target_ro_id' => $request->ro_id,
+                'sample_count' => count(explode(',', $request->sample_ids)),
+                'trace' => $e->getTraceAsString()
+            ]);
+            Session::flash('type', 'error');
+            Session::flash('message', 'Failed to transfer samples: ' . $e->getMessage());
+            return redirect()->back();
+        }
+    }
+
+    // Quick Allot Single Sample
+    public function quickAllotSample(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'sample_id' => 'required|exists:tr04_sample_registrations,tr04_sample_registration_id',
+            'emp_id' => 'required|exists:m06_employees,m06_employee_id'
+        ]);
+
+        if ($validator->fails()) {
+            Session::flash('type', 'error');
+            Session::flash('message', 'Validation failed: ' . $validator->errors()->first());
+            return redirect()->back();
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $userId = Session::get('user_id');
+            $roId = Session::get('ro_id');
+
+            $tests = SampleTest::where('tr04_sample_registration_id', $request->sample_id)
+                ->where(function ($query) use ($roId) {
+                    $query->where('m04_ro_id', $roId)
+                        ->orWhere('m04_transferred_to', $roId);
+                })
+                ->whereNull('m06_alloted_to')
+                ->whereNotIn('tr05_status', ['COMPLETED', 'TRANSFERRED'])
+                ->get();
+
+            if ($tests->isEmpty()) {
+                Session::flash('type', 'warning');
+                Session::flash('message', 'No unallotted tests found in this sample');
+                return redirect()->back();
+            }
+
+            $updatedCount = 0;
+            foreach ($tests as $test) {
+                $test->update([
+                    'm06_alloted_to' => $request->emp_id,
+                    'm06_alloted_by' => $userId,
+                    'tr05_status' => 'ALLOTED',
+                    'tr05_alloted_at' => now()
+                ]);
+                $updatedCount++;
+            }
+
+            DB::commit();
+            Session::flash('type', 'success');
+            Session::flash('message', "Successfully allotted {$updatedCount} tests to the selected analyst");
+            return redirect()->back();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Quick Allot Sample Error: ' . $e->getMessage(), [
+                'user_id' => Session::get('user_id'),
+                'sample_id' => $request->sample_id,
+                'emp_id' => $request->emp_id,
+                'trace' => $e->getTraceAsString()
+            ]);
+            Session::flash('type', 'error');
+            Session::flash('message', 'Failed to allot sample: ' . $e->getMessage());
+            return redirect()->back();
+        }
+    }
+
+    // Quick Transfer Single Sample
+    public function quickTransferSample(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'sample_id' => 'required|exists:tr04_sample_registrations,tr04_sample_registration_id',
+            'ro_id' => [
+                'required',
+                'exists:m04_ros,m04_ro_id',
+                Rule::notIn([Session::get('ro_id')])
+            ],
+            'reason' => 'required|string|max:255',
+            'remark' => 'nullable|string|max:500',
+        ]);
+
+        if ($validator->fails()) {
+            Session::flash('type', 'error');
+            Session::flash('message', 'Validation failed: ' . $validator->errors()->first());
+            return redirect()->back();
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $userId = Session::get('user_id');
+            $roId = Session::get('ro_id');
+            $now = now();
+
+            $tests = SampleTest::where('tr04_sample_registration_id', $request->sample_id)
+                ->where('m04_ro_id', $roId)
+                ->whereNotIn('tr05_status', ['COMPLETED', 'TRANSFERRED'])
+                ->get();
+
+            if ($tests->isEmpty()) {
+                Session::flash('type', 'warning');
+                Session::flash('message', 'No transferable tests found in this sample');
+                return redirect()->back();
+            }
+
+            $transferData = [];
+            foreach ($tests as $test) {
+                $transferData[] = [
+                    'tr05_sample_test_id' => $test->tr05_sample_test_id,
+                    'm04_from_ro_id' => $test->m04_ro_id,
+                    'm04_to_ro_id' => $request->ro_id,
+                    'm06_transferred_by' => $userId,
+                    'tr06_transferred_at' => $now,
+                    'tr06_reason' => $request->reason,
+                    'tr06_remark' => $request->remark,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ];
+
+                $test->update([
+                    'm04_transferred_to' => $request->ro_id,
+                    'm06_alloted_to' => null,
+                    'm04_transferred_by' => $roId,
+                    'tr05_status' => 'TRANSFERRED',
+                    'tr05_transferred_at' => $now,
+                ]);
+            }
+
+            TestTransfer::insert($transferData);
+
+            DB::commit();
+            Session::flash('type', 'success');
+            Session::flash('message', "Successfully transferred " . count($tests) . " tests to the selected RO");
+            return redirect()->back();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Quick Transfer Sample Error: ' . $e->getMessage(), [
+                'user_id' => Session::get('user_id'),
+                'sample_id' => $request->sample_id,
+                'ro_id' => $request->ro_id,
+                'trace' => $e->getTraceAsString()
+            ]);
+            Session::flash('type', 'error');
+            Session::flash('message', 'Failed to transfer sample: ' . $e->getMessage());
+            return redirect()->back();
+        }
     }
 
     public function createAllottment(Request $request)

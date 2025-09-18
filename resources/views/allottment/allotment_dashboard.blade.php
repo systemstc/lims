@@ -1,4 +1,4 @@
-{{-- Lab Manager Pending Allotments Dashboard --}}
+{{-- Enhanced Lab Manager Pending Allotments Dashboard --}}
 @extends('layouts.app_back')
 
 @section('content')
@@ -9,7 +9,6 @@
                 <p>New samples received from registrations that need test allotment or transfer.</p>
             </div>
         </div>
-
 
         <!-- Statistics Cards -->
         <div class="row g-gs mb-4">
@@ -95,10 +94,46 @@
             </div>
         </div>
 
+        <!-- Bulk Actions Bar -->
+        <div class="card card-bordered mb-4">
+            <div class="card-inner">
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-label">Bulk Actions</label>
+                            <div class="btn-group" role="group">
+                                <button type="button" class="btn btn-primary" onclick="openBulkAllotModal()"
+                                    id="bulkAllotBtn" disabled>
+                                    <em class="icon ni ni-user-check"></em>
+                                    Allot Selected
+                                </button>
+                                <button type="button" class="btn btn-warning" onclick="openBulkTransferModal()"
+                                    id="bulkTransferBtn" disabled>
+                                    <em class="icon ni ni-forward-arrow"></em>
+                                    Transfer Selected
+                                </button>
+                            </div>
+                            <small class="text-muted">Select samples below to enable bulk actions</small>
+                        </div>
+                    </div>
+                    <div class="col-md-6 text-end">
+                        <div class="form-group">
+                            <label class="form-label">Selected Samples</label>
+                            <div>
+                                <span class="badge badge-primary" id="selectedCount">0</span> samples selected
+                                <button type="button" class="btn btn-sm btn-outline-secondary ms-2"
+                                    onclick="clearSelection()">Clear All</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Filters -->
         <div class="card card-bordered mb-4">
             <div class="card-inner">
-                <form method="GET" action="{{ route('view_allottment') }}" class="">
+                <form method="GET" action="{{ route('view_allottment') }}">
                     <div class="row g-3">
                         <div class="col-md-3">
                             <label class="form-label">Priority</label>
@@ -151,6 +186,13 @@
                 <div class="card-inner p-0">
                     <div class="nk-tb-list nk-tb-ulist">
                         <div class="nk-tb-item nk-tb-head">
+                            <div class="nk-tb-col nk-tb-col-check">
+                                <div class="custom-control custom-control-sm custom-checkbox notext">
+                                    <input type="checkbox" class="custom-control-input" id="selectAllSamples"
+                                        onchange="toggleSelectAll()">
+                                    <label class="custom-control-label" for="selectAllSamples"></label>
+                                </div>
+                            </div>
                             <div class="nk-tb-col"><span class="sub-text">Registration ID</span></div>
                             <div class="nk-tb-col tb-col-lg"><span class="sub-text">Received Date</span></div>
                             <div class="nk-tb-col tb-col-md"><span class="sub-text">Test Progress</span></div>
@@ -161,12 +203,22 @@
                         </div>
 
                         @forelse($pendingRegistrations as $registration)
-                        {{-- @dd($registration) --}}
                             <div class="nk-tb-item">
+                                <div class="nk-tb-col nk-tb-col-check">
+                                    <div class="custom-control custom-control-sm custom-checkbox notext">
+                                        <input type="checkbox" class="custom-control-input sample-checkbox"
+                                            id="sample-{{ $registration->tr04_sample_registration_id }}"
+                                            value="{{ $registration->tr04_sample_registration_id }}"
+                                            onchange="updateBulkActions()">
+                                        <label class="custom-control-label"
+                                            for="sample-{{ $registration->tr04_sample_registration_id }}"></label>
+                                    </div>
+                                </div>
+
                                 <div class="nk-tb-col">
                                     <div class="user-card">
                                         <div class="user-info">
-                                            <span class="tb-lead">#{{ $registration->tr04_reference_id }}</span>
+                                            <span class="tb-lead">{{ $registration->tr04_reference_id }}</span>
                                             @if ($registration->received_tests > 0)
                                                 <span class="badge bg-info ms-2">
                                                     <em class="icon ni ni-arrow-down"></em>
@@ -264,8 +316,22 @@
                                                         <li>
                                                             <a
                                                                 href="{{ route('show_allotment', $registration->tr04_sample_registration_id) }}">
-                                                                <em class="icon ni ni-user-check"></em>
+                                                                <em class="icon ni ni-user-check text-success"></em>
                                                                 <span>Manage Allotment</span>
+                                                            </a>
+                                                        </li>
+                                                        <li>
+                                                            <a style="cursor: pointer;"
+                                                                onclick="quickAllot({{ $registration->tr04_sample_registration_id }})">
+                                                                <em class="icon ni ni-spark text-primary"></em>
+                                                                <span>Quick Allot</span>
+                                                            </a>
+                                                        </li>
+                                                        <li>
+                                                            <a style="cursor: pointer;"
+                                                                onclick="quickTransfer({{ $registration->tr04_sample_registration_id }})">
+                                                                <em class="icon ni ni-forward-arrow text-warning"></em>
+                                                                <span>Quick Transfer</span>
                                                             </a>
                                                         </li>
                                                         @if ($registration->received_tests > 0)
@@ -277,14 +343,13 @@
                                                                 </a>
                                                             </li>
                                                         @endif
-                                                        <li class="divider"></li>
-                                                        <li>
+                                                        {{-- <li>
                                                             <a href="#"
                                                                 onclick="viewDetails({{ $registration->tr04_sample_registration_id }})">
                                                                 <em class="icon ni ni-eye"></em>
                                                                 <span>View Details</span>
                                                             </a>
-                                                        </li>
+                                                        </li> --}}
                                                     </ul>
                                                 </div>
                                             </div>
@@ -294,7 +359,7 @@
                             </div>
                         @empty
                             <div class="nk-tb-item">
-                                <div class="nk-tb-col text-center py-4">
+                                <div class="nk-tb-col text-center py-4" colspan="8">
                                     <div class="text-muted">
                                         <em class="icon ni ni-inbox" style="font-size: 2rem;"></em>
                                         <p class="mt-2">No pending allotments found</p>
@@ -307,21 +372,420 @@
             </div>
         </div>
 
-        <!-- Pagination -->
         @if ($pendingRegistrations->hasPages())
             <div class="card">
-                <div class="card-inner">
-                    {{ $pendingRegistrations->links() }}
+                <div class="card-inner d-flex justify-content-center">
+                    {{ $pendingRegistrations->links('pagination::bootstrap-5') }}
                 </div>
             </div>
         @endif
+
+    </div>
+
+    <!-- Bulk Allot Modal -->
+    <div class="modal fade" tabindex="-1" id="bulkAllotModal">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Bulk Allot Samples</h5>
+                    <a href="#" class="close" data-bs-dismiss="modal" aria-label="Close">
+                        <em class="icon ni ni-cross"></em>
+                    </a>
+                </div>
+                <form id="bulkAllotForm" method="POST" action="{{ route('bulk_allot_sample') }}">
+                    @csrf
+                    <div class="modal-body">
+                        <input type="hidden" id="bulkAllotSampleIds" name="sample_ids">
+                        <div class="form-group">
+                            <label class="form-label">Select Analyst</label>
+                            <select name="emp_id" class="form-control form-select" required>
+                                <option value="">Choose Analyst...</option>
+                                @foreach ($employees as $employee)
+                                    <option value="{{ $employee->m06_employee_id }}">{{ $employee->m06_name }}
+                                        ({{ $employee->role }})
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Selected Samples</label>
+                            <div id="bulkAllotSampleList" class="border p-2 bg-light rounded">
+                                <!-- Will be populated by JS -->
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-light">
+                        <button type="submit" class="btn btn-primary">Allot All Tests</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bulk Transfer Modal -->
+    <div class="modal fade" tabindex="-1" id="bulkTransferModal">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Bulk Transfer Samples</h5>
+                    <a href="#" class="close" data-bs-dismiss="modal" aria-label="Close">
+                        <em class="icon ni ni-cross"></em>
+                    </a>
+                </div>
+                <form id="bulkTransferForm" method="POST" action="{{ route('bulk_sample_transfer') }}">
+                    @csrf
+                    <div class="modal-body">
+                        <input type="hidden" id="bulkTransferSampleIds" name="sample_ids">
+                        <div class="form-group">
+                            <label class="form-label">Transfer to RO</label>
+                            <select name="ro_id" class="form-control form-select" required>
+                                <option value="">Choose RO...</option>
+                                @foreach ($ros as $ro)
+                                    <option value="{{ $ro->m04_ro_id }}">{{ $ro->m04_name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Reason for Transfer</label>
+                            <select name="reason" class="form-control form-select" required>
+                                <option value="">Select Reason...</option>
+                                <option value="Workload Distribution">Workload Distribution</option>
+                                <option value="Equipment Not Available">Equipment Not Available</option>
+                                <option value="Specialist Required">Specialist Required</option>
+                                <option value="Capacity Issue">Capacity Issue</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Remarks (Optional)</label>
+                            <textarea name="remark" class="form-control" rows="3" placeholder="Additional notes..."></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Selected Samples</label>
+                            <div id="bulkTransferSampleList" class="border p-2 bg-light rounded">
+                                <!-- Will be populated by JS -->
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-light">
+                        <button type="submit" class="btn btn-warning">Transfer All Tests</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Allot Modal -->
+    <div class="modal fade" tabindex="-1" id="quickAllotModal">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Quick Allot Sample</h5>
+                    <a href="#" class="close" data-bs-dismiss="modal" aria-label="Close">
+                        <em class="icon ni ni-cross"></em>
+                    </a>
+                </div>
+                <form id="quickAllotForm" method="POST" action="{{ route('quick_allot_sample') }}">
+                    @csrf
+                    <div class="modal-body">
+                        <input type="hidden" id="quickAllotSampleId" name="sample_id">
+                        <div class="form-group">
+                            <label class="form-label">Sample ID</label>
+                            <input type="text" class="form-control" id="quickAllotSampleRef" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Select Analyst</label>
+                            <select name="emp_id" class="form-control form-select" required>
+                                <option value="">Choose Analyst...</option>
+                                @foreach ($employees as $employee)
+                                    <option value="{{ $employee->m06_employee_id }}">{{ $employee->m06_name }}
+                                        ({{ $employee->role }})
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-light">
+                        <button type="submit" class="btn btn-primary">Allot All Tests</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Transfer Modal -->
+    <div class="modal fade" tabindex="-1" id="quickTransferModal">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Quick Transfer Sample</h5>
+                    <a href="#" class="close" data-bs-dismiss="modal" aria-label="Close">
+                        <em class="icon ni ni-cross"></em>
+                    </a>
+                </div>
+                <form id="quickTransferForm" method="POST" action="{{ route('quick_allot_sample') }}">
+                    @csrf
+                    <div class="modal-body">
+                        <input type="hidden" id="quickTransferSampleId" name="sample_id">
+                        <div class="form-group">
+                            <label class="form-label">Sample ID</label>
+                            <input type="text" class="form-control" id="quickTransferSampleRef" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Transfer to RO</label>
+                            <select name="ro_id" class="form-control form-select" required>
+                                <option value="">Choose RO...</option>
+                                @foreach ($ros as $ro)
+                                    <option value="{{ $ro->m04_ro_id }}">{{ $ro->m04_name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Reason for Transfer</label>
+                            <select name="reason" class="form-control form-select" required>
+                                <option value="">Select Reason...</option>
+                                <option value="Workload Distribution">Workload Distribution</option>
+                                <option value="Equipment Not Available">Equipment Not Available</option>
+                                <option value="Specialist Required">Specialist Required</option>
+                                <option value="Capacity Issue">Capacity Issue</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Remarks (Optional)</label>
+                            <textarea name="remark" class="form-control" rows="3" placeholder="Additional notes..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-light">
+                        <button type="submit" class="btn btn-warning">Transfer All Tests</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 
     <script>
+        // Global variables
+        let selectedSamples = new Set();
+
         // View details function
         function viewDetails(registrationId) {
             window.location.href = `/registration/view/${registrationId}`;
         }
+
+        // Toggle select all checkboxes
+        function toggleSelectAll() {
+            const selectAllCheckbox = document.getElementById('selectAllSamples');
+            const sampleCheckboxes = document.querySelectorAll('.sample-checkbox');
+
+            sampleCheckboxes.forEach(checkbox => {
+                checkbox.checked = selectAllCheckbox.checked;
+                if (selectAllCheckbox.checked) {
+                    selectedSamples.add(checkbox.value);
+                } else {
+                    selectedSamples.delete(checkbox.value);
+                }
+            });
+
+            updateBulkActions();
+        }
+
+        // Update bulk action buttons based on selection
+        function updateBulkActions() {
+            const sampleCheckboxes = document.querySelectorAll('.sample-checkbox:checked');
+            selectedSamples.clear();
+
+            sampleCheckboxes.forEach(checkbox => {
+                selectedSamples.add(checkbox.value);
+            });
+
+            const count = selectedSamples.size;
+            const bulkAllotBtn = document.getElementById('bulkAllotBtn');
+            const bulkTransferBtn = document.getElementById('bulkTransferBtn');
+            const selectedCountSpan = document.getElementById('selectedCount');
+
+            selectedCountSpan.textContent = count;
+            bulkAllotBtn.disabled = count === 0;
+            bulkTransferBtn.disabled = count === 0;
+
+            // Update select all checkbox state
+            const selectAllCheckbox = document.getElementById('selectAllSamples');
+            const allCheckboxes = document.querySelectorAll('.sample-checkbox');
+            selectAllCheckbox.checked = allCheckboxes.length > 0 && count === allCheckboxes.length;
+            selectAllCheckbox.indeterminate = count > 0 && count < allCheckboxes.length;
+        }
+
+        // Clear all selections
+        function clearSelection() {
+            document.querySelectorAll('.sample-checkbox').forEach(checkbox => {
+                checkbox.checked = false;
+            });
+            document.getElementById('selectAllSamples').checked = false;
+            selectedSamples.clear();
+            updateBulkActions();
+        }
+
+        // Open bulk allot modal
+        function openBulkAllotModal() {
+            if (selectedSamples.size === 0) return;
+
+            document.getElementById('bulkAllotSampleIds').value = Array.from(selectedSamples).join(',');
+
+            // Populate sample list
+            const sampleList = document.getElementById('bulkAllotSampleList');
+            const sampleRefs = [];
+            selectedSamples.forEach(sampleId => {
+                const checkbox = document.querySelector(`input[value="${sampleId}"] `);
+                const row = checkbox.closest('.nk-tb-item');
+                const refElement = row.querySelector('.tb-lead');
+                if (refElement) {
+                    sampleRefs.push(refElement.textContent);
+                }
+            });
+
+            sampleList.innerHTML = sampleRefs.length > 0 ?
+                sampleRefs.map(ref => `<span class="badge bg-primary me-1">${ref}</span>`).join('') :
+                'No samples selected';
+
+
+            const bulkAllotModal = new bootstrap.Modal(document.getElementById('bulkAllotModal'));
+            bulkAllotModal
+                .show();
+        }
+
+        // Open bulk transfer modal
+        function openBulkTransferModal() {
+            if (selectedSamples.size === 0) return;
+
+            document.getElementById('bulkTransferSampleIds').value = Array.from(selectedSamples).join(',');
+
+            // Populate sample list
+            const sampleList = document.getElementById('bulkTransferSampleList');
+            const sampleRefs = [];
+            selectedSamples.forEach(sampleId => {
+                const checkbox = document.querySelector(`input[value="${sampleId}"] `);
+                const row = checkbox.closest('.nk-tb-item');
+                const refElement = row.querySelector('.tb-lead');
+                if (refElement) {
+                    sampleRefs.push(refElement.textContent);
+                }
+            });
+
+            sampleList.innerHTML = sampleRefs.length > 0 ?
+                sampleRefs.map(ref => `<span class="badge bg-warning me-1"> ${ref} </span>`).join('') : 'No samples selected';
+
+            const bulkTransferModal = new bootstrap.Modal(document.getElementById(
+                'bulkTransferModal'));
+            bulkTransferModal.show();
+        }
+
+        // Quick allot single sample
+        function quickAllot(sampleId) {
+            const row = document.querySelector(`input[value="${sampleId}"] `).closest('.nk-tb-item');
+            const refElement = row.querySelector('.tb-lead');
+
+            document.getElementById('quickAllotSampleId').value = sampleId;
+            document.getElementById('quickAllotSampleRef').value = refElement ? refElement.textContent : `
+                Sample $ {
+                    sampleId
+                }
+                `;
+
+            const quickAllotModal = new bootstrap.Modal(document.getElementById('quickAllotModal'));
+            quickAllotModal.show();
+        }
+
+        // Quick transfer single sample
+        function quickTransfer(sampleId) {
+            const row = document.querySelector(`input[value="${sampleId}"]`).closest('.nk-tb-item');
+            const refElement = row.querySelector('.tb-lead');
+
+            document.getElementById('quickTransferSampleId').value = sampleId;
+            document.getElementById('quickTransferSampleRef').value = refElement ? refElement.textContent :
+                `Sample ${sampleId}`;
+
+            const quickTransferModal = new bootstrap.Modal(document.getElementById('quickTransferModal'));
+            quickTransferModal.show();
+        }
+
+        // Form validation and submission
+        document.getElementById('bulkAllotForm').addEventListener('submit', function(e) {
+            const empId = this.querySelector('select[name="emp_id"]').value;
+            if (!empId) {
+                e.preventDefault();
+                alert('Please select an analyst');
+                return false;
+            }
+
+            if (selectedSamples.size === 0) {
+                e.preventDefault();
+                alert('No samples selected');
+                return false;
+            }
+
+            if (!confirm(
+                    `Are you sure you want to allot ${selectedSamples.size} sample(s) to the selected analyst?`)) {
+                e.preventDefault();
+                return false;
+            }
+        });
+
+        document.getElementById('bulkTransferForm').addEventListener('submit', function(e) {
+            const roId = this.querySelector('select[name="ro_id"]').value;
+            const reason = this.querySelector('select[name="reason"]').value;
+
+            if (!roId || !reason) {
+                e.preventDefault();
+                alert('Please fill in all required fields');
+                return false;
+            }
+
+            if (selectedSamples.size === 0) {
+                e.preventDefault();
+                alert('No samples selected');
+                return false;
+            }
+
+            if (!confirm(
+                    `Are you sure you want to transfer ${selectedSamples.size} sample(s) to the selected RO?`)) {
+                e.preventDefault();
+                return false;
+            }
+        });
+
+        document.getElementById('quickAllotForm').addEventListener('submit', function(e) {
+            const empId = this.querySelector('select[name="emp_id"]').value;
+            if (!empId) {
+                e.preventDefault();
+                alert('Please select an analyst');
+                return false;
+            }
+
+            if (!confirm('Are you sure you want to allot all tests in this sample to the selected analyst?')) {
+                e.preventDefault();
+                return false;
+            }
+        });
+
+        document.getElementById('quickTransferForm').addEventListener('submit', function(e) {
+            const roId = this.querySelector('select[name="ro_id"]').value;
+            const reason = this.querySelector('select[name="reason"]').value;
+
+            if (!roId || !reason) {
+                e.preventDefault();
+                alert('Please fill in all required fields');
+                return false;
+            }
+
+            if (!confirm('Are you sure you want to transfer all tests in this sample to the selected RO?')) {
+                e.preventDefault();
+                return false;
+            }
+        });
 
         // Initialize tooltips
         document.addEventListener('DOMContentLoaded', function() {
@@ -329,6 +793,14 @@
             var tooltipList = tooltipTriggerList.map(function(tooltipTriggerEl) {
                 return new bootstrap.Tooltip(tooltipTriggerEl);
             });
+
+            // Initialize bulk action state
+            updateBulkActions();
+        });
+
+        // Clear selections when page reloads
+        window.addEventListener('beforeunload', function() {
+            clearSelection();
         });
     </script>
 @endsection

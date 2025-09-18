@@ -61,6 +61,7 @@
         /* fallback */
         text-shadow: 3px 1px 1px rgba(0, 0, 0, 0.2);
     }
+
     /* Optional gradient style */
     .text-gradient {
         background: linear-gradient(90deg, #f52601, #3F41D1);

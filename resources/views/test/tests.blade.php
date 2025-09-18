@@ -52,7 +52,7 @@
                                                 <td>{{ $test->m12_weight }}</td>
                                                 {{-- <td>{{ $test->department->m13_name }}</td> --}}
                                                 {{-- <td>{{ $test->m12_remark }}</td> --}}
-                                                <td>{{ $test->user->tr01_name }}</td>
+                                                <td>{{ $test->user->tr01_name ?? '' }}</td>
                                                 {{-- <td>{{ $test->created_at }}</td> --}}
                                                 <td
                                                     class="text-{{ $test->m12_status == 'ACTIVE' ? 'success' : 'danger' }}">

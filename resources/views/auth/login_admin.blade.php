@@ -9,12 +9,30 @@
     <meta name="description"
         content="A powerful and conceptual apps base dashboard template that especially build for developers and programmers.">
     <!-- Fav Icon  -->
-    <link rel="shortcut icon" href="{{ asset('backAsset/images/favicon.png') }}">
+    <link rel="shortcut icon" href="{{ asset('backAssets/images/favicon.png') }}">
     <!-- Page Title  -->
     <title>Login | LIMS</title>
     <!-- StyleSheets  -->
     <link rel="stylesheet" href="{{ asset('backAssets/css/dashlite.css') }}">
     <link id="skin-default" rel="stylesheet" href="{{ asset('backAssets/css/theme.css') }}">
+    <style>
+        .lims-brand-text {
+            font-weight: 700;
+            font-size: 1.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #2c3e50;
+            /* fallback */
+            text-shadow: 3px 1px 1px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Optional gradient style */
+        .text-gradient {
+            background: linear-gradient(90deg, #f52601, #3F41D1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+    </style>
 </head>
 
 <body class="nk-body bg-white npc-default pg-auth">
@@ -26,12 +44,15 @@
                 <!-- content @s -->
                 <div class="nk-content ">
                     <div class="nk-block nk-block-middle nk-auth-body  wide-xs">
-                        <div class="brand-logo pb-4 text-center">
+                        <div class="brand-logo text-center">
                             <a href="javaScript:void(0)" class="logo-link">
-                                <img class="logo-light logo-img logo-img-lg"
-                                    src="{{ asset('backAssets/images/logo2x.png') }}" alt="logo">
-                                <img class="logo-dark logo-img logo-img-lg"
-                                    src="{{ asset('backAssets/images/logo-dark.png') }}" alt="logo-dark">
+                                <img class="logo-light logo-img me-2" src="{{ asset('backAssets/images/logo.png') }}"
+                                    alt="logo">
+                                <img class="logo-dark logo-img me-2" src="{{ asset('backAssets/images/logo.png') }}"
+                                    alt="logo">
+                                <img class="logo-small logo-img logo-img-small me-2"
+                                    src="{{ asset('backAssets/images/logo.png') }}" alt="logo-small">
+                                <span class="lims-brand-text text-gradient">LIMS</span>
                             </a>
                         </div>
                         <div class="card">

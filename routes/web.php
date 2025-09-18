@@ -200,8 +200,8 @@ Route::middleware(['access_control'])->group(function () {
 
         // AJAX Routes
         Route::get('/template/{templateId}/data', [TestResultController::class, 'getTemplates'])->name('get-template');
-        Route::get('/template', [TestResultController::class, 'getTemplate'])->name('test_result_template');
     });
+    Route::get('/template', [TestResultController::class, 'getTestTemplate'])->name('create_test_template');
 
     Route::get('/get-districts', [MasterController::class, 'getDistricts'])->name('get_districts');
     Route::get('group-bysample', [MasterController::class, 'getGroups'])->name('get_groups');
@@ -258,6 +258,14 @@ Route::middleware(['access_control'])->group(function () {
     Route::post('/transfer', [AllottmentController::class, 'transferTests'])->name('transfer_tests');
     Route::post('/accept-transfer', [AllottmentController::class, 'acceptTransferred'])->name('accept_transferred');
 
+    // Bulk allot Sample
+    Route::post('bulk-allot-sample', [AllottmentController::class, 'bulkAllotSamples'])->name('bulk_allot_sample');
+    // Quick Allotment 
+    Route::post('quick-allot-sample', [AllottmentController::class, 'quickAllotSample'])->name('quick_allot_sample');
+    // Bluck Sample Transfer
+    Route::post('bulk-transfer-sample', [AllottmentController::class, 'bulkTransferSamples'])->name('bulk_sample_transfer');
+    // Quick Transfer Sample
+    Route::post('quick-allot-sample', [AllottmentController::class, 'quickTransferSample'])->name('quick_allot_sample');
     // Additional operations
     Route::post('/reassign', [AllottmentController::class, 'reassignTest'])->name('reassign');
     Route::get('/history/{testId}', [AllottmentController::class, 'getAllotmentHistory'])->name('history');

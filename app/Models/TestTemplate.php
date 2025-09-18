@@ -6,35 +6,37 @@ use Illuminate\Database\Eloquent\Model;
 
 class TestTemplate extends Model
 {
-    protected $table = 'tr07_test_templates';
-    protected $primaryKey = 'tr07_template_id';
-
-    const CREATED_AT = 'tr07_created_at';
-    const UPDATED_AT = 'tr07_updated_at';
+    protected $table = 'tr08_test_templates';
+    protected $primaryKey = 'tr08_test_template_id';
 
     protected $fillable = [
-        'tr07_test_type',
-        'tr07_template_name',
-        'tr07_fields_config',
-        'tr07_normal_ranges',
-        'tr07_report_format',
-        'tr07_is_active',
-        'tr07_created_by'
+        'm12_test_id',
+        'tr08_test_type',
+        'tr08_times_test_perform',
+        'tr08_fields_config',
+        'tr08_normal_ranges',
+        'tr08_formula',
+        'tr08_status',
+        'm06_created_by',
     ];
 
     protected $casts = [
-        'tr07_fields_config' => 'array',
-        'tr07_normal_ranges' => 'array',
-        'tr07_is_active' => 'boolean'
+        'tr08_fields_config' => 'array',
+        'tr08_normal_ranges' => 'array',
     ];
 
     public function scopeActive($query)
     {
-        return $query->where('tr07_is_active', 1);
+        return $query->where('tr08_status', "YES");
     }
 
     public function creator()
     {
-        return $this->belongsTo(User::class, 'tr07_created_by');
+        return $this->belongsTo(Employee::class, 'm06_created_by', 'm06_employee_id');
+    }
+
+    public function parameters()
+    {
+        return $this->hasMany(TestTemplateParameter::class, 'tr08_test_template_id', 'tr08_test_template_id');
     }
 }

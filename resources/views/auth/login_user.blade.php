@@ -6,14 +6,33 @@
     <meta charset="utf-8">
     <meta name="author" content="Softnio">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <meta name="description" content="A powerful and conceptual apps base dashboard template that especially build for developers and programmers.">
+    <meta name="description"
+        content="A powerful and conceptual apps base dashboard template that especially build for developers and programmers.">
     <!-- Fav Icon  -->
-    <link rel="shortcut icon" href="{{ asset('backAsset/images/favicon.png') }}">
+    <link rel="shortcut icon" href="{{ asset('backAssets/images/favicon.png') }}">
     <!-- Page Title  -->
     <title>Login | LIMS</title>
     <!-- StyleSheets  -->
     <link rel="stylesheet" href="{{ asset('backAssets/css/dashlite.css') }}">
-    <link id="skin-default" rel="stylesheet" href="{{ asset('backAssets/css/theme.css')}}">
+    <link id="skin-default" rel="stylesheet" href="{{ asset('backAssets/css/theme.css') }}">
+    <style>
+        .lims-brand-text {
+            font-weight: 700;
+            font-size: 1.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #2c3e50;
+            /* fallback */
+            text-shadow: 3px 1px 1px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Optional gradient style */
+        .text-gradient {
+            background: linear-gradient(90deg, #f52601, #3F41D1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+    </style>
 </head>
 
 <body class="nk-body bg-white npc-default pg-auth">
@@ -25,10 +44,15 @@
                 <!-- content @s -->
                 <div class="nk-content ">
                     <div class="nk-block nk-block-middle nk-auth-body  wide-xs">
-                        <div class="brand-logo pb-4 text-center">
+                        <div class="brand-logo text-center">
                             <a href="javaScript:void(0)" class="logo-link">
-                                <img class="logo-light logo-img logo-img-lg" src="{{ asset('backAssets/images/logo2x.png') }}" alt="logo">
-                                <img class="logo-dark logo-img logo-img-lg" src="{{ asset('backAssets/images/logo-dark.png') }}" alt="logo-dark">
+                                <img class="logo-light logo-img me-2" src="{{ asset('backAssets/images/logo.png') }}"
+                                    alt="logo">
+                                <img class="logo-dark logo-img me-2" src="{{ asset('backAssets/images/logo.png') }}"
+                                    alt="logo">
+                                <img class="logo-small logo-img logo-img-small me-2"
+                                    src="{{ asset('backAssets/images/logo.png') }}" alt="logo-small">
+                                <span class="lims-brand-text text-gradient">LIMS</span>
                             </a>
                         </div>
                         <div class="card">
@@ -48,20 +72,24 @@
                                             <label class="form-label" for="txt_email">Email</label>
                                         </div>
                                         <div class="form-control-wrap">
-                                            <input type="text" class="form-control form-control-lg" id="txt_email" name="txt_email" placeholder="Enter your email address">
+                                            <input type="text" class="form-control form-control-lg" id="txt_email"
+                                                name="txt_email" placeholder="Enter your email address">
                                         </div>
                                     </div>
                                     <div class="form-group">
                                         <div class="form-label-group">
                                             <label class="form-label" for="txt_password">Password</label>
-                                            <a class="link link-primary link-sm" href="javaCScript:void(0)">Forgot Password?</a>
+                                            <a class="link link-primary link-sm" href="javaCScript:void(0)">Forgot
+                                                Password?</a>
                                         </div>
                                         <div class="form-control-wrap">
-                                            <a href="#" class="form-icon form-icon-right passcode-switch lg" data-target="password">
+                                            <a href="#" class="form-icon form-icon-right passcode-switch lg"
+                                                data-target="password">
                                                 <em class="passcode-icon icon-show icon ni ni-eye"></em>
                                                 <em class="passcode-icon icon-hide icon ni ni-eye-off"></em>
                                             </a>
-                                            <input type="password" class="form-control form-control-lg" id="txt_password" name="txt_password" placeholder="Enter your passcode">
+                                            <input type="password" class="form-control form-control-lg"
+                                                id="txt_password" name="txt_password" placeholder="Enter your passcode">
                                         </div>
                                     </div>
                                     <div class="form-group">

@@ -7,9 +7,11 @@ use App\Models\TestResult;
 use App\Models\TestResultVersion;
 use App\Models\TestResultAudit;
 use App\Models\TestTemplate;
+use App\Models\TestTemplateParameter;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Session;
 
 class TestResultController extends Controller
 {
@@ -343,10 +345,58 @@ class TestResultController extends Controller
     /**
      * Get template data via AJAX
      */
-    public function getTemplate($templateId)
+    public function getTestTemplate()
     {
-        $template = TestTemplate::findOrFail($templateId);
-        return response()->json($template);
+        // dd('iufb');
+        $tests = DB::table('m12_tests')
+            ->whereNotIn('m12_test_id', function ($q) {
+                $q->select('m12_test_id')->from('tr08_test_templates');
+            })
+            ->get();
+        return view('test-results.create_test_template', compact('tests'));
+    }
+
+    public function createTestTemplate(Request $request)
+    {
+        $request->validate([
+            'm12_test_id'        => 'required|integer',
+            'tr08_test_type'     => 'required|string',
+            'txt_test_performed' => 'required|integer|min:1',
+            'txt_param_num'      => 'required|integer|min:1',
+            'parameters'         => 'required|array',
+        ]);
+
+        DB::beginTransaction();
+        try {
+            // Create Test Template
+            $template = TestTemplate::create([
+                'm12_test_id'             => $request->m12_test_id,
+                'tr08_test_type'          => $request->tr08_test_type,
+                'tr08_times_test_perform' => $request->txt_test_performed,
+                'tr08_formula'            => $request->txt_main_test_formula ?? null, 
+                'tr08_fields_config'      => $request->parameters, 
+                'tr08_status'             => 'YES',
+                'm06_created_by'          => Session::get('user_id'), 
+            ]);
+
+            // Save each parameter
+            foreach ($request->parameters as $param) {
+                TestTemplateParameter::create([
+                    'tr08_test_template_id' => $template->tr08_test_template_id,
+                    'tr09_name'             => $param['name'],
+                    'tr09_inputs'           => $param['inputs'],
+                    'tr09_min'              => $param['min'],
+                    'tr09_max'              => $param['max'],
+                    'tr09_formula'          => $param['formula'] ?? null,
+                ]);
+            }
+
+            DB::commit();
+            return redirect()->back()->with('success', 'Test template created successfully!');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()->with('error', 'Failed to create template: ' . $e->getMessage());
+        }
     }
 
     /**

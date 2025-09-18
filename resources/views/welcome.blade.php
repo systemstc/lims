@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LIMS - Laboratory Information Management System | Textile Committee of India</title>
+    <title>LIMS - Laboratory Information Management System | Textile Committee</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -31,10 +31,9 @@
         }
 
         .navbar {
-            background: linear-gradient(135deg, var(--textile-red) 0%, #a91731 100%);
+            background: linear-gradient(135deg, var(--textile-red), var(--textile-gold));
             box-shadow: 0 2px 15px rgba(196, 30, 58, 0.2);
             backdrop-filter: blur(10px);
-            transition: all 0.3s ease;
         }
 
         .navbar-brand img {
@@ -52,7 +51,6 @@
             display: flex;
             align-items: center;
             position: relative;
-            overflow: hidden;
         }
 
         .hero-section::before {
@@ -62,7 +60,7 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="textile" patternUnits="userSpaceOnUse" width="20" height="20"><rect fill="none" stroke="%23ffffff" stroke-width="0.2" width="20" height="20"/><circle cx="10" cy="10" r="2" fill="%23ffffff" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23textile)"/></svg>');
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="textile" patternUnits="userSpaceOnUse" width="20" height="20"><rect fill="none" stroke="%23ffffff" stroke-width="0.1" width="20" height="20"/></pattern></defs><rect width="100" height="100" fill="url(%23textile)"/></svg>');
             opacity: 0.1;
         }
 
@@ -115,7 +113,6 @@
 
         .stats-section {
             background: linear-gradient(135deg, var(--light-gray) 0%, #ffffff 100%);
-            padding: 5rem 0;
             position: relative;
         }
 
@@ -181,12 +178,11 @@
         }
 
         .form-control {
-            border: 2px solid var(--medium-gray);
-            border-radius: 12px;
+            border: 1px solid var(--medium-gray);
+            border-radius: 8px;
             padding: 0.75rem 1rem;
-            font-size: 1rem;
-            transition: all 0.3s ease;
-            background-color: rgba(255, 255, 255, 0.9);
+            transition: border-color 0.3s ease;
+            background-color: white;
         }
 
         .form-control:focus {
@@ -260,11 +256,6 @@
             box-shadow: 0 4px 15px rgba(196, 30, 58, 0.3);
         }
 
-        .textile-pattern {
-            background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="%23f8fafc"/><path d="M0 0L100 100" stroke="%23e2e8f0" stroke-width="1"/><path d="M100 0L0 100" stroke="%23e2e8f0" stroke-width="1"/></svg>');
-            background-size: 20px 20px;
-        }
-
         .testimonial-card {
             background: white;
             border-radius: 16px;
@@ -274,33 +265,13 @@
             border-left: 4px solid var(--textile-red);
         }
 
-        .client-logo {
-            height: 60px;
-            width: auto;
-            filter: grayscale(100%);
-            opacity: 0.7;
-            transition: all 0.3s ease;
-        }
-
-        .client-logo:hover {
-            filter: grayscale(0%);
-            opacity: 1;
-        }
-
-        .floating-animation {
-            animation: float 6s ease-in-out infinite;
-        }
-
-        @keyframes float {
-
-            0%,
-            100% {
-                transform: translateY(0px);
-            }
-
-            50% {
-                transform: translateY(-20px);
-            }
+        .gov-badge {
+            background: linear-gradient(135deg, var(--textile-red), var(--textile-gold));
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.9rem;
         }
 
         .textile-bg {
@@ -324,12 +295,6 @@
         .textile-bg>* {
             position: relative;
             z-index: 1;
-        }
-
-        .textile-icon {
-            color: var(--textile-red);
-            font-size: 2.5rem;
-            margin-bottom: 1rem;
         }
 
         @media (max-width: 768px) {
@@ -358,7 +323,7 @@
                 <img src="{{ asset('frontAssets/logo.png') }}" alt="Textile Committee of India"
                     class="me-3 rounded-circle" style="width: 50px; height: 50px; object-fit: cover;">
                 <div>
-                    <div class="fw-bold">Textile Committee of India</div>
+                    <div class="fw-bold">Textile Committee</div>
                     <small class="opacity-75">Laboratory Information Management System</small>
                 </div>
             </a>
@@ -378,7 +343,7 @@
                         <a class="nav-link" href="#process">Process</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#clients">Clients</a>
+                        <a class="nav-link" href="#labs">Laboratories</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="#contact">Contact</a>
@@ -386,7 +351,7 @@
                     <li class="nav-item ms-3">
                         <a href="#" class="btn btn-outline-light" data-bs-toggle="modal"
                             data-bs-target="#loginModal">
-                            <i class="fas fa-sign-in-alt me-2"></i>Login
+                            <i class="fas fa-sign-in-alt me-2"></i>Access System
                         </a>
                     </li>
                 </ul>
@@ -400,29 +365,27 @@
             <div class="row align-items-center">
                 <div class="col-lg-6">
                     <div class="hero-content">
-                        <h1 class="display-4 fw-bold mb-4">
-                            Advanced <span class="text-warning">LIMS</span> for Textile Testing
-                        </h1>
+                        <span class="gov-badge mb-3 d-inline-block">Ministry of Textiles, Government of India</span>
+                        <h1 id="typewriter" class="display-4 fw-bold mb-4"></h1>
                         <p class="lead mb-4">
-                            Empowering textile laboratories with a comprehensive Laboratory Information Management
-                            System
-                            developed by the Textile Committee of India. Manage samples, track testing processes, and
-                            generate
-                            reports with government-approved efficiency and accuracy.
+                            Official Laboratory Information Management System developed by the Textile Committee of
+                            India
+                            for standardized sample management, testing protocols, and quality assurance across
+                            government textile laboratories.
                         </p>
                         <div class="d-flex flex-wrap gap-3">
                             <a href="#features" class="btn btn-primary btn-lg">
-                                <i class="fas fa-rocket me-2"></i>Explore Features
+                                <i class="fas fa-info-circle me-2"></i>System Overview
                             </a>
                             <a href="#contact" class="btn btn-outline-light btn-lg">
-                                <i class="fas fa-phone me-2"></i>Get Started
+                                <i class="fas fa-phone me-2"></i>Technical Support
                             </a>
                         </div>
                     </div>
                 </div>
                 <div class="col-lg-6 text-center">
-                    <div class="hero-image mt-5 mt-lg-0 floating-animation">
-                        <img src="{{ asset('frontAssets/branding.jpg') }}" alt="Textile Testing Laboratory"
+                    <div class="hero-image mt-5 mt-lg-0">
+                        <img src="{{ asset('frontAssets/branding.jpg') }}" alt="Government Textile Testing Laboratory"
                             class="img-fluid rounded-3 shadow-lg" style="max-width: 500px;">
                     </div>
                 </div>
@@ -436,26 +399,26 @@
             <div class="row">
                 <div class="col-md-3 col-6">
                     <div class="stat-item">
-                        <span class="stat-number">50+</span>
-                        <p class="mb-0">Government Labs</p>
+                        <span class="stat-number" data-target="50" data-suffix="+">0+</span>
+                        <p class="mb-0 fw-semibold">Government Labs</p>
                     </div>
                 </div>
                 <div class="col-md-3 col-6">
                     <div class="stat-item">
-                        <span class="stat-number">25K+</span>
-                        <p class="mb-0">Tests Processed</p>
+                        <span class="stat-number" data-target="25000" data-suffix="+">0+</span>
+                        <p class="mb-0 fw-semibold">Tests Processed</p>
                     </div>
                 </div>
                 <div class="col-md-3 col-6">
                     <div class="stat-item">
-                        <span class="stat-number">75+</span>
-                        <p class="mb-0">Test Methods</p>
+                        <span class="stat-number" data-target="75" data-suffix="+">0+</span>
+                        <p class="mb-0 fw-semibold">Standard Methods</p>
                     </div>
                 </div>
                 <div class="col-md-3 col-6">
                     <div class="stat-item">
-                        <span class="stat-number">99.9%</span>
-                        <p class="mb-0">Accuracy</p>
+                        <span class="stat-number" data-target="100" data-suffix="%">0%</span>
+                        <p class="mb-0 fw-semibold">Compliance</p>
                     </div>
                 </div>
             </div>
@@ -463,15 +426,13 @@
     </section>
 
     <!-- Features Section -->
-    <section class="py-5 textile-bg" id="features">
+    <section class="textile-bg" id="features">
         <div class="container py-5">
             <div class="row mb-5">
                 <div class="col-lg-8 mx-auto text-center">
-                    <h2 class="display-5 fw-bold mb-4">Comprehensive LIMS Features</h2>
-                    <p class="lead">Our Laboratory Information Management System is specifically designed for textile
-                        testing facilities, offering complete sample lifecycle management with government-approved
-                        technology.
-                    </p>
+                    <h2 class="display-5 fw-bold mb-4">System Capabilities</h2>
+                    <p class="lead">Comprehensive laboratory management system designed for government textile
+                        testing facilities with full compliance to national and international standards.</p>
                 </div>
             </div>
             <div class="row g-4">
@@ -480,9 +441,9 @@
                         <div class="feature-icon">
                             <i class="fas fa-vials"></i>
                         </div>
-                        <h4 class="fw-bold mb-3">Sample Management</h4>
-                        <p>Track samples from registration to disposal with complete chain of custody documentation and
-                            barcode integration for seamless workflow management as per government standards.</p>
+                        <h5 class="fw-bold mb-3">Sample Management</h5>
+                        <p>Complete sample lifecycle tracking from registration to disposal with chain of custody
+                            documentation and barcode integration following government protocols.</p>
                     </div>
                 </div>
                 <div class="col-lg-4 col-md-6">
@@ -490,10 +451,9 @@
                         <div class="feature-icon">
                             <i class="fas fa-microscope"></i>
                         </div>
-                        <h4 class="fw-bold mb-3">Test Management</h4>
-                        <p>Comprehensive test protocols for fiber analysis, fabric testing, colorfastness, and
-                            performance testing with automated workflows and real-time monitoring as per BIS standards.
-                        </p>
+                        <h5 class="fw-bold mb-3">Test Management</h5>
+                        <p>Standardized test protocols for fiber analysis, fabric testing, and performance evaluation
+                            with automated workflows as per BIS and international standards.</p>
                     </div>
                 </div>
                 <div class="col-lg-4 col-md-6">
@@ -501,9 +461,9 @@
                         <div class="feature-icon">
                             <i class="fas fa-chart-line"></i>
                         </div>
-                        <h4 class="fw-bold mb-3">Quality Control</h4>
-                        <p>Built-in QC checks, control charts, and statistical analysis for maintaining testing accuracy
-                            and regulatory compliance with international and national standards.</p>
+                        <h5 class="fw-bold mb-3">Quality Assurance</h5>
+                        <p>Built-in quality control checks, statistical analysis, and regulatory compliance
+                            monitoring for maintaining testing accuracy and certification requirements.</p>
                     </div>
                 </div>
                 <div class="col-lg-4 col-md-6">
@@ -511,9 +471,9 @@
                         <div class="feature-icon">
                             <i class="fas fa-file-alt"></i>
                         </div>
-                        <h4 class="fw-bold mb-3">Report Generation</h4>
-                        <p>Automated report generation with customizable templates, digital signatures, and multi-format
-                            export capabilities for professional documentation with government branding.</p>
+                        <h5 class="fw-bold mb-3">Report Generation</h5>
+                        <p>Automated report generation with standardized government templates, digital signatures,
+                            and official certification with Textile Committee branding.</p>
                     </div>
                 </div>
                 <div class="col-lg-4 col-md-6">
@@ -521,9 +481,9 @@
                         <div class="feature-icon">
                             <i class="fas fa-users-cog"></i>
                         </div>
-                        <h4 class="fw-bold mb-3">User Management</h4>
-                        <p>Role-based access control with comprehensive audit trails, ensuring data security and
-                            regulatory compliance across all user levels in government testing facilities.</p>
+                        <h5 class="fw-bold mb-3">User Management</h5>
+                        <p>Role-based access control with comprehensive audit trails ensuring data security
+                            and regulatory compliance across all government laboratory personnel.</p>
                     </div>
                 </div>
                 <div class="col-lg-4 col-md-6">
@@ -531,9 +491,9 @@
                         <div class="feature-icon">
                             <i class="fas fa-cogs"></i>
                         </div>
-                        <h4 class="fw-bold mb-3">Instrument Integration</h4>
-                        <p>Seamless integration with textile testing instruments and automated data capture from various
-                            equipment manufacturers with government-approved calibration protocols.</p>
+                        <h5 class="fw-bold mb-3">Equipment Integration</h5>
+                        <p>Direct integration with textile testing instruments and automated data capture
+                            with government-approved calibration and validation protocols.</p>
                     </div>
                 </div>
             </div>
@@ -541,13 +501,13 @@
     </section>
 
     <!-- Process Section -->
-    <section class="py-5 textile-pattern" id="process">
-        <div class="container">
+    <section class="py-5 bg-light" id="process">
+        <div class="container py-4">
             <div class="row mb-5">
                 <div class="col-lg-8 mx-auto text-center">
-                    <h2 class="display-5 fw-bold mb-4">How LIMS Works</h2>
-                    <p class="lead">Streamlined workflow from sample receipt to report delivery with complete
-                        automation and quality assurance as per Textile Committee guidelines</p>
+                    <h2 class="display-6 fw-bold mb-4">Laboratory Workflow</h2>
+                    <p class="lead">Standardized testing workflow from sample receipt to report delivery
+                        following Textile Committee guidelines and government protocols.</p>
                 </div>
             </div>
             <div class="row g-4">
@@ -555,10 +515,10 @@
                     <div class="process-step">
                         <div class="process-number">1</div>
                         <div class="mt-3">
-                            <i class="fas fa-plus-circle fa-2x textile-icon"></i>
-                            <h5 class="fw-bold">Sample Registration</h5>
-                            <p class="text-muted small">Register samples with unique IDs, customer information, and
-                                test requirements following government protocols</p>
+                            <i class="fas fa-clipboard-list fa-2x text-primary mb-3"></i>
+                            <h6 class="fw-bold">Sample Registration</h6>
+                            <p class="text-muted small mb-0">Register samples with unique IDs and test requirements
+                                following government protocols</p>
                         </div>
                     </div>
                 </div>
@@ -566,10 +526,10 @@
                     <div class="process-step">
                         <div class="process-number">2</div>
                         <div class="mt-3">
-                            <i class="fas fa-tasks fa-2x textile-icon"></i>
-                            <h5 class="fw-bold">Test Planning</h5>
-                            <p class="text-muted small">Automatic test assignment based on sample type and standardized
-                                testing requirements</p>
+                            <i class="fas fa-tasks fa-2x text-primary mb-3"></i>
+                            <h6 class="fw-bold">Test Assignment</h6>
+                            <p class="text-muted small mb-0">Automatic assignment based on sample type and
+                                standardized testing requirements</p>
                         </div>
                     </div>
                 </div>
@@ -577,10 +537,10 @@
                     <div class="process-step">
                         <div class="process-number">3</div>
                         <div class="mt-3">
-                            <i class="fas fa-play-circle fa-2x textile-icon"></i>
-                            <h5 class="fw-bold">Test Execution</h5>
-                            <p class="text-muted small">Guided testing procedures with real-time data capture and
-                                validation against standardized methods</p>
+                            <i class="fas fa-flask fa-2x text-primary mb-3"></i>
+                            <h6 class="fw-bold">Test Execution</h6>
+                            <p class="text-muted small mb-0">Guided testing procedures with real-time data capture
+                                and validation against standard methods</p>
                         </div>
                     </div>
                 </div>
@@ -588,10 +548,10 @@
                     <div class="process-step">
                         <div class="process-number">4</div>
                         <div class="mt-3">
-                            <i class="fas fa-file-download fa-2x textile-icon"></i>
-                            <h5 class="fw-bold">Report Delivery</h5>
-                            <p class="text-muted small">Automated report generation and delivery with official
-                                government certification and digital signatures</p>
+                            <i class="fas fa-certificate fa-2x text-primary mb-3"></i>
+                            <h6 class="fw-bold">Report Generation</h6>
+                            <p class="text-muted small mb-0">Official report generation with government certification
+                                and digital authentication</p>
                         </div>
                     </div>
                 </div>
@@ -599,42 +559,42 @@
         </div>
     </section>
 
-    <!-- Clients Section -->
-    <section class="py-5 bg-light" id="clients">
-        <div class="container py-5">
+    <!-- Laboratories Section -->
+    <section class="py-5" id="labs">
+        <div class="container py-4">
             <div class="row mb-5">
                 <div class="col-lg-8 mx-auto text-center">
-                    <h2 class="display-5 fw-bold mb-4">Trusted by Government Textile Laboratories</h2>
-                    <p class="lead">Our LIMS solution is implemented across textile testing laboratories under the
-                        Textile Committee of India</p>
+                    <h2 class="display-6 fw-bold mb-4">Government Textile Laboratories</h2>
+                    <p class="lead">LIMS implementation across textile testing laboratories under the
+                        Textile Committee of India network</p>
                 </div>
             </div>
 
             <div class="row mb-5">
                 <div class="col-12">
-                    <div class="d-flex flex-wrap justify-content-center gap-5 align-items-center">
-                        <div class="text-center">
-                            <div class="bg-danger p-3 rounded shadow-sm d-flex align-items-center justify-content-center"
-                                style="height: 100px; width: 200px;">
-                                <h5 class="m-0 text-white">Central Textile Laboratory</h5>
+                    <div class="row g-4">
+                        <div class="col-md-3 col-sm-6">
+                            <div class="text-center p-3 bg-light rounded">
+                                <h6 class="mb-0">Central Textile Laboratory</h6>
+                                <small class="text-muted">Mumbai</small>
                             </div>
                         </div>
-                        <div class="text-center">
-                            <div class="bg-warning p-3 rounded shadow-sm d-flex align-items-center justify-content-center"
-                                style="height: 100px; width: 200px;">
-                                <h5 class="m-0 text-white">Regional Testing Center</h5>
+                        <div class="col-md-3 col-sm-6">
+                            <div class="text-center p-3 bg-light rounded">
+                                <h6 class="mb-0">Regional Testing Center</h6>
+                                <small class="text-muted">Delhi</small>
                             </div>
                         </div>
-                        <div class="text-center">
-                            <div class="bg-primary p-3 rounded shadow-sm d-flex align-items-center justify-content-center"
-                                style="height: 100px; width: 200px;">
-                                <h5 class="m-0 text-white">Quality Evaluation Lab</h5>
+                        <div class="col-md-3 col-sm-6">
+                            <div class="text-center p-3 bg-light rounded">
+                                <h6 class="mb-0">Quality Evaluation Lab</h6>
+                                <small class="text-muted">Chennai</small>
                             </div>
                         </div>
-                        <div class="text-center">
-                            <div class="bg-success p-3 rounded shadow-sm d-flex align-items-center justify-content-center"
-                                style="height: 100px; width: 200px;">
-                                <h5 class="m-0 text-white">Fiber Testing Division</h5>
+                        <div class="col-md-3 col-sm-6">
+                            <div class="text-center p-3 bg-light rounded">
+                                <h6 class="mb-0">Fiber Testing Division</h6>
+                                <small class="text-muted">Kolkata</small>
                             </div>
                         </div>
                     </div>
@@ -654,9 +614,8 @@
                                 <small class="text-muted">Director, Central Textile Laboratory</small>
                             </div>
                         </div>
-                        <p class="mb-0">"The LIMS has transformed our lab operations. We've reduced reporting time by
-                            60% and improved data accuracy significantly while maintaining all government protocols."
-                        </p>
+                        <p class="mb-0">"The LIMS has standardized our operations across all facilities.
+                            Report generation time has been reduced by 60% while maintaining complete compliance."</p>
                     </div>
                 </div>
                 <div class="col-md-4">
@@ -668,11 +627,11 @@
                             </div>
                             <div class="flex-grow-1 ms-3">
                                 <h6 class="mb-0">Dr. Priya Sharma</h6>
-                                <small class="text-muted">Senior Scientist, Textile Committee</small>
+                                <small class="text-muted">Senior Scientist, Quality Division</small>
                             </div>
                         </div>
-                        <p class="mb-0">"Instrument integration capabilities have eliminated manual data entry errors
-                            and saved our technicians hours of work each day while ensuring data integrity."</p>
+                        <p class="mb-0">"Equipment integration has eliminated manual data entry errors
+                            and ensures all data meets government validation requirements."</p>
                     </div>
                 </div>
                 <div class="col-md-4">
@@ -684,11 +643,11 @@
                             </div>
                             <div class="flex-grow-1 ms-3">
                                 <h6 class="mb-0">Mr. Vikram Singh</h6>
-                                <small class="text-muted">Quality Manager, Regional Testing Center</small>
+                                <small class="text-muted">Lab Manager, Regional Center</small>
                             </div>
                         </div>
-                        <p class="mb-0">"The customizable reporting feature allows us to meet specific ministry
-                            requirements while maintaining standardization across all our testing centers."</p>
+                        <p class="mb-0">"Standardized reporting ensures consistency across all testing centers
+                            while meeting ministry requirements for official documentation."</p>
                     </div>
                 </div>
             </div>
@@ -700,14 +659,13 @@
         <div class="container">
             <div class="row">
                 <div class="col-lg-8 mx-auto text-center mb-5">
-                    <h2 class="display-5 fw-bold mb-3">Connect with Us</h2>
-                    <p class="lead">Contact us if you have any querry or Suggestions Regarding LIMS.</p>
+                    <h2 class="display-6 fw-bold mb-3">Technical Support</h2>
+                    <p class="lead">Contact the LIMS technical team for system support and laboratory assistance.</p>
                 </div>
             </div>
             <div class="row">
                 <div class="col-lg-8 mx-auto">
                     <form class="row g-3">
-                        @csrf
                         <div class="col-md-6">
                             <label for="firstName" class="form-label">First Name</label>
                             <input type="text" class="form-control" id="firstName" name="first_name" required>
@@ -717,36 +675,36 @@
                             <input type="text" class="form-control" id="lastName" name="last_name" required>
                         </div>
                         <div class="col-md-6">
-                            <label for="email" class="form-label">Email</label>
+                            <label for="email" class="form-label">Official Email</label>
                             <input type="email" class="form-control" id="email" name="email" required>
                         </div>
                         <div class="col-md-6">
-                            <label for="phone" class="form-label">Phone</label>
+                            <label for="phone" class="form-label">Contact Number</label>
                             <input type="tel" class="form-control" id="phone" name="phone">
                         </div>
                         <div class="col-md-6">
-                            <label for="organization" class="form-label">Organization</label>
+                            <label for="organization" class="form-label">Laboratory/Organization</label>
                             <input type="text" class="form-control" id="organization" name="organization">
                         </div>
                         <div class="col-md-6">
                             <label for="labType" class="form-label">Laboratory Type</label>
                             <select class="form-control" id="labType" name="lab_type">
-                                <option selected>Choose...</option>
-                                <option value="textile_testing">Textile Testing Lab</option>
-                                <option value="fiber_analysis">Fiber Analysis Lab</option>
-                                <option value="quality_control">Quality Control Lab</option>
-                                <option value="research">Research Lab</option>
-                                <option value="other">Other Government Lab</option>
+                                <option value="">Select Laboratory Type</option>
+                                <option value="textile_testing">Textile Testing Laboratory</option>
+                                <option value="fiber_analysis">Fiber Analysis Laboratory</option>
+                                <option value="quality_control">Quality Control Laboratory</option>
+                                <option value="research">Research Laboratory</option>
+                                <option value="regional">Regional Testing Center</option>
                             </select>
                         </div>
                         <div class="col-12">
                             <label for="message" class="form-label">Message</label>
                             <textarea class="form-control" id="message" name="message" rows="4"
-                                placeholder="Tell us about your laboratory requirements..."></textarea>
+                                placeholder="Describe your technical requirements or support needs..."></textarea>
                         </div>
                         <div class="col-12 text-center">
                             <button type="submit" class="btn btn-primary btn-lg">
-                                <i class="fas fa-paper-plane me-2"></i>Send Message
+                                <i class="fas fa-paper-plane me-2"></i>Submit Request
                             </button>
                         </div>
                     </form>
@@ -764,13 +722,12 @@
                         <img src="{{ asset('frontAssets/logo.png') }}" alt="Logo" class="me-3 rounded-circle"
                             style="height: 40px; width: 40px; object-fit: cover; background: #fff; padding: 3px;">
                         <div>
-                            <h5 class="mb-0">Textile Committee of India</h5>
+                            <h6 class="mb-0">Textile Committee</h6>
                             <small class="text-light">LIMS Division</small>
                         </div>
                     </div>
-
-                    <p class="text-light">Empowering textile laboratories with cutting-edge information management
-                        solutions under the Ministry of Textiles, Government of India.</p>
+                    <p class="text-light">Official laboratory information management system for government
+                        textile testing facilities under the Ministry of Textiles, Government of India.</p>
                 </div>
                 <div class="col-lg-2 col-md-3 mb-4 mb-lg-0">
                     <h6 class="fw-bold mb-3">Quick Links</h6>
@@ -782,17 +739,17 @@
                     </ul>
                 </div>
                 <div class="col-lg-3 col-md-4 mb-4 mb-lg-0">
-                    <h6 class="fw-bold mb-3">Services</h6>
-                    <ul class="list-unstyled">
-                        <li class="text-light">Sample Management</li>
-                        <li class="text-light">Test Management</li>
-                        <li class="text-light">Quality Control</li>
-                        <li class="text-light">Report Generation</li>
-                        <li class="text-light">Instrument Integration</li>
+                    <h6 class="fw-bold mb-3">System Modules</h6>
+                    <ul class="list-unstyled text-light">
+                        <li>Sample Management</li>
+                        <li>Test Management</li>
+                        <li>Quality Control</li>
+                        <li>Report Generation</li>
+                        <li>Equipment Integration</li>
                     </ul>
                 </div>
                 <div class="col-lg-3 col-md-5">
-                    <h6 class="fw-bold mb-3">Contact Info</h6>
+                    <h6 class="fw-bold mb-3">Contact Information</h6>
                     <p class="text-light mb-2">
                         <i class="fas fa-map-marker-alt me-2"></i>
                         Mumbai, Maharashtra, India
@@ -810,12 +767,11 @@
             <hr class="mt-4 mb-3">
             <div class="row align-items-center">
                 <div class="col-md-6">
-                    <p class="mb-0 text-light">© {{ date('Y') }} Textile Committee of India. All rights reserved.
-                    </p>
+                    <p class="mb-0 text-light">© 2024 System Cell. All rights reserved.</p>
                 </div>
                 <div class="col-md-6 text-md-end">
                     <a href="#" class="text-light me-3">Privacy Policy</a>
-                    <a href="#" class="text-light">Terms of Service</a>
+                    <a href="#" class="text-light">Terms of Use</a>
                 </div>
             </div>
         </div>
@@ -826,14 +782,14 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header border-0">
-                    <h5 class="modal-title fw-bold">Login to LIMS</h5>
+                    <h5 class="modal-title fw-bold">LIMS System Access</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-4">
                     <form method="POST" action="{{ route('user_login') }}">
                         @csrf
                         <div class="mb-3">
-                            <label for="txt_email" class="form-label">Email Address</label>
+                            <label for="txt_email" class="form-label">Official Email</label>
                             <input type="email" class="form-control" id="txt_email" name="txt_email" required>
                         </div>
                         <div class="mb-3">
@@ -846,10 +802,10 @@
                             <label class="form-check-label" for="rememberMe">Remember me</label>
                         </div>
                         <button type="submit" class="btn btn-primary w-100 mb-3">
-                            <i class="fas fa-sign-in-alt me-2"></i>Login
+                            <i class="fas fa-sign-in-alt me-2"></i>Access System
                         </button>
                         <div class="text-center">
-                            <a href="#" class="text-decoration-none">Forgot Password?</a>
+                            <a href="#" class="text-decoration-none">Contact IT Support</a>
                         </div>
                     </form>
                 </div>
@@ -873,229 +829,89 @@
             });
         });
 
-        // Contact form handling
-        document.querySelector('form').addEventListener('submit', function(e) {
+        // Form submission handling
+        document.querySelector('#contact form').addEventListener('submit', function(e) {
             e.preventDefault();
-            // Add your form submission logic here
-            alert('Thank you for your interest! We will contact you soon.');
+            alert('Support request submitted. Our technical team will contact you within 24 hours.');
         });
 
-        // Navbar background change on scroll
-        window.addEventListener('scroll', function() {
-            const navbar = document.querySelector('.navbar');
-            if (window.scrollY > 50) {
-                navbar.style.background = 'linear-gradient(135deg, #a91731 0%, #8b0000 100%)';
-            } else {
-                navbar.style.background = 'linear-gradient(135deg, var(--primary-color) 0%, #a91731 100%)';
-            }
-        });
-
-        // Counter animation for stats
-        function animateCounter(element, target) {
-            let current = 0;
-            const originalText = element.textContent;
-            const suffix = originalText.includes('+') ? '+' : originalText.includes('%') ? '%' : '';
-            const increment = target / 100;
-
-            const timer = setInterval(() => {
-                current += increment;
-                if (current >= target) {
-                    element.textContent = target + suffix;
-                    clearInterval(timer);
-                } else {
-                    element.textContent = Math.floor(current) + suffix;
-                }
-            }, 20);
-        }
-
-        // Trigger counter animation when stats section is visible
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    const statNumbers = document.querySelectorAll('.stat-number');
-                    statNumbers.forEach(stat => {
-                        let target;
-                        const text = stat.textContent;
-                        if (text.includes('K')) {
-                            target = parseInt(text.replace(/\D/g, '')) * 1000;
-                        } else if (text.includes('.')) {
-                            target = parseFloat(text.replace(/[^\d.]/g, ''));
-                        } else {
-                            target = parseInt(text.replace(/\D/g, ''));
-                        }
-                        animateCounter(stat, target);
-                    });
-                    observer.unobserve(entry.target);
-                }
-            });
-        });
-
-        if (document.querySelector('.stats-section')) {
-            observer.observe(document.querySelector('.stats-section'));
-        }
-
-        // Add loading animation to cards
-        const cards = document.querySelectorAll('.feature-card, .process-step');
-        const cardObserver = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.style.opacity = '1';
-                    entry.target.style.transform = 'translateY(0)';
-                }
-            });
-        }, {
-            threshold: 0.1
-        });
-
-        cards.forEach(card => {
-            card.style.opacity = '0';
-            card.style.transform = 'translateY(30px)';
-            card.style.transition = 'all 0.6s ease';
-            cardObserver.observe(card);
-        });
-
-        // Enhanced form validation and submission
-        const contactForm = document.querySelector('#contact form');
-        if (contactForm) {
-            contactForm.addEventListener('submit', function(e) {
-                e.preventDefault();
-
-                // Basic validation
-                const requiredFields = this.querySelectorAll('[required]');
-                let isValid = true;
-
-                requiredFields.forEach(field => {
-                    if (!field.value.trim()) {
-                        field.classList.add('is-invalid');
-                        isValid = false;
-                    } else {
-                        field.classList.remove('is-invalid');
-                    }
-                });
-
-                if (isValid) {
-                    // Simulate form submission
-                    const submitBtn = this.querySelector('button[type="submit"]');
-                    const originalText = submitBtn.innerHTML;
-
-                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Sending...';
-                    submitBtn.disabled = true;
-
-                    setTimeout(() => {
-                        submitBtn.innerHTML = '<i class="fas fa-check me-2"></i>Message Sent!';
-                        submitBtn.classList.remove('btn-primary');
-                        submitBtn.classList.add('btn-success');
-
-                        setTimeout(() => {
-                            this.reset();
-                            submitBtn.innerHTML = originalText;
-                            submitBtn.disabled = false;
-                            submitBtn.classList.remove('btn-success');
-                            submitBtn.classList.add('btn-primary');
-                        }, 2000);
-                    }, 1500);
-                }
-            });
-        }
-
-        // Notification system
-        function showNotification(message, type = 'info') {
-            const notification = document.createElement('div');
-            notification.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
-            notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
-            notification.innerHTML = `
-                ${message}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            `;
-
-            document.body.appendChild(notification);
-
-            setTimeout(() => {
-                if (notification.parentNode) {
-                    notification.remove();
-                }
-            }, 5000);
-        }
-
-        // Add parallax effect to hero section
-        window.addEventListener('scroll', function() {
-            const scrolled = window.pageYOffset;
-            const navbar = document.querySelector('.navbar');
-            const heroSection = document.querySelector('.hero-section');
-
-            // Navbar background change
-            if (scrolled > 50) {
-                navbar.style.background =
-                    'linear-gradient(135deg, var(--primary-light) 0%, var(--accent-color) 100%)';
-                navbar.style.backdropFilter = 'blur(15px)';
-            } else {
-                navbar.style.background =
-                    'linear-gradient(135deg, var(--primary-color) 0%, var(--primary-light) 100%)';
-                navbar.style.backdropFilter = 'blur(10px)';
-            }
-
-            // Parallax effect for hero
-            if (heroSection) {
-                const rate = scrolled * -0.5;
-                heroSection.style.transform = `translateY(${rate}px)`;
-            }
-        });
-
-        // Add typing effect to hero title
-        function typeWriter(element, text, speed = 100) {
+        function typeWriterEffect(elementId, parts, speed = 70, delay = 2000) {
+            const el = document.getElementById(elementId);
+            const fullText = parts.map(p => p.text).join("");
             let i = 0;
-            element.innerHTML = '';
 
             function type() {
-                if (i < text.length) {
-                    element.innerHTML += text.charAt(i);
-                    i++;
+                let typed = fullText.slice(0, i);
+                let result = "";
+                let idx = 0;
+
+                parts.forEach(p => {
+                    let part = typed.slice(idx, idx + p.text.length);
+                    result += p.class ? `<span class="${p.class}">${part}</span>` : part;
+                    idx += p.text.length;
+                });
+
+                el.innerHTML = result;
+
+                if (i++ < fullText.length) {
                     setTimeout(type, speed);
+                } else {
+                    setTimeout(() => {
+                        i = 0;
+                        type();
+                    }, delay);
                 }
             }
+
             type();
         }
 
-        // Initialize typing effect when page loads
-        window.addEventListener('load', function() {
-            const heroTitle = document.querySelector('.hero-content h1');
-            if (heroTitle) {
-                const originalText = heroTitle.textContent;
-                setTimeout(() => {
-                    typeWriter(heroTitle, originalText, 50);
-                }, 500);
+        typeWriterEffect("typewriter", [{
+                text: "Government "
+            },
+            {
+                text: "LIMS",
+                class: "text-warning"
+            },
+            {
+                text: " for Textile Testing"
+            }
+        ], 70, 5000);
+
+        // Counting Effect for the stats section
+        function animateStats() {
+            const counters = document.querySelectorAll(".stat-number");
+
+            counters.forEach(counter => {
+                const target = +counter.getAttribute("data-target");
+                const suffix = counter.getAttribute("data-suffix") || "";
+                let current = 0;
+                const increment = target / 150;
+
+                function update() {
+                    current += increment;
+                    if (current < target) {
+                        counter.textContent = Math.ceil(current) + suffix;
+                        requestAnimationFrame(update);
+                    } else {
+                        counter.textContent = target + suffix;
+                    }
+                }
+                update();
+            });
+        }
+
+        // Trigger when section is visible
+        const section = document.querySelector(".stats-section");
+        let started = false;
+
+        window.addEventListener("scroll", () => {
+            const rect = section.getBoundingClientRect();
+            if (!started && rect.top < window.innerHeight - 100) {
+                started = true;
+                animateStats();
             }
         });
-
-        // Add hover effects to navigation links
-        const navLinks = document.querySelectorAll('.nav-link');
-        navLinks.forEach(link => {
-            link.addEventListener('mouseenter', function() {
-                this.style.transform = 'translateY(-2px)';
-                this.style.transition = 'transform 0.3s ease';
-            });
-
-            link.addEventListener('mouseleave', function() {
-                this.style.transform = 'translateY(0)';
-            });
-        });
-
-        // Add floating animation to feature icons
-        const featureIcons = document.querySelectorAll('.feature-icon');
-        featureIcons.forEach((icon, index) => {
-            icon.style.animation = `float 3s ease-in-out infinite ${index * 0.5}s`;
-        });
-
-        // CSS for float animation
-        const floatKeyframes = `
-            @keyframes float {
-                0%, 100% { transform: translateY(0px); }
-                50% { transform: translateY(-10px); }
-            }
-        `;
-        const style = document.createElement('style');
-        style.textContent = floatKeyframes;
-        document.head.appendChild(style);
     </script>
 </body>
 
