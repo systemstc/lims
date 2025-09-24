@@ -13,6 +13,26 @@
                                     &nbsp; Create standard</a>
                             </div>
                         </div>
+                        <div class="container">
+                            <div class="row justify-content-center">
+                                <div class="col-md-6">
+                                    <div class="card shadow-lg">
+                                        <div class="card-body">
+                                            <h5 class="card-title text-center mb-4">Upload Standards CSV</h5>
+                                            <form action="{{ route('import_all_standards') }}" method="POST"
+                                                enctype="multipart/form-data">
+                                                @csrf
+                                                <div class="input-group">
+                                                    <input type="file" name="csv_file" class="form-control" required
+                                                        accept=".csv">
+                                                    <button type="submit" class="btn btn-primary">Upload & Import</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
 
                         <div class="card card-bordered card-preview">
                             <div class="card-inner">
@@ -52,7 +72,8 @@
                                                 <td>{{ $standard->m12_weight }}</td>
                                                 <td>{{ $standard->department->m13_name }}</td> --}}
                                                 {{-- <td>{{ $standard->m12_remark }}</td> --}}
-                                                <td>{{ $standard->user->tr01_name }}</td>
+                                                <td>{{ $standard->tr01_created_by ? 'ADMIN' : $standard->user->tr01_name }}
+                                                </td>
                                                 <td>{{ $standard->created_at }}</td>
                                                 <td
                                                     class="text-{{ $standard->m15_status == 'ACTIVE' ? 'success' : 'danger' }}">

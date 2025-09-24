@@ -401,6 +401,303 @@ class MasterController extends Controller
         return view('test.tests', compact('tests'));
     }
 
+    // Importing Data from CSV
+public function importTests(Request $request)
+{
+    $request->validate([
+        'csv_file' => 'required|file|mimes:csv,txt',
+    ]);
+
+    $file = $request->file('csv_file');
+    $handle = fopen($file, "r");
+
+    if ($handle === false) {
+        return back()->with('error', 'Unable to open file.');
+    }
+
+    $insertData = [];
+    $rowCount = 0;
+
+    DB::beginTransaction();
+
+    try {
+        // Read first row (could be header or first data row)
+        $firstRow = fgetcsv($handle, 1000, ",");
+
+        if ($firstRow && str_contains(strtolower(implode(',', $firstRow)), 'test_id')) {
+            // This is a header row → do nothing, just move on
+        } else {
+            // First row contains data → process it manually
+            if ($firstRow && count($firstRow) >= 12) {
+                $insertData[] = [
+                    'm12_test_number'    => trim($firstRow[1]),
+                    'm10_sample_id'      => trim($firstRow[2]),
+                    'm11_group_id'       => trim($firstRow[3]),
+                    'm12_name'           => trim($firstRow[4]),
+                    'm12_description'    => trim($firstRow[5]),
+                    'm12_unit'           => trim($firstRow[6]),
+                    'm12_charge'         => trim($firstRow[7]),
+                    'm12_instrument'     => trim($firstRow[8]),
+                    'm15_standard_id'    => !empty($firstRow[9]) ? trim($firstRow[9]) : null,
+                    'm16_primary_test_id'=> !empty($firstRow[10]) ? trim($firstRow[10]) : null,
+                    'm17_secondary_test_id'=> !empty($firstRow[11]) ? trim($firstRow[11]) : null,
+                    'm12_category'       => null,
+                    'm12_input_mode'     => null,
+                    'm12_stages'         => null,
+                    'm14_lab_sample_id'  => null,
+                    'm12_result'         => null,
+                    'm12_alias'          => null,
+                    'm12_weight'         => null,
+                    'm13_department_id'  => null,
+                    'm12_remark'         => null,
+                    'm12_status'         => 1,
+                    'tr01_created_by'    => Session::get('user_id') ?? -1,
+                    'created_at'         => now(),
+                    'updated_at'         => now(),
+                ];
+                $rowCount++;
+            }
+        }
+
+        // Process the remaining rows
+        while (($row = fgetcsv($handle, 10000, ",")) !== false) {
+            if (count($row) < 12) {
+                continue; // skip invalid/incomplete rows
+            }
+
+            $insertData[] = [
+                'm12_test_number'    => trim($row[1]),
+                'm10_sample_id'      => trim($row[2]),
+                'm11_group_id'       => trim($row[3]),
+                'm12_name'           => trim($row[4]),
+                'm12_description'    => trim($row[5]),
+                'm12_unit'           => trim($row[6]),
+                'm12_charge'         => trim($row[7]),
+                'm12_instrument'     => trim($row[8]),
+                'm15_standard_id'    => !empty($row[9]) ? trim($row[9]) : null,
+                'm16_primary_test_id'=> !empty($row[10]) ? trim($row[10]) : null,
+                'm17_secondary_test_id'=> !empty($row[11]) ? trim($row[11]) : null,
+                'm12_category'       => null,
+                'm12_input_mode'     => null,
+                'm12_stages'         => null,
+                'm14_lab_sample_id'  => null,
+                'm12_result'         => null,
+                'm12_alias'          => null,
+                'm12_weight'         => null,
+                'm13_department_id'  => null,
+                'm12_remark'         => null,
+                'm12_status'         => 1,
+                'tr01_created_by'    => Session::get('user_id') ?? -1,
+                'created_at'         => now(),
+                'updated_at'         => now(),
+            ];
+
+            $rowCount++;
+
+            // Insert in chunks to avoid memory issues
+            if (count($insertData) >= 500) {
+                Test::insert($insertData);
+                $insertData = [];
+            }
+        }
+
+        fclose($handle);
+
+        // Insert any remaining data
+        if (!empty($insertData)) {
+            Test::insert($insertData);
+        }
+
+        DB::commit();
+
+        return back()->with('success', "$rowCount rows imported successfully.");
+    } catch (\Exception $e) {
+        DB::rollBack();
+        fclose($handle);
+        return back()->with('error', 'Import failed: ' . $e->getMessage());
+    }
+}
+
+
+public function importStandards(Request $request)
+{
+    $request->validate(['csv_file' => 'required|file|mimes:csv,txt']);
+    $file = $request->file('csv_file');
+    $handle = fopen($file, "r");
+    if (!$handle) return back()->with('error', 'Unable to open file.');
+
+    $rowCount = 0;
+    DB::beginTransaction();
+
+    try {
+        // Read first row
+        $firstRow = fgetcsv($handle, 1000, ",");
+        if ($firstRow && stripos(implode(',', $firstRow), 'c_id') === false && count($firstRow) >= 4) {
+            $firstRow[0] = preg_replace('/^\x{FEFF}/u', '', $firstRow[0]); // remove BOM
+            DB::table('m15_standards')->insert([
+                'm15_standard_id' => trim($firstRow[0]),
+                'm11_group_id' => trim($firstRow[3]),
+                'm15_method' => trim($firstRow[2]),
+                'tr01_created_by' => Session::get('user_id') ?? -1,
+                'm15_status' => 1,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+            $rowCount++;
+        }
+
+        // Process remaining rows
+        while (($row = fgetcsv($handle, 10000, ",")) !== false) {
+            if (count($row) < 4) continue;
+            $row[0] = preg_replace('/^\x{FEFF}/u', '', $row[0]); // remove BOM
+            DB::table('m15_standards')->insert([
+                'm15_standard_id' => trim($row[0]),
+                'm11_group_id' => trim($row[3]),
+                'm15_method' => trim($row[2]),
+                'tr01_created_by' => Session::get('user_id') ?? -1,
+                'm15_status' => 1,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+            $rowCount++;
+        }
+
+        fclose($handle);
+        DB::commit();
+
+        return back()->with('success', "$rowCount standards imported successfully with same IDs.");
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        fclose($handle);
+        return back()->with('error', 'Import failed: ' . $e->getMessage());
+    }
+}
+
+
+public function importPrimaryTests(Request $request)
+{
+    $request->validate(['csv_file' => 'required|file|mimes:csv,txt']);
+    $file = $request->file('csv_file');
+    $handle = fopen($file, "r");
+    if (!$handle) return back()->with('error', 'Unable to open file.');
+
+    $rowCount = 0;
+    DB::beginTransaction();
+
+    try {
+        // Read first row
+        $firstRow = fgetcsv($handle, 1000, ",");
+        if ($firstRow && stripos(implode(',', $firstRow), 'c_id') === false && count($firstRow) >= 5) {
+            $firstRow[0] = preg_replace('/^\x{FEFF}/u', '', $firstRow[0]); // remove BOM
+            DB::table('m16_primary_tests')->insert([
+                'm16_primary_test_id' => trim($firstRow[0]),
+                'm11_group_id' => trim($firstRow[1]),
+                'm16_name'     => trim($firstRow[3]),
+                'm16_unit'     => trim($firstRow[4]),
+                'tr01_created_by' => Session::get('user_id') ?? -1,
+                'm16_status'   => 1,
+                'created_at'   => now(),
+                'updated_at'   => now(),
+            ]);
+            $rowCount++;
+        }
+
+        // Process remaining rows
+        while (($row = fgetcsv($handle, 10000, ",")) !== false) {
+            if (count($row) < 5) continue;
+            $row[0] = preg_replace('/^\x{FEFF}/u', '', $row[0]); // remove BOM
+            DB::table('m16_primary_tests')->insert([
+                'm16_primary_test_id' => trim($row[0]),
+                'm11_group_id' => trim($row[1]),
+                'm16_name'     => trim($row[3]),
+                'm16_unit'     => trim($row[4]),
+                'tr01_created_by' => Session::get('user_id') ?? -1,
+                'm16_status'   => 1,
+                'created_at'   => now(),
+                'updated_at'   => now(),
+            ]);
+            $rowCount++;
+        }
+
+        fclose($handle);
+        DB::commit();
+
+        return back()->with('success', "$rowCount primary tests imported successfully with same IDs.");
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        fclose($handle);
+                        Log::error('Failed to create Standard/Accreditation', [
+                    'error' => $e->getMessage(),
+                ]);
+        return back()->with('error', 'Import failed: ' . $e->getMessage());
+    }
+}
+
+
+public function importSecondaryTests(Request $request)
+{
+    $request->validate(['csv_file' => 'required|file|mimes:csv,txt']);
+    $file = $request->file('csv_file');
+    $handle = fopen($file, "r");
+    if (!$handle) return back()->with('error', 'Unable to open file.');
+
+    $rowCount = 0;
+    DB::beginTransaction();
+
+    try {
+        // Read first row
+        $firstRow = fgetcsv($handle, 1000, ",");
+        if ($firstRow && stripos(implode(',', $firstRow), 'c1') === false && count($firstRow) >= 6) {
+            $firstRow[0] = preg_replace('/^\x{FEFF}/u', '', $firstRow[0]); // remove BOM
+            DB::table('m17_secondary_tests')->insert([
+                'm10_sample_id'         => 1,
+                'm17_secondary_test_id' => trim($firstRow[0]),
+                'm11_group_id'          => trim($firstRow[1]),
+                'm16_primary_test_id'   => trim($firstRow[3]),
+                'm17_name'              => trim($firstRow[4]),
+                'm17_unit'              => trim($firstRow[5]),
+                'tr01_created_by'       => Session::get('user_id') ?? -1,
+                'm17_status'            => 1,
+            ]);
+            $rowCount++;
+        }
+
+        // Process remaining rows
+        while (($row = fgetcsv($handle, 10000, ",")) !== false) {
+            if (count($row) < 6) continue;
+            $row[0] = preg_replace('/^\x{FEFF}/u', '', $row[0]); // remove BOM
+            DB::table('m17_secondary_tests')->insert([
+                'm10_sample_id'         => 1,
+                'm17_secondary_test_id' => trim($row[0]),
+                'm11_group_id'          => trim($row[1]),
+                'm16_primary_test_id'   => trim($row[3]),
+                'm17_name'              => trim($row[4]),
+                'm17_unit'              => trim($row[5]),
+                'tr01_created_by'       => Session::get('user_id') ?? -1,
+                'm17_status'            => 1,
+            ]);
+            $rowCount++;
+        }
+
+        fclose($handle);
+        DB::commit();
+
+        return back()->with('success', "$rowCount secondary tests imported successfully with same IDs.");
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        fclose($handle);
+                  Log::error('Failed to create Standard/Accreditation', [
+                    'error' => $e->getMessage(),
+                ]);
+        return back()->with('error', 'Import failed: ' . $e->getMessage());
+    }
+}
+
+
+
     public function createTest(Request $request)
     {
         if ($request->isMethod('POST')) {
@@ -923,7 +1220,7 @@ class MasterController extends Controller
             }
         }
         $samples = Sample::where('m10_status', 'ACTIVE')->get(['m10_sample_id', 'm10_name']);
-        $groups = Group::where('m11_status', 'ACTIVE')->get(['m11_group_id', 'm11_name']);
+        $groups = Group::where('m11_status', 'ACTIVE')->get(['m11_group_code', 'm11_name']);
         $labSamples = LabSample::where('m14_status', 'ACTIVE')->get(['m14_lab_sample_id', 'm14_name']);
         return view('test.edit_test', compact('test', 'samples', 'groups', 'labSamples'));
     }
@@ -991,7 +1288,7 @@ class MasterController extends Controller
         $groups = Group::where('m10_sample_id', $sampleId)
             ->where('m11_status', 'ACTIVE')
             ->orderBy('m11_name')
-            ->get(['m11_group_id', 'm11_name']);
+            ->get(['m11_group_id', 'm11_group_code', 'm11_name']);
         return response()->json($groups);
     }
 
@@ -1990,7 +2287,6 @@ class MasterController extends Controller
         }
 
         $result = eval("return $formula;");
-        dd($result);
         return view('master.acm.view_acm');
     }
 

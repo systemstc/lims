@@ -145,10 +145,10 @@
                     success: function(data) {
                         groupDropdown.empty().append('<option value="">-- Select Group --</option>');
                         $.each(data, function(_, group) {
-                            let selected = group.m11_group_id == selectedGroupId ? 'selected' :
+                            let selected = group.m11_group_code == selectedGroupId ? 'selected' :
                                 '';
                             groupDropdown.append(
-                                `<option value="${group.m11_group_id}" ${selected}>${group.m11_name}</option>`
+                                `<option value="${group.m11_group_code}" ${selected}>${group.m11_name}</option>`
                             );
                         });
                         groupDropdown.trigger('change');

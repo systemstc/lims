@@ -5,9 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LIMS - Laboratory Information Management System | Textile Committee</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ asset('backAssets/css/dashlite.css') }}">
+    <link id="skin-default" rel="stylesheet" href="{{ asset('backAssets/css/theme.css') }}">
     <style>
         :root {
             --primary-color: #2563eb;
@@ -123,7 +122,6 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background-image: url('https://images.unsplash.com/photo-1596461404969-9ae70f2830c1?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80');
             background-size: cover;
             background-position: center;
             opacity: 0.05;
@@ -208,6 +206,10 @@
             transform: translateY(-3px);
             box-shadow: 0 8px 25px rgba(196, 30, 58, 0.4);
             background: linear-gradient(135deg, #a91731, #c9971c);
+        }
+
+        .btn-outline-light {
+            color: var(--light-gray);
         }
 
         .btn-outline-light:hover {
@@ -351,7 +353,7 @@
                     <li class="nav-item ms-3">
                         <a href="#" class="btn btn-outline-light" data-bs-toggle="modal"
                             data-bs-target="#loginModal">
-                            <i class="fas fa-sign-in-alt me-2"></i>Access System
+                            <em class="icon ni ni-signin me-2"></em>Access System
                         </a>
                     </li>
                 </ul>
@@ -366,7 +368,7 @@
                 <div class="col-lg-6">
                     <div class="hero-content">
                         <span class="gov-badge mb-3 d-inline-block">Ministry of Textiles, Government of India</span>
-                        <h1 id="typewriter" class="display-4 fw-bold mb-4"></h1>
+                        <h1 id="typewriter" class="display-4 fw-bold mb-4 text-light"></h1>
                         <p class="lead mb-4">
                             Official Laboratory Information Management System developed by the Textile Committee of
                             India
@@ -375,10 +377,10 @@
                         </p>
                         <div class="d-flex flex-wrap gap-3">
                             <a href="#features" class="btn btn-primary btn-lg">
-                                <i class="fas fa-info-circle me-2"></i>System Overview
+                                <em class="icon ni ni-info me-2"></em>System Overview
                             </a>
                             <a href="#contact" class="btn btn-outline-light btn-lg">
-                                <i class="fas fa-phone me-2"></i>Technical Support
+                                <em class="icon ni ni-call me-2"></em>Technical Support
                             </a>
                         </div>
                     </div>
@@ -439,7 +441,7 @@
                 <div class="col-lg-4 col-md-6">
                     <div class="feature-card">
                         <div class="feature-icon">
-                            <i class="fas fa-vials"></i>
+                            <em class="icon ni ni-activity"></em>
                         </div>
                         <h5 class="fw-bold mb-3">Sample Management</h5>
                         <p>Complete sample lifecycle tracking from registration to disposal with chain of custody
@@ -449,7 +451,7 @@
                 <div class="col-lg-4 col-md-6">
                     <div class="feature-card">
                         <div class="feature-icon">
-                            <i class="fas fa-microscope"></i>
+                            <em class="icon ni ni-opt-alt"></em>
                         </div>
                         <h5 class="fw-bold mb-3">Test Management</h5>
                         <p>Standardized test protocols for fiber analysis, fabric testing, and performance evaluation
@@ -459,7 +461,7 @@
                 <div class="col-lg-4 col-md-6">
                     <div class="feature-card">
                         <div class="feature-icon">
-                            <i class="fas fa-chart-line"></i>
+                            <em class="icon ni ni-growth"></em>
                         </div>
                         <h5 class="fw-bold mb-3">Quality Assurance</h5>
                         <p>Built-in quality control checks, statistical analysis, and regulatory compliance
@@ -469,7 +471,7 @@
                 <div class="col-lg-4 col-md-6">
                     <div class="feature-card">
                         <div class="feature-icon">
-                            <i class="fas fa-file-alt"></i>
+                            <em class="icon ni ni-file-text"></em>
                         </div>
                         <h5 class="fw-bold mb-3">Report Generation</h5>
                         <p>Automated report generation with standardized government templates, digital signatures,
@@ -479,7 +481,7 @@
                 <div class="col-lg-4 col-md-6">
                     <div class="feature-card">
                         <div class="feature-icon">
-                            <i class="fas fa-users-cog"></i>
+                            <em class="icon ni ni-users"></em>
                         </div>
                         <h5 class="fw-bold mb-3">User Management</h5>
                         <p>Role-based access control with comprehensive audit trails ensuring data security
@@ -489,7 +491,7 @@
                 <div class="col-lg-4 col-md-6">
                     <div class="feature-card">
                         <div class="feature-icon">
-                            <i class="fas fa-cogs"></i>
+                            <em class="icon ni ni-setting"></em>
                         </div>
                         <h5 class="fw-bold mb-3">Equipment Integration</h5>
                         <p>Direct integration with textile testing instruments and automated data capture
@@ -515,7 +517,7 @@
                     <div class="process-step">
                         <div class="process-number">1</div>
                         <div class="mt-3">
-                            <i class="fas fa-clipboard-list fa-2x text-primary mb-3"></i>
+                            <em class="icon ni ni-list-check fs-1 text-primary mb-3"></em>
                             <h6 class="fw-bold">Sample Registration</h6>
                             <p class="text-muted small mb-0">Register samples with unique IDs and test requirements
                                 following government protocols</p>
@@ -526,7 +528,7 @@
                     <div class="process-step">
                         <div class="process-number">2</div>
                         <div class="mt-3">
-                            <i class="fas fa-tasks fa-2x text-primary mb-3"></i>
+                            <em class="icon ni ni-task fs-1 text-primary mb-3"></em>
                             <h6 class="fw-bold">Test Assignment</h6>
                             <p class="text-muted small mb-0">Automatic assignment based on sample type and
                                 standardized testing requirements</p>
@@ -537,7 +539,7 @@
                     <div class="process-step">
                         <div class="process-number">3</div>
                         <div class="mt-3">
-                            <i class="fas fa-flask fa-2x text-primary mb-3"></i>
+                            <em class="icon ni ni-activity fs-1 text-primary mb-3"></em>
                             <h6 class="fw-bold">Test Execution</h6>
                             <p class="text-muted small mb-0">Guided testing procedures with real-time data capture
                                 and validation against standard methods</p>
@@ -548,7 +550,7 @@
                     <div class="process-step">
                         <div class="process-number">4</div>
                         <div class="mt-3">
-                            <i class="fas fa-certificate fa-2x text-primary mb-3"></i>
+                            <em class="icon ni ni-award fs-1 text-primary mb-3"></em>
                             <h6 class="fw-bold">Report Generation</h6>
                             <p class="text-muted small mb-0">Official report generation with government certification
                                 and digital authentication</p>
@@ -659,36 +661,58 @@
         <div class="container">
             <div class="row">
                 <div class="col-lg-8 mx-auto text-center mb-5">
-                    <h2 class="display-6 fw-bold mb-3">Technical Support</h2>
+                    <h2 class="display-6 fw-bold mb-3 text-white">Technical Support</h2>
                     <p class="lead">Contact the LIMS technical team for system support and laboratory assistance.</p>
                 </div>
             </div>
             <div class="row">
                 <div class="col-lg-8 mx-auto">
-                    <form class="row g-3">
+                    <form class="row g-3" method="POST" action="{{ route('contact_support') }}">
+                        @csrf
                         <div class="col-md-6">
-                            <label for="firstName" class="form-label">First Name</label>
-                            <input type="text" class="form-control" id="firstName" name="first_name" required>
+                            <label for="txt_first_name" class="form-label text-white">First Name</label>
+                            <input type="text" class="form-control" id="txt_first_name"
+                                value="{{ old('txt_first_name') }}" name="txt_first_name" required>
+                            @error('txt_first_name')
+                                <span class="text-danger small">{{ $message }}</span>
+                            @enderror
                         </div>
                         <div class="col-md-6">
-                            <label for="lastName" class="form-label">Last Name</label>
-                            <input type="text" class="form-control" id="lastName" name="last_name" required>
+                            <label for="txt_last_name" class="form-label text-white">Last Name</label>
+                            <input type="text" class="form-control" id="txt_last_name"
+                                value="{{ old('txt_last_name') }}" name="txt_last_name" required>
+                            @error('txt_last_name')
+                                <span class="text-danger small">{{ $message }}</span>
+                            @enderror
                         </div>
                         <div class="col-md-6">
-                            <label for="email" class="form-label">Official Email</label>
-                            <input type="email" class="form-control" id="email" name="email" required>
+                            <label for="txt_email" class="form-label text-white">Official Email</label>
+                            <input type="email" class="form-control" id="txt_email"
+                                value="{{ old('txt_email') }}" name="txt_email" required>
+                            @error('txt_email')
+                                <span class="text-danger small">{{ $message }}</span>
+                            @enderror
                         </div>
                         <div class="col-md-6">
-                            <label for="phone" class="form-label">Contact Number</label>
-                            <input type="tel" class="form-control" id="phone" name="phone">
+                            <label for="txt_phone" class="form-label text-white">Contact Number</label>
+                            <input type="tel" class="form-control" id="txt_phone"
+                                value="{{ old('txt_phone') }}" name="txt_phone">
+                            @error('txt_phone')
+                                <span class="text-danger small">{{ $message }}</span>
+                            @enderror
                         </div>
                         <div class="col-md-6">
-                            <label for="organization" class="form-label">Laboratory/Organization</label>
-                            <input type="text" class="form-control" id="organization" name="organization">
+                            <label for="txt_organization"
+                                class="form-label text-white">Laboratory/Organization</label>
+                            <input type="text" class="form-control" id="txt_organization"
+                                value="{{ old('txt_organization') }}" name="txt_organization">
+                            @error('txt_organization')
+                                <span class="text-danger small">{{ $message }}</span>
+                            @enderror
                         </div>
                         <div class="col-md-6">
-                            <label for="labType" class="form-label">Laboratory Type</label>
-                            <select class="form-control" id="labType" name="lab_type">
+                            <label for="txt_lab_type" class="form-label text-white">Laboratory Type</label>
+                            <select class="form-control" id="txt_lab_type" name="txt_lab_type">
                                 <option value="">Select Laboratory Type</option>
                                 <option value="textile_testing">Textile Testing Laboratory</option>
                                 <option value="fiber_analysis">Fiber Analysis Laboratory</option>
@@ -696,11 +720,17 @@
                                 <option value="research">Research Laboratory</option>
                                 <option value="regional">Regional Testing Center</option>
                             </select>
+                            @error('txt_lab_type')
+                                <span class="text-danger small">{{ $message }}</span>
+                            @enderror
                         </div>
                         <div class="col-12">
-                            <label for="message" class="form-label">Message</label>
-                            <textarea class="form-control" id="message" name="message" rows="4"
-                                placeholder="Describe your technical requirements or support needs..."></textarea>
+                            <label for="txt_message" class="form-label text-white">Message</label>
+                            <textarea class="form-control" id="txt_message" name="txt_message" rows="4"
+                                placeholder="Describe your technical requirements or support needs...">{{ old('txt_message') }}</textarea>
+                            @error('txt_message')
+                                <span class="text-danger small">{{ $message }}</span>
+                            @enderror
                         </div>
                         <div class="col-12 text-center">
                             <button type="submit" class="btn btn-primary btn-lg">
@@ -722,7 +752,7 @@
                         <img src="{{ asset('frontAssets/logo.png') }}" alt="Logo" class="me-3 rounded-circle"
                             style="height: 40px; width: 40px; object-fit: cover; background: #fff; padding: 3px;">
                         <div>
-                            <h6 class="mb-0">Textile Committee</h6>
+                            <h6 class="mb-0 text-white">Textile Committee</h6>
                             <small class="text-light">LIMS Division</small>
                         </div>
                     </div>
@@ -730,7 +760,7 @@
                         textile testing facilities under the Ministry of Textiles, Government of India.</p>
                 </div>
                 <div class="col-lg-2 col-md-3 mb-4 mb-lg-0">
-                    <h6 class="fw-bold mb-3">Quick Links</h6>
+                    <h6 class="fw-bold mb-3 text-white">Quick Links</h6>
                     <ul class="list-unstyled">
                         <li><a href="#home" class="text-light text-decoration-none">Home</a></li>
                         <li><a href="#features" class="text-light text-decoration-none">Features</a></li>
@@ -739,7 +769,7 @@
                     </ul>
                 </div>
                 <div class="col-lg-3 col-md-4 mb-4 mb-lg-0">
-                    <h6 class="fw-bold mb-3">System Modules</h6>
+                    <h6 class="fw-bold mb-3 text-white">System Modules</h6>
                     <ul class="list-unstyled text-light">
                         <li>Sample Management</li>
                         <li>Test Management</li>
@@ -749,17 +779,17 @@
                     </ul>
                 </div>
                 <div class="col-lg-3 col-md-5">
-                    <h6 class="fw-bold mb-3">Contact Information</h6>
+                    <h6 class="fw-bold mb-3 text-white">Contact Information</h6>
                     <p class="text-light mb-2">
-                        <i class="fas fa-map-marker-alt me-2"></i>
+                        <em class="icon ni ni-map-pin"></em>
                         Mumbai, Maharashtra, India
                     </p>
                     <p class="text-light mb-2">
-                        <i class="fas fa-envelope me-2"></i>
+                        <em class="icon ni ni-mail"></em>
                         lims@textilescommittee.gov.in
                     </p>
                     <p class="text-light">
-                        <i class="fas fa-phone me-2"></i>
+                        <em class="icon ni ni-call"></em>
                         +91-22-XXXX-XXXX
                     </p>
                 </div>
@@ -767,7 +797,7 @@
             <hr class="mt-4 mb-3">
             <div class="row align-items-center">
                 <div class="col-md-6">
-                    <p class="mb-0 text-light">© 2024 System Cell. All rights reserved.</p>
+                    <p class="mb-0 text-light">© 2025 System Cell. All rights reserved.</p>
                 </div>
                 <div class="col-md-6 text-md-end">
                     <a href="#" class="text-light me-3">Privacy Policy</a>
@@ -802,7 +832,7 @@
                             <label class="form-check-label" for="rememberMe">Remember me</label>
                         </div>
                         <button type="submit" class="btn btn-primary w-100 mb-3">
-                            <i class="fas fa-sign-in-alt me-2"></i>Access System
+                            <em class="icon ni ni-send me-2"></em></i>Access System
                         </button>
                         <div class="text-center">
                             <a href="#" class="text-decoration-none">Contact IT Support</a>
@@ -813,7 +843,7 @@
         </div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ asset('backAssets/js/bundle.js') }}"></script>
     <script>
         // Smooth scrolling for navigation links
         document.querySelectorAll('a[href^="#"]').forEach(anchor => {
@@ -827,12 +857,6 @@
                     });
                 }
             });
-        });
-
-        // Form submission handling
-        document.querySelector('#contact form').addEventListener('submit', function(e) {
-            e.preventDefault();
-            alert('Support request submitted. Our technical team will contact you within 24 hours.');
         });
 
         function typeWriterEffect(elementId, parts, speed = 70, delay = 2000) {

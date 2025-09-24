@@ -53,8 +53,8 @@
                                                         required>
                                                         <option value="">Select Group</option>
                                                         @foreach ($groups as $group)
-                                                            <option value="{{ $group->m11_group_id }}"
-                                                                {{ old('txt_group_id', $test->m11_group_id) == $group->m11_group_id ? 'selected' : '' }}>
+                                                            <option value="{{ $group->m11_group_code }}"
+                                                                {{ old('txt_group_id', $test->m11_group_id) == $group->m11_group_code ? 'selected' : '' }}>
                                                                 {{ $group->m11_name }}
                                                             </option>
                                                         @endforeach

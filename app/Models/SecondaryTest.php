@@ -25,7 +25,7 @@ class SecondaryTest extends Model
 
     public function group()
     {
-        return $this->belongsTo(Group::class, 'm11_group_id');
+        return $this->belongsTo(Group::class, 'm11_group_id', 'm11_group_code');
     }
 
     public function primaryTest()

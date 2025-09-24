@@ -163,7 +163,7 @@
     <script>
         $(document).ready(function() {
             const groupDropdown = $('#txt_edit_group_id');
-            // const testDropdown = $('#txt_edit_test_id');
+            const testDropdown = $('#txt_edit_test_id');
             const sampleId = $('#txt_edit_sample_id').val();
             const selectedGroupId = "{{ old('txt_edit_group_id', $primaryTest->m11_group_id) }}";
             const selectedTestId = "{{ old('txt_edit_test_id', $primaryTest->m12_test_id) }}";
@@ -189,25 +189,25 @@
                 });
             }
 
-            // function loadTests(groupId) {
-            //     $.ajax({
-            //         url: "{{ route('get_tests') }}",
-            //         type: "GET",
-            //         data: {
-            //             group_id: groupId
-            //         },
-            //         success: function(data) {
-            //             testDropdown.empty().append('<option value="">-- Select Test --</option>');
-            //             $.each(data, function(_, test) {
-            //                 const selected = test.m12_test_id == selectedTestId ? 'selected' :
-            //                     '';
-            //                 testDropdown.append(
-            //                     `<option value="${test.m12_test_id}" ${selected}>${test.m12_name}</option>`
-            //                     );
-            //             });
-            //         }
-            //     });
-            // }
+            function loadTests(groupId) {
+                $.ajax({
+                    url: "{{ route('get_tests') }}",
+                    type: "GET",
+                    data: {
+                        group_id: groupId
+                    },
+                    success: function(data) {
+                        testDropdown.empty().append('<option value="">-- Select Test --</option>');
+                        $.each(data, function(_, test) {
+                            const selected = test.m12_test_id == selectedTestId ? 'selected' :
+                                '';
+                            testDropdown.append(
+                                `<option value="${test.m12_test_id}" ${selected}>${test.m12_name}</option>`
+                                );
+                        });
+                    }
+                });
+            }
 
             $('#txt_edit_sample_id').on('change', function() {
                 loadGroups($(this).val());

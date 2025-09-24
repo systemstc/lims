@@ -9,7 +9,7 @@
                 <p>New samples received from registrations that need test allotment or transfer.</p>
             </div>
         </div>
-
+<button class="eg-swal-av2 btn btn-primary" >Alert</button>
         <!-- Statistics Cards -->
         <div class="row g-gs mb-4">
             <div class="col-md-3">
@@ -125,6 +125,72 @@
                                     onclick="clearSelection()">Clear All</button>
                             </div>
                         </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Test Search and Allotment Section -->
+        <div class="card card-bordered mb-4">
+            <div class="card-inner">
+                <div class="row align-items-end">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-label">Search Tests for Allotment</label>
+                            <div class="input-group">
+                                <input type="text" id="testSearchInput" class="form-control"
+                                    placeholder="Enter test name (e.g., pH, Moisture, etc.)" autocomplete="off">
+                                <div class="input-group-append">
+                                    <button type="button" class="btn btn-primary" onclick="searchTests()">
+                                        <em class="icon ni ni-search"></em> Search
+                                    </button>
+                                </div>
+                            </div>
+                            <small class="text-muted">Search for specific tests across all pending samples</small>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div id="testSearchStats" class="text-end" style="display: none;">
+                            <span class="badge bg-info" id="testFoundCount">0</span> Tests found
+                            <span class="badge bg-warning" id="samplesAffected">0</span> Samples affected
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Test Search Results Modal -->
+        <div class="modal fade" tabindex="-1" id="testSearchModal">
+            <div class="modal-dialog modal-lg" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Test Search Results</h5>
+                        <a href="#" class="close" data-bs-dismiss="modal" aria-label="Close">
+                            <em class="icon ni ni-cross"></em>
+                        </a>
+                    </div>
+                    <div class="modal-body">
+                        <div id="testSearchResults">
+                            <!-- Results will be populated here -->
+                        </div>
+                        <div class="form-group mt-3">
+                            <label class="form-label">Select Analyst for Allotment</label>
+                            <select id="testAllotmentAnalyst" class="form-control form-select">
+                                <option value="">Choose Analyst...</option>
+                                @foreach ($employees as $employee)
+                                    <option value="{{ $employee->m06_employee_id }}">
+                                        {{ $employee->m06_name }} ({{ $employee->role }})
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-light">
+                        <button type="button" class="btn btn-primary" onclick="allotSelectedTests()" id="allotTestsBtn"
+                            disabled>
+                            Allot Selected Tests
+                        </button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     </div>
                 </div>
             </div>
@@ -676,7 +742,8 @@
             });
 
             sampleList.innerHTML = sampleRefs.length > 0 ?
-                sampleRefs.map(ref => `<span class="badge bg-warning me-1"> ${ref} </span>`).join('') : 'No samples selected';
+                sampleRefs.map(ref => `<span class="badge bg-warning me-1"> ${ref} </span>`).join('') :
+                'No samples selected';
 
             const bulkTransferModal = new bootstrap.Modal(document.getElementById(
                 'bulkTransferModal'));
@@ -801,6 +868,218 @@
         // Clear selections when page reloads
         window.addEventListener('beforeunload', function() {
             clearSelection();
+        });
+
+        // Search and allot selected test from each sample// Test search functionality
+        function searchTests() {
+            const searchTerm = document.getElementById('testSearchInput').value.trim();
+
+            if (!searchTerm) {
+                alert('Please enter a test name to search');
+                return;
+            }
+
+            // Show loading
+            const searchBtn = event.target;
+            const originalText = searchBtn.innerHTML;
+            searchBtn.innerHTML = '<em class="icon ni ni-loader"></em> Searching...';
+            searchBtn.disabled = true;
+
+            fetch('{{ route('search_tests_allotment') }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    },
+                    body: JSON.stringify({
+                        search_test: searchTerm
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        displayTestSearchResults(data);
+                    } else {
+                        alert(data.message || 'No tests found');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while searching');
+                })
+                .finally(() => {
+                    searchBtn.innerHTML = originalText;
+                    searchBtn.disabled = false;
+                });
+        }
+
+        function displayTestSearchResults(data) {
+            const resultsContainer = document.getElementById('testSearchResults');
+            const statsContainer = document.getElementById('testSearchStats');
+            let totalTests = 0;
+            let totalSamples = 0;
+            let resultsHTML = '';
+
+            if (Object.keys(data.test_results).length === 0) {
+                resultsHTML = '<div class="text-center py-4"><p class="text-muted">No unallotted tests found for "' + data
+                    .search_term + '"</p></div>';
+            } else {
+                resultsHTML = '<div class="alert alert-info"><strong>Search Results for:</strong> ' + data.search_term +
+                    '</div>';
+
+                Object.entries(data.test_results).forEach(([testId, tests]) => {
+                    const testName = tests[0].test_name;
+                    totalTests += tests.length;
+                    totalSamples += tests.length;
+
+                    resultsHTML += `
+                <div class="card border mb-3">
+                    <div class="card-header">
+                        <div class="row align-items-center">
+                            <div class="col">
+                                <h6 class="mb-0">${testName}</h6>
+                                <small class="text-muted">${tests.length} tests found</small>
+                            </div>
+                            <div class="col-auto">
+                                <div class="custom-control custom-checkbox">
+                                    <input type="checkbox" class="custom-control-input test-group-checkbox" 
+                                           id="testGroup_${testId}" onchange="toggleTestGroup('${testId}')">
+                                    <label class="custom-control-label" for="testGroup_${testId}">Select All</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">`;
+
+                    tests.forEach(test => {
+                        resultsHTML += `
+                    <div class="col-md-6 mb-2">
+                        <div class="custom-control custom-checkbox">
+                            <input type="checkbox" class="custom-control-input test-checkbox test-group-${testId}" 
+                                   id="test_${test.tr05_sample_test_id}" 
+                                   value="${test.tr05_sample_test_id}"
+                                   onchange="updateTestSelection()">
+                            <label class="custom-control-label" for="test_${test.tr05_sample_test_id}">
+                                <strong>${test.tr04_reference_id}</strong>
+                                <br><small class="text-muted">Registered: ${new Date(test.registration.created_at).toLocaleDateString()}</small>
+                            </label>
+                        </div>
+                    </div>`;
+                    });
+
+                    resultsHTML += '</div></div></div>';
+                });
+            }
+
+            resultsContainer.innerHTML = resultsHTML;
+
+            // Update stats
+            document.getElementById('testFoundCount').textContent = totalTests;
+            document.getElementById('samplesAffected').textContent = totalSamples;
+            statsContainer.style.display = totalTests > 0 ? 'block' : 'none';
+
+            // Show modal
+            const testSearchModal = new bootstrap.Modal(document.getElementById('testSearchModal'));
+            testSearchModal.show();
+
+            updateTestSelection();
+        }
+
+        function toggleTestGroup(testId) {
+            const groupCheckbox = document.getElementById('testGroup_' + testId);
+            const testCheckboxes = document.querySelectorAll('.test-group-' + testId);
+
+            testCheckboxes.forEach(checkbox => {
+                checkbox.checked = groupCheckbox.checked;
+            });
+
+            updateTestSelection();
+        }
+
+        function updateTestSelection() {
+            const selectedTests = document.querySelectorAll('.test-checkbox:checked');
+            const allotBtn = document.getElementById('allotTestsBtn');
+            const analystSelect = document.getElementById('testAllotmentAnalyst');
+
+            allotBtn.disabled = selectedTests.length === 0 || !analystSelect.value;
+
+            // Update group checkboxes
+            document.querySelectorAll('.test-group-checkbox').forEach(groupCheckbox => {
+                const testId = groupCheckbox.id.replace('testGroup_', '');
+                const groupTests = document.querySelectorAll('.test-group-' + testId);
+                const checkedTests = document.querySelectorAll('.test-group-' + testId + ':checked');
+
+                groupCheckbox.checked = groupTests.length > 0 && groupTests.length === checkedTests.length;
+                groupCheckbox.indeterminate = checkedTests.length > 0 && checkedTests.length < groupTests.length;
+            });
+        }
+
+        function allotSelectedTests() {
+            const selectedTestIds = Array.from(document.querySelectorAll('.test-checkbox:checked'))
+                .map(checkbox => checkbox.value);
+            const analystId = document.getElementById('testAllotmentAnalyst').value;
+            const testName = document.getElementById('testSearchInput').value;
+
+            if (selectedTestIds.length === 0) {
+                alert('Please select at least one test');
+                return;
+            }
+
+            if (!analystId) {
+                alert('Please select an analyst');
+                return;
+            }
+
+            if (!confirm(`Are you sure you want to allot ${selectedTestIds.length} test(s) to the selected analyst?`)) {
+                return;
+            }
+
+            // Show loading
+            const allotBtn = document.getElementById('allotTestsBtn');
+            const originalText = allotBtn.innerHTML;
+            allotBtn.innerHTML = '<em class="icon ni ni-loader"></em> Allotting...';
+            allotBtn.disabled = true;
+
+            fetch('{{ route('allot_specific_tests') }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    },
+                    body: JSON.stringify({
+                        test_name: testName,
+                        test_ids: selectedTestIds.join(','),
+                        emp_id: analystId
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert(data.message);
+                        // Close modal and refresh page
+                        bootstrap.Modal.getInstance(document.getElementById('testSearchModal')).hide();
+                        location.reload();
+                    } else {
+                        alert(data.message || 'Failed to allot tests');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while allotting tests');
+                })
+                .finally(() => {
+                    allotBtn.innerHTML = originalText;
+                    allotBtn.disabled = false;
+                });
+        }
+
+        // Enable allot button when analyst is selected
+        document.addEventListener('DOMContentLoaded', function() {
+            const analystSelect = document.getElementById('testAllotmentAnalyst');
+            if (analystSelect) {
+                analystSelect.addEventListener('change', updateTestSelection);
+            }
         });
     </script>
 @endsection

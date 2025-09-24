@@ -13,7 +13,14 @@
                                 </a>
                             </div>
                         </div>
-
+                        <form action="{{ route('import_all_primary') }}" method="POST" enctype="multipart/form-data">
+                            @csrf
+                            <div class="form-group">
+                                <label>Select CSV File</label>
+                                <input type="file" name="csv_file" class="form-control" required accept=".csv">
+                            </div>
+                            <button type="submit" class="btn btn-primary mt-2">Upload & Import</button>
+                        </form>
                         <div class="card card-bordered card-preview">
                             <div class="card-inner">
                                 <table class="datatable-init-export table table-bordered table-hover"
@@ -45,7 +52,7 @@
                                                 <td>{{ $primary->m16_unit }}</td>
                                                 <td>{{ $primary->m16_requirement }}</td>
                                                 <td>{{ $primary->m16_remark }}</td>
-                                                <td>{{ $primary->user->tr01_name ?? 'N/A' }}</td>
+                                                <td>{{ $primary->tr01_created_by == -1 ? 'ADMIN' : $primary->user->tr01_name }}</td>
                                                 {{-- <td>{{ $primary->created_at }}</td> --}}
                                                 <td
                                                     class="text-{{ $primary->m16_status == 'ACTIVE' ? 'success' : 'danger' }}">

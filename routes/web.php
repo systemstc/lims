@@ -5,6 +5,7 @@ use App\Http\Controllers\AnalystController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\EmployeeController;
+use App\Http\Controllers\FrontController;
 use App\Http\Controllers\MasterController;
 use App\Http\Controllers\MeasurementController;
 use App\Http\Controllers\RegistrationController;
@@ -18,6 +19,7 @@ use Illuminate\Support\Facades\Session;
 Route::get('/', function () {
     return view('welcome');
 });
+Route::post('contact-us', [FrontController::class, 'contactSupport'])->name('contact_support');
 
 Route::middleware(['access_control'])->group(function () {
     Route::match(['get', 'post'], 'admin/login', [AuthController::class, 'adminLogin'])->name('admin_login');
@@ -92,10 +94,15 @@ Route::middleware(['access_control'])->group(function () {
     Route::post('delete-lab-sample', [MasterController::class, 'deleteLabSamples'])->name('delete_lab_sample');
 
     // Tests
-    Route::get('tests', [MasterController::class, 'viewTests'])->name('view_tests');
+    Route::get('tests-all', [MasterController::class, 'viewTests'])->name('view_tests');
     Route::match(['get', 'post'], 'create-test', [MasterController::class, 'createTest'])->name('create_test');
     Route::match(['get', 'post'], 'update-test/{id}', [MasterController::class, 'updateTest'])->name('update_test');
     Route::post('delete-test', [MasterController::class, 'deleteTest'])->name('delete_test');
+    // Importing All tests 
+    Route::post('/tests/import', [MasterController::class, 'importTests'])->name('import_all_tests');
+    Route::post('/standards/import', [MasterController::class, 'importStandards'])->name('import_all_standards');
+    Route::post('/primary-tests/import', [MasterController::class, 'importPrimaryTests'])->name('import_all_primary');
+    Route::post('/secondary-tests/import', [MasterController::class, 'importSecondaryTests'])->name('import_all_secondary');
 
     // Accredations Related Routes
     Route::get('view-accreditations', [MasterController::class, 'accreditations'])->name('view_accreditations');
@@ -266,6 +273,9 @@ Route::middleware(['access_control'])->group(function () {
     Route::post('bulk-transfer-sample', [AllottmentController::class, 'bulkTransferSamples'])->name('bulk_sample_transfer');
     // Quick Transfer Sample
     Route::post('quick-allot-sample', [AllottmentController::class, 'quickTransferSample'])->name('quick_allot_sample');
+    // Search and allot test from all samples
+    Route::post('/search-tests-allotment', [AllottmentController::class, 'searchTestsForAllotment'])->name('search_tests_allotment');
+    Route::post('/allot-specific-tests', [AllottmentController::class, 'allotSpecificTests'])->name('allot_specific_tests');
     // Additional operations
     Route::post('/reassign', [AllottmentController::class, 'reassignTest'])->name('reassign');
     Route::get('/history/{testId}', [AllottmentController::class, 'getAllotmentHistory'])->name('history');

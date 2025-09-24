@@ -75,6 +75,7 @@ class AllottmentController extends Controller
         }
 
         if ($request->filled('status')) {
+            // dd($request);
             match ($request->status) {
                 'new' => $query->having('allotted_tests', '=', 0),
                 'partial' => $query->havingRaw('allotted_tests > 0 AND allotted_tests < total_tests'),
@@ -835,5 +836,130 @@ class AllottmentController extends Controller
             ]);
         }
         return view('allottment.allotment_history', compact('test', 'history', 'allotmentHistory'));
+    }
+
+    // Search and Allot
+    public function searchTestsForAllotment(Request $request)
+    {
+        $roId = Session::get('ro_id');
+        if ($request->has('search_test') && !empty($request->search_test)) {
+            $searchTerm = $request->search_test;
+
+            $testResults = SampleTest::join('tr04_sample_registrations', 'tr05_sample_tests.tr04_sample_registration_id', '=', 'tr04_sample_registrations.tr04_sample_registration_id')
+                ->join('m12_tests', 'tr05_sample_tests.m12_test_id', '=', 'm12_tests.m12_test_id')
+                ->select(
+                    'tr05_sample_tests.tr05_sample_test_id',
+                    'tr05_sample_tests.tr04_sample_registration_id',
+                    'tr05_sample_tests.m06_alloted_to',
+                    'tr05_sample_tests.tr05_status',
+                    'tr04_sample_registrations.tr04_reference_id',
+                    'm12_tests.m12_name as test_name',
+                    'm12_tests.m12_test_id'
+                )
+                ->where(function ($query) use ($roId) {
+                    $query->where('tr05_sample_tests.m04_ro_id', $roId)
+                        ->orWhere('tr05_sample_tests.m04_transferred_to', $roId);
+                })
+                ->where('m12_tests.m12_name', 'LIKE', '%' . $searchTerm . '%')
+                ->whereNull('tr05_sample_tests.m06_alloted_to')
+                ->whereNotIn('tr05_sample_tests.tr05_status', ['COMPLETED', 'TRANSFERRED'])
+                ->with(['registration:tr04_sample_registration_id,tr04_reference_id,created_at'])
+                ->orderBy('tr04_sample_registrations.created_at', 'desc')
+                ->get()
+                ->groupBy('m12_test_id');
+
+            $employees = $this->getLabEmployees($roId);
+
+            return response()->json([
+                'success' => true,
+                'test_results' => $testResults,
+                'search_term' => $searchTerm,
+                'employees' => $employees
+            ]);
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Please enter a test name to search'
+        ]);
+    }
+
+    public function allotSpecificTests(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'test_name' => 'required|string',
+            'test_ids' => 'required|string',
+            'emp_id' => 'required|exists:m06_employees,m06_employee_id'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed: ' . $validator->errors()->first()
+            ]);
+        }
+
+        try {
+            DB::beginTransaction();
+            $testIds = array_filter(explode(',', $request->test_ids));
+            if (empty($testIds)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No tests selected'
+                ]);
+            }
+
+            $userId = Session::get('user_id');
+            $roId = Session::get('ro_id');
+
+            // Verify all tests belong to current RO and are unallotted
+            $validTests = SampleTest::whereIn('tr05_sample_test_id', $testIds)
+                ->where(function ($query) use ($roId) {
+                    $query->where('m04_ro_id', $roId)
+                        ->orWhere('m04_transferred_to', $roId);
+                })
+                ->whereNull('m06_alloted_to')
+                ->whereNotIn('tr05_status', ['COMPLETED', 'TRANSFERRED'])
+                ->get();
+
+            if ($validTests->isEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No valid tests found for allotment'
+                ]);
+            }
+
+            $updatedCount = 0;
+            foreach ($validTests as $test) {
+                $test->update([
+                    'm06_alloted_to' => $request->emp_id,
+                    'm06_alloted_by' => $userId,
+                    'tr05_status' => 'ALLOTED',
+                    'tr05_alloted_at' => now()
+                ]);
+                $updatedCount++;
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => "Successfully allotted {$updatedCount} tests of '{$request->test_name}' to the selected analyst",
+                'allotted_count' => $updatedCount
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Specific Test Allotment Error: ' . $e->getMessage(), [
+                'user_id' => Session::get('user_id'),
+                'emp_id' => $request->emp_id,
+                'test_ids' => $request->test_ids,
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to allot tests: ' . $e->getMessage()
+            ]);
+        }
     }
 }

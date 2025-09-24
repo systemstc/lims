@@ -12,6 +12,14 @@
                                     &nbsp; Create test</a>
                             </div>
                         </div>
+                        <form action="{{ route('import_all_tests') }}" method="POST" enctype="multipart/form-data">
+                            @csrf
+                            <div class="form-group">
+                                <label>Select CSV File</label>
+                                <input type="file" name="csv_file" class="form-control" required accept=".csv">
+                            </div>
+                            <button type="submit" class="btn btn-primary mt-2">Upload & Import</button>
+                        </form>
 
                         <div class="card card-bordered card-preview">
                             <div class="card-inner">
@@ -19,16 +27,16 @@
                                     data-export-title="Export">
                                     <thead>
                                         <tr>
-                                            <th>ID</th>
+                                            <th>Test ID</th>
                                             <th>Sample</th>
                                             <th>Group</th>
                                             <th>Test</th>
                                             {{-- <th>Description</th> --}}
-                                            <th>Alias</th>
+                                            {{-- <th>Alias</th> --}}
                                             <th>Unit</th>
                                             <th>Charge</th>
                                             <th>Instr.</th>
-                                            <th>Weight</th>
+                                            {{-- <th>Weight</th> --}}
                                             {{-- <th>Dept. </th> --}}
                                             {{-- <th>Remark</th> --}}
                                             <th>Created By</th>
@@ -40,19 +48,19 @@
                                     <tbody>
                                         @foreach ($tests as $key => $test)
                                             <tr>
-                                                <td>{{ $key + 1 }}</td>
+                                                <td>{{ $test->m12_test_number }}</td>
                                                 <td>{{ $test->sample->m10_name }}</td>
-                                                <td>{{ $test->group->m11_name }}</td>
+                                                <td>{{ $test->group->m11_name ?? '' }}</td>
                                                 <td>{{ $test->m12_name }}</td>
                                                 {{-- <td>{{ $test->m12_description }}</td> --}}
-                                                <td>{{ $test->m12_alias }}</td>
+                                                {{-- <td>{{ $test->m12_alias }}</td> --}}
                                                 <td>{{ $test->m12_unit }}</td>
                                                 <td>{{ $test->m12_charge }}</td>
                                                 <td>{{ $test->m12_instrument }}</td>
-                                                <td>{{ $test->m12_weight }}</td>
+                                                {{-- <td>{{ $test->m12_weight }}</td> --}}
                                                 {{-- <td>{{ $test->department->m13_name }}</td> --}}
                                                 {{-- <td>{{ $test->m12_remark }}</td> --}}
-                                                <td>{{ $test->user->tr01_name ?? '' }}</td>
+                                                <td>{{ $test->tr01_created_by == -1 ? 'ADMIN' : $test->user->tr01_name }}</td>
                                                 {{-- <td>{{ $test->created_at }}</td> --}}
                                                 <td
                                                     class="text-{{ $test->m12_status == 'ACTIVE' ? 'success' : 'danger' }}">

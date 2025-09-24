@@ -13,7 +13,14 @@
                                 <em class="icon ni ni-plus"></em> &nbsp; Create Secondary Test
                             </a>
                         </div>
-
+                        <form action="{{ route('import_all_secondary') }}" method="POST" enctype="multipart/form-data">
+                            @csrf
+                            <div class="form-group">
+                                <label>Select CSV File</label>
+                                <input type="file" name="csv_file" class="form-control" required accept=".csv">
+                            </div>
+                            <button type="submit" class="btn btn-primary mt-2">Upload & Import</button>
+                        </form>
                         <!-- Table -->
                         <div class="card card-bordered card-preview">
                             <div class="card-inner">
@@ -44,9 +51,10 @@
                                                 <td>{{ $test->primaryTest->m16_name ?? '' }}</td>
                                                 <td>{{ $test->m17_name }}</td>
                                                 <td>{{ $test->m17_unit }}</td>
-                                                <td>{{ $test->user->tr01_name ?? '' }}</td>
+                                                <td>{{ $test->tr01_created_by == -1 ? 'ADMIN' : $test->user->tr01_name }}</td>
                                                 <td>{{ \Carbon\Carbon::parse($test->created_at)->format('d M Y') }}</td>
-                                                <td class="text-{{ $test->m17_status == 'ACTIVE' ? 'success' : 'danger' }}">
+                                                <td
+                                                    class="text-{{ $test->m17_status == 'ACTIVE' ? 'success' : 'danger' }}">
                                                     <strong>{{ $test->m17_status }}</strong>
                                                 </td>
                                                 <td class="nk-tb-col nk-tb-col-tools">

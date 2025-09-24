@@ -6,8 +6,6 @@
     <meta charset="utf-8">
     <meta name="author" content="Softnio">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <meta name="description"
-        content="A powerful and conceptual apps base dashboard template that especially build for developers and programmers.">
     <!-- Fav Icon  -->
     <link rel="shortcut icon" href="{{ asset('backAssets/images/favicon.png') }}">
     <!-- Page Title  -->
@@ -46,10 +44,6 @@
                     <div class="nk-block nk-block-middle nk-auth-body  wide-xs">
                         <div class="brand-logo text-center">
                             <a href="javaScript:void(0)" class="logo-link">
-                                <img class="logo-light logo-img me-2" src="{{ asset('backAssets/images/logo.png') }}"
-                                    alt="logo">
-                                <img class="logo-dark logo-img me-2" src="{{ asset('backAssets/images/logo.png') }}"
-                                    alt="logo">
                                 <img class="logo-small logo-img logo-img-small me-2"
                                     src="{{ asset('backAssets/images/logo.png') }}" alt="logo-small">
                                 <span class="lims-brand-text text-gradient">LIMS</span>
@@ -84,7 +78,7 @@
                                         </div>
                                         <div class="form-control-wrap">
                                             <a href="#" class="form-icon form-icon-right passcode-switch lg"
-                                                data-target="password">
+                                                data-target="txt_password">
                                                 <em class="passcode-icon icon-show icon ni ni-eye"></em>
                                                 <em class="passcode-icon icon-hide icon ni ni-eye-off"></em>
                                             </a>

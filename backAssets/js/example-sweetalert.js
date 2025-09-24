@@ -60,7 +60,7 @@
   });
   $('.eg-swal-av2').on("click", function (e) {
     Swal.fire({
-      position: 'top-end',
+      position: 'center',
       icon: 'success',
       title: 'Your work has been saved',
       showConfirmButton: false,
