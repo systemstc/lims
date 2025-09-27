@@ -556,7 +556,7 @@
                                                                     <option value="" selected disabled>Select Group
                                                                     </option>
                                                                     @foreach ($groups as $group)
-                                                                        <option value="{{ $group->m11_group_id }}">
+                                                                        <option value="{{ $group->m11_group_code }}">
                                                                             {{ $group->m11_name }}</option>
                                                                     @endforeach
                                                                 </select>
@@ -1400,9 +1400,10 @@
                     searchTimeout = setTimeout(() => {
                         positionDropdown(customerActiveInput, $customerDropdown);
                         $customerDropdown.html('<div class="dropdown-message">Searching...</div>');
-
+                        const customerType = $('#dd_customer_type').val();
                         $.getJSON(CUSTOMER_URL, {
-                            query
+                            query,
+                            type: customerType
                         }, function(customers) {
                             $customerDropdown.empty();
                             if (customers.length) {
@@ -1638,8 +1639,8 @@
             /** =========================
              *  TABLE & CALCULATION FUNCTIONS
              ========================= **/
-            function addTestToTable(test) {
-                const row = `
+function addTestToTable(test) {
+    const row = `
         <tr data-id="${test.id}">
             <td>${test.id}</td>
             <td>${test.test_name || test.name}</td>
@@ -1650,7 +1651,16 @@
                 <input type="hidden" name="tests[${test.id}][test_id]" value="${test.id}">
                 <input type="hidden" name="tests[${test.id}][standard_id]" class="standard-id" value="${test.standard?.standard_id || ''}">
             </td>
-            <td class="test-charge" data-charge="${test.charge || 0}">${test.charge || 0}</td>
+            <td class="test-charge" data-charge="${test.charge || 0}" 
+             data-base-charge="${test.charge || 0}">${test.charge || 0}</td>
+            <td>
+                <div class="d-flex align-items-center">
+                    <button type="button" class="btn btn-sm btn-light decrement-qty" data-id="${test.id}">-</button>
+                    <span class="mx-2 test-qty" data-qty="1">1</span>
+                    <button type="button" class="btn btn-sm btn-light increment-qty" data-id="${test.id}">+</button>
+                </div>
+                <input type="hidden" name="tests[${test.id}][quantity]" class="test-qty-input" value="1">
+            </td>
             <td>
                 <input type="text" name="tests[${test.id}][remark]" class="form-control form-control-sm" placeholder="Enter remark" value="${test.remark || ''}">
             </td>
@@ -1661,9 +1671,59 @@
             </td>
         </tr>
     `;
-                $(".table.table-tranx tbody").append(row);
-                calculateCharges();
-            }
+    $(".table.table-tranx tbody").append(row);
+    calculateCharges();
+}
+
+// increment quantity
+$(document).on("click", ".increment-qty", function () {
+    const row = $(this).closest("tr");
+    const qtySpan = row.find(".test-qty");
+    const qtyInput = row.find(".test-qty-input");
+    const chargeCell = row.find(".test-charge");
+
+    const baseCharge = parseFloat(chargeCell.attr("data-base-charge")) || 0; 
+    let qty = parseInt(qtySpan.attr("data-qty")) || 1;
+
+    qty++;
+    qtySpan.attr("data-qty", qty).text(qty);
+    qtyInput.val(qty);
+
+    const newCharge = qty * baseCharge;
+
+    chargeCell.text(newCharge.toFixed(2));
+    chargeCell.attr("data-charge", newCharge.toFixed(2));
+    chargeCell.data("charge", newCharge.toFixed(2)); // ✅ fix: update jQuery's cached data
+
+    calculateCharges();
+});
+
+// decrement quantity
+$(document).on("click", ".decrement-qty", function () {
+    const row = $(this).closest("tr");
+    const qtySpan = row.find(".test-qty");
+    const qtyInput = row.find(".test-qty-input");
+    const chargeCell = row.find(".test-charge");
+
+    const baseCharge = parseFloat(chargeCell.attr("data-base-charge")) || 0;
+    let qty = parseInt(qtySpan.attr("data-qty")) || 1;
+
+    if (qty > 1) {
+        qty--;
+        qtySpan.attr("data-qty", qty).text(qty);
+        qtyInput.val(qty);
+
+        const newCharge = qty * baseCharge;
+
+        chargeCell.text(newCharge.toFixed(2));
+        chargeCell.attr("data-charge", newCharge.toFixed(2));
+        chargeCell.data("charge", newCharge.toFixed(2)); // ✅ fix: update jQuery's cached data
+
+        calculateCharges();
+    }
+});
+
+
 
             $(document).off('click.deletetest').on('click.deletetest', '.delete-test', function(e) {
                 e.preventDefault();

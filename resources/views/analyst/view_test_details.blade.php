@@ -70,6 +70,7 @@
                                                         <th>Primary Test</th>
                                                         <th>Secondary Test</th>
                                                         <th>Status</th>
+                                                        <th>Action</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
@@ -107,6 +108,15 @@
                                                                     @else bg-secondary @endif">
                                                                     {{ ucfirst(strtolower(str_replace('_', ' ', $sampleTest->tr05_status ?? 'N/A'))) }}
                                                                 </span>
+                                                            </td>
+                                                            <td>
+                                                                @if ($sampleTest->tr05_status == 'ALLOTED')
+                                                                    <a href="{{ route('update_analysis', $sampleTest->tr05_sample_test_id) }}"
+                                                                        class="btn btn-success btn-xs">Start</a>
+                                                                @elseif ($sampleTest->tr05_status == 'IN_PROGRESS')
+                                                                    <a href="{{ route('update_analysis', $sampleTest->tr05_sample_test_id) }}"
+                                                                        class="btn btn-warning btn-xs">Complete</a>
+                                                                @endif
                                                             </td>
                                                         </tr>
                                                     @empty

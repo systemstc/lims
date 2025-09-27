@@ -171,10 +171,10 @@
                             groupDropdown.empty().append(
                                 '<option value="">-- Select Group --</option>');
                             $.each(data, function(key, group) {
-                                let selected = (group.m11_group_id ==
+                                let selected = (group.m11_group_code ==
                                     "{{ old('txt_group_id') }}") ? 'selected' : '';
                                 groupDropdown.append(
-                                    `<option value="${group.m11_group_id}" ${selected}>${group.m11_name}</option>`
+                                    `<option value="${group.m11_group_code}" ${selected}>${group.m11_name}</option>`
                                     );
                             });
                         },

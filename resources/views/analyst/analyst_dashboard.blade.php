@@ -1,6 +1,36 @@
 @extends('layouts.app_back')
 
 @section('content')
+    <style>
+        .completed-card {
+            position: relative;
+            background-image: repeating-linear-gradient(45deg,
+                    rgba(0, 0, 0, 0.05),
+                    rgba(0, 0, 0, 0.05) 10px,
+                    transparent 10px,
+                    transparent 20px);
+            background-size: 20px 20px;
+            opacity: 0.8;
+        }
+
+        .completed-card .card-inner {
+            pointer-events: none;
+        }
+
+        .completed-card::after {
+            content: "COMPLETED";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-20deg);
+            font-size: 2rem;
+            font-weight: bold;
+            color: rgba(0, 0, 0, 0.459);
+            text-transform: uppercase;
+            pointer-events: none;
+        }
+    </style>
+
     <div class="container-fluid">
         <div class="nk-content-inner">
             <div class="nk-content-body">
@@ -44,7 +74,7 @@
                             </div>
                         </div>
 
-                        <!-- Total Samples -->
+                        <!-- Total Tests -->
                         <div class="col-md-3">
                             <div class="card card-bordered text-center">
                                 <div class="card-inner">
@@ -56,56 +86,80 @@
                     </div>
                 </div>
 
-                <!-- Recent Allotted Tests -->
+                <!-- Recent Allotted Samples -->
                 <div class="nk-block mt-5">
                     <div class="card card-bordered">
                         <div class="card-inner">
-                            <h5 class="card-title">Recent Allotted Tests</h5>
-                            <div class="row g-gs" id="testCardsContainer">
-                                @if (isset($allottedTests) && $allottedTests->count() > 0)
-                                    @foreach ($allottedTests as $test)
+                            <h5 class="card-title">Recent Allotted Samples</h5>
+                            <div class="row g-gs" id="sampleCardsContainer">
+                                @if (isset($allottedSamples) && $allottedSamples->count() > 0)
+                                    @foreach ($allottedSamples as $sample)
                                         <div class="col-md-4">
-                                            <div class="card card-bordered h-100">
+                                            <div
+                                                class="card card-bordered h-100 @if ($sample->overall_status === 'COMPLETED') completed-card @endif">
                                                 <div class="card-inner d-flex flex-column">
-                                                    <div class="d-flex justify-content-between align-items-center">
+                                                    <div class="d-flex justify-content-between align-items-center mb-2">
                                                         <h6 class="card-title mb-0">
-                                                            Sample ID: {{ $test->registration->tr04_reference_id }}
+                                                            Sample ID: {{ $sample->registration->tr04_reference_id }}
                                                         </h6>
-                                                        <a class="btn btn-outline-primary btn-sm"
-                                                            href="{{ route('create_analysis', $test->tr05_sample_test_id) }}">
-                                                            Start
-                                                        </a>
+                                                        <span class="badge bg-info">
+                                                            {{ $sample->test_count }}
+                                                            Test{{ $sample->test_count > 1 ? 's' : '' }}
+                                                        </span>
                                                     </div>
 
-                                                    <p class="mt-2 mb-1">
-                                                        Status:
-                                                        <span
-                                                            class="badge
-                                            @if ($test->tr05_status === 'ALLOTED') bg-primary
-                                            @elseif ($test->tr05_status === 'IN_PROGRESS') bg-warning
-                                            @elseif ($test->tr05_status === 'COMPLETED') bg-success
-                                            @else bg-secondary @endif">
-                                                            {{ $test->tr05_status }}
-                                                        </span>
+                                                    <div class="mb-2">
+                                                        <span class="text-muted">Overall Status:</span>
+                                                        <strong
+                                                            class=" ms-1
+                                                                @if ($sample->overall_status === 'ALLOTED') text-primary
+                                                                @elseif ($sample->overall_status === 'IN_PROGRESS') text-warning
+                                                                @elseif ($sample->overall_status === 'COMPLETED') text-success
+                                                                @else text-secondary @endif">
+                                                            {{ $sample->overall_status }}
+                                                    </strong>
+                                                    </div>
+                                                    @if ($sample->overall_status === "COMPLETED" && $sample->latest_completed_at != '')
+                                                           <p class="small text-muted mb-3">
+                                                        Completed At:
+                                                        {{ \Carbon\Carbon::parse($sample->latest_completed_at)->format('d M, Y h:i A') }}
                                                     </p>
-
+                                                    @else
+                                                        
                                                     <p class="small text-muted mb-3">
-                                                        Allotted At: {{ $test->created_at->format('d M Y H:i') }}
+                                                        Latest Allotment:
+                                                        {{ \Carbon\Carbon::parse($sample->latest_allotment)->format('d M, Y h:i A') }}
                                                     </p>
+                                                    @endif
 
-                                                    <div class="mt-auto d-flex justify-content-between">
-                                                        @if ($test->tr05_status !== 'COMPLETED')
-                                                            <form
-                                                                action="{{ route('update_analysis', $test->tr05_sample_test_id) }}"
-                                                                method="POST">
-                                                                @csrf
-                                                                <button type="submit" class="btn btn-danger btn-sm w-100">
-                                                                    <i class="ni ni-check-circle me-1 fs-6"></i> Mark Complete
-                                                                </button>
-                                                            </form>
-                                                        @else
-                                                            <span
-                                                                class="badge bg-success w-100 text-center">Completed</span>
+                                                    <!-- Progress Bar -->
+                                                    <div class="mb-3">
+                                                        <div class="d-flex justify-content-between mb-1">
+                                                            <small class="text-muted fw-bold">Progress</small>
+                                                            <small
+                                                                class="fw-bold">{{ $sample->progress_percentage }}%</small>
+                                                        </div>
+                                                        <div class="progress"
+                                                            style="height: 5px; background-color: #dad9d9; border-radius: 5px; overflow: hidden;">
+                                                            <div class="progress-bar 
+                                                                @if ($sample->progress_percentage < 50) bg-danger
+                                                                @elseif($sample->progress_percentage < 100) bg-warning
+                                                                @else bg-success @endif"
+                                                                role="progressbar"
+                                                                style="width: {{ $sample->progress_percentage }}%; border-radius: 5px;"
+                                                                aria-valuenow="{{ $sample->progress_percentage }}"
+                                                                aria-valuemin="0" aria-valuemax="100">
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+
+                                                    <div class="mt-auto d-flex gap-2">
+                                                        @if ($sample->overall_status !== 'COMPLETED')
+                                                            <a class="btn btn-outline-primary btn-md"
+                                                                href="{{ route('view_sample_tests', $sample->tr04_sample_registration_id) }}">
+                                                                <i class="ni ni-eye me-1"></i> View Tests
+                                                            </a>
                                                         @endif
                                                     </div>
                                                 </div>
@@ -114,7 +168,7 @@
                                     @endforeach
                                 @else
                                     <div class="col-12">
-                                        <p class="text-muted text-center">No tests allotted yet.</p>
+                                        <p class="text-muted text-center">No samples allotted yet.</p>
                                     </div>
                                 @endif
                             </div>

@@ -173,8 +173,10 @@ Route::middleware(['access_control'])->group(function () {
 
     // Analyst Ruotes
     Route::get('analyst/dashboard', [AnalystController::class, 'viewAnalystDashboard'])->name('view_analyst_dashboard');
-    Route::get('analyst/test/{id}', [AnalystController::class, 'viewTest'])->name('create_analysis');
-    Route::post('analyst/update/{id}', [AnalystController::class, 'updateStatus'])->name('update_analysis');
+    // Route::get('analyst/test/{id}', [AnalystController::class, 'viewTest'])->name('create_analysis');
+    Route::get('analyst/update/{id}', [AnalystController::class, 'updateStatus'])->name('update_analysis');
+    // Add this route to your existing routes
+    Route::get('/analyst/sample-tests/{sampleId}', [AnalystController::class, 'viewSampleTests'])->name('view_sample_tests');
 
     // ACM Routes
     Route::get('acm-view', [MasterController::class, 'viewACM'])->name('view_acm');
@@ -272,11 +274,18 @@ Route::middleware(['access_control'])->group(function () {
     // Bluck Sample Transfer
     Route::post('bulk-transfer-sample', [AllottmentController::class, 'bulkTransferSamples'])->name('bulk_sample_transfer');
     // Quick Transfer Sample
-    Route::post('quick-allot-sample', [AllottmentController::class, 'quickTransferSample'])->name('quick_allot_sample');
+    Route::post('quick-transfer-sample', [AllottmentController::class, 'quickTransferSample'])->name('quick_sample_transfer');
     // Search and allot test from all samples
-    Route::post('/search-tests-allotment', [AllottmentController::class, 'searchTestsForAllotment'])->name('search_tests_allotment');
+    Route::post('/get-test-samples-allotment', [AllottmentController::class, 'getTestSamplesForAllotment'])->name('get_test_samples_allotment');
+    // Route::post('/search-tests-allotment', [AllottmentController::class, 'searchTestsForAllotment'])->name('search_tests_allotment');
     Route::post('/allot-specific-tests', [AllottmentController::class, 'allotSpecificTests'])->name('allot_specific_tests');
     // Additional operations
     Route::post('/reassign', [AllottmentController::class, 'reassignTest'])->name('reassign');
     Route::get('/history/{testId}', [AllottmentController::class, 'getAllotmentHistory'])->name('history');
+
+    // Manuscript
+    Route::get('/manuscripts', [MasterController::class, 'viewManuscript'])->name('view_manuscripts');
+    Route::post('/manuscripts/import', [MasterController::class, 'manuscriptImport'])->name('manuscripts_import');
+    // Manuscript Template
+    Route::match(['get', 'post'], 'manuscript-template', [MasterController::class, 'templateManuscript'])->name('template_manuscript');
 });

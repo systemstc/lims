@@ -169,7 +169,7 @@ class RegistrationController extends Controller
         }
         $customerTypes = CustomerType::where('m09_status', 'ACTIVE')->get(['m09_customer_type_id', 'm09_name']);
         $labSamples = LabSample::where('m14_status', 'ACTIVE')->get(['m14_lab_sample_id', 'm14_name']);
-        $groups = Group::where('m11_status', 'ACTIVE')->get(['m11_group_id', 'm11_name']);
+        $groups = Group::where('m11_status', 'ACTIVE')->get(['m11_group_id', 'm11_group_code', 'm11_name']);
         $states = State::where('m01_status', 'ACTIVE')->get(['m01_state_id', 'm01_name']);
         $departments = Department::where('m13_status', 'ACTIVE')->get(['m13_department_id', 'm13_name']);
         return view('registration.preRegistration.register_sample', compact('customerTypes', 'labSamples', 'groups', 'states', 'departments'));
@@ -179,14 +179,18 @@ class RegistrationController extends Controller
     {
         Log::info('Search customer request', [
             'query' => $request->input('query'),
+            'type' => $request->input('type'),
             'all_data' => $request->all()
         ]);
 
         try {
             $query = $request->input('query');
-
+            $type  = $request->input('type');
             if ($query) {
                 $customers = Customer::with(['locations', 'state', 'district'])
+                    ->when($type, function ($q) use ($type) {
+                        $q->where('m09_customer_type_id', $type);
+                    })
                     ->where('m07_name', 'like', "%{$query}%")
                     ->take(10)
                     ->get()
@@ -249,7 +253,7 @@ class RegistrationController extends Controller
             })
             ->where(function ($q) use ($query) {
                 $q->where('m12_name', 'LIKE', "%{$query}%")
-                    ->orWhere('m12_test_id', 'LIKE', "%{$query}%");
+                    ->orWhere('m12_test_number', 'LIKE', "%{$query}%");
             })
             ->limit(10)
             ->get();

@@ -70,8 +70,7 @@ class AccessControl
             'bulk_allot_sample',
             'quick_allot_sample',
             'bulk_sample_transfer',
-            'quick_allot_sample',
-            'search_tests_allotment',
+            'quick_sample_transfer',
             'allot_specific_tests',
             'create_allotment',
             'allot_tests',
@@ -83,6 +82,9 @@ class AccessControl
             'import_all_standards',
             'import_all_primary',
             'import_all_secondary',
+            'template_manuscript',
+            'get_test_samples_allotment',
+            'view_sample_tests',
         ];
 
         if (in_array($routeName, $skipPermissionRoutes)) {

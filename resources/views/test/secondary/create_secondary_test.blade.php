@@ -144,7 +144,7 @@
                         let options = '<option value="">-- Select Group --</option>';
                         $.each(groups, function(i, group) {
                             options +=
-                                `<option value="${group.m11_group_id}" ${group.m11_group_id == "{{ old('txt_group_id') }}" ? 'selected' : ''}>${group.m11_name}</option>`;
+                                `<option value="${group.m11_group_code}" ${group.m11_group_code == "{{ old('txt_group_id') }}" ? 'selected' : ''}>${group.m11_name}</option>`;
                         });
                         $('#txt_group_id').html(options).trigger('change');
                     });
