@@ -43017,4 +43017,52 @@ div.dataTables_wrapper div.dataTables_filter .dark-mode .nk-header-search input,
   border-color: #3F41D1 !important;
 }
 
+@media print {
+
+   .nk-app-root * {
+    visibility: hidden;
+  }
+
+  /* Completely remove sidebar, header, footer */
+  .nk-app-root > .nk-main > .sidebar,
+  .nk-wrap > .header,
+  .nk-wrap > .footer {
+    display: none !important;
+  }
+
+  /* Show only invoice content and its children */
+  .nk-content, 
+  .nk-content * {
+    visibility: visible;
+  }
+
+  /* Make invoice content take full page */
+  .nk-content {
+    position: absolute !important;
+    top: -30px;
+    left: 0;
+    width: 100% !important;
+    background: #fff;
+    padding: 20px;
+  }
+ #invoice-section, 
+        #invoice-section * {
+            visibility: visible;
+        }
+
+        /* Position invoice section at top-left and full width */
+        #invoice-section {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+        }
+
+
+.no-print {
+            display: none !important;
+        }
+      }
+
+
 /*! END @iO */

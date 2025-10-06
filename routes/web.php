@@ -13,6 +13,7 @@ use App\Http\Controllers\RoController;
 use App\Http\Controllers\SampleController;
 use App\Http\Controllers\TestResultController;
 use App\Http\Controllers\ValidationController;
+use App\Http\Controllers\InvoiceController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Session;
 
@@ -158,6 +159,10 @@ Route::middleware(['access_control'])->group(function () {
 
     // Blank Registration
     Route::match(['get', 'post'], 'blank-registration', [RegistrationController::class, 'blankRegistration'])->name('blank_registration');
+
+    // Invoice Registration
+     Route::get('/samples/{id}/invoicedetails', [InvoiceController::class, 'showInvoiceDetails'])->name('view_invoice');
+    Route::get('/customer/{id}/invoicedetails', [InvoiceController::class, 'showAllInvoiceDetails'])->name('view_all_invoice');
 
 
     // Sample detail routes 
