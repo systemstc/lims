@@ -17,6 +17,7 @@ class SampleTest extends Model
     protected $fillable = [
         'tr04_sample_registration_id',
         'm12_test_id',
+        'm12_test_number',
         'm16_primary_test_id',
         'm17_secondary_test_id',
         'm15_standard_id',
@@ -31,6 +32,7 @@ class SampleTest extends Model
         'm04_transferred_by',
         'tr05_transferred_at',
         'tr05_reassigned_at',
+        'tr05_accepted_at',
         'tr05_completed_at'
     ];
     protected $casts = [
@@ -49,6 +51,10 @@ class SampleTest extends Model
     public function test(): BelongsTo
     {
         return $this->belongsTo(Test::class, 'm12_test_id', 'm12_test_id');
+    }
+    public function manuscript()
+    {
+        return $this->hasMany(Manuscript::class, 'm12_test_number', 'm12_test_number');
     }
 
     public function standard(): BelongsTo

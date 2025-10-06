@@ -26,7 +26,7 @@ class AnalystController extends Controller
             ->where('tr05_status', 'IN_PROGRESS')
             ->count();
 
-        // ✅ Completed today count
+        //  Completed today count
         $completedTests = SampleTest::where('m06_alloted_to', $userId)
             ->where('tr05_status', 'COMPLETED')
             ->whereDate('tr05_completed_at', Carbon::today())
@@ -35,7 +35,7 @@ class AnalystController extends Controller
         // Total samples count
         $totalSamples = SampleTest::where('m06_alloted_to', $userId)->count();
 
-        // ✅ Fetch recent allotted samples (grouped)
+        //  Fetch recent allotted samples (grouped)
         $allottedSamples = SampleTest::where('m06_alloted_to', $userId)
             ->where('tr05_status', '!=', 'REPORTED')
             ->with(['registration'])
@@ -44,7 +44,7 @@ class AnalystController extends Controller
                 DB::raw('COUNT(*) as test_count'),
                 DB::raw('MAX(tr05_alloted_at) as latest_allotment'),
                 DB::raw('GROUP_CONCAT(tr05_sample_test_id) as test_ids'),
-                DB::raw('MAX(tr05_completed_at) as latest_completed_at'), // ✅ get last completion date
+                DB::raw('MAX(tr05_completed_at) as latest_completed_at'),
                 DB::raw('CASE
                     WHEN SUM(CASE WHEN tr05_status = "IN_PROGRESS" THEN 1 ELSE 0 END) > 0
                         THEN "IN_PROGRESS"
@@ -52,7 +52,7 @@ class AnalystController extends Controller
                         THEN "ALLOTED"
                     ELSE "COMPLETED"
                 END as overall_status
-            '),
+               '),
                 // Progress counts
                 DB::raw('SUM(CASE WHEN tr05_status = "COMPLETED" THEN 1 ELSE 0 END) as completed_count'),
                 DB::raw('SUM(CASE WHEN tr05_status = "IN_PROGRESS" THEN 1 ELSE 0 END) as in_progress_count'),
@@ -62,16 +62,14 @@ class AnalystController extends Controller
             ->orderByDesc('latest_allotment')
             ->get()
             ->filter(function ($sample) {
-                // ✅ Only show completed samples if completed today
                 if ($sample->overall_status === 'COMPLETED') {
                     return $sample->latest_completed_at &&
                         \Carbon\Carbon::parse($sample->latest_completed_at)->isToday();
                 }
-                return true; // Keep allotted & in-progress samples
+                return true;
             })
             ->take(10);
 
-        // ✅ Calculate weighted progress percentage
         $inProgressWeight = 0.4;
         $allottedSamples->each(function ($sample) use ($inProgressWeight) {
             if ($sample->test_count > 0) {
@@ -81,7 +79,6 @@ class AnalystController extends Controller
                 $sample->progress_percentage = 0;
             }
         });
-
         return view('analyst.analyst_dashboard', compact(
             'pendingTests',
             'inProgressTests',

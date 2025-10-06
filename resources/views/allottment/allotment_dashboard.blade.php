@@ -129,7 +129,7 @@
                 </div>
             </div>
         </div>
-        
+
         {{-- Select test to allot from all samples to a particular analyst --}}
         <div class="card card-bordered mb-4">
             <div class="card-inner">
@@ -399,15 +399,13 @@
                                                             <span>Quick Transfer</span>
                                                         </a>
                                                     </li>
-                                                    @if ($registration->received_tests > 0)
-                                                        <li>
-                                                            <a
-                                                                href="{{ route('show_allotment', $registration->tr04_sample_registration_id) }}">
-                                                                <em class="icon ni ni-check-circle text-success"></em>
-                                                                <span>Accept Transfers</span>
-                                                            </a>
-                                                        </li>
-                                                    @endif
+                                                    <li>
+                                                        <a
+                                                            href="{{ route('template_manuscript', $registration->tr04_sample_registration_id) }}">
+                                                            <em class="icon ni ni-check-circle text-success"></em>
+                                                            <span>Manuscript</span>
+                                                        </a>
+                                                    </li>
                                                 </ul>
                                             </div>
                                         </div>
@@ -803,7 +801,7 @@
                 const csrfToken = $('meta[name="csrf-token"]').attr('content');
 
                 $.ajax({
-                    url: '{{ route('get_test_samples_allotment') }}', // You'll need to add this route
+                    url: '{{ route('get_test_samples_allotment') }}',
                     method: 'POST',
                     contentType: 'application/json',
                     data: JSON.stringify({

@@ -14,6 +14,7 @@ use App\Models\PackageTest;
 use App\Models\PrimaryTest;
 use App\Models\Role;
 use App\Models\Sample;
+use App\Models\SampleTest;
 use App\Models\SecondaryTest;
 use App\Models\Standard;
 use App\Models\State;
@@ -1767,9 +1768,8 @@ class MasterController extends Controller
 
             $validator = Validator::make($request->all(), [
                 'txt_name' => 'required|string|max:255|unique:m19_packages,m19_name',
-                'txt_exc_azo_charge' => 'nullable|numeric|min:0',
-                'txt_inc_azo_charge' => 'nullable|numeric|min:0',
                 'txt_description' => 'nullable|string',
+                'txt_charges' => 'nullable|numeric|min:0',
                 'tests' => 'required|array|min:1',
                 'tests.*.test_id' => 'required|integer|exists:m12_tests,m12_test_id',
                 'tests.*.standard_id' => 'required|integer|exists:m15_standards,m15_standard_id',
@@ -1790,9 +1790,8 @@ class MasterController extends Controller
             try {
                 $package = Package::create([
                     'm19_name' => $request->txt_name,
-                    'm19_exc_azo_charge' => $request->txt_exc_azo_charge,
-                    'm19_inc_azo_charge' => $request->txt_inc_azo_charge,
-                    'tr01_created_by' => Session::get('user_id'),
+                    'm19_charges' => $request->txt_charges,
+                    'tr01_created_by' => Session::get('user_id') ?? -1,
                 ]);
                 foreach ($request->tests as $testRow) {
                     PackageTest::create([
@@ -1822,8 +1821,6 @@ class MasterController extends Controller
         if ($request->isMethod('POST')) {
             $request->validate([
                 'txt_name' => 'required|string|max:255',
-                'txt_inc_azo_charge' => 'nullable|numeric',
-                'txt_exc_azo_charge' => 'nullable|numeric',
                 'tests' => 'required|array|min:1',
                 'tests.*.test_id' => 'required|exists:m12_tests,m12_test_id',
                 'tests.*.standard_id' => 'required|exists:m15_standards,m15_standard_id',
@@ -1839,8 +1836,7 @@ class MasterController extends Controller
                 $package = Package::findOrFail($id);
                 $package->update([
                     'm19_name' => $request->txt_name,
-                    'm19_exc_azo_charge' => $request->txt_exc_azo_charge,
-                    'm19_inc_azo_charge' => $request->txt_inc_azo_charge,
+                    'm19_charges' => $request->txt_charges,
                     'm19_description' => $request->m19_description,
                 ]);
 
@@ -2370,9 +2366,5 @@ class MasterController extends Controller
         Session::flash('type', 'success');
         Session::flash('message', "$count Manuscripts Imported Successfully!");
         return to_route('view_manuscripts');
-    }
-
-    public function templateManuscript(Request $request){
-        return view('manuscript.template_manuscript');
     }
 }

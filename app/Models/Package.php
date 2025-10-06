@@ -10,8 +10,6 @@ class Package extends Model
     protected $primaryKey = 'm19_package_id';
     protected $fillable = [
         'm19_name',
-        'm19_exc_azo_charge',
-        'm19_inc_azo_charge',
         'm19_charges',
         'm19_description',
         'm19_start_date',

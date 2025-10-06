@@ -62,8 +62,6 @@ class AllottmentController extends Controller
         ));
     }
 
-    // 2. ADD these NEW methods at the end of your controller (before the closing brace):
-
     public function getAvailableTestsForAllotment(Request $request = null)
     {
         $roId = Session::get('ro_id');
@@ -77,8 +75,7 @@ class AllottmentController extends Controller
                     DB::raw('COUNT(tr05_sample_tests.tr05_sample_test_id) as test_count')
                 )
                 ->where(function ($query) use ($roId) {
-                    $query->where('tr05_sample_tests.m04_ro_id', $roId)
-                        ->orWhere('tr05_sample_tests.m04_transferred_to', $roId);
+                    $query->where('tr05_sample_tests.m04_ro_id', $roId);
                 })
                 ->whereNull('tr05_sample_tests.m06_alloted_to')
                 ->whereNotIn('tr05_sample_tests.tr05_status', ['COMPLETED', 'TRANSFERRED'])
@@ -171,13 +168,11 @@ class AllottmentController extends Controller
             COUNT(st.tr05_sample_test_id) as total_tests,
             COUNT(CASE WHEN st.m06_alloted_to IS NOT NULL THEN 1 END) as allotted_tests,
             COUNT(CASE WHEN st.m06_alloted_to IS NULL THEN 1 END) as pending_tests,
-            COUNT(CASE WHEN st.tr05_status = 'TRANSFERRED' AND st.m04_transferred_to = {$roId} THEN 1 END) as received_tests,
             COUNT(CASE WHEN st.tr05_status = 'TRANSFERRED' AND st.m04_ro_id = {$roId} THEN 1 END) as transferred_tests
         ")
             ->join('tr05_sample_tests as st', 'st.tr04_sample_registration_id', '=', 'tr04_sample_registrations.tr04_sample_registration_id')
             ->where(function ($query) use ($roId) {
-                $query->where('st.m04_ro_id', $roId)
-                    ->orWhere('st.m04_transferred_to', $roId);
+                $query->where('st.m04_ro_id', $roId);
             })
             ->groupBy(
                 'tr04_sample_registrations.tr04_sample_registration_id',
@@ -187,7 +182,7 @@ class AllottmentController extends Controller
                 'tr04_sample_registrations.tr04_status',
                 'tr04_sample_registrations.created_at'
             )
-            ->havingRaw('allotted_tests < total_tests OR received_tests > 0');
+            ->havingRaw('allotted_tests < total_tests');
     }
 
     private function applyFilters($query, Request $request)
@@ -229,14 +224,13 @@ class AllottmentController extends Controller
     private function calculateLabManagerStats($roId)
     {
         $baseQuery = SampleTest::where(function ($query) use ($roId) {
-            $query->where('m04_ro_id', $roId)
-                ->orWhere('m04_transferred_to', $roId);
+            $query->where('m04_ro_id', $roId);
         });
 
         return [
             'new_samples' => SampleRegistration::whereHas('sampleTests', function ($query) use ($roId) {
                 $query->where(function ($q) use ($roId) {
-                    $q->where('m04_ro_id', $roId)->orWhere('m04_transferred_to', $roId);
+                    $q->where('m04_ro_id', $roId);
                 })->whereNull('m06_alloted_to');
             })->count(),
             'pending_tests' => (clone $baseQuery)->whereNull('m06_alloted_to')
@@ -244,12 +238,12 @@ class AllottmentController extends Controller
             'partial_allotted' => SampleRegistration::withCount([
                 'sampleTests as total_tests' => function ($query) use ($roId) {
                     $query->where(function ($q) use ($roId) {
-                        $q->where('m04_ro_id', $roId)->orWhere('m04_transferred_to', $roId);
+                        $q->where('m04_ro_id', $roId);
                     });
                 },
                 'sampleTests as allotted_tests' => function ($query) use ($roId) {
                     $query->where(function ($q) use ($roId) {
-                        $q->where('m04_ro_id', $roId)->orWhere('m04_transferred_to', $roId);
+                        $q->where('m04_ro_id', $roId);
                     })->whereNotNull('m06_alloted_to');
                 }
             ])->having('total_tests', '>', 0)

@@ -117,19 +117,18 @@
                                                                 @elseif ($sample->overall_status === 'COMPLETED') text-success
                                                                 @else text-secondary @endif">
                                                             {{ $sample->overall_status }}
-                                                    </strong>
+                                                        </strong>
                                                     </div>
-                                                    @if ($sample->overall_status === "COMPLETED" && $sample->latest_completed_at != '')
-                                                           <p class="small text-muted mb-3">
-                                                        Completed At:
-                                                        {{ \Carbon\Carbon::parse($sample->latest_completed_at)->format('d M, Y h:i A') }}
-                                                    </p>
+                                                    @if ($sample->overall_status === 'COMPLETED' && $sample->latest_completed_at != '')
+                                                        <p class="small text-muted mb-3">
+                                                            Completed At:
+                                                            {{ \Carbon\Carbon::parse($sample->latest_completed_at)->format('d M, Y h:i A') }}
+                                                        </p>
                                                     @else
-                                                        
-                                                    <p class="small text-muted mb-3">
-                                                        Latest Allotment:
-                                                        {{ \Carbon\Carbon::parse($sample->latest_allotment)->format('d M, Y h:i A') }}
-                                                    </p>
+                                                        <p class="small text-muted mb-3">
+                                                            Latest Allotment:
+                                                            {{ \Carbon\Carbon::parse($sample->latest_allotment)->format('d M, Y h:i A') }}
+                                                        </p>
                                                     @endif
 
                                                     <!-- Progress Bar -->

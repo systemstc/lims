@@ -29,24 +29,14 @@
                                             </div>
                                         </div>
 
-                                        {{-- Exclusive Azo Charge --}}
+                                        {{-- Charge --}}
                                         <div class="col-md-4">
                                             <div class="form-group">
-                                                <label class="form-label">Exclusive Azo Charge</label>
-                                                <input type="number" class="form-control" name="txt_exc_azo_charge"
-                                                    value="{{ old('txt_exc_azo_charge', $package->m19_exc_azo_charge) }}">
+                                                <label class="form-label">Charge</label>
+                                                <input type="number" class="form-control" name="txt_charges"
+                                                    value="{{ old('txt_charge', $package->m19_charges) }}">
                                             </div>
                                         </div>
-
-                                        {{-- Inclusive Azo Charge --}}
-                                        <div class="col-md-4">
-                                            <div class="form-group">
-                                                <label class="form-label">Inclusive Azo Charge</label>
-                                                <input type="number" class="form-control" name="txt_inc_azo_charge"
-                                                    value="{{ old('txt_inc_azo_charge', $package->m19_inc_azo_charge) }}">
-                                            </div>
-                                        </div>
-                                    </div>
 
                                     {{-- Dynamic Tests + Standards --}}
                                     <h5 class="mt-4">Tests & Standards</h5>

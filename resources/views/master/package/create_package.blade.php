@@ -31,18 +31,11 @@
                                         {{-- Exclusive Azo Charge --}}
                                         <div class="col-md-4">
                                             <div class="form-group">
-                                                <label class="form-label">Exclusive Azo Charge</label>
-                                                <input type="number" class="form-control" name="txt_exc_azo_charge">
+                                                <label class="form-label">Charge</label>
+                                                <input type="number" class="form-control" name="txt_charges">
                                             </div>
                                         </div>
 
-                                        {{-- Inclusive Azo Charge --}}
-                                        <div class="col-md-4">
-                                            <div class="form-group">
-                                                <label class="form-label">Inclusive Azo Charge</label>
-                                                <input type="number" class="form-control" name="txt_inc_azo_charge">
-                                            </div>
-                                        </div>
 
                                         {{-- Description --}}
                                         {{-- <div class="col-md-12">
