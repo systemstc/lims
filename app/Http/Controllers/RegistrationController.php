@@ -443,10 +443,25 @@ class RegistrationController extends Controller
                    class="btn btn-dim btn-sm btn-primary">
                    View
                 </a>';
+
+                $actions .= '<br>'; 
+
+                $actions .= '<a href="' . route('view_invoice', $row->tr04_sample_registration_id) . '" 
+                   class="btn btn-dim btn-sm btn-success">
+                   <em class="icon ni ni-file-text"></em>
+
+                </a>';
+                  $actions .= '<a href="' . route('view_all_invoice', $row->m07_customer_id) . 
+                    '?location_id=' . $row->m08_customer_location_id . 
+                    '&payment_by=' . $row->tr04_payment_by . '" 
+                    class="btn btn-dim btn-sm btn-success">
+                        Invoice All
+                    </a>';
+
                     if ($row->tr04_sample_type !== 'Urgent') {
                         $actions .= '<a class="btn btn-xs btn-danger upgrade-to-urgent" 
-                    data-id="' . $row->tr04_sample_registration_id . '">
-                    <em class="icon ni ni-speed"></em>&nbsp; Upgrade
+                    data-id="' . $row->tr04_sample_registration_id . '" title="Upgrade">
+                    <em class="icon ni ni-speed"></em>&nbsp;
                     </a>';
                     }
 
