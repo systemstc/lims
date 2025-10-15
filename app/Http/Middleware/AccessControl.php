@@ -83,6 +83,9 @@ class AccessControl
             'import_all_standards',
             'import_all_primary',
             'import_all_secondary',
+            'view_invoice',
+            'view_all_invoice',
+            'generate_combined_invoice'
         ];
 
         if (in_array($routeName, $skipPermissionRoutes)) {

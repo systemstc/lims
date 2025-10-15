@@ -384,7 +384,8 @@ class RegistrationController extends Controller
                 'sampleTests.test',
                 'sampleTests.standard',
                 'customerType',
-            ])->select('tr04_sample_registrations.*');
+            ])->select('tr04_sample_registrations.*')
+            ->where('m04_ro_id', Session::get('ro_id'));
 
             return DataTables::of($samples)
                 ->addIndexColumn()

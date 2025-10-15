@@ -57,4 +57,24 @@ class InvoiceController extends Controller
     return view('invoice.invoice_details',compact('samples','totalAmount'));
    }
 
+   public function generateCombinedInvoice(Request $request)
+    {
+        $referenceIds = $request->input('reference_ids', []);
+
+        if (empty($referenceIds)) {
+            return redirect()->back()->with('error', 'No samples selected.');
+        }
+
+        $samples = SampleRegistration::with(['labSample', 'sampleTests.test', 'customer'])
+            ->whereIn('tr04_reference_id', $referenceIds)
+            ->get();
+
+        $totalAmount = $samples->sum('tr04_total_charges');
+
+        return view('invoice.combined_invoice', compact('samples', 'totalAmount'));
+    }
+
+
+
+
 }

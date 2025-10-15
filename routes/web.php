@@ -163,6 +163,8 @@ Route::middleware(['access_control'])->group(function () {
     // Invoice Registration
      Route::get('/samples/{id}/invoicedetails', [InvoiceController::class, 'showInvoiceDetails'])->name('view_invoice');
     Route::get('/customer/{id}/invoicedetails', [InvoiceController::class, 'showAllInvoiceDetails'])->name('view_all_invoice');
+    Route::get('/generate-combined-invoice', [InvoiceController::class, 'generateCombinedInvoice'])->name('generate_combined_invoice');
+
 
 
     // Sample detail routes 
