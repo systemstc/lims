@@ -340,7 +340,8 @@
                                                             <div class="form-control-wrap">
                                                                 <input type="date" class="form-control"
                                                                     name="txt_ref_date" id="txt_ref_date"
-                                                                    autocomplete="off">
+                                                                    autocomplete="off"
+                                                                    value="{{ \Carbon\Carbon::now()->format('Y-m-d') }}">
                                                             </div>
                                                         </div>
                                                     </div>
@@ -532,20 +533,17 @@
                                                             </div>
                                                         </div>
                                                     </div>
-
-                                                    <div class="col-md-6" id="azo-wrapper" style="display:none;">
+                                                    <div class="col-md-6" id="be-wrapper" style="display:none;">
                                                         <div class="form-group">
-                                                            <label class="form-label" for="dd_charge_type">Charge
-                                                                Type</label>
+                                                            <label class="form-label" for="txt_be_no">BE No. <b
+                                                                    class="text-danger small">*</b>
+                                                            </label>
                                                             <div class="form-control-wrap">
-                                                                <select class="form-select" id="dd_charge_type">
-                                                                    <option value="inc_azo">Including Azo</option>
-                                                                    <option value="exc_azo">Excluding Azo</option>
-                                                                </select>
+                                                                <input type="text" class="form-control"
+                                                                    name="txt_be_no" id="txt_be_no">
                                                             </div>
                                                         </div>
                                                     </div>
-
 
                                                     <div class="col-md-6">
                                                         <div class="form-group">
@@ -556,7 +554,7 @@
                                                                     <option value="" selected disabled>Select Group
                                                                     </option>
                                                                     @foreach ($groups as $group)
-                                                                        <option value="{{ $group->m11_group_id }}">
+                                                                        <option value="{{ $group->m11_group_code }}">
                                                                             {{ $group->m11_name }}</option>
                                                                     @endforeach
                                                                 </select>
@@ -631,6 +629,8 @@
                                                                             <th class="tb-tnx-id"><span
                                                                                     class="">Charge</span></th>
                                                                             <th class="tb-tnx-id"><span
+                                                                                    class="">Count</span></th>
+                                                                            <th class="tb-tnx-id"><span
                                                                                     class="">Remark</span></th>
                                                                             <th class="tb-tnx-action">
                                                                                 <span>&nbsp;</span>
@@ -671,13 +671,20 @@
                                                         </button>
                                                     </h6>
                                                     <div class="row g-3">
-                                                        <div class="col-6">
+                                                        <div class="col-4">
+                                                            <div class="stats-count">
+                                                                <a href="{{ route('view_regional_samples') }}"
+                                                                    class="amount" id="received_from_ros">-</a>
+                                                                <span class="sub-text">Received from RO's</span>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-4">
                                                             <div class="stats-count">
                                                                 <span class="amount" id="today_samples">-</span>
                                                                 <span class="sub-text">Samples</span>
                                                             </div>
                                                         </div>
-                                                        <div class="col-6">
+                                                        <div class="col-4">
                                                             <div class="stats-count">
                                                                 <span class="amount" id="pending_tests">-</span>
                                                                 <span class="sub-text">Pending</span>
@@ -1072,17 +1079,16 @@
                     $('.table.table-tranx tbody');
                     selectedTestIds = [];
                     calculateCharges();
+                    if (type === "CUSTOM") {
+                        $('#be-wrapper').show();
+                    } else {
+                        $('#be-wrapper').hide();
+                    }
 
                     if (type === "CONTRACT" || type === "PACKAGE" || type === "SPECIFICATION" || type ===
                         "CUSTOM") {
                         console.log('Loading contracts for type:', type);
                         loadContractsByType(type);
-                        if (type === "PACKAGE") {
-                            $('#azo-wrapper').show(); // show azo selector
-                        } else {
-                            $('#azo-wrapper').hide(); // hide for other types
-                        }
-
                     } else {
                         console.log('Hiding contract wrapper for type:', type);
                         $('#contract-wrapper').hide();
@@ -1233,14 +1239,7 @@
                         if (Array.isArray(tests) && tests.length > 0) {
                             let packageId = packageData.id; // assume all belong to same package
                             let packageName = packageData.name;
-                            if (packageData.type === "PACKAGE") {
-                                let selectedChargeType = $('#dd_charge_type').val() || 'exc_azo';
-                                packageCharge = (selectedChargeType === 'inc_azo') ?
-                                    packageData.inc_azo_charge :
-                                    packageData.exc_azo_charge;
-                            } else {
                                 packageCharge = packageData.charge;
-                            }
 
 
                             // Add package row once
@@ -1273,6 +1272,7 @@
                                                     ${standard ? standard.method : 'Click to choose'}
                                                 </a>
                                                 <input type="hidden" name="tests[${test.id}][test_id]" value="${test.id}">
+                                                <input type="hidden" name="tests[${test.id}][test_number]" value="${test.test_number}">
                                                 <input type="hidden" name="tests[${test.id}][standard_id]" class="standard-id" value="${standard ? standard.id : ''}">
                                                 <input type="hidden" name="tests[${test.id}][package_id]" value="${packageId}">
                                             </td>
@@ -1400,9 +1400,10 @@
                     searchTimeout = setTimeout(() => {
                         positionDropdown(customerActiveInput, $customerDropdown);
                         $customerDropdown.html('<div class="dropdown-message">Searching...</div>');
-
+                        const customerType = $('#dd_customer_type').val();
                         $.getJSON(CUSTOMER_URL, {
-                            query
+                            query,
+                            type: customerType
                         }, function(customers) {
                             $customerDropdown.empty();
                             if (customers.length) {
@@ -1641,16 +1642,26 @@
             function addTestToTable(test) {
                 const row = `
         <tr data-id="${test.id}">
-            <td>${test.id}</td>
+            <td>${test.test_number}</td>
             <td>${test.test_name || test.name}</td>
             <td>
                 <a href="#" class="choose-standard" data-test-id="${test.id}">
                     ${test.standard?.name || 'Click to choose'}
                 </a>
                 <input type="hidden" name="tests[${test.id}][test_id]" value="${test.id}">
+                <input type="hidden" name="tests[${test.id}][test_number]" value="${test.test_number}">
                 <input type="hidden" name="tests[${test.id}][standard_id]" class="standard-id" value="${test.standard?.standard_id || ''}">
             </td>
-            <td class="test-charge" data-charge="${test.charge || 0}">${test.charge || 0}</td>
+            <td class="test-charge" data-charge="${test.charge || 0}" 
+             data-base-charge="${test.charge || 0}">${test.charge || 0}</td>
+            <td>
+                <div class="d-flex align-items-center">
+                    <button type="button" class="btn btn-sm btn-light decrement-qty" data-id="${test.id}">-</button>
+                    <span class="mx-2 test-qty" data-qty="1">1</span>
+                    <button type="button" class="btn btn-sm btn-light increment-qty" data-id="${test.id}">+</button>
+                </div>
+                <input type="hidden" name="tests[${test.id}][quantity]" class="test-qty-input" value="1">
+            </td>
             <td>
                 <input type="text" name="tests[${test.id}][remark]" class="form-control form-control-sm" placeholder="Enter remark" value="${test.remark || ''}">
             </td>
@@ -1664,6 +1675,56 @@
                 $(".table.table-tranx tbody").append(row);
                 calculateCharges();
             }
+
+            // increment quantity
+            $(document).on("click", ".increment-qty", function() {
+                const row = $(this).closest("tr");
+                const qtySpan = row.find(".test-qty");
+                const qtyInput = row.find(".test-qty-input");
+                const chargeCell = row.find(".test-charge");
+
+                const baseCharge = parseFloat(chargeCell.attr("data-base-charge")) || 0;
+                let qty = parseInt(qtySpan.attr("data-qty")) || 1;
+
+                qty++;
+                qtySpan.attr("data-qty", qty).text(qty);
+                qtyInput.val(qty);
+
+                const newCharge = qty * baseCharge;
+
+                chargeCell.text(newCharge.toFixed(2));
+                chargeCell.attr("data-charge", newCharge.toFixed(2));
+                chargeCell.data("charge", newCharge.toFixed(2));
+
+                calculateCharges();
+            });
+
+            // decrement quantity
+            $(document).on("click", ".decrement-qty", function() {
+                const row = $(this).closest("tr");
+                const qtySpan = row.find(".test-qty");
+                const qtyInput = row.find(".test-qty-input");
+                const chargeCell = row.find(".test-charge");
+
+                const baseCharge = parseFloat(chargeCell.attr("data-base-charge")) || 0;
+                let qty = parseInt(qtySpan.attr("data-qty")) || 1;
+
+                if (qty > 1) {
+                    qty--;
+                    qtySpan.attr("data-qty", qty).text(qty);
+                    qtyInput.val(qty);
+
+                    const newCharge = qty * baseCharge;
+
+                    chargeCell.text(newCharge.toFixed(2));
+                    chargeCell.attr("data-charge", newCharge.toFixed(2));
+                    chargeCell.data("charge", newCharge.toFixed(2));
+
+                    calculateCharges();
+                }
+            });
+
+
 
             $(document).off('click.deletetest').on('click.deletetest', '.delete-test', function(e) {
                 e.preventDefault();
@@ -1802,6 +1863,7 @@
 
         function loadTodayStats() {
             // Show loading state
+            $('#received_from_ros').html('<div class="loading-spinner"></div>');
             $('#today_samples').html('<div class="loading-spinner"></div>');
             $('#pending_tests').html('<div class="loading-spinner"></div>');
 
@@ -1809,10 +1871,12 @@
                 url: '{{ route('today_stats') }}',
                 type: 'GET',
                 success: function(stats) {
+                    $('#received_from_ros').text(stats.receivedFromRosCount || 0);
                     $('#today_samples').text(stats.today_samples || 0);
                     $('#pending_tests').text(stats.pending_tests || 0);
                 },
                 error: function() {
+                    $('#received_from_ros').text('-');
                     $('#today_samples').text('-');
                     $('#pending_tests').text('-');
                 }
@@ -1838,24 +1902,27 @@
             $container.empty();
             samples.slice(0, 5).forEach(function(sample) {
                 const item = $(`
-                <div class="list-group-item list-group-item-action px-0 border-0 recent-sample-item" 
-                     data-sample-id="${sample.id}" 
-                     title="Click to copy this sample data">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <div class="flex-grow-1">
-                            <div class="d-flex align-items-center mb-1">
-                                <div class="fw-medium small">${sample.title}</div>
+                    <div class="list-group-item list-group-item-action px-0 border-0 recent-sample-item" 
+                        data-sample-id="${sample.id}" 
+                        title="Click to copy this sample data">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="flex-grow-1">
+                                <div class="d-flex align-items-center mb-1">
+                                    <div class="fw-medium small">${sample.title}</div>
+                                </div>
+                                <small class="text-secondary d-block">
+                                    <strong>Customer:</strong> ${sample.customer ?? 'N/A'}
+                                </small>
+                                <small class="text-muted d-block">${sample.date}</small>
                             </div>
-                            <small class="text-muted">${sample.date}</small>
+                            <button class="btn btn-sm btn-outline-primary copy-sample-btn" 
+                                    data-sample-id="${sample.id}"
+                                    title="Copy Sample Data">
+                                <em class="icon ni ni-copy"></em>
+                            </button>
                         </div>
-                        <button class="btn btn-sm btn-outline-primary copy-sample-btn" 
-                                data-sample-id="${sample.id}"
-                                title="Copy Sample Data">
-                            <em class="icon ni ni-copy"></em>
-                        </button>
                     </div>
-                </div>
-            `);
+                `);
                 $container.append(item);
             });
         }
@@ -1952,6 +2019,7 @@
                                     .includes(test.id)) {
                                     addTestToTable({
                                         id: test.id,
+                                        test_number: test.test_number,
                                         test_name: test.name,
                                         name: test.name,
                                         charge: test.charge || 0,

@@ -95,7 +95,7 @@
     <script>
         $(document).ready(function() {
             let groupUrl = "{{ route('get_groups') }}";
-            // let testUrl = "{{ route('get_tests') }}";
+            let testUrl = "{{ route('get_tests') }}";
             let primaryUrl = "{{ route('get_primary_tests') }}";
 
             function loadGroups(sampleId, selectedGroup = '', callback = null) {
@@ -106,7 +106,7 @@
                     let options = '<option value="">-- Select Group --</option>';
                     $.each(groups, function(i, group) {
                         options +=
-                            `<option value="${group.m11_group_id}" ${selectedGroup == group.m11_group_id ? 'selected' : ''}>${group.m11_name}</option>`;
+                            `<option value="${group.m11_group_code}" ${selectedGroup == group.m11_group_code ? 'selected' : ''}>${group.m11_name}</option>`;
                     });
                     $('#txt_group_id').html(options);
                     if (callback) callback();
@@ -121,19 +121,20 @@
             //         let options = '<option value="">-- Select Test --</option>';
             //         $.each(tests, function(i, test) {
             //             options +=
-            //                 `<option value="${test.m12_test_id}" ${selectedTest == test.m12_test_id ? 'selected' : ''}>${test.m12_name}</option>`;
+            //                 `<option value="${test.m12_test_number}" ${selectedTest == test.m12_test_number ? 'selected' : ''}>${test.m12_name}</option>`;
             //         });
             //         $('#txt_test_id').html(options);
             //         if (callback) callback();
             //     });
             // }
 
-            function loadPrimaryTests(testId, selectedPrimary = '') {
+            function loadPrimaryTests(groupId, selectedPrimary = '') {
                 $('#txt_primary_test_id').html('<option value="">Loading...</option>');
                 $.get(primaryUrl, {
-                    group_id: testId
+                    group_id: groupId
                 }, function(tests) {
                     let options = '<option value="">-- Select Primary Test --</option>';
+                    console.log(tests);
                     $.each(tests, function(i, test) {
                         options +=
                             `<option value="${test.m16_primary_test_id}" ${selectedPrimary == test.m16_primary_test_id ? 'selected' : ''}>${test.m16_name}</option>`;
@@ -144,10 +145,10 @@
 
             // Preload in proper sequence
             loadGroups("{{ $editData->m10_sample_id }}", "{{ $editData->m11_group_id }}", function() {
-                loadTests("{{ $editData->m11_group_id }}", "{{ $editData->m12_test_id }}", function() {
-                    loadPrimaryTests("{{ $editData->m12_test_id }}",
+                // loadTests("{{ $editData->m11_group_id }}", "{{ $editData->m12_test_number }}", function() {
+                    loadPrimaryTests("{{ $editData->m11_group_id }}",
                         "{{ $editData->m16_primary_test_id }}");
-                });
+                // });
             });
 
             $('#txt_sample_id').on('change', function() {

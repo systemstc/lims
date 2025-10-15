@@ -27,15 +27,15 @@
                                             </div>
                                         </div>
                                         <div class="data">
-                                            <div class="amount">₹74,958.49</div>
-                                            <div class="info"><strong>₹7,395.37</strong> in last month</div>
+                                            <div class="amount">₹1,749,580.49</div>
+                                            <div class="info"><strong>₹1,800,395.37</strong> in last month</div>
                                         </div>
                                         <div class="data">
                                             <h6 class="sub-title">This week so far</h6>
                                             <div class="data-group">
-                                                <div class="amount">₹1,338.72</div>
+                                                <div class="amount">₹200338.72</div>
                                                 <div class="info text-end"><span class="change up text-danger"><em
-                                                            class="icon ni ni-arrow-long-up"></em>4.63%</span><br><span>vs.
+                                                            class="icon ni ni-arrow-long-up"></em>7.50%</span><br><span>vs.
                                                         last week</span></div>
                                             </div>
                                         </div>
@@ -73,13 +73,13 @@
                                         </div>
                                         <div class="data">
                                             <div class="data-group">
-                                                <div class="amount">₹463.35</div>
+                                                <div class="amount">₹63421.35</div>
                                                 <div class="info text-end"><span class="change up text-danger"><em
-                                                            class="icon ni ni-arrow-long-up"></em>4.63%</span><br><span>vs.
+                                                            class="icon ni ni-arrow-long-up"></em>10.63%</span><br><span>vs.
                                                         last week</span></div>
                                             </div>
                                         </div>
-                                        <h6 class="sub-title">Orders over time</h6>
+                                        <h6 class="sub-title">Samples over time</h6>
                                     </div><!-- .card-inner -->
                                     <div class="nk-ecwg2-ck">
                                         <canvas class="ecommerce-bar-chart-s1" id="averargeOrder"></canvas>
@@ -102,7 +102,7 @@
                                                     <div class="data-group">
                                                         <div class="amount">329</div>
                                                         <div class="info text-end"><span class="change up text-danger"><em
-                                                                    class="icon ni ni-arrow-long-up"></em>4.63%</span><br><span>vs.
+                                                                    class="icon ni ni-arrow-long-up"></em>2.00%</span><br><span>vs.
                                                                 last week</span></div>
                                                     </div>
                                                 </div>
@@ -128,7 +128,7 @@
                                                     <div class="data-group">
                                                         <div class="amount">194</div>
                                                         <div class="info text-end"><span class="change up text-danger"><em
-                                                                    class="icon ni ni-arrow-long-up"></em>4.63%</span><br><span>vs.
+                                                                    class="icon ni ni-arrow-long-up"></em>1.77%</span><br><span>vs.
                                                                 last week</span></div>
                                                     </div>
                                                 </div>
@@ -170,7 +170,7 @@
                                                     <span>AB</span>
                                                 </div>
                                                 <div class="user-name">
-                                                    <span class="tb-lead">Abu Bin Ishtiyak</span>
+                                                    <span class="tb-lead">AB Indus</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -194,7 +194,7 @@
                                                     <span>DE</span>
                                                 </div>
                                                 <div class="user-name">
-                                                    <span class="tb-lead">Desiree Edwards</span>
+                                                    <span class="tb-lead">RMG</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -218,7 +218,7 @@
                                                     <img src="{{ asset('backAssets/images/avatar/b-sm.jpg') }}" alt="">
                                                 </div>
                                                 <div class="user-name">
-                                                    <span class="tb-lead">Blanca Schultz</span>
+                                                    <span class="tb-lead">Air Cargo</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -242,7 +242,7 @@
                                                     <span>NL</span>
                                                 </div>
                                                 <div class="user-name">
-                                                    <span class="tb-lead">Naomi Lawrence</span>
+                                                    <span class="tb-lead">Customs</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -315,8 +315,8 @@
                                                 <div class="price"></div>
                                             </div>
                                             <div class="total">
-                                                <div class="amount">₹990.00</div>
-                                                <div class="count">10 Samples</div>
+                                                <div class="amount">₹9900.00</div>
+                                                <div class="count">12 Samples</div>
                                             </div>
                                         </li>
                                         <li class="item">
@@ -328,8 +328,8 @@
                                                 <div class="price"></div>
                                             </div>
                                             <div class="total">
-                                                <div class="amount">₹990.00</div>
-                                                <div class="count">10 Samples</div>
+                                                <div class="amount">₹12000.00</div>
+                                                <div class="count">08 Samples</div>
                                             </div>
                                         </li>
                                         <li class="item">
@@ -341,8 +341,8 @@
                                                 <div class="price"></div>
                                             </div>
                                             <div class="total">
-                                                <div class="amount">₹990.00</div>
-                                                <div class="count">10 Samples</div>
+                                                <div class="amount">₹8000.00</div>
+                                                <div class="count">08 Samples</div>
                                             </div>
                                         </li>
                                         <li class="item">
@@ -354,8 +354,8 @@
                                                 <div class="price"></div>
                                             </div>
                                             <div class="total">
-                                                <div class="amount">₹990.00</div>
-                                                <div class="count">10 Samples</div>
+                                                <div class="amount">₹1204.00</div>
+                                                <div class="count">03 Samples</div>
                                             </div>
                                         </li>
                                         <li class="item">
@@ -363,12 +363,12 @@
                                                 <img src="{{ asset('backAssets/images/avatar/a-sm.jpg') }}" alt="">
                                             </div>
                                             <div class="info">
-                                                <div class="title">Tony Stark</div>
+                                                <div class="title">RMG</div>
                                                 <div class="price"></div>
                                             </div>
                                             <div class="total">
-                                                <div class="amount">₹990.00</div>
-                                                <div class="count">10 Samples</div>
+                                                <div class="amount">₹5000.00</div>
+                                                <div class="count">02 Samples</div>
                                             </div>
                                         </li>
                                     </ul>

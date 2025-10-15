@@ -29,7 +29,7 @@ class RegistrationController extends Controller
     public function preRegistration(Request $request)
     {
         if ($request->isMethod(method: 'POST')) {
-            // dd($request);
+            dd($request);
             $validator = Validator::make($request->all(), [
                 "dd_customer_type" => "required|exists:m09_customer_types,m09_customer_type_id",
                 "txt_customer_name" => "required|string",
@@ -50,11 +50,13 @@ class RegistrationController extends Controller
                 "txt_description" => "nullable|string",
                 'txt_sample_image' => 'nullable|string',
                 "txt_due_date" => "required|date",
+                'txt_be_no' => "nullable|string",
                 "txt_testing_charges" => "required|numeric",
                 "txt_aditional_charges" => "nullable|numeric",
                 "txt_total_charges" => "required|numeric",
                 "tests" => "required|array",
                 "tests.*.test_id" => "required|exists:m12_tests,m12_test_id",
+                "tests.*.test_number" => "required|exists:m12_tests,m12_test_number",
                 "tests.*.standard_id" => "nullable|exists:m15_standards,m15_standard_id",
             ]);
 
@@ -90,6 +92,7 @@ class RegistrationController extends Controller
                     'tr04_sample_type' => $request->dd_priority_type,
                     'tr04_number_of_samples' => $request->txt_number_of_samples != '' ? $request->txt_number_of_samples : $request->txt_unknown_sample,
                     'tr04_sample_description' => $request->txt_description,
+                    'tr04_be_no' => $request->txt_be_no,
                     'm19_package_id' => $request->dd_contracts,
                     'tr04_charge_type' => $request->dd_charge_type,
                     'm12_test_ids' => json_encode($request->tests),
@@ -130,6 +133,7 @@ class RegistrationController extends Controller
                 // dd($registration);
                 foreach ($request->tests as $test) {
                     $testId = $test['test_id'] ?? null;
+                    $testNumber = $test['test_number'] ?? null;
                     $primaryIds = null;
                     $secondaryIds = null;
 
@@ -144,6 +148,7 @@ class RegistrationController extends Controller
                     SampleTest::create([
                         'tr04_sample_registration_id' => $registration->tr04_sample_registration_id,
                         'm12_test_id' => $testId,
+                        'm12_test_number' => $testNumber,
                         'm04_ro_id' => Session::get('ro_id') ?? -1,
                         'm16_primary_test_id' => $primaryIds,
                         'm17_secondary_test_id' => $secondaryIds,
@@ -169,7 +174,7 @@ class RegistrationController extends Controller
         }
         $customerTypes = CustomerType::where('m09_status', 'ACTIVE')->get(['m09_customer_type_id', 'm09_name']);
         $labSamples = LabSample::where('m14_status', 'ACTIVE')->get(['m14_lab_sample_id', 'm14_name']);
-        $groups = Group::where('m11_status', 'ACTIVE')->get(['m11_group_id', 'm11_name']);
+        $groups = Group::where('m11_status', 'ACTIVE')->get(['m11_group_id', 'm11_group_code', 'm11_name']);
         $states = State::where('m01_status', 'ACTIVE')->get(['m01_state_id', 'm01_name']);
         $departments = Department::where('m13_status', 'ACTIVE')->get(['m13_department_id', 'm13_name']);
         return view('registration.preRegistration.register_sample', compact('customerTypes', 'labSamples', 'groups', 'states', 'departments'));
@@ -179,14 +184,20 @@ class RegistrationController extends Controller
     {
         Log::info('Search customer request', [
             'query' => $request->input('query'),
+            'type' => $request->input('type'),
             'all_data' => $request->all()
         ]);
 
         try {
             $query = $request->input('query');
-
+            $type  = $request->input('type');
+            $roId  = Session::get('ro_id');
             if ($query) {
                 $customers = Customer::with(['locations', 'state', 'district'])
+                    ->where('m04_ro_id', $roId)
+                    ->when($type, function ($q) use ($type) {
+                        $q->where('m09_customer_type_id', $type);
+                    })
                     ->where('m07_name', 'like', "%{$query}%")
                     ->take(10)
                     ->get()
@@ -249,7 +260,7 @@ class RegistrationController extends Controller
             })
             ->where(function ($q) use ($query) {
                 $q->where('m12_name', 'LIKE', "%{$query}%")
-                    ->orWhere('m12_test_id', 'LIKE', "%{$query}%");
+                    ->orWhere('m12_test_number', 'LIKE', "%{$query}%");
             })
             ->limit(10)
             ->get();
@@ -266,11 +277,12 @@ class RegistrationController extends Controller
             }
 
             return [
-                'id'        => $test->m12_test_id,
-                'test_name' => $test->m12_name,
-                'charge'    => $test->m12_charge,
-                'remark'    => $test->m12_remark,
-                'standard'  => $standard
+                'id'            => $test->m12_test_id,
+                'test_number'   => $test->m12_test_number,
+                'test_name'     => $test->m12_name,
+                'charge'        => $test->m12_charge,
+                'remark'        => $test->m12_remark,
+                'standard'      => $standard
             ];
         });
         return response()->json($results);
@@ -332,7 +344,7 @@ class RegistrationController extends Controller
             case 'PACKAGE':
                 $data = Package::where('m19_status', 'ACTIVE')
                     ->where('m19_type', 'PACKAGE')
-                    ->get(['m19_package_id as id', 'm19_name as name', 'm19_exc_azo_charge as exc_azo_charge', 'm19_inc_azo_charge as inc_azo_charge']);
+                    ->get(['m19_package_id as id', 'm19_name as name']);
                 break;
 
             case 'SPECIFICATION':
@@ -354,13 +366,12 @@ class RegistrationController extends Controller
             'name' => $package->m19_name,
             'charge' => $package->m19_charges,
             'type' => $package->m19_type,
-            'inc_azo_charge' => $package->m19_inc_azo_charge,
-            'exc_azo_charge' => $package->m19_exc_azo_charge,
             'tests' => $package->packageTests->map(function ($pt) {
                 return [
                     'id' => $pt->m20_package_test_id,
                     'test' => $pt->test ? [
                         'id' => $pt->test->m12_test_id,
+                        'test_number' => $pt->test->m12_test_number,
                         'name' => $pt->test->m12_name,
                         'description' => $pt->test->m12_description,
                         'charge' => $pt->test->m12_charge,
@@ -399,8 +410,8 @@ class RegistrationController extends Controller
                     return $row->tr04_attachment ? asset('storage/' . $row->tr04_attachment) : null;
                 })
                 ->addColumn('sample_type', function ($row) {
-                    $color = $row->tr04_sample_type === 'Urgent' ? 'danger' : 'info';
-                    return '<span class="text-' . $color . '">' . strtoupper($row->tr04_sample_type) . '</span>';
+                    $color = $row->tr04_sample_type === 'Urgent' ? 'danger badge badge-dot blink' : 'info';
+                    return '<strong class="text-' . $color . '">' . strtoupper($row->tr04_sample_type) . '</strong>';
                 })
 
                 ->addColumn('total_tests', function ($row) {

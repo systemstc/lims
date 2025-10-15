@@ -75,27 +75,30 @@ class AuthController extends Controller
             $user = User::where('tr01_email', $request->txt_email)->first();
             if ($user && Hash::check($request->txt_password, $user->tr01_password)) {
                 if ($user->tr01_type == 'EMPLOYEE') {
-                    $employee = Employee::where('tr01_user_id', $user->tr01_user_id)->first();
+                    $employee = Employee::with('role')->where('tr01_user_id', $user->tr01_user_id)->first();
                     session([
                         'user_id'    => $employee->m06_employee_id,
                         'name'  => $employee->m06_name,
                         'email' => $employee->m06_email,
                         'role_id' => $employee->m03_role_id,
+                        'role' => $employee->role->m03_name,
                         'ro_id' => $employee->m04_ro_id
                     ]);
                     // Session::flash('type', 'success');
                     // Session::flash('message', 'Logged In Successfully !');
                     // return to_route('emp_dashboard');
                 } else {
-                    $ro = Ro::where('tr01_user_id', $user->tr01_user_id)->first();
+                    $ro = Ro::with('role')->where('tr01_user_id', $user->tr01_user_id)->first();
                     session([
                         'user_id'    => $ro->m04_ro_id,
                         'name'  => $ro->m04_name,
                         'email' => $ro->m04_email,
                         'role_id' => $ro->m03_role_id,
+                        'role' => $ro->role->m03_name,
                         'ro_id' => $ro->m04_ro_id
                     ]);
                 }
+
                 Session::flash('type', 'success');
                 Session::flash('message', 'Logged In Successfully !');
                 return to_route('dashboard');

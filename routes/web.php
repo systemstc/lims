@@ -180,8 +180,10 @@ Route::middleware(['access_control'])->group(function () {
 
     // Analyst Ruotes
     Route::get('analyst/dashboard', [AnalystController::class, 'viewAnalystDashboard'])->name('view_analyst_dashboard');
-    Route::get('analyst/test/{id}', [AnalystController::class, 'viewTest'])->name('create_analysis');
-    Route::post('analyst/update/{id}', [AnalystController::class, 'updateStatus'])->name('update_analysis');
+    // Route::get('analyst/test/{id}', [AnalystController::class, 'viewTest'])->name('create_analysis');
+    Route::get('analyst/update/{id}', [AnalystController::class, 'updateStatus'])->name('update_analysis');
+    // Add this route to your existing routes
+    Route::get('/analyst/sample-tests/{sampleId}', [AnalystController::class, 'viewSampleTests'])->name('view_sample_tests');
 
     // ACM Routes
     Route::get('acm-view', [MasterController::class, 'viewACM'])->name('view_acm');
@@ -192,10 +194,9 @@ Route::middleware(['access_control'])->group(function () {
     // Test Result Management Routes
     Route::prefix('test-results')->group(function () {
         // Main CRUD routes
-        Route::get('/', [TestResultController::class, 'index'])->name('test_results');
-        Route::get('/create', [TestResultController::class, 'create'])->name('create_test_result');
-        Route::post('/', [TestResultController::class, 'store'])->name('store');
-        Route::get('/{id}', [TestResultController::class, 'show'])->name('show');
+        Route::get('view-test-results', [TestResultController::class, 'index'])->name('test_results');
+        Route::post('/create-result-test', [TestResultController::class, 'createResult'])->name('create_test_result');
+        Route::get('show-sample-result/{id}', [TestResultController::class, 'showSampleResult'])->name('show_sample_result');
         Route::get('/{id}/edit', [TestResultController::class, 'edit'])->name('edit');
         Route::put('/{id}', [TestResultController::class, 'update'])->name('update');
         Route::delete('/', [TestResultController::class, 'destroy'])->name('destroy');
@@ -237,10 +238,7 @@ Route::middleware(['access_control'])->group(function () {
     Route::get('/get-primary-test-by-id', [MasterController::class, 'getPrimaryTestById'])->name('get_primary_tests_by_ids');
     Route::get('/get-secondary-test-by-id', [MasterController::class, 'getSecondaryTestById'])->name('get_secondary_tests_by_ids');
 
-
-    Route::get('/search-tests', [MasterController::class, 'searchTest'])->name('search_tests');
     Route::get('/check-test-exists', [MasterController::class, 'checkTestExists'])->name('check_test_exists');
-
     Route::get('search-customers', [RegistrationController::class, 'searchCustomer'])->name('search_customer');
     Route::get('/search-test', [RegistrationController::class, 'searchTest'])->name('search_test');
     Route::get('/get-standards-by-test', [RegistrationController::class, 'getStandardByTest'])->name('get_standards_by_test');
@@ -252,7 +250,6 @@ Route::middleware(['access_control'])->group(function () {
 
 
     // dynamic search side bar
-    Route::get('/global-search', [SampleController::class, 'globalSearch'])->name('global_search');
     Route::get('/recent-records', [SampleController::class, 'recentRecords'])->name('recent_records');
     Route::get('/today-stats', [SampleController::class, 'todayStats'])->name('today_stats');
     Route::get('/sample-details', [SampleController::class, 'getSampleDetails'])->name('get_sample_details');
@@ -279,11 +276,22 @@ Route::middleware(['access_control'])->group(function () {
     // Bluck Sample Transfer
     Route::post('bulk-transfer-sample', [AllottmentController::class, 'bulkTransferSamples'])->name('bulk_sample_transfer');
     // Quick Transfer Sample
-    Route::post('quick-allot-sample', [AllottmentController::class, 'quickTransferSample'])->name('quick_allot_sample');
+    Route::post('quick-transfer-sample', [AllottmentController::class, 'quickTransferSample'])->name('quick_sample_transfer');
     // Search and allot test from all samples
-    Route::post('/search-tests-allotment', [AllottmentController::class, 'searchTestsForAllotment'])->name('search_tests_allotment');
+    Route::post('/get-test-samples-allotment', [AllottmentController::class, 'getTestSamplesForAllotment'])->name('get_test_samples_allotment');
+    // Route::post('/search-tests-allotment', [AllottmentController::class, 'searchTestsForAllotment'])->name('search_tests_allotment');
     Route::post('/allot-specific-tests', [AllottmentController::class, 'allotSpecificTests'])->name('allot_specific_tests');
     // Additional operations
     Route::post('/reassign', [AllottmentController::class, 'reassignTest'])->name('reassign');
     Route::get('/history/{testId}', [AllottmentController::class, 'getAllotmentHistory'])->name('history');
+
+    // Manuscript
+    Route::get('/manuscripts', [MasterController::class, 'viewManuscript'])->name('view_manuscripts');
+    Route::post('/manuscripts/import', [MasterController::class, 'manuscriptImport'])->name('manuscripts_import');
+    // Manuscript Template
+    Route::get('manuscript-template/{id}', [TestResultController::class, 'templateManuscript'])->name('template_manuscript');
+
+    // Transferred samples from other regional offices 
+    Route::get('accept-pending-samples', [SampleController::class, 'viewPedingSmples'])->name('view_regional_samples');
+    Route::post('accept-pending-transfer-sample/{id}', [SampleController::class, 'acceptTransferdSample'])->name('accept_sample');
 });

@@ -55,13 +55,11 @@ class AccessControl
             'get_standards_by_ids',
             'get_primary_tests_by_ids',
             'get_secondary_tests_by_ids',
-            'search_tests',
             'search_customer',
             'search_test',
             'get_standards_by_test',
             'get_packages',
             'get_tests_by_package',
-            'global_search',
             'recent_records',
             'today_stats',
             'get_sample_details',
@@ -70,8 +68,7 @@ class AccessControl
             'bulk_allot_sample',
             'quick_allot_sample',
             'bulk_sample_transfer',
-            'quick_allot_sample',
-            'search_tests_allotment',
+            'quick_sample_transfer',
             'allot_specific_tests',
             'create_allotment',
             'allot_tests',
@@ -79,13 +76,13 @@ class AccessControl
             'accept_transferred',
             'reassign',
             'history',
+            'template_manuscript',
             'import_all_tests',
             'import_all_standards',
             'import_all_primary',
             'import_all_secondary',
-            'view_invoice',
-            'view_all_invoice',
-            'generate_combined_invoice'
+            'get_test_samples_allotment',
+            'view_sample_tests'
         ];
 
         if (in_array($routeName, $skipPermissionRoutes)) {

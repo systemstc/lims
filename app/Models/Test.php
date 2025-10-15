@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Test extends Model
 {
@@ -37,6 +38,10 @@ class Test extends Model
     public function standard()
     {
         return $this->belongsTo(Standard::class, 'm15_standard_id', 'm15_standard_id');
+    }
+
+    public function manuscript(){
+        return $this->hasMany(Manuscript::class, 'm12_test_number', 'm12_test_number');
     }
     public function sample()
     {

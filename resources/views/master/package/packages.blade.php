@@ -22,8 +22,7 @@
                                             <th>ID</th>
                                             <th>Package</th>
                                             <th>Tests</th>
-                                            <th>Charge Inc Azo</th>
-                                            <th>Charge Exc Azo</th>
+                                            <th>Charge</th>
                                             {{-- <th>Created By</th> --}}
                                             {{-- <th>Created At</th> --}}
                                             <th>Status</th>
@@ -44,8 +43,7 @@
                                                     @endforeach
                                                 </td>
 
-                                                <td>{{ $package->m19_inc_azo_charge }}</td>
-                                                <td>{{ $package->m19_exc_azo_charge }}</td>
+                                                <td>{{ $package->m19_charges }}</td>
                                                 {{-- <td>{{ $package->user->tr01_name }}</td> --}}
                                                 {{-- <td>{{ $package->created_at }}</td> --}}
                                                 <td

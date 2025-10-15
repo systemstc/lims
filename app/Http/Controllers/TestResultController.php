@@ -2,13 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\SampleTest;
 use Illuminate\Http\Request;
 use App\Models\TestResult;
-use App\Models\TestResultVersion;
 use App\Models\TestResultAudit;
 use App\Models\TestTemplate;
 use App\Models\TestTemplateParameter;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Session;
@@ -21,15 +20,10 @@ class TestResultController extends Controller
      */
     public function index(Request $request)
     {
-        $query = TestResult::with(['currentVersion', 'creator'])
-            ->active()
-            ->orderBy('tr07_created_at', 'desc');
+        $query = TestResult::with('creator')
+            ->active();
 
         // Apply filters
-        if ($request->filled('test_type')) {
-            $query->byTestType($request->test_type);
-        }
-
         if ($request->filled('status')) {
             $query->byStatus($request->status);
         }
@@ -45,17 +39,26 @@ class TestResultController extends Controller
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
-                $q->where('tr07_test_name', 'like', "%{$search}%")
-                    ->orWhere('tr07_patient_id', 'like', "%{$search}%");
+                $q->where('m22_manuscript_id', 'like', "%{$search}%")
+                    ->orWhere('m12_test_number', 'like', "%{$search}%")
+                    ->orWhere('tr04_reference_id', 'like', "%{$search}%");
             });
         }
 
+        $testResults = $query
+            ->select(
+                'tr04_reference_id',
+                DB::raw('GROUP_CONCAT(DISTINCT tr07_result_status) as statuses'),
+                DB::raw('MAX(tr07_test_date) as last_test_date'),
+                DB::raw('MAX(tr07_created_at) as last_created_at'),
+                DB::raw('COUNT(*) as total_tests')
+            )
+            ->groupBy('tr04_reference_id')
+            ->orderByDesc('last_created_at')
+            ->get();
+
         $testResults = $query->paginate(15);
-
-        // Get test types for filter
-        $testTypes = TestResult::distinct()->pluck('tr07_test_type');
-
-        return view('test-results.view_test_results', compact('testResults', 'testTypes'));
+        return view('test-results.view_test_results', compact('testResults'));
     }
 
     /**
@@ -67,71 +70,183 @@ class TestResultController extends Controller
         return view('test-results.create_test_result', compact('templates'));
     }
 
-    /**
-     * Store a newly created test result
-     */
-    public function store(Request $request)
+    public function templateManuscript(Request $request, $id)
     {
-        $request->validate([
-            'patient_id' => 'required|integer',
-            'test_type' => 'required|string|max:100',
-            'test_name' => 'required|string|max:255',
+        // Get manuscripts based on role
+        if (Session::get('role') === 'Manager') {
+            $manuscripts = SampleTest::with([
+                'test',
+                'manuscript',
+                'registration',
+                'registration.labSample',
+                'allotedTo'
+            ])->where('tr04_sample_registration_id', $id)->get();
+        } else {
+            $manuscripts = SampleTest::with([
+                'test',
+                'manuscript',
+                'registration',
+                'registration.labSample',
+                'allotedTo',
+                'allotedBy'
+            ])
+                ->where('tr04_sample_registration_id', $id)
+                ->where('m06_alloted_to', Session::get('user_id'))
+                ->whereIn('tr05_status', ['ALLOTED', 'IN_PROGRESS'])
+                ->get();
+        }
+
+        // Get registration reference ID
+        $registrationId = $manuscripts->first()->registration->tr04_reference_id ?? null;
+
+        // Fetch existing test results (drafts or submitted)
+        $existingResults = collect();
+        $testDate = null;
+        $performanceDate = null;
+        $remarks = null;
+
+        if ($registrationId) {
+            $existingResults = TestResult::where('tr04_reference_id', $registrationId)
+                ->whereIn('tr07_result_status', ['DRAFT', 'SUBMITTED'])
+                ->get();
+
+            // Get dates and remarks from first result if exists
+            if ($existingResults->isNotEmpty()) {
+                $firstResult = $existingResults->first();
+                $testDate = $firstResult->tr07_test_date ?? null;
+                $performanceDate = $firstResult->tr07_performance_date ?? null;
+                $remarks = $firstResult->tr07_remarks ?? null;
+            }
+        }
+
+        return view('manuscript.template_manuscript', compact(
+            'manuscripts',
+            'existingResults',
+            'testDate',
+            'performanceDate',
+            'remarks'
+        ));
+    }
+
+    public function createResult(Request $request)
+    {
+        $validated = $request->validate([
+            'registration_id' => 'required|string',
             'test_date' => 'required|date',
-            'findings' => 'required|string',
-            'test_values' => 'nullable|array',
-            'interpretation' => 'nullable|string',
-            'recommendations' => 'nullable|string'
+            'performance_date' => 'required|date',
+            'test_data' => 'nullable|array',
+            'manuscript_data' => 'nullable|array',
+            'remarks' => 'nullable|string',
+            'action' => 'required|string|in:DRAFT,SUBMITTED'
         ]);
 
         DB::beginTransaction();
-
         try {
-            // Create test result
-            $testResult = TestResult::create([
-                'tr07_patient_id' => $request->patient_id,
-                'tr07_test_type' => $request->test_type,
-                'tr07_test_name' => $request->test_name,
-                'tr07_test_date' => $request->test_date,
-                'tr07_created_by' => Auth::id()
-            ]);
+            // Handle test data (tests without manuscripts)
+            if (!empty($request->test_data)) {
+                foreach ($request->test_data as $test) {
+                    // Check if result_id exists (updating)
+                    if (!empty($test['result_id'])) {
+                        TestResult::where('tr07_test_result_id', $test['result_id'])
+                            ->update([
+                                'tr07_result' => $test['result'],
+                                'tr07_result_status' => $request->action,
+                                'tr07_test_date' => $request->test_date,
+                                'tr07_performance_date' => $request->performance_date,
+                                'tr07_remarks' => $request->remarks,
+                                'm06_updated_by' => Session::get('user_id') ?? -1,
+                                'tr07_updated_at' => now(),
+                            ]);
+                    } else {
+                        // Creating new result
+                        TestResult::create([
+                            'tr04_reference_id' => $request->registration_id,
+                            'm12_test_number' => $test['test_id'],
+                            'm22_manuscript_id' => null,
+                            'tr07_result' => $test['result'],
+                            'tr07_test_date' => $request->test_date,
+                            'tr07_performance_date' => $request->performance_date,
+                            'tr07_remarks' => $request->remarks,
+                            'tr07_current_version' => 1,
+                            'tr07_result_status' => $request->action,
+                            'm06_created_by' => Session::get('user_id') ?? -1,
+                            'tr07_created_at' => now(),
+                        ]);
+                    }
+                }
+            }
 
-            // Create initial version
-            TestResultVersion::create([
-                'tr07_test_result_id' => $testResult->tr07_test_result_id,
-                'tr07_version_number' => 1,
-                'tr07_findings' => $request->findings,
-                'tr07_test_values' => json_encode($request->test_values ?? []),
-                'tr07_interpretation' => $request->interpretation,
-                'tr07_recommendations' => $request->recommendations,
-                'tr07_normal_ranges' => json_encode($request->normal_ranges ?? []),
-                'tr07_abnormal_flags' => json_encode($request->abnormal_flags ?? []),
-                'tr07_report_template' => $request->report_template ?? '',
-                'tr07_change_reason' => 'Initial creation',
-                'tr07_changed_by' => Auth::id(),
-                'tr07_is_current' => 1
-            ]);
-
+            // Handle manuscript data (tests with manuscripts)
+            if (!empty($request->manuscript_data)) {
+                foreach ($request->manuscript_data as $testIndex => $manuscripts) {
+                    foreach ($manuscripts as $manuscript) {
+                        // Check if result_id exists (updating)
+                        if (!empty($manuscript['result_id'])) {
+                            TestResult::where('tr07_test_result_id', $manuscript['result_id'])
+                                ->update([
+                                    'tr07_result' => $manuscript['result'],
+                                    'tr07_result_status' => $request->action,
+                                    'tr07_test_date' => $request->test_date,
+                                    'tr07_performance_date' => $request->performance_date,
+                                    'tr07_remarks' => $request->remarks,
+                                    'm06_updated_by' => Session::get('user_id') ?? -1,
+                                    'tr07_updated_at' => now(),
+                                ]);
+                        } else {
+                            // Creating new result
+                            TestResult::create([
+                                'tr04_reference_id' => $request->registration_id,
+                                'm12_test_number' => $manuscript['test_id'],
+                                'm22_manuscript_id' => $manuscript['manuscript_id'],
+                                'tr07_result' => $manuscript['result'],
+                                'tr07_test_date' => $request->test_date,
+                                'tr07_performance_date' => $request->performance_date,
+                                'tr07_remarks' => $request->remarks,
+                                'tr07_current_version' => 1,
+                                'tr07_result_status' => $request->action,
+                                'm06_created_by' => Session::get('user_id') ?? -1,
+                                'tr07_created_at' => now(),
+                            ]);
+                        }
+                    }
+                }
+            }
             DB::commit();
+            $message = $request->action === 'DRAFT'
+                ? 'Test results saved as draft successfully.'
+                : 'Test results submitted successfully.';
 
-            return redirect()->route('test-results.show', $testResult->tr07_test_result_id)
-                ->with('success', 'Test result created successfully.');
+            Session::flash('type', 'success');
+            Session::flash('message', $message);
+            return back();
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Test result creation failed: ' . $e->getMessage());
-            return back()->withInput()->with('error', 'Failed to create test result.');
+            Log::error('Error saving test results: ' . $e->getMessage());
+            Session::flash('type', 'error');
+            Session::flash('message', 'Failed to save test results: ' . $e->getMessage());
+            return back()->withInput();
         }
     }
+public function showSampleResult($id)
+{
+    // Get all test results with relationships
+    $testResults = TestResult::with(['manuscript', 'test', 'creator'])
+        ->where('tr04_reference_id', $id)
+        ->orderBy('m12_test_number')
+        ->orderBy('tr07_test_date', 'desc')
+        ->get();
 
-    /**
-     * Display the specified test result
-     */
-    public function show($id)
-    {
-        $testResult = TestResult::with(['currentVersion', 'versions.changedBy', 'creator', 'auditTrail.user'])
-            ->findOrFail($id);
-
-        return view('test-results.show_test_result', compact('testResult'));
+    if ($testResults->isEmpty()) {
+        abort(404, 'No test results found for this sample.');
     }
+
+    // Group by test number (parent)
+    $groupedResults = $testResults->groupBy('m12_test_number');
+
+    $sampleInfo = $testResults->first();
+
+    return view('test-results.show_test_result', compact('groupedResults', 'testResults', 'sampleInfo'));
+}
 
     /**
      * Show the form for editing the specified test result
@@ -373,10 +488,10 @@ class TestResultController extends Controller
                 'm12_test_id'             => $request->m12_test_id,
                 'tr08_test_type'          => $request->tr08_test_type,
                 'tr08_times_test_perform' => $request->txt_test_performed,
-                'tr08_formula'            => $request->txt_main_test_formula ?? null, 
-                'tr08_fields_config'      => $request->parameters, 
+                'tr08_formula'            => $request->txt_main_test_formula ?? null,
+                'tr08_fields_config'      => $request->parameters,
                 'tr08_status'             => 'YES',
-                'm06_created_by'          => Session::get('user_id'), 
+                'm06_created_by'          => Session::get('user_id'),
             ]);
 
             // Save each parameter

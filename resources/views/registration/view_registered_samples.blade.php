@@ -1,5 +1,16 @@
 @extends('layouts.app_back')
 @section('content')
+    <style>
+        .blink {
+            animation: blinker 1.2s linear infinite;
+        }
+
+        @keyframes blinker {
+            40% {
+                opacity: 0;
+            }
+        }
+    </style>
     <div class="container-fluid">
         <div class="nk-content-inner">
             <div class="nk-content-body">
@@ -139,47 +150,47 @@
         });
 
         const upgradeToUrgentRoute = "{{ route('upgrade_to_urgent') }}";
-            $(document).on('click', '.upgrade-to-urgent', function(e) {
-                e.preventDefault();
-                let recordId = $(this).data('id');
-                Swal.fire({
-                    title: 'Are you sure to Upgrade it to Urgent?',
-                    text: 'Upgrade the Priority?',
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonText: 'Yes, upgrade it!'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        $.ajax({
-                            url: upgradeToUrgentRoute,
-                            method: 'POST',
-                            headers: {
-                                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                            },
-                            data: {
-                                id: recordId,
-                            },
-                            success: function(data) {
-                                if (data.status === 'success') {
-                                    Swal.fire({
-                                        icon: 'success',
-                                        title: 'Sample priority upgraded to Urgent!',
-                                        text: data.message,
-                                        timer: 1500,
-                                        showConfirmButton: false
-                                    }).then(() => {
-                                        window.location.reload();
-                                    });
-                                } else {
-                                    Swal.fire('Error!', data.message, 'error');
-                                }
-                            },
-                            error: function() {
-                                Swal.fire('Error!', 'Something went wrong.', 'error');
+        $(document).on('click', '.upgrade-to-urgent', function(e) {
+            e.preventDefault();
+            let recordId = $(this).data('id');
+            Swal.fire({
+                title: 'Are you sure to Upgrade it to Urgent?',
+                text: 'Upgrade the Priority?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, upgrade it!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: upgradeToUrgentRoute,
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                        },
+                        data: {
+                            id: recordId,
+                        },
+                        success: function(data) {
+                            if (data.status === 'success') {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Sample priority upgraded to Urgent!',
+                                    text: data.message,
+                                    timer: 1500,
+                                    showConfirmButton: false
+                                }).then(() => {
+                                    window.location.reload();
+                                });
+                            } else {
+                                Swal.fire('Error!', data.message, 'error');
                             }
-                        });
-                    }
-                });
+                        },
+                        error: function() {
+                            Swal.fire('Error!', 'Something went wrong.', 'error');
+                        }
+                    });
+                }
             });
+        });
     </script>
 @endsection

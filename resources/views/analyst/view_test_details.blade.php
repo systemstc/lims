@@ -58,7 +58,14 @@
                                 <div class="invoice-wrap">
                                     <!-- Test Details Table -->
                                     <div class="invoice-bills">
-                                        <h5 class="mb-3">Test Details</h5>
+                                        <div class="d-flex justify-content-between align-items-center mb-3">
+                                            <h5 class="mb-0 fw-semibold">Test Details</h5>
+                                            <a href="{{ route('template_manuscript', $sample->tr04_sample_registration_id) }}"
+                                                class="btn btn-sm btn-outline-primary">
+                                                <em class="icon ni ni-file-text"></em> View Manuscript
+                                            </a>
+                                        </div>
+
                                         <div class="table-responsive">
                                             <table class="table table-striped">
                                                 <thead>
@@ -70,6 +77,7 @@
                                                         <th>Primary Test</th>
                                                         <th>Secondary Test</th>
                                                         <th>Status</th>
+                                                        <th>Action</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
@@ -107,6 +115,15 @@
                                                                     @else bg-secondary @endif">
                                                                     {{ ucfirst(strtolower(str_replace('_', ' ', $sampleTest->tr05_status ?? 'N/A'))) }}
                                                                 </span>
+                                                            </td>
+                                                            <td>
+                                                                @if ($sampleTest->tr05_status == 'ALLOTED')
+                                                                    <a href="{{ route('update_analysis', $sampleTest->tr05_sample_test_id) }}"
+                                                                        class="btn btn-success btn-xs">Start</a>
+                                                                @elseif ($sampleTest->tr05_status == 'IN_PROGRESS')
+                                                                    <a href="{{ route('update_analysis', $sampleTest->tr05_sample_test_id) }}"
+                                                                        class="btn btn-warning btn-xs">Complete</a>
+                                                                @endif
                                                             </td>
                                                         </tr>
                                                     @empty

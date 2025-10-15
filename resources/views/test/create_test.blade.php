@@ -854,10 +854,10 @@
                             const oldGroupId = "{{ old('txt_group_id') }}";
 
                             data.forEach(group => {
-                                const selected = (group.m11_group_id == oldGroupId) ?
+                                const selected = (group.m11_group_code == oldGroupId) ?
                                     'selected' : '';
                                 groupDropdown.append(
-                                    `<option value="${group.m11_group_id}" ${selected}>${group.m11_name}</option>`
+                                    `<option value="${group.m11_group_code}" ${selected}>${group.m11_name}</option>`
                                 );
                             });
 
