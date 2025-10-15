@@ -95,30 +95,96 @@
 
     {{--  for loader --}}
     <script>
-        // Show loader on any form submit
-        document.addEventListener('submit', function(e) {
-            document.getElementById('global-loader').style.display = 'flex';
-        });
+        const loader = document.getElementById('global-loader');
+        let loaderCount = 0;
+        let autoHideTimer = null;
+        const AUTO_HIDE_MS = 500;
 
-        // Show loader on link click (optional, for non-AJAX page reloads)
-        document.querySelectorAll("a").forEach(link => {
-            link.addEventListener("click", function() {
-                if (this.getAttribute("href") && this.getAttribute("href") !== "#") {
-                    document.getElementById('global-loader').style.display = 'flex';
+        function showLoader() {
+            loaderCount++;
+            if (loader.style.display !== 'flex') loader.style.display = 'flex';
+            // reset auto-hide timer
+            if (autoHideTimer) clearTimeout(autoHideTimer);
+            autoHideTimer = setTimeout(() => {
+                console.warn('Loader auto-hidden after timeout (' + AUTO_HIDE_MS + 'ms)');
+                loaderCount = 0;
+                hideLoader(true);
+            }, AUTO_HIDE_MS);
+        }
+
+        function hideLoader(force = false) {
+            if (force) {
+                loaderCount = 0;
+            } else {
+                loaderCount = Math.max(0, loaderCount - 1);
+            }
+            if (loaderCount === 0) {
+                loader.style.display = 'none';
+                if (autoHideTimer) {
+                    clearTimeout(autoHideTimer);
+                    autoHideTimer = null;
                 }
+            }
+        }
+
+        document.addEventListener('submit', function(e) {
+            const form = e.target;
+
+            const submitter = e.submitter || form.querySelector('[type="submit"]');
+            if (submitter && (submitter.matches('.no-loader') || submitter.dataset.noLoader !== undefined)) return;
+            if (form.dataset.noLoader !== undefined || form.classList.contains('no-loader')) return;
+
+            const action = form.getAttribute('action');
+            if (!action || action.trim() === '' || action.trim() === '#' || action.trim().startsWith(
+                    'javascript:')) {
+                return;
+            }
+            setTimeout(() => {
+                if (!e.defaultPrevented) {
+                    showLoader();
+                }
+            }, 0);
+        }, true);
+
+        document.addEventListener('click', function(e) {
+            const clickable = e.target.closest('a, button');
+            if (!clickable) return;
+
+            if (clickable.dataset.noLoader !== undefined || clickable.classList.contains('no-loader')) return;
+
+            if (clickable.hasAttribute('data-bs-toggle') || clickable.hasAttribute('data-toggle') || clickable
+                .closest('.swal2-container')) return;
+
+            const tag = clickable.tagName.toLowerCase();
+
+            if (tag === 'a') {
+                const href = clickable.getAttribute('href');
+                if (!href || href === '#' || href.startsWith('javascript:') || href.startsWith('mailto:') || href
+                    .startsWith('tel:')) return;
+                try {
+                    const url = new URL(href, location.href);
+                    if (url.pathname === location.pathname && url.search === location.search && url.hash) {
+                        return;
+                    }
+                } catch (err) {}
+                if (clickable.target === '_blank') return;
+            } else if (tag === 'button') {
+                const type = (clickable.getAttribute('type') || '').toLowerCase();
+                if (type === 'button') return;
+                if (type === 'submit') return;
+            }
+            showLoader();
+        }, true);
+        if (window.jQuery) {
+            $(document).ajaxStart(function() {
+                showLoader();
+            }).ajaxStop(function() {
+                hideLoader();
             });
-        });
-
-        // Hide loader after full page load
-        window.addEventListener('load', function() {
-            document.getElementById('global-loader').style.display = 'none';
-        });
-
-        // For jQuery AJAX
-        $(document).ajaxStart(function() {
-            $('#global-loader').show();
-        }).ajaxStop(function() {
-            $('#global-loader').hide();
+        }
+        window.addEventListener('load', () => hideLoader(true));
+        window.addEventListener('pageshow', function(event) {
+            if (event.persisted) hideLoader(true);
         });
     </script>
 

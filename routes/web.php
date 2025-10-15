@@ -14,6 +14,9 @@ use App\Http\Controllers\SampleController;
 use App\Http\Controllers\TestResultController;
 use App\Http\Controllers\ValidationController;
 use App\Http\Controllers\InvoiceController;
+use App\Http\Controllers\RazorpayController;
+use App\Http\Controllers\VerificationController;
+use App\Http\Controllers\WalletController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Session;
 
@@ -147,12 +150,6 @@ Route::middleware(['access_control'])->group(function () {
     Route::match(['get', 'post'], 'create-custom', [MasterController::class, 'createCustom'])->name('create_custom');
     Route::match(['get', 'post'], 'update-custom/{id}', [MasterController::class, 'updateCustom'])->name('update_custom');
 
-    // For Simple and Multi Value measurements
-    Route::get('measurements', [MeasurementController::class, 'viewMeasurements'])->name('view_measurements');
-    Route::match(['get', 'post'], 'create-measurement', [MeasurementController::class, 'createMeasurement'])->name('create_measurement');
-    Route::match(['get', 'post'], 'update-measurement/{id}', [MeasurementController::class, 'updateMeasurement'])->name('update_measurement');
-    Route::post('delete-measurement', [MeasurementController::class, 'deleteMeasurement'])->name('delete_measurement');
-
     //Sample Registration
     Route::match(['get', 'post'], 'sample-regsitration', [RegistrationController::class, 'preRegistration'])->name('register_sample');
     Route::get('registered-samples', [RegistrationController::class, 'viewRegSamples'])->name('view_registered_samples');
@@ -161,7 +158,7 @@ Route::middleware(['access_control'])->group(function () {
     Route::match(['get', 'post'], 'blank-registration', [RegistrationController::class, 'blankRegistration'])->name('blank_registration');
 
     // Invoice Registration
-     Route::get('/samples/{id}/invoicedetails', [InvoiceController::class, 'showInvoiceDetails'])->name('view_invoice');
+    Route::get('/samples/{id}/invoicedetails', [InvoiceController::class, 'showInvoiceDetails'])->name('view_invoice');
     Route::get('/customer/{id}/invoicedetails', [InvoiceController::class, 'showAllInvoiceDetails'])->name('view_all_invoice');
 
 
@@ -192,27 +189,16 @@ Route::middleware(['access_control'])->group(function () {
     // Test Result Management Routes
     Route::prefix('test-results')->group(function () {
         // Main CRUD routes
-        Route::get('view-test-results', [TestResultController::class, 'index'])->name('test_results');
+        Route::get('view-test-results', [TestResultController::class, 'reporting'])->name('test_results');
         Route::post('/create-result-test', [TestResultController::class, 'createResult'])->name('create_test_result');
         Route::get('show-sample-result/{id}', [TestResultController::class, 'showSampleResult'])->name('show_sample_result');
-        Route::get('/{id}/edit', [TestResultController::class, 'edit'])->name('edit');
-        Route::put('/{id}', [TestResultController::class, 'update'])->name('update');
-        Route::delete('/', [TestResultController::class, 'destroy'])->name('destroy');
+        Route::get('generate-report/{id}', [TestResultController::class, 'generateReport'])->name('generate_report');
 
-        // Version Management Routes
-        Route::post('/{id}/finalize', [TestResultController::class, 'finalize'])->name('finalize');
-        Route::post('/{id}/revise', [TestResultController::class, 'revise'])->name('revise');
         Route::get('/{id}/version/{versionNumber}', [TestResultController::class, 'viewVersion'])->name('view-version');
         Route::get('/{id}/compare', [TestResultController::class, 'compareVersions'])->name('compare-versions');
 
-        // Report Generation
-        Route::get('/{id}/report/{versionNumber?}', [TestResultController::class, 'generateReport'])->name('generate-report');
-
         // Audit Trail
         Route::get('/audit/trail', [TestResultController::class, 'audit'])->name('test_results_audit');
-
-        // AJAX Routes
-        Route::get('/template/{templateId}/data', [TestResultController::class, 'getTemplates'])->name('get-template');
     });
     Route::get('/template', [TestResultController::class, 'getTestTemplate'])->name('create_test_template');
 
@@ -286,10 +272,43 @@ Route::middleware(['access_control'])->group(function () {
     // Manuscript
     Route::get('/manuscripts', [MasterController::class, 'viewManuscript'])->name('view_manuscripts');
     Route::post('/manuscripts/import', [MasterController::class, 'manuscriptImport'])->name('manuscripts_import');
+    Route::get('/get-manuscripts', [MasterController::class, 'getManuscripts'])->name('get_manuscripts');
+    Route::match(['get', 'post'], 'create/manuscripts', [MasterController::class, 'createManuscript'])->name('create_manuscript');
     // Manuscript Template
     Route::get('manuscript-template/{id}', [TestResultController::class, 'templateManuscript'])->name('template_manuscript');
-
+    Route::get('completed-tests', [TestResultController::class, 'viewCompletedTests'])->name('view_completed_camples');
     // Transferred samples from other regional offices 
     Route::get('accept-pending-samples', [SampleController::class, 'viewPedingSmples'])->name('view_regional_samples');
     Route::post('accept-pending-transfer-sample/{id}', [SampleController::class, 'acceptTransferdSample'])->name('accept_sample');
+
+    // Verification Routes
+    Route::get('view-result-verification', [VerificationController::class, 'viewVerification'])->name('view_result_verification');
+    Route::match(['get', 'post'], 'verify-result/{id}', [VerificationController::class, 'verifyResult'])->name('verify_result');
+
+    // Payment for testing
+    // Route::get('/razorpay-checkout', [RazorpayController::class, 'checkout'])->name('razorpay.checkout');
+    // Route::post('/create-order', [RazorpayController::class, 'createOrder'])->name('razorpay.createOrder');
+    // Route::post('/verify-payment', [RazorpayController::class, 'verifyPayment'])->name('razorpay.verifyPayment');
+
 });
+Route::get('customer-wallet/{id}', [WalletController::class, 'viewWallet'])->name('view_wallet');
+
+// Wallet Balance
+Route::get('/wallet/balance', [WalletController::class, 'getBalance'])->name('wallet.balance');
+
+// Wallet Transactions
+Route::get('/wallet/transactions', [WalletController::class, 'transactions'])->name('wallet.transactions');
+
+// Process Sample to Reporting
+Route::post('/wallet/process-reporting', [WalletController::class, 'processToReporting'])->name('wallet.process.reporting');
+
+// Download Statement
+Route::get('/wallet/statement', [WalletController::class, 'downloadStatement'])->name('wallet.statement');
+
+// Razorpay Payment Routes
+Route::get('/payment/checkout', [RazorpayController::class, 'checkout'])->name('payment.checkout');
+Route::post('/razorpay/create-order', [RazorpayController::class, 'createOrder'])->name('razorpay.create.order');
+Route::post('/razorpay/verify-payment', [RazorpayController::class, 'verifyPayment'])->name('razorpay.verify.payment');
+Route::get('/razorpay/payment-status/{orderId}', [RazorpayController::class, 'getPaymentStatus'])->name('razorpay.payment.status');
+
+Route::post('/razorpay/webhook', [RazorpayController::class, 'webhook'])->name('razorpay.webhook');

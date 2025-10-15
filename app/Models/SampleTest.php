@@ -72,7 +72,7 @@ class SampleTest extends Model
         return $this->belongsTo(Employee::class, 'm06_alloted_by', 'm06_employee_id');
     }
 
-    public function transferredBy(): BelongsTo
+    public function transferredBy()
     {
         return $this->belongsTo(Ro::class, 'm04_transferred_by', 'm04_ro_id');
     }
@@ -82,7 +82,7 @@ class SampleTest extends Model
         return $this->belongsTo(Ro::class, 'm04_ro_id', 'm04_ro_id');
     }
 
-    public function transferredToRo(): BelongsTo
+    public function transferredToRo()
     {
         return $this->belongsTo(Ro::class, 'm04_transferred_to', 'm04_ro_id');
     }

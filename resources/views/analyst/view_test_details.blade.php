@@ -60,10 +60,22 @@
                                     <div class="invoice-bills">
                                         <div class="d-flex justify-content-between align-items-center mb-3">
                                             <h5 class="mb-0 fw-semibold">Test Details</h5>
-                                            <a href="{{ route('template_manuscript', $sample->tr04_sample_registration_id) }}"
-                                                class="btn btn-sm btn-outline-primary">
-                                                <em class="icon ni ni-file-text"></em> View Manuscript
-                                            </a>
+                                            @php
+                                                $testStatus = $sample->sampleTests[0]->tr05_status ?? 'INCOMPLETE';
+                                            @endphp
+
+                                            @if ($testStatus === 'COMPLETED')
+                                                <a href="{{ route('template_manuscript', $sample->tr04_sample_registration_id) }}"
+                                                    class="btn btn-sm btn-outline-primary">
+                                                    <em class="icon ni ni-file-text"></em> View Manuscript
+                                                </a>
+                                            @else
+                                                <button type="button"
+                                                    class="btn btn-sm btn-outline-secondary disabled-btn">
+                                                    <em class="icon ni ni-file-text"></em> View Manuscript
+                                                </button>
+                                            @endif
+
                                         </div>
 
                                         <div class="table-responsive">
@@ -107,22 +119,29 @@
                                                             <td>{{ $sampleTest->secondary_tests[0]->m17_name ?? 'N/A' }}
                                                             </td>
                                                             <td>
-                                                                <span
-                                                                    class="badge 
-                                                                    @if ($sampleTest->tr05_status == 'COMPLETED') bg-success 
-                                                                    @elseif($sampleTest->tr05_status == 'PENDING') bg-warning 
-                                                                    @elseif($sampleTest->tr05_status == 'IN_PROGRESS') bg-info 
-                                                                    @else bg-secondary @endif">
+                                                                <strong
+                                                                    class="
+                                                                    @if ($sampleTest->tr05_status == 'COMPLETED') text-success 
+                                                                    @elseif($sampleTest->tr05_status == 'PENDING') text-warning 
+                                                                    @elseif($sampleTest->tr05_status == 'IN_PROGRESS') text-info 
+                                                                    @else text-secondary @endif">
                                                                     {{ ucfirst(strtolower(str_replace('_', ' ', $sampleTest->tr05_status ?? 'N/A'))) }}
-                                                                </span>
+                                                                </strong>
                                                             </td>
                                                             <td>
                                                                 @if ($sampleTest->tr05_status == 'ALLOTED')
                                                                     <a href="{{ route('update_analysis', $sampleTest->tr05_sample_test_id) }}"
-                                                                        class="btn btn-success btn-xs">Start</a>
+                                                                        class="btn btn-success btn-xs confirm-status"
+                                                                        data-action="start">
+                                                                        <em class="icon ni ni-play"></em>&nbsp; Start
+                                                                    </a>
                                                                 @elseif ($sampleTest->tr05_status == 'IN_PROGRESS')
                                                                     <a href="{{ route('update_analysis', $sampleTest->tr05_sample_test_id) }}"
-                                                                        class="btn btn-warning btn-xs">Complete</a>
+                                                                        class="btn btn-warning btn-xs confirm-status"
+                                                                        data-action="complete">
+                                                                        <em class="icon ni ni-check-circle-cut"></em>&nbsp;
+                                                                        Complete
+                                                                    </a>
                                                                 @endif
                                                             </td>
                                                         </tr>
@@ -143,4 +162,50 @@
             </div>
         </div>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Confirm before updating test status
+            document.querySelectorAll('.confirm-status').forEach(button => {
+                button.addEventListener('click', function(e) {
+                    e.preventDefault(); // stop default redirect
+
+                    const url = this.getAttribute('href');
+                    const action = this.dataset.action;
+
+                    Swal.fire({
+                        title: 'Are you sure?',
+                        text: action === 'start' ?
+                            "Do you want to mark this test as In Progress?" :
+                            "Do you want to mark this test as Completed?",
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonText: 'Yes, proceed',
+                        cancelButtonText: 'Cancel',
+                        confirmButtonColor: '#3085d6',
+                        cancelButtonColor: '#d33',
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            // Redirect only if confirmed
+                            window.location.href = url;
+                        }
+                    });
+                });
+            });
+
+            // Your existing disabled button alert
+            document.querySelectorAll('.disabled-btn').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    Swal.fire({
+                        title: 'Action Not Allowed',
+                        text: 'Please complete the test before viewing the manuscript.',
+                        icon: 'warning',
+                        confirmButtonText: 'OK',
+                        confirmButtonColor: '#6576ff',
+                    });
+                });
+            });
+        });
+    </script>
 @endsection

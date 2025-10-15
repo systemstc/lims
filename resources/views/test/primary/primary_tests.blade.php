@@ -13,14 +13,14 @@
                                 </a>
                             </div>
                         </div>
-                        <form action="{{ route('import_all_primary') }}" method="POST" enctype="multipart/form-data">
+                        {{-- <form action="{{ route('import_all_primary') }}" method="POST" enctype="multipart/form-data">
                             @csrf
                             <div class="form-group">
                                 <label>Select CSV File</label>
                                 <input type="file" name="csv_file" class="form-control" required accept=".csv">
                             </div>
                             <button type="submit" class="btn btn-primary mt-2">Upload & Import</button>
-                        </form>
+                        </form> --}}
                         <div class="card card-bordered card-preview">
                             <div class="card-inner">
                                 <table class="datatable-init-export table table-bordered table-hover"

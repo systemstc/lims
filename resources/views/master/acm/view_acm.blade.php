@@ -114,7 +114,7 @@
             }
 
             function buildRow(menu, roleId, isParent) {
-                const viewRoles = menu.m05_role_view_ ? menu.m05_role_view_.split(',') : [];
+                const viewRoles = menu.m05_role_view ? menu.m05_role_view.split(',') : [];
                 const createRoles = menu.m05_role_create ? menu.m05_role_create.split(',') : [];
                 const editRoles = menu.m05_role_edit ? menu.m05_role_edit.split(',') : [];
                 const deleteRoles = menu.m05_role_delete ? menu.m05_role_delete.split(',') : [];

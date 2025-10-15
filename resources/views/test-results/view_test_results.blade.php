@@ -10,7 +10,7 @@
                             <div class="nk-block-head-content">
                                 <h3 class="nk-block-title page-title">Test Results Management</h3>
                                 <div class="nk-block-des text-soft">
-                                    <p>Manage and track test results with version control</p>
+                                    <p>Manage and track test results</p>
                                 </div>
                             </div>
                             <div class="nk-block-head-content">
@@ -19,8 +19,8 @@
                                         data-target="pageMenu"><em class="icon ni ni-menu-alt-r"></em></a>
                                     <div class="toggle-expand-content" data-content="pageMenu">
                                         <ul class="nk-block-tools g-3">
-                                            <li><a href="{{ route('create_test_result') }}" class="btn btn-primary"><em
-                                                        class="icon ni ni-plus"></em><span>Add Test Result</span></a></li>
+                                            {{-- <li><a href="{{ route('create_test_result') }}" class="btn btn-primary"><em
+                                                        class="icon ni ni-plus"></em><span>Add Test Result</span></a></li> --}}
                                             <li><a href="{{ route('test_results_audit') }}"
                                                     class="btn btn-outline-light"><em
                                                         class="icon ni ni-eye"></em><span>Audit Trail</span></a></li>
@@ -37,6 +37,7 @@
                             <div class="card-inner-group">
                                 <div class="card-inner">
                                     <form method="GET" action="{{ route('test_results') }}">
+                                        <h5>Filter</h5>
                                         <div class="row g-3 align-center">
                                             <div class="col-lg-3">
                                                 <div class="form-group">
@@ -49,7 +50,7 @@
                                                             </option>
                                                             <option value="SUBMITTED"
                                                                 {{ request('status') == 'SUBMITTED' ? 'selected' : '' }}>
-                                                                Finalized</option>
+                                                                Submitted</option>
                                                             <option value="REVISED"
                                                                 {{ request('status') == 'REVISED' ? 'selected' : '' }}>
                                                                 Revised</option>

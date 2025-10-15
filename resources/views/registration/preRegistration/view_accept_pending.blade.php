@@ -42,7 +42,7 @@
                                         @foreach ($samples as $key => $sample)
                                             <tr>
                                                 <td>{{ $sample->registration->tr04_tracker_id }}</td>
-                                                <td>{{ $sample->transferredToRo?->m04_name }}</td>
+                                                <td>{{ $sample->transferredBy?->m04_name }}</td>
                                                 <td><b
                                                         class="text-{{ $sample->tr05_priority === 'NORMAL' ? 'success' : 'danger' }}">{{ $sample->tr05_priority }}</b>
                                                 </td>

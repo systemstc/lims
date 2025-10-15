@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Session;
 
 class TestResult extends Model
@@ -15,12 +14,14 @@ class TestResult extends Model
     protected $primaryKey = 'tr07_test_result_id';
 
     protected $fillable = [
+        'm04_ro_id',
         'tr07_test_result_id',
         'tr04_reference_id',
         'm12_test_number',
         'm22_manuscript_id',
         'tr07_result',
         'tr07_current_version',
+        'tr07_is_current',
         'tr07_result_status',
         'tr07_test_date',
         'tr07_performance_date',
@@ -36,23 +37,23 @@ class TestResult extends Model
         'tr07_status',
     ];
 
-
+    public function registration()
+    {
+        return $this->belongsTo(SampleRegistration::class, 'tr04_reference_id', 'tr04_reference_id');
+    }
     public function test()
     {
         return $this->belongsTo(Test::class, 'm12_test_number', 'm12_test_number');
     }
-// In TestResult model
-public function manuscript()
-{
-    return $this->belongsTo(Manuscript::class, 'm22_manuscript_id', 'm22_manuscript_id');
-}
+    public function manuscript()
+    {
+        return $this->belongsTo(Manuscript::class, 'm22_manuscript_id', 'm22_manuscript_id');
+    }
+    public function testManuscripts()
+    {
+        return $this->hasMany(Manuscript::class, 'm12_test_number', 'm12_test_number');
+    }
 
-// Add this relationship to get all manuscripts for the test
-public function testManuscripts()
-{
-    return $this->hasMany(Manuscript::class, 'm12_test_number', 'm12_test_number');
-}
-    
 
     public function auditTrail()
     {
@@ -75,9 +76,16 @@ public function testManuscripts()
     {
         return $query->where('tr07_status', 'ACTIVE');
     }
-
+    public function scopeByRo($query)
+    {
+        return $query->where('m04_ro_id', Session::get('ro_id'));
+    }
     public function scopeByStatus($query, $status)
     {
         return $query->where('tr07_result_status', $status);
+    }
+    public function scopeisCurrent($query)
+    {
+        return $query->where('tr07_is_current', 'YES');
     }
 }

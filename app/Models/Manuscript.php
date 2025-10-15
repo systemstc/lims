@@ -19,6 +19,21 @@ class Manuscript extends Model
         'updated_at'
     ];
 
+    public function sample()
+    {
+        return $this->belongsTo(Sample::class, 'm10_sample_id', 'm10_sample_id');
+    }
+
+    public function group()
+    {
+        return $this->belongsTo(Group::class, 'm11_group_id', 'm11_group_id');
+    }
+
+    public function test()
+    {
+        return $this->belongsTo(Test::class, 'm12_test_id', 'm12_test_id');
+    }
+
     public function user()
     {
         return $this->belongsTo('tr01_created_at', 'tr01_user_id');

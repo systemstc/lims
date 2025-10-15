@@ -6,7 +6,7 @@
     <!-- Fav Icon  -->
     <link rel="shortcut icon" href="{{ asset('backAssets/images/favicon.png') }}">
     <!-- Page Title  -->
-    <title>LIMS | Dashboard</title>
+    <title>@yield('title', 'LIMS | Textiles Committee Laboratories')</title>
     <!-- StyleSheets  -->
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <link rel="stylesheet" href="{{ asset('backAssets/css/dashlite.css') }}">

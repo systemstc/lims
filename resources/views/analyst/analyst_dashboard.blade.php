@@ -48,21 +48,29 @@
                         <div class="col-md-3">
                             <div class="card card-bordered text-center">
                                 <div class="card-inner">
-                                    <h6 class="text-primary">Pending Tests</h6>
+                                    <h6 class="text-primary">Pending Samples</h6>
                                     <h2>{{ $pendingTests }}</h2>
                                 </div>
                             </div>
                         </div>
-
-                        <!-- In Progress Tests -->
+                        <!-- Rejected Tests -->
                         <div class="col-md-3">
+                            <div class="card card-bordered text-center">
+                                <div class="card-inner">
+                                    <h6 class="text-danger">Rejected Samples</h6>
+                                    <h2>{{ $rejectedTests }}</h2>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- In Progress Tests -->
+                        {{-- <div class="col-md-2">
                             <div class="card card-bordered text-center">
                                 <div class="card-inner">
                                     <h6 class="text-warning">In Progress</h6>
                                     <h2>{{ $inProgressTests }}</h2>
                                 </div>
                             </div>
-                        </div>
+                        </div> --}}
 
                         <!-- Completed Today -->
                         <div class="col-md-3">
@@ -78,7 +86,7 @@
                         <div class="col-md-3">
                             <div class="card card-bordered text-center">
                                 <div class="card-inner">
-                                    <h6 class="text-info">Total Tests</h6>
+                                    <h6 class="text-info">Total Samples</h6>
                                     <h2>{{ $totalSamples }}</h2>
                                 </div>
                             </div>

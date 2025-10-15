@@ -76,13 +76,14 @@ class AccessControl
             'accept_transferred',
             'reassign',
             'history',
-            'template_manuscript',
             'import_all_tests',
             'import_all_standards',
             'import_all_primary',
             'import_all_secondary',
             'get_test_samples_allotment',
             'view_sample_tests',
+            'view_invoice',
+            'view_all_invoice',
         ];
 
         if (in_array($routeName, $skipPermissionRoutes)) {

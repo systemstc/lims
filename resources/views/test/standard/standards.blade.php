@@ -13,7 +13,7 @@
                                     &nbsp; Create standard</a>
                             </div>
                         </div>
-                        <div class="container">
+                        {{-- <div class="container">
                             <div class="row justify-content-center">
                                 <div class="col-md-6">
                                     <div class="card shadow-lg">
@@ -32,7 +32,7 @@
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                        </div> --}}
 
                         <div class="card card-bordered card-preview">
                             <div class="card-inner">

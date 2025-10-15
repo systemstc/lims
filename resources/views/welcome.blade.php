@@ -367,13 +367,12 @@
             <div class="row align-items-center">
                 <div class="col-lg-6">
                     <div class="hero-content">
-                        <span class="gov-badge mb-3 d-inline-block">Ministry of Textiles, Government of India</span>
+                        {{-- <span class="gov-badge mb-3 d-inline-block">Ministry of Textiles</span> --}}
                         <h1 id="typewriter" class="display-4 fw-bold mb-4 text-light"></h1>
                         <p class="lead mb-4">
-                            Official Laboratory Information Management System developed by the Textile Committee of
-                            India
-                            for standardized sample management, testing protocols, and quality assurance across
-                            government textile laboratories.
+                            Official Laboratory Information Management System developed by the Textile Committee
+                            for standardized sample management, testing protocols, and quality assurance across textile
+                            laboratories.
                         </p>
                         <div class="d-flex flex-wrap gap-3">
                             <a href="#features" class="btn btn-primary btn-lg">
@@ -401,8 +400,8 @@
             <div class="row">
                 <div class="col-md-3 col-6">
                     <div class="stat-item">
-                        <span class="stat-number" data-target="50" data-suffix="+">0+</span>
-                        <p class="mb-0 fw-semibold">Government Labs</p>
+                        <span class="stat-number" data-target="15" data-suffix="+">0+</span>
+                        <p class="mb-0 fw-semibold">Textile Labs</p>
                     </div>
                 </div>
                 <div class="col-md-3 col-6">
@@ -433,7 +432,7 @@
             <div class="row mb-5">
                 <div class="col-lg-8 mx-auto text-center">
                     <h2 class="display-5 fw-bold mb-4">System Capabilities</h2>
-                    <p class="lead">Comprehensive laboratory management system designed for government textile
+                    <p class="lead">Comprehensive laboratory management system designed for textile
                         testing facilities with full compliance to national and international standards.</p>
                 </div>
             </div>
@@ -445,7 +444,7 @@
                         </div>
                         <h5 class="fw-bold mb-3">Sample Management</h5>
                         <p>Complete sample lifecycle tracking from registration to disposal with chain of custody
-                            documentation and barcode integration following government protocols.</p>
+                            documentation and barcode integration.</p>
                     </div>
                 </div>
                 <div class="col-lg-4 col-md-6">
@@ -474,7 +473,7 @@
                             <em class="icon ni ni-file-text"></em>
                         </div>
                         <h5 class="fw-bold mb-3">Report Generation</h5>
-                        <p>Automated report generation with standardized government templates, digital signatures,
+                        <p>Automated report generation with standardized templates, digital signatures,
                             and official certification with Textile Committee branding.</p>
                     </div>
                 </div>
@@ -485,7 +484,7 @@
                         </div>
                         <h5 class="fw-bold mb-3">User Management</h5>
                         <p>Role-based access control with comprehensive audit trails ensuring data security
-                            and regulatory compliance across all government laboratory personnel.</p>
+                            and regulatory compliance across all laboratory personnel.</p>
                     </div>
                 </div>
                 <div class="col-lg-4 col-md-6">
@@ -495,7 +494,7 @@
                         </div>
                         <h5 class="fw-bold mb-3">Equipment Integration</h5>
                         <p>Direct integration with textile testing instruments and automated data capture
-                            with government-approved calibration and validation protocols.</p>
+                            with approved calibration and validation protocols.</p>
                     </div>
                 </div>
             </div>
@@ -509,7 +508,7 @@
                 <div class="col-lg-8 mx-auto text-center">
                     <h2 class="display-6 fw-bold mb-4">Laboratory Workflow</h2>
                     <p class="lead">Standardized testing workflow from sample receipt to report delivery
-                        following Textile Committee guidelines and government protocols.</p>
+                        following Textile Committee guidelines and protocols.</p>
                 </div>
             </div>
             <div class="row g-4">
@@ -520,7 +519,7 @@
                             <em class="icon ni ni-list-check fs-1 text-primary mb-3"></em>
                             <h6 class="fw-bold">Sample Registration</h6>
                             <p class="text-muted small mb-0">Register samples with unique IDs and test requirements
-                                following government protocols</p>
+                                following protocols</p>
                         </div>
                     </div>
                 </div>
@@ -552,7 +551,7 @@
                         <div class="mt-3">
                             <em class="icon ni ni-award fs-1 text-primary mb-3"></em>
                             <h6 class="fw-bold">Report Generation</h6>
-                            <p class="text-muted small mb-0">Official report generation with government certification
+                            <p class="text-muted small mb-0">Official report generation with certification
                                 and digital authentication</p>
                         </div>
                     </div>
@@ -566,9 +565,9 @@
         <div class="container py-4">
             <div class="row mb-5">
                 <div class="col-lg-8 mx-auto text-center">
-                    <h2 class="display-6 fw-bold mb-4">Government Textile Laboratories</h2>
+                    <h2 class="display-6 fw-bold mb-4">Textile Laboratories</h2>
                     <p class="lead">LIMS implementation across textile testing laboratories under the
-                        Textile Committee of India network</p>
+                        Textile Committee network</p>
                 </div>
             </div>
 
@@ -603,7 +602,7 @@
                 </div>
             </div>
 
-            <div class="row">
+            {{-- <div class="row">
                 <div class="col-md-4">
                     <div class="testimonial-card">
                         <div class="d-flex align-items-center mb-3">
@@ -652,7 +651,7 @@
                             while meeting ministry requirements for official documentation."</p>
                     </div>
                 </div>
-            </div>
+            </div> --}}
         </div>
     </section>
 
@@ -756,8 +755,8 @@
                             <small class="text-light">LIMS Division</small>
                         </div>
                     </div>
-                    <p class="text-light">Official laboratory information management system for government
-                        textile testing facilities under the Ministry of Textiles, Government of India.</p>
+                    <p class="text-light">Official laboratory information management system for
+                        textile testing facilities.</p>
                 </div>
                 <div class="col-lg-2 col-md-3 mb-4 mb-lg-0">
                     <h6 class="fw-bold mb-3 text-white">Quick Links</h6>
@@ -891,14 +890,11 @@
         }
 
         typeWriterEffect("typewriter", [{
-                text: "Government "
+                text: "LIMS for"
             },
             {
-                text: "LIMS",
+                text: " Textile Testing",
                 class: "text-warning"
-            },
-            {
-                text: " for Textile Testing"
             }
         ], 70, 5000);
 

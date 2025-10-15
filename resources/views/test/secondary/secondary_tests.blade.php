@@ -13,14 +13,14 @@
                                 <em class="icon ni ni-plus"></em> &nbsp; Create Secondary Test
                             </a>
                         </div>
-                        <form action="{{ route('import_all_secondary') }}" method="POST" enctype="multipart/form-data">
+                        {{-- <form action="{{ route('import_all_secondary') }}" method="POST" enctype="multipart/form-data">
                             @csrf
                             <div class="form-group">
                                 <label>Select CSV File</label>
                                 <input type="file" name="csv_file" class="form-control" required accept=".csv">
                             </div>
                             <button type="submit" class="btn btn-primary mt-2">Upload & Import</button>
-                        </form>
+                        </form> --}}
                         <!-- Table -->
                         <div class="card card-bordered card-preview">
                             <div class="card-inner">

@@ -2297,7 +2297,10 @@ class MasterController extends Controller
     public function getMenusForRole(Request $request)
     {
         $roleId = $request->role_id;
-        $menus = Menu::with('children')->get();
+        $menus = Menu::with('children')
+            ->whereNull('m05_parent_id')
+            ->get();
+
         return response()->json([
             'role_id' => $roleId,
             'menus' => $menus
@@ -2366,5 +2369,57 @@ class MasterController extends Controller
         Session::flash('type', 'success');
         Session::flash('message', "$count Manuscripts Imported Successfully!");
         return to_route('view_manuscripts');
+    }
+
+    public function createManuscript(Request $request)
+    {
+        $samples = Sample::select('m10_sample_id', 'm10_name')->get();
+        return view('manuscript.create_manuscript', compact('samples'));
+    }
+
+    public function getManuscripts(Request $request)
+    {
+        if ($request->isMethod('POST')) {
+            $validated = $request->validate(
+                [
+                    'txt_sample_id' => 'required|exists:m10_samples,m10_sample_id',
+                    'txt_group_id'  => 'required|exists:m11_groups,m11_group_code',
+                    'txt_test_id'   => 'required|exists:m12_tests,m12_test_number',
+                    'txt_name'      => 'required|string|max:255',
+                ],
+                [
+                    'txt_sample_id.required' => 'Please select a sample.',
+                    'txt_sample_id.exists'   => 'The selected sample does not exist.',
+                    'txt_group_id.required'  => 'Please select a group.',
+                    'txt_group_id.exists'    => 'The selected group does not exist.',
+                    'txt_test_id.required'   => 'Please select a test.',
+                    'txt_test_id.exists'     => 'The selected test does not exist.',
+                    'txt_name.required'      => 'Please enter a manuscript name.',
+                    'txt_name.max'           => 'The manuscript name should not exceed 255 characters.',
+                ]
+            );
+            $data = [
+                'm10_sample_id' => $request->txt_sample_id,
+                'm11_group_code' => $request->txt_group_id,
+                'm12_test_number' => $request->txt_test_id,
+                'm22_name' => $request->txt_name,
+                'tr01_created_by' => Session::get('user_id'),
+            ];
+            $create = Manuscript::create($data);
+            if ($create) {
+                Session::flash('type', 'success');
+                Session::flash('message', '🎉 Manuscript created successfully!');
+                return to_route('view_manuscripts');
+            }
+        }
+        $testId = $request->test_id;
+        if (!$testId) {
+            return response()->json(['error' => 'Test ID is required.'], 400);
+        }
+        $manuscripts = Manuscript::where('m12_test_number', $testId)
+            ->where('m22_status', 'ACTIVE')
+            ->orderBy('m22_name')
+            ->get(['m22_manuscript_id', 'm22_name', 'created_at']);
+        return response()->json($manuscripts);
     }
 }

@@ -29,7 +29,7 @@ class RegistrationController extends Controller
     public function preRegistration(Request $request)
     {
         if ($request->isMethod(method: 'POST')) {
-            dd($request);
+            // dd($request);
             $validator = Validator::make($request->all(), [
                 "dd_customer_type" => "required|exists:m09_customer_types,m09_customer_type_id",
                 "txt_customer_name" => "required|string",
