@@ -1,4 +1,3 @@
-{{-- Enhanced Lab Manager Pending Allotments Dashboard --}}
 @extends('layouts.app_back')
 
 @section('content')
@@ -21,12 +20,12 @@
                             </div>
                             <div class="card-tools">
                                 <em class="card-hint-icon icon ni ni-help" data-bs-toggle="tooltip"
-                                    title="Samples just received from registration"></em>
+                                    title="Samples just received from registration today"></em>
                             </div>
                         </div>
                         <div class="align-end flex-sm-wrap g-4">
                             <div class="nk-sale-data">
-                                <span class="amount">{{ $stats['new_samples'] ?? 0 }}</span>
+                                <span class="amount">{{ $stats['samples_received_today'] ?? 0 }}</span>
                             </div>
                         </div>
                     </div>
@@ -37,16 +36,16 @@
                     <div class="card-inner">
                         <div class="card-title-group align-start mb-2">
                             <div class="card-title">
-                                <h6 class="title">Pending Tests</h6>
+                                <h6 class="title">Pending Samples</h6>
                             </div>
                             <div class="card-tools">
                                 <em class="card-hint-icon icon ni ni-help" data-bs-toggle="tooltip"
-                                    title="Tests waiting for allotment"></em>
+                                    title="Samples waiting for allotment"></em>
                             </div>
                         </div>
                         <div class="align-end flex-sm-wrap g-4">
                             <div class="nk-sale-data">
-                                <span class="amount">{{ $stats['pending_tests'] ?? 0 }}</span>
+                                <span class="amount">{{ $stats['pending_samples'] ?? 0 }}</span>
                             </div>
                         </div>
                     </div>
@@ -57,16 +56,16 @@
                     <div class="card-inner">
                         <div class="card-title-group align-start mb-2">
                             <div class="card-title">
-                                <h6 class="title">Partially Allotted</h6>
+                                <h6 class="title">Tested Today</h6>
                             </div>
                             <div class="card-tools">
                                 <em class="card-hint-icon icon ni ni-help" data-bs-toggle="tooltip"
-                                    title="Samples with some tests allotted"></em>
+                                    title="Samples tested today"></em>
                             </div>
                         </div>
                         <div class="align-end flex-sm-wrap g-4">
                             <div class="nk-sale-data">
-                                <span class="amount">{{ $stats['partial_allotted'] ?? 0 }}</span>
+                                <span class="amount">{{ $stats['tested_today'] ?? 0 }}</span>
                             </div>
                         </div>
                     </div>
@@ -77,123 +76,83 @@
                     <div class="card-inner">
                         <div class="card-title-group align-start mb-2">
                             <div class="card-title">
-                                <h6 class="title">Ready for Testing</h6>
+                                <h6 class="title">Reported Today</h6>
                             </div>
                             <div class="card-tools">
                                 <em class="card-hint-icon icon ni ni-help" data-bs-toggle="tooltip"
-                                    title="Tests fully allotted and ready"></em>
+                                    title="Samples Reported today"></em>
                             </div>
                         </div>
                         <div class="align-end flex-sm-wrap g-4">
                             <div class="nk-sale-data">
-                                <span class="amount">{{ $stats['ready_for_testing'] ?? 0 }}</span>
+                                <span class="amount">{{ $stats['reported_samples'] ?? 0 }}</span>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
+        <div class="card card-bordered shadow-sm mb-4">
+            <div class="card-inner p-2">
+                <div class="row align-items-end g-3">
+                    <!-- Left Column - Bulk Actions -->
+                    <div class="col-md-8">
+                        <label class="form-label fw-semibold text-dark mb-2">Bulk Actions</label>
+                        <div class="d-flex flex-wrap align-items-center gap-2">
+                            <button type="button" class="btn btn-primary" onclick="openBulkAllotModal()" id="bulkAllotBtn"
+                                disabled>
+                                <em class="icon ni ni-user-check"></em>
+                                <span class="ms-1">Allot Selected</span>
+                            </button>
+                            <button type="button" class="btn btn-warning text-dark" onclick="openBulkTransferModal()"
+                                id="bulkTransferBtn" disabled>
+                                <em class="icon ni ni-send"></em>
+                                <span class="ms-1">Transfer Selected</span>
+                            </button>
+                        </div>
+                        <small class="text-muted d-block mt-4">
+                            <em class="icon ni ni-info text-primary"></em>
+                            Select samples below to enable bulk actions.
+                        </small>
+                    </div>
 
-        <!-- Bulk Actions Bar -->
-        <div class="card card-bordered mb-4">
-            <div class="card-inner">
-                <div class="row align-items-center">
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label class="form-label">Bulk Actions</label>
-                            <div class="btn-group" role="group">
-                                <button type="button" class="btn btn-primary" onclick="openBulkAllotModal()"
-                                    id="bulkAllotBtn" disabled>
-                                    <em class="icon ni ni-user-check"></em>
-                                    Allot Selected
-                                </button>
-                                <button type="button" class="btn btn-warning" onclick="openBulkTransferModal()"
-                                    id="bulkTransferBtn" disabled>
-                                    <em class="icon ni ni-forward-arrow"></em>
-                                    Transfer Selected
-                                </button>
-                            </div>
-                            <small class="text-muted">Select samples below to enable bulk actions</small>
-                        </div>
-                    </div>
-                    <div class="col-md-6 text-end">
-                        <div class="form-group">
-                            <label class="form-label">Selected Samples</label>
-                            <div>
-                                <span class="badge badge-primary" id="selectedCount">0</span> samples selected
-                                <button type="button" class="btn btn-sm btn-outline-secondary ms-2"
-                                    onclick="clearSelection()">Clear All</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        {{-- Select test to allot from all samples to a particular analyst --}}
-        <div class="card card-bordered mb-4">
-            <div class="card-inner">
-                <div class="row align-items-end">
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label class="form-label">Select Test for Allotment</label>
-                            <select id="testSelectionDropdown" class="form-select js-select2" data-search="on">
-                                <option value="">Choose Test...</option>
-                                @foreach ($availableTests as $test)
-                                    <option value="{{ $test->m12_test_id }}">
-                                        {{ $test->m12_name }} ({{ $test->test_count }} samples)
-                                    </option>
-                                @endforeach
-                            </select>
-                            <small class="text-muted">Select from available tests with pending samples</small>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div id="testSelectionStats" class="text-end" style="display: none;">
+                    <!-- Right Column - Test Selection -->
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold text-dark mb-2">Test based Allotment</label>
+                        <select id="testSelectionDropdown" class="form-select js-select2" data-search="on">
+                            <option value="">Choose Test...</option>
+                            @foreach ($availableTests as $test)
+                                <option value="{{ $test->m12_test_id }}">
+                                    {{ $test->m12_name }} ({{ $test->test_count }} samples)
+                                </option>
+                            @endforeach
+                        </select>
+                        <div id="testSelectionStats" class="mt-2 d-flex align-items-center gap-2" style="display: none;">
                             <span class="badge bg-info" id="selectedTestName">No test selected</span>
-                            <span class="badge bg-warning" id="samplesAvailable">0</span> Samples available
+                            <span class="badge bg-warning text-dark" id="samplesAvailable">0</span>
+                            <span class="text-muted">samples available</span>
                         </div>
+                    </div>
+                </div>
+
+                <hr>
+
+                <!-- Selected Samples Counter -->
+                <div class="row align-items-center">
+                    <div class="col-md-12 d-flex justify-content-between align-items-center flex-wrap">
+                        <div class="d-flex align-items-center flex-wrap gap-2">
+                            <label class="form-label fw-semibold text-dark mb-0">Selected Samples:</label>
+                            <span class="badge bg-primary fs-6" id="selectedCount">0</span>
+                            <span class="text-muted">samples selected</span>
+                        </div>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearSelection()">
+                            <em class="icon ni ni-cross"></em> Clear All
+                        </button>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Test Samples Modal -->
-        <div class="modal fade" tabindex="-1" id="testSamplesModal">
-            <div class="modal-dialog modal-lg" role="document">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Test Samples for Allotment</h5>
-                        <a href="#" class="close" data-bs-dismiss="modal" aria-label="Close">
-                            <em class="icon ni ni-cross"></em>
-                        </a>
-                    </div>
-                    <div class="modal-body">
-                        <div id="testSamplesResults">
-                            <!-- Results will be populated here -->
-                        </div>
-                        <div class="form-group mt-3">
-                            <label class="form-label">Select Analyst for Allotment</label>
-                            <select id="testAllotmentAnalyst" class="form-control form-select">
-                                <option value="">Choose Analyst...</option>
-                                @foreach ($employees as $employee)
-                                    <option value="{{ $employee->m06_employee_id }}">
-                                        {{ $employee->m06_name }} ({{ $employee->role }})
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
-                    </div>
-                    <div class="modal-footer bg-light">
-                        <button type="button" class="btn btn-primary" onclick="allotSelectedTests()" id="allotTestsBtn"
-                            disabled>
-                            Allot Selected Tests
-                        </button>
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    </div>
-                </div>
-            </div>
-        </div>
 
         <!-- Filters -->
         <div class="card card-bordered mb-4">
@@ -204,7 +163,7 @@
                             <label class="form-label">Priority</label>
                             <select name="priority" class="form-control form-select">
                                 <option value="">All Priorities</option>
-                                <option value="Urgent" {{ request('priority') == 'Urgent' ? 'selected' : '' }}>Urgent
+                                <option value="Tatkal" {{ request('priority') == 'Tatkal' ? 'selected' : '' }}>Tatkal
                                 </option>
                                 <option value="Normal" {{ request('priority') == 'Normal' ? 'selected' : '' }}>Normal
                                 </option>
@@ -217,7 +176,7 @@
                                 <option value="new" {{ request('status') == 'new' ? 'selected' : '' }}>New</option>
                                 <option value="partial" {{ request('status') == 'partial' ? 'selected' : '' }}>Partial
                                 </option>
-                                <option value="urgent" {{ request('status') == 'urgent' ? 'selected' : '' }}>Urgent (3+
+                                <option value="tatkal" {{ request('status') == 'tatkal' ? 'selected' : '' }}>Tatkal (3+
                                     days)</option>
                             </select>
                         </div>
@@ -244,197 +203,436 @@
                 </form>
             </div>
         </div>
-    </div>
 
-    <!-- Pending Samples Table -->
-    <div class="card card-bordered">
-        <div class="card-inner-group">
-            <div class="card-inner p-0">
-                <div class="nk-tb-list nk-tb-ulist">
-                    <div class="nk-tb-item nk-tb-head">
-                        <div class="nk-tb-col nk-tb-col-check">
-                            <div class="custom-control custom-control-sm custom-checkbox notext">
-                                <input type="checkbox" class="custom-control-input" id="selectAllSamples"
-                                    onchange="toggleSelectAll()">
-                                <label class="custom-control-label" for="selectAllSamples"></label>
-                            </div>
-                        </div>
-                        <div class="nk-tb-col"><span class="sub-text">Registration ID</span></div>
-                        <div class="nk-tb-col tb-col-lg"><span class="sub-text">Received Date</span></div>
-                        <div class="nk-tb-col tb-col-md"><span class="sub-text">Test Progress</span></div>
-                        <div class="nk-tb-col tb-col-md"><span class="sub-text">Priority</span></div>
-                        <div class="nk-tb-col tb-col-md"><span class="sub-text">Status</span></div>
-                        <div class="nk-tb-col tb-col-md"><span class="sub-text">Days Pending</span></div>
-                        <div class="nk-tb-col nk-tb-col-tools text-end">Actions</div>
-                    </div>
+        <!-- Tabbed Tables Section -->
+        <div class="card card-bordered">
+            <div class="card-inner">
+                <ul class="nav nav-tabs" id="samplesTab" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="unallotted-samples-tab" data-bs-toggle="tab"
+                            data-bs-target="#unallotted-samples-pane" type="button" role="tab"
+                            aria-controls="unallotted-samples-pane" aria-selected="true">
+                            <em class="icon ni ni-alert-circle"></em>&nbsp; Unallotted Samples
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="all-samples-tab" data-bs-toggle="tab"
+                            data-bs-target="#all-samples-pane" type="button" role="tab"
+                            aria-controls="all-samples-pane" aria-selected="false">
+                            <em class="icon ni ni-layers"></em>&nbsp; All Samples
+                        </button>
+                    </li>
+                </ul>
 
-                    @forelse($pendingRegistrations as $registration)
-                        <div class="nk-tb-item">
-                            <div class="nk-tb-col nk-tb-col-check">
-                                <div class="custom-control custom-control-sm custom-checkbox notext">
-                                    <input type="checkbox" class="custom-control-input sample-checkbox"
-                                        id="sample-{{ $registration->tr04_sample_registration_id }}"
-                                        value="{{ $registration->tr04_sample_registration_id }}"
-                                        onchange="updateBulkActions()">
-                                    <label class="custom-control-label"
-                                        for="sample-{{ $registration->tr04_sample_registration_id }}"></label>
-                                </div>
-                            </div>
-
-                            <div class="nk-tb-col">
-                                <div class="user-card">
-                                    <div class="user-info">
-                                        <span class="tb-lead">{{ $registration->tr04_reference_id }}</span>
-                                        @if ($registration->received_tests > 0)
-                                            <span class="badge bg-info ms-2">
-                                                <em class="icon ni ni-arrow-down"></em>
-                                                {{ $registration->received_tests }}
-                                            </span>
-                                        @endif
-                                        @if ($registration->transferred_tests > 0)
-                                            <span class="badge bg-warning ms-2">
-                                                <em class="icon ni ni-arrow-up"></em>
-                                                {{ $registration->transferred_tests }}
-                                            </span>
-                                        @endif
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="nk-tb-col tb-col-lg">
-                                <span class="tb-lead">{{ $registration->created_at->format('d M Y') }}</span>
-                                <span class="tb-sub">{{ $registration->created_at->format('h:i A') }}</span>
-                            </div>
-
-                            <div class="nk-tb-col tb-col-md">
-                                <div class="progress-wrap">
-                                    <div class="progress-text">
-                                        {{ $registration->allotted_tests }}/{{ $registration->total_tests }}
-                                    </div>
-                                    <div class="progress progress-md">
-                                        @php
-                                            $percentage =
-                                                $registration->total_tests > 0
-                                                    ? ($registration->allotted_tests / $registration->total_tests) * 100
-                                                    : 0;
-                                        @endphp
-                                        <div class="progress-bar" style="width: {{ $percentage }}%"></div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="nk-tb-col tb-col-md">
-                                @php
-                                    $priority = $registration->tr04_sample_type ?? 'Normal';
-                                    $priorityClass = match (strtolower($priority)) {
-                                        'urgent' => 'bg-danger',
-                                        'normal' => 'bg-info',
-                                        default => 'bg-secondary',
-                                    };
-                                @endphp
-                                <span class="badge {{ $priorityClass }}">{{ ucfirst($priority) }}</span>
-                            </div>
-
-                            <div class="nk-tb-col tb-col-md">
-                                @php
-                                    $allottedPercentage =
-                                        $registration->total_tests > 0
-                                            ? ($registration->allotted_tests / $registration->total_tests) * 100
-                                            : 0;
-                                    [$status, $statusClass] = match (true) {
-                                        $allottedPercentage == 0 => ['New', 'bg-warning'],
-                                        $allottedPercentage == 100 => ['Complete', 'bg-success'],
-                                        default => ['Partial', 'bg-info'],
-                                    };
-                                @endphp
-                                <span class="badge {{ $statusClass }}">{{ $status }}</span>
-                            </div>
-
-                            <div class="nk-tb-col tb-col-md">
-                                @php
-                                    $daysPending = $registration->created_at->floatDiffInDays(now());
-                                    $daysPending = round($daysPending, 1);
-                                    $urgencyClass = match (true) {
-                                        $daysPending > 3 => 'text-danger fw-bold',
-                                        $daysPending > 1 => 'text-warning',
-                                        default => 'text-muted',
-                                    };
-                                @endphp
-                                <span class="{{ $urgencyClass }}">
-                                    {{ $daysPending }} days
-                                    @if ($daysPending > 3)
-                                        <em class="icon ni ni-alert-circle text-danger"></em>
-                                    @endif
-                                </span>
-                            </div>
-
-                            <div class="nk-tb-col nk-tb-col-tools">
-                                <ul class="nk-tb-actions gx-1">
-                                    <li>
-                                        <div class="dropdown">
-                                            <a href="#" class="dropdown-toggle btn btn-icon btn-trigger"
-                                                data-bs-toggle="dropdown">
-                                                <em class="icon ni ni-more-h"></em>
-                                            </a>
-                                            <div class="dropdown-menu dropdown-menu-end">
-                                                <ul class="link-list-opt no-bdr">
+                <!-- Tab Content -->
+                <div class="tab-content" id="samplesTabContent">
+                    <!-- Unallotted Samples Tab -->
+                    <div class="tab-pane fade show active" id="unallotted-samples-pane" role="tabpanel"
+                        aria-labelledby="unallotted-samples-tab">
+                        <div class="nk-tb-list nk-tb-ulist mt-3">
+                            <table id="unallottedSamplesTable" class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>
+                                            <div class="custom-control custom-control-sm custom-checkbox notext">
+                                                <input type="checkbox" class="custom-control-input"
+                                                    id="selectAllUnallotted" onchange="toggleSelectAll('unallotted')">
+                                                <label class="custom-control-label" for="selectAllUnallotted"></label>
+                                            </div>
+                                        </th>
+                                        <th>Registration ID</th>
+                                        <th>Received Date</th>
+                                        <th>Test Progress</th>
+                                        <th>Priority</th>
+                                        <th>Days Pending</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach ($unallottedOrPartial as $registration)
+                                        <tr>
+                                            <td>
+                                                <div class="custom-control custom-control-sm custom-checkbox notext">
+                                                    <input type="checkbox"
+                                                        class="custom-control-input sample-checkbox-unallotted"
+                                                        id="sample-unallotted-{{ $registration->tr04_sample_registration_id }}"
+                                                        value="{{ $registration->tr04_sample_registration_id }}"
+                                                        onchange="updateBulkActions('unallotted')">
+                                                    <label class="custom-control-label"
+                                                        for="sample-unallotted-{{ $registration->tr04_sample_registration_id }}"></label>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="user-card">
+                                                    <div class="user-info">
+                                                        <span
+                                                            class="tb-lead">{{ $registration->tr04_reference_id }}</span>
+                                                        @if ($registration->received_tests > 0)
+                                                            <span class="badge bg-info ms-2">
+                                                                <em class="icon ni ni-arrow-down"></em>
+                                                                {{ $registration->received_tests }}
+                                                            </span>
+                                                        @endif
+                                                        @if ($registration->transferred_tests > 0)
+                                                            <span class="badge bg-warning ms-2">
+                                                                <em class="icon ni ni-arrow-up"></em>
+                                                                {{ $registration->transferred_tests }}
+                                                            </span>
+                                                        @endif
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span
+                                                    class="tb-lead">{{ $registration->created_at->format('d M Y') }}</span>
+                                                <span
+                                                    class="tb-sub">{{ $registration->created_at->format('h:i A') }}</span>
+                                            </td>
+                                            <td>
+                                                <div class="progress-wrap">
+                                                    <div class="progress-text">
+                                                        {{ $registration->allotted_tests }}/{{ $registration->total_tests }}
+                                                    </div>
+                                                    <div class="progress progress-md">
+                                                        @php
+                                                            $percentage =
+                                                                $registration->total_tests > 0
+                                                                    ? ($registration->allotted_tests /
+                                                                            $registration->total_tests) *
+                                                                        100
+                                                                    : 0;
+                                                        @endphp
+                                                        <div class="progress-bar" style="width: {{ $percentage }}%">
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                @php
+                                                    $priority = $registration->tr04_sample_type ?? 'Normal';
+                                                    $priorityClass = match (strtolower($priority)) {
+                                                        'tatkal' => 'text-danger',
+                                                        'normal' => 'text-info',
+                                                        default => 'text-secondary',
+                                                    };
+                                                @endphp
+                                                <strong class="{{ $priorityClass }}">{{ $priority }}</strong>
+                                            </td>
+                                            <td>
+                                                @php
+                                                    $daysPending = $registration->created_at->floatDiffInDays(now());
+                                                    $daysPending = round($daysPending, 1);
+                                                    $urgencyClass = match (true) {
+                                                        $daysPending > 3 => 'text-danger fw-bold',
+                                                        $daysPending > 1 => 'text-warning',
+                                                        default => 'text-muted',
+                                                    };
+                                                @endphp
+                                                <span class="{{ $urgencyClass }}">
+                                                    {{ $daysPending }} days
+                                                    @if ($daysPending > 3)
+                                                        <em class="icon ni ni-alert-circle text-danger"></em>
+                                                    @endif
+                                                </span>
+                                            </td>
+                                            <td>
+                                                @php
+                                                    $allottedPercentage =
+                                                        $registration->total_tests > 0
+                                                            ? ($registration->allotted_tests /
+                                                                    $registration->total_tests) *
+                                                                100
+                                                            : 0;
+                                                    [$status, $statusClass] = match (true) {
+                                                        $allottedPercentage == 0 => ['New', 'text-warning'],
+                                                        $allottedPercentage == 100 => ['Complete', 'text-success'],
+                                                        default => ['Partial', 'text-info'],
+                                                    };
+                                                @endphp
+                                                <span class="fw-bold {{ $statusClass }}">{{ $status }}</span>
+                                            </td>
+                                            <td>
+                                                <ul class="nk-tb-actions gx-1">
                                                     <li>
-                                                        <a
-                                                            href="{{ route('show_allotment', $registration->tr04_sample_registration_id) }}">
-                                                            <em class="icon ni ni-user-check text-success"></em>
-                                                            <span>Manage Allotment</span>
-                                                        </a>
-                                                    </li>
-                                                    <li>
-                                                        <a style="cursor: pointer;"
-                                                            onclick="quickAllot({{ $registration->tr04_sample_registration_id }})">
-                                                            <em class="icon ni ni-spark text-primary"></em>
-                                                            <span>Quick Allot</span>
-                                                        </a>
-                                                    </li>
-                                                    <li>
-                                                        <a style="cursor: pointer;"
-                                                            onclick="quickTransfer({{ $registration->tr04_sample_registration_id }})">
-                                                            <em class="icon ni ni-forward-arrow text-warning"></em>
-                                                            <span>Quick Transfer</span>
-                                                        </a>
-                                                    </li>
-                                                    <li>
-                                                        <a
-                                                            href="{{ route('template_manuscript', $registration->tr04_sample_registration_id) }}">
-                                                            <em class="icon ni ni-check-circle text-success"></em>
-                                                            <span>Manuscript</span>
-                                                        </a>
+                                                        <div class="dropdown">
+                                                            <a href="#"
+                                                                class="dropdown-toggle btn btn-icon btn-trigger"
+                                                                data-bs-toggle="dropdown">
+                                                                <em class="icon ni ni-more-h"></em>
+                                                            </a>
+                                                            <div class="dropdown-menu dropdown-menu-end">
+                                                                <ul class="link-list-opt no-bdr">
+                                                                    <li>
+                                                                        <a
+                                                                            href="{{ route('edit_sample', $registration->tr04_sample_registration_id) }}">
+                                                                            <em
+                                                                                class="icon ni ni-user-check text-success"></em>
+                                                                            <span>Edit</span>
+                                                                        </a>
+                                                                    </li>
+                                                                    <li>
+                                                                        <a
+                                                                            href="{{ route('show_allotment', $registration->tr04_sample_registration_id) }}">
+                                                                            <em
+                                                                                class="icon ni ni-user-check text-success"></em>
+                                                                            <span>Manage Allotment</span>
+                                                                        </a>
+                                                                    </li>
+                                                                    <li>
+                                                                        <a style="cursor: pointer;"
+                                                                            onclick="quickAllot({{ $registration->tr04_sample_registration_id }})">
+                                                                            <em class="icon ni ni-spark text-primary"></em>
+                                                                            <span>Quick Allot</span>
+                                                                        </a>
+                                                                    </li>
+                                                                    <li>
+                                                                        <a style="cursor: pointer;"
+                                                                            onclick="quickTransfer({{ $registration->tr04_sample_registration_id }})">
+                                                                            <em
+                                                                                class="icon ni ni-forward-arrow text-warning"></em>
+                                                                            <span>Quick Transfer</span>
+                                                                        </a>
+                                                                    </li>
+                                                                    <li>
+                                                                        <a
+                                                                            href="{{ route('template_manuscript', $registration->tr04_sample_registration_id) }}">
+                                                                            <em
+                                                                                class="icon ni ni-check-circle text-success"></em>
+                                                                            <span>Manuscript</span>
+                                                                        </a>
+                                                                    </li>
+                                                                </ul>
+                                                            </div>
+                                                        </div>
                                                     </li>
                                                 </ul>
-                                            </div>
-                                        </div>
-                                    </li>
-                                </ul>
-                            </div>
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
                         </div>
-                    @empty
-                        <div class="nk-tb-item">
-                            <div class="nk-tb-col text-center py-4" colspan="8">
-                                <div class="text-muted">
-                                    <em class="icon ni ni-inbox" style="font-size: 2rem;"></em>
-                                    <p class="mt-2">No pending allotments found</p>
-                                </div>
-                            </div>
+                    </div>
+
+                    <!-- All Samples Tab -->
+                    <div class="tab-pane fade" id="all-samples-pane" role="tabpanel" aria-labelledby="all-samples-tab">
+                        <div class="nk-tb-list nk-tb-ulist mt-3">
+                            <table id="allSamplesTable" class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>
+                                            {{-- <div class="custom-control custom-control-sm custom-checkbox notext">
+                                                <input type="checkbox" class="custom-control-input"
+                                                    id="selectAllAllSamples" onchange="toggleSelectAll('all')">
+                                                <label class="custom-control-label" for="selectAllAllSamples"></label>
+                                            </div> --}}
+                                        </th>
+                                        <th>Registration ID</th>
+                                        <th>Received Date</th>
+                                        <th>Test Progress</th>
+                                        <th>Priority</th>
+                                        <th>Status</th>
+                                        <th>Days Pending</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach ($allSamples as $registration)
+                                        <tr>
+                                            <td>
+                                                {{-- <div class="custom-control custom-control-sm custom-checkbox notext">
+                                                    <input type="checkbox"
+                                                        class="custom-control-input sample-checkbox-all"
+                                                        id="sample-all-{{ $registration->tr04_sample_registration_id }}"
+                                                        value="{{ $registration->tr04_sample_registration_id }}"
+                                                        onchange="updateBulkActions('all')">
+                                                    <label class="custom-control-label"
+                                                        for="sample-all-{{ $registration->tr04_sample_registration_id }}"></label>
+                                                </div> --}}
+                                            </td>
+                                            <td>
+                                                <div class="user-card">
+                                                    <div class="user-info">
+                                                        <span
+                                                            class="tb-lead">{{ $registration->tr04_reference_id }}</span>
+                                                        @if ($registration->received_tests > 0)
+                                                            <span class="badge bg-info ms-2">
+                                                                <em class="icon ni ni-arrow-down"></em>
+                                                                {{ $registration->received_tests }}
+                                                            </span>
+                                                        @endif
+                                                        @if ($registration->transferred_tests > 0)
+                                                            <span class="badge bg-warning ms-2">
+                                                                <em class="icon ni ni-arrow-up"></em>
+                                                                {{ $registration->transferred_tests }}
+                                                            </span>
+                                                        @endif
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span
+                                                    class="tb-lead">{{ $registration->created_at->format('d M Y') }}</span>
+                                                <span
+                                                    class="tb-sub">{{ $registration->created_at->format('h:i A') }}</span>
+                                            </td>
+                                            <td>
+                                                <div class="progress-wrap">
+                                                    <div class="progress-text">
+                                                        {{ $registration->allotted_tests }}/{{ $registration->total_tests }}
+                                                    </div>
+                                                    <div class="progress progress-md">
+                                                        @php
+                                                            $percentage =
+                                                                $registration->total_tests > 0
+                                                                    ? ($registration->allotted_tests /
+                                                                            $registration->total_tests) *
+                                                                        100
+                                                                    : 0;
+                                                        @endphp
+                                                        <div class="progress-bar" style="width: {{ $percentage }}%">
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                @php
+                                                    $priority = $registration->tr04_sample_type ?? 'Normal';
+                                                    $priorityClass = match (strtolower($priority)) {
+                                                        'tatkal' => 'bg-danger',
+                                                        'normal' => 'bg-info',
+                                                        default => 'bg-secondary',
+                                                    };
+                                                @endphp
+                                                <span class="badge {{ $priorityClass }}">{{ ucfirst($priority) }}</span>
+                                            </td>
+                                            <td>
+                                                @php
+                                                    $allottedPercentage =
+                                                        $registration->total_tests > 0
+                                                            ? ($registration->allotted_tests /
+                                                                    $registration->total_tests) *
+                                                                100
+                                                            : 0;
+                                                    [$status, $statusClass] = match (true) {
+                                                        $allottedPercentage == 0 => ['New', 'bg-warning'],
+                                                        $allottedPercentage == 100 => ['Complete', 'bg-success'],
+                                                        default => ['Partial', 'bg-info'],
+                                                    };
+                                                @endphp
+                                                <span class="badge {{ $statusClass }}">{{ $status }}</span>
+                                            </td>
+                                            <td>
+                                                @php
+                                                    $daysPending = $registration->created_at->floatDiffInDays(now());
+                                                    $daysPending = round($daysPending, 1);
+                                                    $urgencyClass = match (true) {
+                                                        $daysPending > 3 => 'text-danger fw-bold',
+                                                        $daysPending > 1 => 'text-warning',
+                                                        default => 'text-muted',
+                                                    };
+                                                @endphp
+                                                <span class="{{ $urgencyClass }}">
+                                                    {{ $daysPending }} days
+                                                    @if ($daysPending > 3)
+                                                        <em class="icon ni ni-alert-circle text-danger"></em>
+                                                    @endif
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <ul class="nk-tb-actions gx-1">
+                                                    <li>
+                                                        <div class="dropdown">
+                                                            <a href="#"
+                                                                class="dropdown-toggle btn btn-icon btn-trigger"
+                                                                data-bs-toggle="dropdown">
+                                                                <em class="icon ni ni-more-h"></em>
+                                                            </a>
+                                                            <div class="dropdown-menu dropdown-menu-end">
+                                                                <ul class="link-list-opt no-bdr">
+                                                                    <li>
+                                                                        <a
+                                                                            href="{{ route('show_allotment', $registration->tr04_sample_registration_id) }}">
+                                                                            <em
+                                                                                class="icon ni ni-user-check text-success"></em>
+                                                                            <span>Manage Allotment</span>
+                                                                        </a>
+                                                                    </li>
+                                                                    <li>
+                                                                        <a style="cursor: pointer;"
+                                                                            onclick="quickAllot({{ $registration->tr04_sample_registration_id }})">
+                                                                            <em class="icon ni ni-spark text-primary"></em>
+                                                                            <span>Quick Allot</span>
+                                                                        </a>
+                                                                    </li>
+                                                                    <li>
+                                                                        <a style="cursor: pointer;"
+                                                                            onclick="quickTransfer({{ $registration->tr04_sample_registration_id }})">
+                                                                            <em
+                                                                                class="icon ni ni-forward-arrow text-warning"></em>
+                                                                            <span>Quick Transfer</span>
+                                                                        </a>
+                                                                    </li>
+                                                                    <li>
+                                                                        <a
+                                                                            href="{{ route('template_manuscript', $registration->tr04_sample_registration_id) }}">
+                                                                            <em
+                                                                                class="icon ni ni-check-circle text-success"></em>
+                                                                            <span>Manuscript</span>
+                                                                        </a>
+                                                                    </li>
+                                                                </ul>
+                                                            </div>
+                                                        </div>
+                                                    </li>
+                                                </ul>
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
                         </div>
-                    @endforelse
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    @if ($pendingRegistrations->hasPages())
-        <div class="card">
-            <div class="card-inner d-flex justify-content-center">
-                {{ $pendingRegistrations->links('pagination::bootstrap-5') }}
+    <!-- Test Samples Modal -->
+    <div class="modal fade" tabindex="-1" id="testSamplesModal">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Test Samples for Allotment</h5>
+                    <a href="#" class="close" data-bs-dismiss="modal" aria-label="Close">
+                        <em class="icon ni ni-cross"></em>
+                    </a>
+                </div>
+                <div class="modal-body">
+                    <div id="testSamplesResults"></div>
+                    <div class="form-group mt-3">
+                        <label class="form-label">Select Analyst for Allotment</label>
+                        <select id="testAllotmentAnalyst" class="form-control form-select">
+                            <option value="">Choose Analyst...</option>
+                            @foreach ($employees as $employee)
+                                <option value="{{ $employee->m06_employee_id }}">
+                                    {{ $employee->m06_name }} ({{ $employee->role }})
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-primary" onclick="allotSelectedTests()" id="allotTestsBtn"
+                        disabled>
+                        Allot Selected Tests
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                </div>
             </div>
         </div>
-    @endif
+    </div>
 
     <!-- Bulk Allot Modal -->
     <div class="modal fade" tabindex="-1" id="bulkAllotModal">
@@ -450,6 +648,7 @@
                     @csrf
                     <div class="modal-body">
                         <input type="hidden" id="bulkAllotSampleIds" name="sample_ids">
+                        <input type="hidden" id="bulkAllotCurrentTab" name="current_tab">
                         <div class="form-group">
                             <label class="form-label">Select Analyst</label>
                             <select name="emp_id" class="form-control form-select" required>
@@ -464,7 +663,6 @@
                         <div class="form-group">
                             <label class="form-label">Selected Samples</label>
                             <div id="bulkAllotSampleList" class="border p-2 bg-light rounded">
-                                <!-- Will be populated by JS -->
                             </div>
                         </div>
                     </div>
@@ -491,6 +689,7 @@
                     @csrf
                     <div class="modal-body">
                         <input type="hidden" id="bulkTransferSampleIds" name="sample_ids">
+                        <input type="hidden" id="bulkTransferCurrentTab" name="current_tab">
                         <div class="form-group">
                             <label class="form-label">Transfer to RO</label>
                             <select name="ro_id" class="form-control form-select" required>
@@ -518,7 +717,6 @@
                         <div class="form-group">
                             <label class="form-label">Selected Samples</label>
                             <div id="bulkTransferSampleList" class="border p-2 bg-light rounded">
-                                <!-- Will be populated by JS -->
                             </div>
                         </div>
                     </div>
@@ -621,12 +819,114 @@
             </div>
         </div>
     </div>
+
     <script>
         $(document).ready(function() {
-            let selectedSamples = new Set();
+            let selectedSamples = {
+                'all': new Set(),
+                'unallotted': new Set()
+            };
+            let currentTab = 'unallotted';
+            let tablesInitialized = {
+                all: false,
+                unallotted: false
+            };
 
-            if (typeof $().tooltip === 'function') {
-                $('[data-bs-toggle="tooltip"]').tooltip();
+            // CRITICAL: Override Dashlite's tab management
+            const tabElement = $('#samplesTab');
+
+            function cleanupTabClasses() {
+                // Remove problematic Dashlite classes from nav-items
+                $('#samplesTab .nav-item').removeClass('active current-page');
+
+                // Ensure only active button has active class
+                $('#samplesTab .nav-link').removeClass('active');
+                const activePane = $('.tab-pane.active');
+                if (activePane.length) {
+                    const activeId = activePane.attr('aria-labelledby');
+                    $(`#${activeId}`).addClass('active');
+                }
+            }
+
+            // Clean up on initial load
+            cleanupTabClasses();
+
+            // Manual tab click handling
+            $('#samplesTab button[data-bs-toggle="tab"]').on('click', function(e) {
+                e.preventDefault();
+
+                // Remove active classes from all
+                $('#samplesTab .nav-link').removeClass('active');
+                $('#samplesTab .nav-item').removeClass('active current-page');
+                $('.tab-pane').removeClass('active show');
+
+                // Add active to clicked tab
+                $(this).addClass('active');
+
+                // Get target and show it
+                const target = $(this).attr('data-bs-target');
+                $(target).addClass('active show');
+
+                // Update current tab
+                currentTab = target === '#all-samples-pane' ? 'all' : 'unallotted';
+
+                // Initialize table on first view
+                if (target === '#unallotted-samples-pane' && !tablesInitialized.unallotted) {
+                    initializeUnallottedTable();
+                    tablesInitialized.unallotted = true;
+                } else if (target === '#all-samples-pane' && !tablesInitialized.all) {
+                    initializeAllSamplesTable();
+                    tablesInitialized.all = true;
+                }
+
+                updateBulkActions(currentTab);
+            });
+
+            // Monitor for Dashlite re-applying classes and clean them up
+            new MutationObserver(function() {
+                setTimeout(cleanupTabClasses, 10);
+            }).observe(tabElement[0], {
+                attributes: true,
+                subtree: true,
+                attributeFilter: ['class']
+            });
+
+            function initializeAllSamplesTable() {
+                $('#allSamplesTable').DataTable({
+                    pageLength: 20,
+                    ordering: true,
+                    searching: true,
+                    lengthChange: true,
+                    info: true,
+                    columnDefs: [{
+                            orderable: false,
+                            targets: 0
+                        },
+                        {
+                            orderable: false,
+                            targets: 7
+                        }
+                    ]
+                });
+            }
+
+            function initializeUnallottedTable() {
+                $('#unallottedSamplesTable').DataTable({
+                    pageLength: 20,
+                    ordering: true,
+                    searching: true,
+                    lengthChange: true,
+                    info: true,
+                    columnDefs: [{
+                            orderable: false,
+                            targets: 0
+                        },
+                        {
+                            orderable: false,
+                            targets: 7
+                        }
+                    ]
+                });
             }
 
             function showFeedback(type, message, title = null) {
@@ -636,84 +936,88 @@
                         icon: type === 'error' ? 'error' : type === 'warning' ? 'warning' : 'success',
                         confirmButtonText: 'OK'
                     };
-                    if (title) {
-                        config.title = title;
-                    }
+                    if (title) config.title = title;
                     Swal.fire(config);
                 } else {
                     alert(message);
                 }
             }
 
-            // Toggle select all checkboxes
-            window.toggleSelectAll = function() {
-                const selectAllCheckbox = $('#selectAllSamples')[0];
-                $('.sample-checkbox').prop('checked', selectAllCheckbox.checked).each(function() {
+            window.toggleSelectAll = function(tab) {
+                const checkboxClass = tab === 'all' ? '.sample-checkbox-all' : '.sample-checkbox-unallotted';
+                const selectAllId = tab === 'all' ? '#selectAllAllSamples' : '#selectAllUnallotted';
+                const selectAllCheckbox = $(selectAllId)[0];
+
+                $(checkboxClass).prop('checked', selectAllCheckbox.checked).each(function() {
                     if (this.checked) {
-                        selectedSamples.add(this.value);
+                        selectedSamples[tab].add(this.value);
                     } else {
-                        selectedSamples.delete(this.value);
+                        selectedSamples[tab].delete(this.value);
                     }
                 });
-                updateBulkActions();
+                updateBulkActions(tab);
             };
 
-            // Handle individual checkbox selection
-            window.updateBulkActions = function() {
-                selectedSamples.clear();
-                $('.sample-checkbox:checked').each(function() {
-                    selectedSamples.add(this.value);
+            window.updateBulkActions = function(tab) {
+                const checkboxClass = tab === 'all' ? '.sample-checkbox-all' : '.sample-checkbox-unallotted';
+                const selectAllId = tab === 'all' ? '#selectAllAllSamples' : '#selectAllUnallotted';
+
+                selectedSamples[tab].clear();
+                $(checkboxClass + ':checked').each(function() {
+                    selectedSamples[tab].add(this.value);
                 });
 
-                const count = selectedSamples.size;
+                const count = selectedSamples[tab].size;
                 $('#selectedCount').text(count);
                 $('#bulkAllotBtn, #bulkTransferBtn').prop('disabled', count === 0);
 
-                // Handle select all checkbox state
-                const totalCheckboxes = $('.sample-checkbox').length;
-                const selectAllCheckbox = $('#selectAllSamples')[0];
+                const totalCheckboxes = $(checkboxClass).length;
+                const selectAllCheckbox = $(selectAllId)[0];
                 if (selectAllCheckbox) {
                     selectAllCheckbox.checked = count === totalCheckboxes;
                     selectAllCheckbox.indeterminate = count > 0 && count < totalCheckboxes;
                 }
             };
 
-            // Clear selection function
             window.clearSelection = function() {
-                $('.sample-checkbox').prop('checked', false);
-                $('#selectAllSamples').prop('checked', false).prop('indeterminate', false);
-                selectedSamples.clear();
-                updateBulkActions();
+                $('.sample-checkbox-all, .sample-checkbox-unallotted').prop('checked', false);
+                $('#selectAllAllSamples, #selectAllUnallotted').prop('checked', false).prop('indeterminate',
+                    false);
+                selectedSamples['all'].clear();
+                selectedSamples['unallotted'].clear();
+                updateBulkActions(currentTab);
             };
 
-            // Bulk modal functions
             window.openBulkAllotModal = function() {
-                if (selectedSamples.size === 0) return;
-                $('#bulkAllotSampleIds').val([...selectedSamples].join(','));
-                populateSampleList('#bulkAllotSampleList', 'badge bg-primary me-1');
+                if (selectedSamples[currentTab].size === 0) return;
+                $('#bulkAllotSampleIds').val([...selectedSamples[currentTab]].join(','));
+                $('#bulkAllotCurrentTab').val(currentTab);
+                populateSampleList('#bulkAllotSampleList', 'badge bg-primary me-1', currentTab);
                 new bootstrap.Modal($('#bulkAllotModal')[0]).show();
             };
 
             window.openBulkTransferModal = function() {
-                if (selectedSamples.size === 0) return;
-                $('#bulkTransferSampleIds').val([...selectedSamples].join(','));
-                populateSampleList('#bulkTransferSampleList', 'badge bg-warning me-1');
+                if (selectedSamples[currentTab].size === 0) return;
+                $('#bulkTransferSampleIds').val([...selectedSamples[currentTab]].join(','));
+                $('#bulkTransferCurrentTab').val(currentTab);
+                populateSampleList('#bulkTransferSampleList', 'badge bg-warning me-1', currentTab);
                 new bootstrap.Modal($('#bulkTransferModal')[0]).show();
             };
 
-            function populateSampleList(containerSelector, badgeClass) {
+            function populateSampleList(containerSelector, badgeClass, tab) {
                 let sampleRefs = [];
-                selectedSamples.forEach(id => {
-                    const row = $(`input[value="${id}"]`).closest('.nk-tb-item');
+                selectedSamples[tab].forEach(id => {
+                    const checkboxClass = tab === 'all' ? '.sample-checkbox-all' :
+                        '.sample-checkbox-unallotted';
+                    const row = $(`input[value="${id}"].${checkboxClass.substring(1)}`).closest('tr');
                     const ref = row.find('.tb-lead').first().text().trim();
                     if (ref) sampleRefs.push(`<span class="${badgeClass}">${ref}</span>`);
                 });
                 $(containerSelector).html(sampleRefs.join('') || 'No samples selected');
             }
 
-            // Quick action functions
             window.quickAllot = function(id) {
-                const row = $(`input[value="${id}"]`).closest('.nk-tb-item');
+                const row = $(`input[value="${id}"]`).closest('tr');
                 const refText = row.find('.tb-lead').first().text().trim();
                 $('#quickAllotSampleId').val(id);
                 $('#quickAllotSampleRef').val(refText || `Sample ${id}`);
@@ -721,14 +1025,13 @@
             };
 
             window.quickTransfer = function(id) {
-                const row = $(`input[value="${id}"]`).closest('.nk-tb-item');
+                const row = $(`input[value="${id}"]`).closest('tr');
                 const refText = row.find('.tb-lead').first().text().trim();
                 $('#quickTransferSampleId').val(id);
                 $('#quickTransferSampleRef').val(refText || `Sample ${id}`);
                 new bootstrap.Modal($('#quickTransferModal')[0]).show();
             };
 
-            // Form submissions with validation
             $('#bulkAllotForm').on('submit', function(e) {
                 e.preventDefault();
                 const empId = $(this).find('select[name="emp_id"]').val();
@@ -736,7 +1039,7 @@
                     showFeedback('error', 'Please select an analyst', 'Validation Error');
                     return;
                 }
-                if (selectedSamples.size === 0) {
+                if (selectedSamples[currentTab].size === 0) {
                     showFeedback('error', 'No samples selected', 'Validation Error');
                     return;
                 }
@@ -751,52 +1054,43 @@
                     showFeedback('error', 'Please fill in all required fields', 'Validation Error');
                     return;
                 }
-                if (selectedSamples.size === 0) {
+                if (selectedSamples[currentTab].size === 0) {
                     showFeedback('error', 'No samples selected', 'Validation Error');
                     return;
                 }
                 this.submit();
             });
 
-            $('#quickAllotForm').on('submit', function(e) {
+            $('#quickAllotForm, #quickTransferForm').on('submit', function(e) {
                 e.preventDefault();
                 const empId = $(this).find('select[name="emp_id"]').val();
-                if (!empId) {
+                const roId = $(this).find('select[name="ro_id"]').val();
+                const reason = $(this).find('select[name="reason"]').val();
+
+                if ($(this).attr('id') === 'quickAllotForm' && !empId) {
                     showFeedback('error', 'Please select an analyst', 'Validation Error');
                     return;
                 }
-                this.submit();
-            });
-
-            $('#quickTransferForm').on('submit', function(e) {
-                e.preventDefault();
-                const roId = $(this).find('select[name="ro_id"]').val();
-                const reason = $(this).find('select[name="reason"]').val();
-                if (!roId || !reason) {
+                if ($(this).attr('id') === 'quickTransferForm' && (!roId || !reason)) {
                     showFeedback('error', 'Please fill in all required fields', 'Validation Error');
                     return;
                 }
                 this.submit();
             });
 
-            // Test selection dropdown change handler
             $('#testSelectionDropdown').on('change', function() {
                 const testId = $(this).val();
                 const testName = $(this).find('option:selected').text();
 
                 if (testId) {
-                    // Update stats display
                     $('#selectedTestName').text(testName.split(' (')[0]);
                     $('#testSelectionStats').show();
-
-                    // Load test samples
                     loadTestSamples(testId);
                 } else {
                     $('#testSelectionStats').hide();
                 }
             });
 
-            // Load test samples for selected test
             function loadTestSamples(testId) {
                 const csrfToken = $('meta[name="csrf-token"]').attr('content');
 
@@ -814,8 +1108,6 @@
                         if (data.success) {
                             displayTestSamples(data);
                             $('#samplesAvailable').text(data.samples.length);
-
-                            // Show modal
                             new bootstrap.Modal($('#testSamplesModal')[0]).show();
                         } else {
                             showFeedback('warning', data.message || 'No samples found for this test',
@@ -835,9 +1127,8 @@
                 let resultsHTML = '';
 
                 if (!data.samples || data.samples.length === 0) {
-                    resultsHTML = `<div class="text-center py-4">
-                            <p class="text-muted">No unallotted samples found for this test</p>
-                        </div>`;
+                    resultsHTML =
+                        `<div class="text-center py-4"><p class="text-muted">No unallotted samples found for this test</p></div>`;
                 } else {
                     resultsHTML = `
                         <div class="alert alert-info">
@@ -847,27 +1138,24 @@
                                     <strong>Available Samples:</strong> ${data.samples.length}
                                 </div>
                                 <div class="form-check">
-                                    <input type="checkbox" class="form-check-input" id="selectAllSamples">
-                                    <label class="form-check-label" for="selectAllSamples">Select All</label>
+                                    <input type="checkbox" class="form-check-input" id="selectAllTestSamples">
+                                    <label class="form-check-label" for="selectAllTestSamples">Select All</label>
                                 </div>
                             </div>
                         </div>
-                        
                         <div class="row">`;
 
                     $.each(data.samples, function(index, sample) {
-                        const regDate = sample.created_at ?
-                            new Date(sample.created_at).toLocaleDateString() : 'Unknown';
-
-                        const referenceId = sample.registration ?
-                            sample.registration.tr04_reference_id : 'Unknown Reference';
+                        const regDate = sample.created_at ? new Date(sample.created_at)
+                            .toLocaleDateString() : 'Unknown';
+                        const referenceId = sample.registration ? sample.registration.tr04_reference_id :
+                            'Unknown Reference';
 
                         resultsHTML += `<div class="col-md-6 mb-3">
                                 <div class="card border">
                                     <div class="card-body p-3">
                                         <div class="form-check">
-                                            <input type="checkbox" class="form-check-input sample-checkbox" 
-                                                value="${sample.tr05_sample_test_id}">
+                                            <input type="checkbox" class="form-check-input test-sample-checkbox" value="${sample.tr05_sample_test_id}">
                                             <label class="form-check-label">
                                                 <div>
                                                     <strong>${referenceId}</strong><br>
@@ -882,47 +1170,41 @@
                     resultsHTML += `</div>`;
                 }
                 $('#testSamplesResults').html(resultsHTML);
-
-                // Reset analyst selection and button state
                 $('#testAllotmentAnalyst').val('');
                 updateTestSelection();
             }
 
-            // Select all samples handler
-            $(document).on('change', '#selectAllSamples', function() {
-                $('.sample-checkbox').prop('checked', this.checked);
+            $(document).on('change', '#selectAllTestSamples', function() {
+                $('.test-sample-checkbox').prop('checked', this.checked);
                 updateTestSelection();
             });
 
-            // Sample selection handlers
-            $(document).on('change', '.sample-checkbox', function() {
+            $(document).on('change', '.test-sample-checkbox', function() {
                 updateTestSelection();
-
-                // Update "Select All" checkbox state
-                const totalSamples = $('.sample-checkbox').length;
-                const checkedSamples = $('.sample-checkbox:checked').length;
-
-                $('#selectAllSamples').prop('indeterminate', checkedSamples > 0 && checkedSamples <
+                const totalSamples = $('.test-sample-checkbox').length;
+                const checkedSamples = $('.test-sample-checkbox:checked').length;
+                $('#selectAllTestSamples').prop('indeterminate', checkedSamples > 0 && checkedSamples <
                     totalSamples);
-                $('#selectAllSamples').prop('checked', checkedSamples === totalSamples);
+                $('#selectAllTestSamples').prop('checked', checkedSamples === totalSamples);
             });
 
             function updateTestSelection() {
-                const count = $('.sample-checkbox:checked').length;
+                const count = $('.test-sample-checkbox:checked').length;
                 const analystSelected = $('#testAllotmentAnalyst').val();
                 $('#allotTestsBtn').prop('disabled', count === 0 || !analystSelected);
             }
 
             $('#testAllotmentAnalyst').on('change', updateTestSelection);
+
             window.allotSelectedTests = function() {
-                const selectedSamples = $('.sample-checkbox:checked').map(function() {
+                const selectedTests = $('.test-sample-checkbox:checked').map(function() {
                     return this.value;
                 }).get();
 
                 const analystId = $('#testAllotmentAnalyst').val();
                 const selectedTestName = $('#testSelectionDropdown option:selected').text().split(' (')[0];
 
-                if (!selectedSamples.length) {
+                if (!selectedTests.length) {
                     showFeedback('warning', 'Please select at least one sample', 'Selection Required');
                     return;
                 }
@@ -943,7 +1225,7 @@
                     contentType: 'application/json',
                     data: JSON.stringify({
                         test_name: selectedTestName,
-                        test_ids: selectedSamples.join(','),
+                        test_ids: selectedTests.join(','),
                         emp_id: analystId
                     }),
                     headers: csrfToken ? {
@@ -953,8 +1235,6 @@
                         if (data.success) {
                             showFeedback('success', data.message || 'Tests allotted successfully',
                                 'Allotment Successful');
-
-                            // Close modal and refresh
                             $('#testSamplesModal').modal('hide');
                             setTimeout(() => {
                                 location.reload();
@@ -979,25 +1259,16 @@
                 });
             };
 
-            updateBulkActions();
-            $(window).on('beforeunload', function() {
-                selectedSamples.clear();
-            });
+            if (typeof $().tooltip === 'function') {
+                $('[data-bs-toggle="tooltip"]').tooltip();
+            }
 
-            // Check for Laravel session flash messages and display them with SweetAlert2
+            updateBulkActions('all');
+
             @if (Session::has('message'))
-                $(document).ready(function() {
-                    const messageType = '{{ Session::get('type', 'info') }}';
-                    const message = '{{ Session::get('message') }}';
-
-                    const iconMap = {
-                        'success': 'success',
-                        'error': 'error',
-                        'warning': 'warning',
-                        'info': 'info'
-                    };
-                    showFeedback(messageType, message);
-                });
+                const messageType = '{{ Session::get('type', 'info') }}';
+                const message = '{{ Session::get('message') }}';
+                showFeedback(messageType, message);
             @endif
         });
     </script>

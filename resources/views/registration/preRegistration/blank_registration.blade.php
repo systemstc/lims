@@ -95,7 +95,7 @@
                                             <label class="form-label">Priority</label>
                                             <select name="dd_priority_type" class="form-control" required>
                                                 <option value="Normal">Normal</option>
-                                                <option value="Urgent">Urgent</option>
+                                                <option value="Tatkal">Tatkal</option>
                                             </select>
                                         </div>
 

@@ -41,7 +41,7 @@
                                                 </td>
                                                 <td>
                                                     <strong
-                                                        class="{{ ($sample->priority ?? '') == 'Urgent' ? 'text-danger' : 'text-info' }}">
+                                                        class="{{ ($sample->priority ?? '') == 'Tatkal' ? 'text-danger' : 'text-info' }}">
                                                         {{ $sample->priority ?? 'Normal' }}
                                                     </strong>
                                                 </td>

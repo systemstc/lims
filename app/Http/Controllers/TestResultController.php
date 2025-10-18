@@ -283,7 +283,7 @@ class TestResultController extends Controller
             ->sortByDesc(function ($s) {
                 return [
                     $s->pending_tests == 0 ? 1 : 0,
-                    $s->priority == 'Urgent' ? 1 : 0,
+                    $s->priority == 'Tatkal' ? 1 : 0,
                     $s->delay_days,
                 ];
             })

@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LIMS - Laboratory Information Management System | Textile Committee</title>
+    <link rel="shortcut icon" href="{{ asset('frontAssets/textiles_logo_200.png') }}">
     <link rel="stylesheet" href="{{ asset('backAssets/css/dashlite.css') }}">
     <link id="skin-default" rel="stylesheet" href="{{ asset('backAssets/css/theme.css') }}">
     <style>
@@ -322,8 +323,8 @@
     <nav class="navbar navbar-expand-lg navbar-dark fixed-top p-0">
         <div class="container">
             <a class="navbar-brand d-flex align-items-center" href="#">
-                <img src="{{ asset('frontAssets/logo.png') }}" alt="Textile Committee of India"
-                    class="me-3 rounded-circle" style="width: 50px; height: 50px; object-fit: cover;">
+                <img src="{{ asset('frontAssets/textiles_logo_200.png') }}" alt="Textile Committee of India"
+                    class="me-3 rounded-circle bg-light" style="width: 60px; height: 60px; object-fit: contain;">
                 <div>
                     <div class="fw-bold">Textile Committee</div>
                     <small class="opacity-75">Laboratory Information Management System</small>
@@ -354,6 +355,11 @@
                         <a href="#" class="btn btn-outline-light" data-bs-toggle="modal"
                             data-bs-target="#loginModal">
                             <em class="icon ni ni-signin me-2"></em>Access System
+                        </a>
+                    </li>
+                    <li class="nav-item ms-3">
+                        <a href="{{ route('admin_login') }}" class="btn btn-outline-light">
+                            <em class="icon ni ni-signin me-2"></em>Admin Login
                         </a>
                     </li>
                 </ul>
@@ -748,8 +754,8 @@
             <div class="row">
                 <div class="col-lg-4 mb-4 mb-lg-0">
                     <div class="d-flex align-items-center mb-3">
-                        <img src="{{ asset('frontAssets/logo.png') }}" alt="Logo" class="me-3 rounded-circle"
-                            style="height: 40px; width: 40px; object-fit: cover; background: #fff; padding: 3px;">
+                        <img src="{{ asset('frontAssets/textiles_logo_200.png') }}" alt="Logo" class="me-3 rounded-circle"
+                            style="height: 50px; width: 50px; object-fit: cover; background: #fff; padding: 3px;">
                         <div>
                             <h6 class="mb-0 text-white">Textile Committee</h6>
                             <small class="text-light">LIMS Division</small>

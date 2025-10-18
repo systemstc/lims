@@ -437,7 +437,7 @@
                                                                 <select class="form-select" name="dd_priority_type"
                                                                     id="dd_priority_type">
                                                                     <option value="Normal" selected>Normal</option>
-                                                                    <option value="Urgent">Urgent</option>
+                                                                    <option value="Tatkal">Tatkal</option>
                                                                 </select>
                                                             </div>
                                                         </div>
@@ -1752,7 +1752,7 @@
                 $("#txt_testing_charges").val(total.toFixed(2));
                 let additional = parseFloat($('#txt_aditional_charges').val()) || 0;
                 let finalTotal = total + additional;
-                if (priority === 'Urgent') {
+                if (priority === 'Tatkal') {
                     finalTotal += (total * 0.50);
                 }
                 $("#txt_total_charges").val(finalTotal.toFixed(2));

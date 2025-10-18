@@ -3,9 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\Employee;
+use App\Models\Group;
 use App\Models\Ro;
+use App\Models\Sample;
 use App\Models\SampleRegistration;
 use App\Models\SampleTest;
+use App\Models\Standard;
+use App\Models\Test;
 use App\Models\TestTransfer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -18,25 +22,6 @@ class AllottmentController extends Controller
 {
     private const BATCH_SIZE = 100;
 
-    // public function pendingAllotments(Request $request)
-    // {
-    //     $roId = Session::get('ro_id');
-    //     $query = $this->buildPendingQuery($roId);
-    //     $this->applyFilters($query, $request);
-    //     $this->applySorting($query);
-
-    //     $pendingRegistrations = $query->paginate(20)->appends($request->query());
-    //     $stats = $this->calculateLabManagerStats($roId);
-    //     $employees = $this->getLabEmployees($roId);
-    //     $ros = Ro::select('m04_ro_id', 'm04_name')->where('m04_ro_id', '!=', $roId)->orderBy('m04_name')->get();
-    //     return view('allottment.allotment_dashboard', compact(
-    //         'pendingRegistrations',
-    //         'stats',
-    //         'employees',
-    //         'ros'
-    //     ));
-    // }
-
 
     public function pendingAllotments(Request $request)
     {
@@ -46,15 +31,24 @@ class AllottmentController extends Controller
         $this->applySorting($query);
 
         $pendingRegistrations = $query->paginate(20)->appends($request->query());
+
+        // Separate into two collections
+        $allSamples = $pendingRegistrations;
+
+        // Get unallotted or partially allotted (where allotted_tests < total_tests)
+        $unallottedOrPartial = $pendingRegistrations->filter(function ($reg) {
+            return $reg->allotted_tests < $reg->total_tests;
+        });
+
         $stats = $this->calculateLabManagerStats($roId);
         $employees = $this->getLabEmployees($roId);
         $ros = Ro::select('m04_ro_id', 'm04_name')->where('m04_ro_id', '!=', $roId)->orderBy('m04_name')->get();
-
-        // Add available tests for the new dropdown feature
         $availableTests = $this->getAvailableTestsForAllotment();
 
         return view('allottment.allotment_dashboard', compact(
             'pendingRegistrations',
+            'allSamples',           // NEW
+            'unallottedOrPartial',  // NEW
             'stats',
             'employees',
             'ros',
@@ -181,8 +175,7 @@ class AllottmentController extends Controller
                 'tr04_sample_registrations.tr04_progress',
                 'tr04_sample_registrations.tr04_status',
                 'tr04_sample_registrations.created_at'
-            )
-            ->havingRaw('allotted_tests < total_tests');
+            );
     }
 
     private function applyFilters($query, Request $request)
@@ -201,8 +194,8 @@ class AllottmentController extends Controller
             match ($request->status) {
                 'new' => $query->having('allotted_tests', '=', 0),
                 'partial' => $query->havingRaw('allotted_tests > 0 AND allotted_tests < total_tests'),
-                'urgent' => $query->where(function ($q) {
-                    $q->where('tr04_sample_registrations.tr04_sample_type', 'Urgent')
+                'tatkal' => $query->where(function ($q) {
+                    $q->where('tr04_sample_registrations.tr04_sample_type', 'Tatkal')
                         ->orWhere('tr04_sample_registrations.created_at', '<=', now()->subDays(3));
                 }),
                 default => null
@@ -214,7 +207,7 @@ class AllottmentController extends Controller
     {
         $query->orderByRaw("
             CASE 
-                WHEN tr04_sample_registrations.tr04_sample_type = 'Urgent' THEN 1
+                WHEN tr04_sample_registrations.tr04_sample_type = 'Tatkal' THEN 1
                 WHEN tr04_sample_registrations.tr04_sample_type = 'Normal' THEN 2
                 ELSE 3
             END
@@ -223,35 +216,39 @@ class AllottmentController extends Controller
 
     private function calculateLabManagerStats($roId)
     {
+        $today = now()->toDateString();
         $baseQuery = SampleTest::where(function ($query) use ($roId) {
             $query->where('m04_ro_id', $roId);
         });
 
         return [
-            'new_samples' => SampleRegistration::whereHas('sampleTests', function ($query) use ($roId) {
-                $query->where(function ($q) use ($roId) {
-                    $q->where('m04_ro_id', $roId);
-                })->whereNull('m06_alloted_to');
-            })->count(),
-            'pending_tests' => (clone $baseQuery)->whereNull('m06_alloted_to')
-                ->whereNotIn('tr05_status', ['TRANSFERRED', 'COMPLETED'])->count(),
-            'partial_allotted' => SampleRegistration::withCount([
-                'sampleTests as total_tests' => function ($query) use ($roId) {
-                    $query->where(function ($q) use ($roId) {
-                        $q->where('m04_ro_id', $roId);
-                    });
-                },
-                'sampleTests as allotted_tests' => function ($query) use ($roId) {
-                    $query->where(function ($q) use ($roId) {
-                        $q->where('m04_ro_id', $roId);
-                    })->whereNotNull('m06_alloted_to');
-                }
-            ])->having('total_tests', '>', 0)
-                ->havingRaw('allotted_tests > 0 AND allotted_tests < total_tests')->count(),
-            'ready_for_testing' => (clone $baseQuery)->where('tr05_status', 'ALLOTED')
-                ->whereNotNull('m06_alloted_to')->count()
+            // ✅ Samples received today
+            'samples_received_today' => SampleRegistration::whereDate('created_at', $today)
+                ->whereHas('sampleTests', function ($query) use ($roId) {
+                    $query->where('m04_ro_id', $roId);
+                })
+                ->count(),
+
+            // ✅ Pending samples (not completed or reported)
+            'pending_samples' => (clone $baseQuery)
+                ->whereNotIn('tr05_status', ['COMPLETED', 'REPORTED', 'TRANSFERRED', 'RECEIVED_ACCEPTED', 'VERIFIED'])
+                ->distinct('tr04_sample_registration_id')
+                ->count(),
+
+            // ✅ Tested today
+            'tested_today' => (clone $baseQuery)
+                ->whereDate('tr05_completed_at', $today)
+                ->distinct('tr04_sample_registration_id')
+                ->count(),
+
+            // ✅ Reported samples
+            'reported_samples' => (clone $baseQuery)
+                ->where('tr05_status', 'REPORTED')
+                ->distinct('tr04_sample_registration_id')
+                ->count(),
         ];
     }
+
 
     private function getLabEmployees($roId)
     {
@@ -287,6 +284,85 @@ class AllottmentController extends Controller
 
         return view('allottment.allottment', compact('registration', 'tests', 'employees', 'ros'));
     }
+    public function editSampleTests(Request $request, $id = null)
+    {
+        if ($request->isMethod('get')) {
+            $sample = SampleRegistration::findOrFail($id);
+            $sampleTests = SampleTest::with('test', 'standard')
+                ->where('tr04_sample_registration_id', $id)
+                ->get();
+
+            $allTests = Test::orderBy('m12_name')->get();
+            $samples = Sample::where('m10_status', 'ACTIVE')->get();
+            $allStandards = Standard::orderBy('m15_method')->get();
+            $groups = Group::where('m11_status', 'ACTIVE')->get();
+
+            return view('allottment.update_sample_tests', compact('samples', 'groups', 'sample', 'sampleTests', 'allTests', 'allStandards'));
+        }
+
+        if ($request->isMethod('post')) {
+            $request->validate([
+                'test_ids' => 'required|array',
+                'test_ids.*' => 'required|exists:m12_tests,m12_test_id',
+                'standard_ids' => 'required|array',
+                'standard_ids.*' => 'required|exists:m15_standards,m15_standard_id',
+                'requirements' => 'array',
+                'remarks' => 'array',
+            ]);
+
+            try {
+                DB::beginTransaction();
+
+                $sample = SampleRegistration::findOrFail($id);
+                SampleTest::where('tr04_sample_registration_id', $id)->delete();
+
+                $totalTestCharges = 0;
+
+                foreach ($request->test_ids as $index => $testId) {
+                    $test = Test::find($testId);
+                    if (!$test) continue;
+
+                    $totalTestCharges += (float) $test->m12_charge;
+
+                    SampleTest::create([
+                        'tr04_sample_registration_id' => $id,
+                        'm12_test_id' => $testId,
+                        'm12_test_number' => $test->m12_test_number,
+                        'm15_standard_id' => $request->standard_ids[$index],
+                        'm04_ro_id' => $sample->m04_ro_id ?? Session::get('ro_id') ?? -1,
+                        'm16_primary_test_id' => $test->m16_primary_test_id ?? null,
+                        'm17_secondary_test_id' => $test->m17_secondary_test_id ?? null,
+                        'tr05_status' => $request->requirements[$index] ?? 'PENDING',
+                        'tr05_remark' => $request->remarks[$index] ?? null,
+                        'tr05_priority' => 'NORMAL',
+                    ]);
+                }
+
+                $additionalCharges = (float) ($sample->tr04_additional_charges ?? 0);
+                $totalCharges = $totalTestCharges + $additionalCharges;
+
+                if (strtolower($sample->tr04_sample_type) === 'tatkal') {
+                    $totalCharges = $totalTestCharges * 1.5 + $additionalCharges;
+                }
+
+                $update = $sample->update([
+                    'tr04_testing_charges' => $totalTestCharges,
+                    'tr04_additional_charges' => $additionalCharges,
+                    'tr04_total_charges' => $totalCharges,
+                ]);
+                DB::commit();
+                Session::flash('type', 'success');
+                Session::flash('message', 'Sample tests and charges updated successfully.');
+                return to_route('view_allottment');
+            } catch (\Exception $e) {
+                DB::rollBack();
+                Session::flash('type', 'error');
+                Session::flash('message', ['error' => 'Failed to update tests: ' . $e->getMessage()]);
+                return back();
+            }
+        }
+    }
+
 
     // Bulk Allot Samples
     public function bulkAllotSamples(Request $request)

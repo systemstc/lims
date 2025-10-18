@@ -192,7 +192,7 @@ class SampleTest extends Model
         }
         return $query->orderByRaw("
             CASE tr05_priority 
-                WHEN 'URGENT' THEN 1
+                WHEN 'TATKAL' THEN 1
                 WHEN 'HIGH' THEN 2  
                 WHEN 'NORMAL' THEN 3
                 WHEN 'LOW' THEN 4
@@ -232,7 +232,7 @@ class SampleTest extends Model
     public function getPriorityBadgeClass(): string
     {
         return match ($this->tr05_priority ?? 'NORMAL') {
-            'URGENT' => 'bg-danger',
+            'TATKAL' => 'bg-danger',
             'NORMAL' => 'bg-info',
             default => 'bg-light',
         };

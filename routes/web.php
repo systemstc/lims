@@ -165,12 +165,14 @@ Route::middleware(['access_control'])->group(function () {
     // Sample detail routes 
     Route::get('/samples/{id}/details', [RegistrationController::class, 'showSampleDetails'])->name('view_registration_pdf');
     Route::get('/samples/{id}/print', [RegistrationController::class, 'printSampleDetails'])->name('print_sample_acknowledgement');
-    Route::post('/samples/upgrade', [RegistrationController::class, 'upgradeToUrgent'])->name('upgrade_to_urgent');
+    Route::post('/samples/upgrade', [RegistrationController::class, 'upgradeToTatkal'])->name('upgrade_to_tatkal');
 
     // aLLOTTMENT 
     Route::prefix('allotment')->group(function () {
         Route::get('/dashboard', [AllottmentController::class, 'pendingAllotments'])->name('view_allottment');
         Route::get('/manage/{registrationId}', [AllottmentController::class, 'viewAllottment'])->name('show_allotment');
+
+        Route::match(['get', 'post'], 'update-sample-tests/{id}', [AllottmentController::class, 'editSampleTests'])->name('edit_sample');
     });
 
     // Analyst Ruotes
@@ -312,3 +314,6 @@ Route::post('/razorpay/verify-payment', [RazorpayController::class, 'verifyPayme
 Route::get('/razorpay/payment-status/{orderId}', [RazorpayController::class, 'getPaymentStatus'])->name('razorpay.payment.status');
 
 Route::post('/razorpay/webhook', [RazorpayController::class, 'webhook'])->name('razorpay.webhook');
+
+
+Route::get('/get-all-samples-data', [AllottmentController::class, 'getAllSamplesData'])->name('get_all_samples_data');

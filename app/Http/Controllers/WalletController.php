@@ -72,9 +72,17 @@ class WalletController extends Controller
         try {
             DB::beginTransaction();
 
-            $user = SampleRegistration::where('tr04_reference_id', $request->sample_id)->get('m07_customer_id');
-            dd($user->m07_customer_id);
-            $wallet = Wallet::where('tr02_user_id', $user->m07_customer_id)->lockForUpdate()->first();
+            $customerId = SampleRegistration::where('tr04_reference_id', $request->sample_id)
+                ->value('m07_customer_id');
+
+            if (!$customerId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Customer not found for this sample'
+                ], 404);
+            }
+
+            $wallet = Wallet::where('m07_customer_id', $customerId)->lockForUpdate()->first();
 
             if (!$wallet) {
                 return response()->json([
@@ -84,7 +92,7 @@ class WalletController extends Controller
             }
 
             $sample = SampleRegistration::where('tr04_reference_id', $request->sample_id)
-                ->where('tr04_created_by', $user->m07_customer_id)
+                ->where('m07_customer_id', $customerId)
                 ->first();
 
             if (!$sample) {
@@ -94,7 +102,6 @@ class WalletController extends Controller
                 ], 404);
             }
 
-            // Check available balance
             $availableBalance = $wallet->tr02_balance - $wallet->tr02_hold_amount;
             $requiredAmount = $request->hold_amount;
 
@@ -108,7 +115,6 @@ class WalletController extends Controller
                 ], 400);
             }
 
-            // Release hold amount
             if ($sample->tr04_hold_transaction_id) {
                 $holdTransaction = WalletTransaction::find($sample->tr04_hold_transaction_id);
                 if ($holdTransaction) {
@@ -116,13 +122,11 @@ class WalletController extends Controller
                 }
             }
 
-            // Deduct amount from wallet
             $balanceBefore = $wallet->tr02_balance;
             $wallet->tr02_balance -= $requiredAmount;
             $wallet->tr02_hold_amount -= $requiredAmount;
             $wallet->save();
 
-            // Create debit transaction
             $transactionCount = WalletTransaction::count();
             $transaction = WalletTransaction::create([
                 'tr03_transaction_uuid' => 'TXN-' . date('Y') . '-' . str_pad($transactionCount + 1, 4, '0', STR_PAD_LEFT),
@@ -131,18 +135,17 @@ class WalletController extends Controller
                 'tr03_amount' => $requiredAmount,
                 'tr03_currency' => 'INR',
                 'tr03_description' => 'Payment for Completed Test',
-                'tr03_sample_registration_id' => $sample->tr04_sample_registration_id,
+                'tr04_sample_registration_id' => $sample->tr04_sample_registration_id,
                 'tr03_invoice_number' => $sample->tr04_reference_no,
                 'tr03_balance_before' => $balanceBefore,
                 'tr03_balance_after' => $wallet->tr02_balance,
                 'tr03_status' => 'completed',
-                'tr03_created_by' => $user->m07_customer_id
+                'tr03_created_by' => $customerId,
             ]);
 
-            // Update sample status
             $sample->update([
-                'tr04_status' => 'reporting',
-                'tr04_payment_status' => 'paid'
+                'tr04_progress' => 'REPORTED',
+                'tr04_payment_status' => 'PAID'
             ]);
 
             DB::commit();
@@ -172,7 +175,7 @@ class WalletController extends Controller
             DB::beginTransaction();
 
             $user = Auth::user();
-            $wallet = Wallet::where('tr02_user_id', $user->id)->lockForUpdate()->first();
+            $wallet = Wallet::where('m07_customer_id', $user->id)->lockForUpdate()->first();
 
             if (!$wallet) {
                 throw new \Exception('Wallet not found');
@@ -187,17 +190,17 @@ class WalletController extends Controller
             $transactionCount = WalletTransaction::count();
             $transaction = WalletTransaction::create([
                 'tr03_transaction_uuid' => 'TXN-' . date('Y') . '-' . str_pad($transactionCount + 1, 4, '0', STR_PAD_LEFT),
-                'tr03_wallet_id' => $wallet->tr02_wallet_id,
+                'tr02_wallet_id' => $wallet->tr02_wallet_id,
                 'tr03_type' => 'hold',
                 'tr03_amount' => $amount,
                 'tr03_currency' => 'INR',
                 'tr03_description' => 'Hold for Sample Registration',
-                'tr03_sample_registration_id' => $sampleRegistrationId,
+                'tr04_sample_registration_id' => $sampleRegistrationId,
                 'tr03_invoice_number' => $invoiceNumber,
                 'tr03_balance_before' => $balanceBefore,
                 'tr03_balance_after' => $wallet->tr02_balance,
                 'tr03_status' => 'pending',
-                'tr03_created_by' => $user->id
+                'm07_created_by' => $user->id
             ]);
 
             DB::commit();
@@ -223,7 +226,7 @@ class WalletController extends Controller
     public function getBalance()
     {
         $user = Auth::user();
-        $wallet = Wallet::where('tr02_user_id', $user->id)->first();
+        $wallet = Wallet::where('m07_customer_id', $user->id)->first();
 
         if (!$wallet) {
             return response()->json([
@@ -247,7 +250,7 @@ class WalletController extends Controller
     public function transactions(Request $request)
     {
         $user = Auth::user();
-        $wallet = Wallet::where('tr02_user_id', $user->id)->first();
+        $wallet = Wallet::where('m07_customer_id', $user->id)->first();
 
         if (!$wallet) {
             return response()->json([
@@ -285,7 +288,7 @@ class WalletController extends Controller
     public function downloadStatement(Request $request)
     {
         $user = Auth::user();
-        $wallet = Wallet::where('tr02_user_id', $user->id)->first();
+        $wallet = Wallet::where('m07_customer_id', $user->id)->first();
 
         if (!$wallet) {
             return redirect()->back()->with('error', 'Wallet not found');

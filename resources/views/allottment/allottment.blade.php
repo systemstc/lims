@@ -33,7 +33,7 @@
                             <label class="form-label">Priority</label>
                             <div class="form-control-wrap">
                                 <span
-                                    class="badge {{ $registration->tr04_sample_type === 'Urgent' ? 'bg-danger' : 'bg-info' }}">
+                                    class="badge {{ $registration->tr04_sample_type === 'Tatkal' ? 'bg-danger' : 'bg-info' }}">
                                     {{ $registration->tr04_sample_type ?? 'Normal' }}
                                 </span>
                             </div>

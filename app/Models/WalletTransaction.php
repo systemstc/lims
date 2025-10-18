@@ -21,7 +21,7 @@ class WalletTransaction extends Model
         'tr03_gst_rate',
         'tr03_currency',
         'tr03_payment_reference',
-        'tr03_sample_registration_id',
+        'tr04_sample_registration_id',
         'tr03_invoice_number',
         'tr03_description',
         'tr03_narration',
@@ -67,7 +67,7 @@ class WalletTransaction extends Model
      */
     public function sampleRegistration()
     {
-        return $this->belongsTo(SampleRegistration::class, 'tr03_sample_registration_id');
+        return $this->belongsTo(SampleRegistration::class, 'tr04_sample_registration_id', 'tr04_sample_registration_id');
     }
 
     /**
@@ -75,7 +75,7 @@ class WalletTransaction extends Model
      */
     public function paymentGatewayLogs()
     {
-        return $this->hasMany(PaymentGatewayLog::class, 'tr05_wallet_transaction_id');
+        return $this->hasMany(PaymentGatewayLog::class, 'tr05_wallet_transaction_id', 'tr05_wallet_transaction_id');
     }
 
     /**
