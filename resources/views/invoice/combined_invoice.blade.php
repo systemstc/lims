@@ -3,12 +3,10 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Sample Invoice | LIMS</title>
+    <title>Combined Invoice | LIMS</title>
 
-    <meta name="csrf-token" content="{{ csrf_token() }}">
     <link rel="stylesheet" href="{{ asset('backAssets/css/dashlite.css') }}">
     <link id="skin-default" rel="stylesheet" href="{{ asset('backAssets/css/theme.css') }}">
-    <script src="{{ asset('backAssets/js/jquery.js') }}"></script>
 
     <style>
         body {
@@ -129,22 +127,21 @@
     </style>
 </head>
 
-<body>
-<!-- onload="window.print()"> -->
-
+<body onload="window.print()">
     <div class="invoice-container">
         <div class="invoice-header">
             <div class="logo">
                 <img src="{{ asset('backAssets/images/logo.png') }}" alt="Company Logo">
             </div>
             <div class="invoice-title">
-                <h2>INVOICE</h2>
+                <h2>COMBINED INVOICE</h2>
                 <span>Date: {{ date('d M, Y') }}</span>
             </div>
         </div>
 
+        @php $firstsample = $samples->first(); @endphp
+
         <div class="customer-info">
-            @php $firstsample = $samples->first(); @endphp
             <div class="section-title">Billed To:</div>
             <ul>
                 <li><strong>{{ $firstsample['customer']['m07_name'] }}</strong></li>
@@ -155,14 +152,7 @@
             </ul>
         </div>
 
-        <div class="section-title">Sample Details</div>
-       <form id="selectedInvoicesForm" action="{{ route('generate_combined_invoice') }}" method="GET">
-
-             <div class="no-print" style="margin-bottom: 15px;">
-        <label>
-            <input type="checkbox" id="select-all-checkbox"> Select All Samples
-        </label>
-    </div>
+        <div class="section-title">Selected Sample Details</div>
         <table class="details-table">
             <thead>
                 <tr>
@@ -177,12 +167,7 @@
                 @foreach($samples as $index => $sample)
                     <tr>
                         <td>{{ $index + 1 }}</td>
-                        <td>
-                            <input type="checkbox" name="reference_ids[]" value="{{ $sample->tr04_reference_id }}">
-                            <a href="{{ route('view_invoice', $sample->tr04_sample_registration_id) }}">
-                                #{{ $sample->tr04_reference_id }}
-                            </a>
-                        </td>
+                        <td>#{{ $sample->tr04_reference_id }}</td>
                         <td>{{ $sample->labSample['m14_name'] ?? 'N/A' }}</td>
                         <td>{{ $sample->tr04_sample_description ?? 'N/A' }}</td>
                         <td>{{ number_format($sample->tr04_total_charges, 2) }}</td>
@@ -197,44 +182,6 @@
                 <td>₹{{ number_format($totalAmount, 2) }}</td>
             </tr>
         </table>
-         <div class="no-print" style="text-align: right; margin-top: 20px;">
-        <button type="submit" class="btn btn-primary">Generate Selected Invoice</button>
     </div>
-</form>
-    </div>
-
-    <script src="{{ asset('backAssets/js/bundle.js') }}"></script>
-    <script src="{{ asset('backAssets/js/scripts.js') }}"></script>
-    <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const form = document.getElementById('selectedInvoicesForm');
-        const checkboxes = form.querySelectorAll('input[type="checkbox"][name="reference_ids[]"]');
-
-        form.addEventListener('submit', function (e) {
-            let anyChecked = false;
-            checkboxes.forEach(cb => {
-                if (cb.checked) {
-                    anyChecked = true;
-                }
-            });
-
-            if (!anyChecked) {
-                e.preventDefault();
-                alert('Please select at least one sample to generate a combined invoice.');
-            }
-        });
-
-        // Optional: Select All toggle
-        const selectAllCheckbox = document.getElementById('select-all-checkbox');
-        if (selectAllCheckbox) {
-            selectAllCheckbox.addEventListener('change', function () {
-                checkboxes.forEach(cb => {
-                    cb.checked = selectAllCheckbox.checked;
-                });
-            });
-        }
-    });
-</script>
-
 </body>
 </html>
