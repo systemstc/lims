@@ -13,10 +13,6 @@
         <div class="loader-text">Loading...</div>
     </div>
 
-
-
-
-
     <div class="nk-app-root">
         <div class="nk-main">
             @include('layouts.backLayout.sidebar')

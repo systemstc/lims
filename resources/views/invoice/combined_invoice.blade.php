@@ -124,17 +124,30 @@
                 display: none !important;
             }
         }
+
+        .invoice-container1 {
+/*    background: #fff;*/
+    max-width: 900px;
+    margin: auto;
+ padding: 20px 0px;
+   
+}
     </style>
 </head>
 
 <body onload="window.print()">
+   <!--    <div class="nk-block-head-content d-flex justify-content-end align-items-center no-print invoice-container1" style="">
+    <a href="{{ url()->previous() }}" class="btn btn-primary">
+        <em class="icon ni ni-back-alt-fill"></em> &nbsp; Back
+    </a>
+</div> -->
     <div class="invoice-container">
         <div class="invoice-header">
             <div class="logo">
                 <img src="{{ asset('backAssets/images/logo.png') }}" alt="Company Logo">
             </div>
             <div class="invoice-title">
-                <h2>COMBINED INVOICE</h2>
+                <h2>INVOICE</h2>
                 <span>Date: {{ date('d M, Y') }}</span>
             </div>
         </div>
