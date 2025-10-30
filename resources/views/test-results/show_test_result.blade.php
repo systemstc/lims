@@ -17,8 +17,8 @@
                                 </div>
                             </div>
                             <div class="nk-block-head-content">
-                                <a href="{{ route('test_results') }}" class="btn btn-outline-light">
-                                    <em class="icon ni ni-arrow-left"></em><span>Back</span>
+                                <a href="{{ route('test_results') }}" class="btn btn-primary">
+                                    <em class="icon ni ni-caret-left-fill"></em>&nbsp; Back
                                 </a>
                             </div>
                         </div>
@@ -83,16 +83,42 @@
                                                         @endif
                                                     </div>
                                                     <div class="col-md-4 text-end">
-                                                        @if ($testResult->tr07_result_status == 'DRAFT')
-                                                            <span
-                                                                class="badge badge-dot has-bg bg-warning d-inline-flex align-items-center">Draft</span>
-                                                        @elseif ($testResult->tr07_result_status == 'SUBMITTED')
-                                                            <span
-                                                                class="badge badge-dot has-bg bg-success d-inline-flex align-items-center">Submitted</span>
-                                                        @else
-                                                            <span
-                                                                class="badge badge-dot has-bg bg-info d-inline-flex align-items-center">Revised</span>
-                                                        @endif
+                                                        @switch($testResult->tr07_result_status)
+                                                            @case('DRAFT')
+                                                                <span
+                                                                    class="badge badge-dot has-bg bg-warning d-inline-flex align-items-center">Draft</span>
+                                                            @break
+
+                                                            @case('SUBMITTED')
+                                                                <span
+                                                                    class="badge badge-dot has-bg bg-primary d-inline-flex align-items-center">Submitted</span>
+                                                            @break
+
+                                                            @case('VERIFIED')
+                                                                <span
+                                                                    class="badge badge-dot has-bg bg-info d-inline-flex align-items-center">Verified</span>
+                                                            @break
+
+                                                            @case('AUTHORIZED')
+                                                                <span
+                                                                    class="badge badge-dot has-bg bg-success d-inline-flex align-items-center">Authorized</span>
+                                                            @break
+
+                                                            @case('REVISED')
+                                                                <span
+                                                                    class="badge badge-dot has-bg bg-secondary d-inline-flex align-items-center">Revised</span>
+                                                            @break
+
+                                                            @case('REJECTED')
+                                                                <span
+                                                                    class="badge badge-dot has-bg bg-danger d-inline-flex align-items-center">Rejected</span>
+                                                            @break
+
+                                                            @default
+                                                                <span
+                                                                    class="badge badge-dot has-bg bg-light d-inline-flex align-items-center">Unknown</span>
+                                                        @endswitch
+
                                                     </div>
                                                 </div>
 
@@ -123,11 +149,11 @@
                                                 </div>
 
                                                 {{-- Actions --}}
-                                                <div class="d-flex justify-content-end">
-                                                    @if ($testResult->tr07_result_status == 'DRAFT')
+                                                {{-- <div class="d-flex justify-content-end">
+                                                    @if ($testResult->tr07_result_status == 'VERIFIED')
                                                         <button class="btn btn-success btn-sm" data-bs-toggle="modal"
                                                             data-bs-target="#finalizeModal{{ $testResult->tr07_test_result_id }}">
-                                                            <em class="icon ni ni-check"></em><span>Finalize</span>
+                                                            <em class="icon ni ni-check"></em><span>Verified</span>
                                                         </button>
                                                     @else
                                                         <button class="btn btn-outline-info btn-sm" data-bs-toggle="modal"
@@ -135,209 +161,208 @@
                                                             <em class="icon ni ni-pen2"></em><span>Revise</span>
                                                         </button>
                                                     @endif
-                                                </div>
+                                                </div> --}}
                                             </div>
                                         @endforeach
                                     </div>
-                                @empty
-                                    <div class="card card-bordered">
-                                        <div class="card-inner text-center py-5">
-                                            <div class="icon-circle icon-circle-lg bg-primary-dim mb-3">
-                                                <em class="icon ni ni-activity text-primary"></em>
+                                    @empty
+                                        <div class="card card-bordered">
+                                            <div class="card-inner text-center py-5">
+                                                <div class="icon-circle icon-circle-lg bg-primary-dim mb-3">
+                                                    <em class="icon ni ni-activity text-primary"></em>
+                                                </div>
+                                                <h5>No Test Results Found</h5>
+                                                <p class="text-soft">No tests exist for this sample.</p>
                                             </div>
-                                            <h5>No Test Results Found</h5>
-                                            <p class="text-soft">No tests exist for this sample.</p>
                                         </div>
-                                    </div>
-                                @endforelse
-                            </div>
+                                    @endforelse
+                                </div>
 
-                            {{-- RIGHT COLUMN: Single Sidebar for Sample --}}
-                            <div class="col-lg-4">
+                                {{-- RIGHT COLUMN: Single Sidebar for Sample --}}
+                                <div class="col-lg-4">
 
-                                {{-- Sample Overview --}}
-                                <div class="card card-bordered mb-3">
-                                    <div class="card-inner">
-                                        <h6 class="card-title mb-3">Sample Overview</h6>
-                                        <ul class="list-group list-group-flush">
-                                            <li class="list-group-item px-0">
-                                                <span class="text-soft fs-sm">Sample ID</span>
-                                                <span class="d-block fw-medium">{{ $sampleInfo->tr04_reference_id }}</span>
-                                            </li>
-                                            <li class="list-group-item px-0">
-                                                <span class="text-soft fs-sm">Total Tests</span>
-                                                <span class="d-block fw-medium">{{ $testResults->count() }}</span>
-                                            </li>
-                                            <li class="list-group-item px-0">
-                                                <span class="text-soft fs-sm">Test Date Range</span>
-                                                <span class="d-block fw-medium">
-                                                    @php
-                                                        $dates = $testResults->pluck('tr07_test_date')->filter();
-                                                        $minDate = $dates->min();
-                                                        $maxDate = $dates->max();
-                                                    @endphp
-                                                    @if ($minDate && $maxDate)
-                                                        {{ \Carbon\Carbon::parse($minDate)->format('M d, Y') }}
-                                                        @if ($minDate != $maxDate)
-                                                            - {{ \Carbon\Carbon::parse($maxDate)->format('M d, Y') }}
+                                    {{-- Sample Overview --}}
+                                    <div class="card card-bordered mb-3">
+                                        <div class="card-inner">
+                                            <h6 class="card-title mb-3">Sample Overview</h6>
+                                            <ul class="list-group list-group-flush">
+                                                <li class="list-group-item px-0">
+                                                    <span class="text-soft fs-sm">Sample ID</span>
+                                                    <span class="d-block fw-medium">{{ $sampleInfo->tr04_reference_id }}</span>
+                                                </li>
+                                                <li class="list-group-item px-0">
+                                                    <span class="text-soft fs-sm">Total Outputs</span>
+                                                    <span class="d-block fw-medium">{{ $testResults->count() }}</span>
+                                                </li>
+                                                <li class="list-group-item px-0">
+                                                    <span class="text-soft fs-sm">Test Date Range</span>
+                                                    <span class="d-block fw-medium">
+                                                        @php
+                                                            $dates = $testResults->pluck('tr07_test_date')->filter();
+                                                            $minDate = $dates->min();
+                                                            $maxDate = $dates->max();
+                                                        @endphp
+                                                        @if ($minDate && $maxDate)
+                                                            {{ \Carbon\Carbon::parse($minDate)->format('M d, Y') }}
+                                                            @if ($minDate != $maxDate)
+                                                                - {{ \Carbon\Carbon::parse($maxDate)->format('M d, Y') }}
+                                                            @endif
+                                                        @else
+                                                            N/A
                                                         @endif
-                                                    @else
-                                                        N/A
-                                                    @endif
-                                                </span>
-                                            </li>
-                                        </ul>
-                                    </div>
-                                </div>
-
-                                {{-- Test Status Summary --}}
-                                <div class="card card-bordered mb-3">
-                                    <div class="card-inner">
-                                        <h6 class="card-title mb-3">Test Status Summary</h6>
-                                        @php
-                                            $statusCounts = $testResults
-                                                ->groupBy(function ($item) {
-                                                    return strtolower($item->tr07_status);
-                                                })
-                                                ->map->count();
-                                        @endphp
-                                        <div class="row g-3">
-                                            <div class="col-6">
-                                                <div class="status-card bg-warning-dim p-3 rounded text-center">
-                                                    <h4 class="mb-1">{{ $statusCounts['draft'] ?? 0 }}</h4>
-                                                    <span class="fs-sm">Draft</span>
-                                                </div>
-                                            </div>
-                                            <div class="col-6">
-                                                <div class="status-card bg-success-dim p-3 rounded text-center">
-                                                    <h4 class="mb-1">{{ $statusCounts['finalized'] ?? 0 }}</h4>
-                                                    <span class="fs-sm">Finalized</span>
-                                                </div>
-                                            </div>
-                                            <div class="col-12">
-                                                <div class="status-card bg-info-dim p-3 rounded text-center">
-                                                    <h4 class="mb-1">{{ $statusCounts['revised'] ?? 0 }}</h4>
-                                                    <span class="fs-sm">Revised</span>
-                                                </div>
-                                            </div>
+                                                    </span>
+                                                </li>
+                                            </ul>
                                         </div>
                                     </div>
-                                </div>
 
-                                {{-- All Tests Quick Links --}}
-                                <div class="card card-bordered mb-3">
-                                    <div class="card-inner">
-                                        <h6 class="card-title mb-3">Quick Navigation</h6>
-                                        <div class="list-group list-group-flush">
-                                            @foreach ($testResults as $test)
-                                                <a href="#test-{{ $test->tr07_test_result_id }}"
-                                                    class="list-group-item list-group-item-action px-0 d-flex justify-content-between align-items-center">
-                                                    <div>
-                                                        <span class="fw-medium d-block">
-                                                            {{ $test->tr07_test_name ?? 'Test #' . $test->tr07_test_result_id }}
-                                                        </span>
-                                                        <span class="fs-sm text-soft">
-                                                            v{{ $test->tr07_current_version }} •
-                                                            {{ $test->tr07_test_date ? \Carbon\Carbon::parse($test->tr07_test_date)->format('M d') : 'N/A' }}
-                                                        </span>
+                                    {{-- Test Status Summary --}}
+                                    <div class="card card-bordered mb-3">
+                                        <div class="card-inner">
+                                            <h6 class="card-title mb-3">Test Status Summary</h6>
+                                            @php
+                                                $statusCounts = $testResults
+                                                    ->groupBy(function ($item) {
+                                                        return $item->tr07_result_status;
+                                                    })
+                                                    ->map->count();
+                                            @endphp
+                                            <div class="row g-3">
+                                                <div class="col-6">
+                                                    <div class="status-card bg-warning-dim p-3 rounded text-center">
+                                                        <h4 class="mb-1">{{ $statusCounts['DRAFT'] ?? 0 }}</h4>
+                                                        <span class="fs-sm">Draft</span>
                                                     </div>
-                                                    @if (strtolower($test->tr07_status) == 'draft')
-                                                        <span class="badge badge-sm badge-warning">Draft</span>
-                                                    @elseif (strtolower($test->tr07_status) == 'finalized')
-                                                        <span class="badge badge-sm badge-success">Final</span>
-                                                    @else
-                                                        <span class="badge badge-sm badge-info">Revised</span>
-                                                    @endif
-                                                </a>
-                                            @endforeach
+                                                </div>
+                                                <div class="col-6">
+                                                    <div class="status-card bg-info-dim p-3 rounded text-center">
+                                                        <h4 class="mb-1">{{ $statusCounts['SUBMITTED'] ?? 0 }}</h4>
+                                                        <span class="fs-sm">Submitted</span>
+                                                    </div>
+                                                </div>
+                                                <div class="col-6">
+                                                    <div class="status-card bg-danger-dim p-3 rounded text-center">
+                                                        <h4 class="mb-1">{{ $statusCounts['REVISED'] ?? 0 }}</h4>
+                                                        <span class="fs-sm">Revised</span>
+                                                    </div>
+                                                </div>
+                                                <div class="col-6">
+                                                    <div class="status-card bg-success-dim p-3 rounded text-center">
+                                                        <h4 class="mb-1">{{ $statusCounts['VERIFIED'] ?? 0 }}</h4>
+                                                        <span class="fs-sm">VERIFIED</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {{-- All Tests Quick Links --}}
+                                    <div class="card card-bordered mb-3">
+                                        <div class="card-inner">
+                                            <h6 class="card-title mb-3">Quick Navigation</h6>
+                                            <div class="list-group list-group-flush">
+                                                @foreach ($testResults as $test)
+                                                    <a href="#test-{{ $test->tr07_test_result_id }}"
+                                                        class="list-group-item list-group-item-action px-0 d-flex justify-content-between align-items-center">
+                                                        <div>
+                                                            <span class="fw-medium d-block">
+                                                                {{ $test->tr07_test_name ?? 'Test #' . $test->tr07_test_result_id }}
+                                                            </span>
+                                                            <span class="fs-sm text-soft">
+                                                                v{{ $test->tr07_current_version }} •
+                                                                {{ $test->tr07_test_date ? \Carbon\Carbon::parse($test->tr07_test_date)->format('M d') : 'N/A' }}
+                                                            </span>
+                                                        </div>
+                                                        @if (strtolower($test->tr07_status) == 'draft')
+                                                            <span class="badge badge-sm badge-warning">Draft</span>
+                                                        @elseif (strtolower($test->tr07_status) == 'finalized')
+                                                            <span class="badge badge-sm badge-success">Final</span>
+                                                        @else
+                                                            <span class="badge badge-sm badge-info">Revised</span>
+                                                        @endif
+                                                    </a>
+                                                @endforeach
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {{-- Sample Actions --}}
+                                    <div class="card card-bordered">
+                                        <div class="card-inner">
+                                            <h6 class="card-title mb-3">Sample Actions</h6>
+                                            <ul class="list-group list-group-flush">
+                                                <li
+                                                    class="list-group-item px-0 d-flex justify-content-between align-items-center">
+                                                    <span>Generate Final Report</span>
+                                                    <a href="{{ route('generate_report', $sampleInfo->tr04_reference_id ) }}" class="btn btn-sm btn-outline-primary">
+                                                        <em class="icon ni ni-file-docs"></em>
+                                                    </a>
+                                                </li>
+                                                <li
+                                                    class="list-group-item px-0 d-flex justify-content-between align-items-center">
+                                                    <span>View Full Audit Trail</span>
+                                                    <a href="#" class="btn btn-sm btn-outline-info">
+                                                        <em class="icon ni ni-eye"></em>
+                                                    </a>
+                                                </li>
+                                            </ul>
                                         </div>
                                     </div>
                                 </div>
 
-                                {{-- Sample Actions --}}
-                                <div class="card card-bordered">
-                                    <div class="card-inner">
-                                        <h6 class="card-title mb-3">Sample Actions</h6>
-                                        <ul class="list-group list-group-flush">
-                                            <li
-                                                class="list-group-item px-0 d-flex justify-content-between align-items-center">
-                                                <span>Generate Complete Report</span>
-                                                <a href="#" class="btn btn-sm btn-outline-primary">
-                                                    <em class="icon ni ni-file-docs"></em>
-                                                </a>
-                                            </li>
-                                            <li
-                                                class="list-group-item px-0 d-flex justify-content-between align-items-center">
-                                                <span>Export All Tests</span>
-                                                <a href="#" class="btn btn-sm btn-outline-secondary">
-                                                    <em class="icon ni ni-download"></em>
-                                                </a>
-                                            </li>
-                                            <li
-                                                class="list-group-item px-0 d-flex justify-content-between align-items-center">
-                                                <span>View Full Audit Trail</span>
-                                                <a href="#" class="btn btn-sm btn-outline-info">
-                                                    <em class="icon ni ni-eye"></em>
-                                                </a>
-                                            </li>
-                                        </ul>
+                            </div>
+                        </div>
+
+                        {{-- Shared Delete Modal --}}
+                        <div class="modal fade" id="deleteModal" tabindex="-1">
+                            <div class="modal-dialog" role="document">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title">Confirm Delete</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <p>Are you sure you want to delete this test result? This action cannot be undone.</p>
+                                    </div>
+                                    <div class="modal-footer bg-light">
+                                        <button type="button" class="btn btn-secondary"
+                                            data-bs-dismiss="modal">Cancel</button>
+                                        <form id="deleteForm" method="POST" style="display: inline;">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-danger">Delete</button>
+                                        </form>
                                     </div>
                                 </div>
                             </div>
-
                         </div>
-                    </div>
 
-                    {{-- Shared Delete Modal --}}
-                    <div class="modal fade" id="deleteModal" tabindex="-1">
-                        <div class="modal-dialog" role="document">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <h5 class="modal-title">Confirm Delete</h5>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                </div>
-                                <div class="modal-body">
-                                    <p>Are you sure you want to delete this test result? This action cannot be undone.</p>
-                                </div>
-                                <div class="modal-footer bg-light">
-                                    <button type="button" class="btn btn-secondary"
-                                        data-bs-dismiss="modal">Cancel</button>
-                                    <form id="deleteForm" method="POST" style="display: inline;">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-danger">Delete</button>
-                                    </form>
-                                </div>
-                            </div>
-                        </div>
                     </div>
-
                 </div>
             </div>
         </div>
-    </div>
 
-    <script>
-        function deleteResult(id) {
-            var base = "{{ route('destroy', '') }}";
-            var action = base.endsWith('/') ? base + id : base + '/' + id;
-            document.getElementById('deleteForm').setAttribute('action', action);
-            var deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
-            deleteModal.show();
-        }
+        <script>
+            function deleteResult(id) {
+                var base = "{{ route('destroy', '') }}";
+                var action = base.endsWith('/') ? base + id : base + '/' + id;
+                document.getElementById('deleteForm').setAttribute('action', action);
+                var deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+                deleteModal.show();
+            }
 
-        // Smooth scroll for quick navigation
-        document.querySelectorAll('a[href^="#test-"]').forEach(anchor => {
-            anchor.addEventListener('click', function(e) {
-                e.preventDefault();
-                const target = document.querySelector(this.getAttribute('href'));
-                if (target) {
-                    target.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'start'
-                    });
-                }
+            // Smooth scroll for quick navigation
+            document.querySelectorAll('a[href^="#test-"]').forEach(anchor => {
+                anchor.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const target = document.querySelector(this.getAttribute('href'));
+                    if (target) {
+                        target.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start'
+                        });
+                    }
+                });
             });
-        });
-    </script>
-@endsection
+        </script>
+    @endsection

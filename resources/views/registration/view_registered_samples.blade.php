@@ -149,12 +149,12 @@
             });
         });
 
-        const upgradeToUrgentRoute = "{{ route('upgrade_to_urgent') }}";
-        $(document).on('click', '.upgrade-to-urgent', function(e) {
+        const upgradeToTatkalRoute = "{{ route('upgrade_to_tatkal') }}";
+        $(document).on('click', '.upgrade-to-tatkal', function(e) {
             e.preventDefault();
             let recordId = $(this).data('id');
             Swal.fire({
-                title: 'Are you sure to Upgrade it to Urgent?',
+                title: 'Are you sure to Upgrade it to Tatkal?',
                 text: 'Upgrade the Priority?',
                 icon: 'warning',
                 showCancelButton: true,
@@ -162,7 +162,7 @@
             }).then((result) => {
                 if (result.isConfirmed) {
                     $.ajax({
-                        url: upgradeToUrgentRoute,
+                        url: upgradeToTatkalRoute,
                         method: 'POST',
                         headers: {
                             'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
@@ -174,7 +174,7 @@
                             if (data.status === 'success') {
                                 Swal.fire({
                                     icon: 'success',
-                                    title: 'Sample priority upgraded to Urgent!',
+                                    title: 'Sample priority upgraded to Tatkal!',
                                     text: data.message,
                                     timer: 1500,
                                     showConfirmButton: false

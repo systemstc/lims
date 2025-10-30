@@ -10,7 +10,7 @@
                             <div class="nk-block-head-content">
                                 <h3 class="nk-block-title page-title">Test Results Management</h3>
                                 <div class="nk-block-des text-soft">
-                                    <p>Manage and track test results with version control</p>
+                                    <p>Manage and track test results</p>
                                 </div>
                             </div>
                             <div class="nk-block-head-content">
@@ -19,8 +19,8 @@
                                         data-target="pageMenu"><em class="icon ni ni-menu-alt-r"></em></a>
                                     <div class="toggle-expand-content" data-content="pageMenu">
                                         <ul class="nk-block-tools g-3">
-                                            <li><a href="{{ route('create_test_result') }}" class="btn btn-primary"><em
-                                                        class="icon ni ni-plus"></em><span>Add Test Result</span></a></li>
+                                            {{-- <li><a href="{{ route('create_test_result') }}" class="btn btn-primary"><em
+                                                        class="icon ni ni-plus"></em><span>Add Test Result</span></a></li> --}}
                                             <li><a href="{{ route('test_results_audit') }}"
                                                     class="btn btn-outline-light"><em
                                                         class="icon ni ni-eye"></em><span>Audit Trail</span></a></li>
@@ -37,6 +37,7 @@
                             <div class="card-inner-group">
                                 <div class="card-inner">
                                     <form method="GET" action="{{ route('test_results') }}">
+                                        <h5>Filter</h5>
                                         <div class="row g-3 align-center">
                                             <div class="col-lg-3">
                                                 <div class="form-group">
@@ -49,7 +50,7 @@
                                                             </option>
                                                             <option value="SUBMITTED"
                                                                 {{ request('status') == 'SUBMITTED' ? 'selected' : '' }}>
-                                                                Finalized</option>
+                                                                Submitted</option>
                                                             <option value="REVISED"
                                                                 {{ request('status') == 'REVISED' ? 'selected' : '' }}>
                                                                 Revised</option>
@@ -218,41 +219,4 @@
             </div>
         </div>
     </div>
-
-    <!-- Delete Confirmation Modal -->
-    <div class="modal fade" id="deleteModal">
-        <div class="modal-dialog" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Confirm Delete</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <p>Are you sure you want to delete this test result? This action cannot be undone.</p>
-                </div>
-                <div class="modal-footer bg-light">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <form id="deleteForm" method="POST" style="display: inline;">
-                        @csrf
-                        @method('DELETE')
-                        <button type="submit" class="btn btn-danger">Delete</button>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        // function deleteResult(id) {
-        // $('#deleteForm').attr('action', '{{ route('destroy', '') }}/' + id);
-        //     $('#deleteModal').modal('show');
-        // }
-
-        // Auto-submit form on filter change
-        // $(document).ready(function() {
-        //     $('#test-type, #status').change(function() {
-        //         this.form.submit();
-        //     });
-        // });
-    </script>
 @endsection

@@ -15,7 +15,8 @@ use App\Models\SampleTest;
 use App\Models\Standard;
 use App\Models\State;
 use App\Models\Test;
-use App\Models\Ro;
+use App\Models\Wallet;
+use App\Models\WalletTransaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -24,6 +25,7 @@ use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Yajra\DataTables\Facades\DataTables;
+use App\Models\Ro;
 
 class RegistrationController extends Controller
 {
@@ -45,7 +47,7 @@ class RegistrationController extends Controller
                 "txt_details" => "nullable|string",
                 "dd_department" => "required|exists:m13_departments,m13_department_id",
                 "dd_sample_type" => "required|exists:m14_lab_samples,m14_lab_sample_id",
-                "dd_priority_type" => "required|in:Normal,Urgent",
+                "dd_priority_type" => "required|in:Normal,Tatkal",
                 'txt_number_of_samples' => 'nullable|integer|min:1',
                 'txt_unknown_sample' => 'nullable|boolean',
                 "txt_description" => "nullable|string",
@@ -186,6 +188,42 @@ class RegistrationController extends Controller
                         'tr05_remark' => null,
                     ]);
                 }
+
+                $paymentBy = strtolower($request->txt_payment_by);
+                $selectedCustomerId = null;
+
+                // Identify which customer to use based on "Payment By"
+                switch ($paymentBy) {
+                    case 'first_party':
+                        $selectedCustomerId = $registration->m07_customer_id;
+                        break;
+                    case 'second_party':
+                        $selectedCustomerId = $registration->m07_buyer_id;
+                        break;
+                    case 'third_party':
+                        $selectedCustomerId = $registration->m07_third_party_id;
+                        break;
+                    case 'cha':
+                        $selectedCustomerId = $registration->m07_cha_id;
+                        break;
+                    default:
+                        $selectedCustomerId = null;
+                        break;
+                }
+
+                $invoiceNumber = 'INV-' . $registration->tr04_reference_id;
+                $holdResult = $this->createHoldTransaction(
+                    $selectedCustomerId,
+                    $registration->tr04_reference_id,
+                    $registration->tr04_sample_registration_id,
+                    $request->txt_total_charges,
+                    $invoiceNumber
+                );
+
+                if (!$holdResult['success']) {
+                    throw new \Exception('Wallet Hold Failed: ' . $holdResult['message']);
+                }
+
                 DB::commit();
                 Session::flash('type', 'success');
                 Session::flash('message', 'Sample Registered Successfully!');
@@ -209,6 +247,55 @@ class RegistrationController extends Controller
         // $roGst = $ro->ro;
         // dd($roGst);
         return view('registration.preRegistration.register_sample', compact('customerTypes', 'labSamples', 'groups', 'states', 'departments','roGst'));
+    }
+    public function createHoldTransaction($customerId, $sampleId, $sampleRegistrationId, $amount, $invoiceNumber)
+    {
+        try {
+            DB::beginTransaction();
+
+            $wallet = Wallet::where('m07_customer_id', $customerId)->lockForUpdate()->first();
+
+            if (!$wallet) {
+                throw new \Exception('Wallet not found');
+            }
+
+            // Increase hold amount
+            $balanceBefore = $wallet->tr02_balance;
+            $wallet->tr02_hold_amount += $amount;
+            $wallet->save();
+
+            // Create hold transaction
+            $transactionCount = WalletTransaction::count();
+            $transaction = WalletTransaction::create([
+                'tr03_transaction_uuid' => 'TXN-' . date('Y') . '-' . str_pad($transactionCount + 1, 4, '0', STR_PAD_LEFT),
+                'tr02_wallet_id' => $wallet->tr02_wallet_id,
+                'tr03_type' => 'hold',
+                'tr03_amount' => $amount,
+                'tr03_currency' => 'INR',
+                'tr03_description' => 'Hold for Sample Registration',
+                'tr04_sample_registration_id' => $sampleRegistrationId,
+                'tr03_invoice_number' => $invoiceNumber,
+                'tr03_balance_before' => $balanceBefore,
+                'tr03_balance_after' => $wallet->tr02_balance,
+                'tr03_status' => 'pending',
+                'm07_created_by' => $customerId
+            ]);
+
+            DB::commit();
+
+            return [
+                'success' => true,
+                'transaction_id' => $transaction->tr03_transaction_id,
+                'hold_amount' => $amount
+            ];
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return [
+                'success' => false,
+                'message' => $e->getMessage()
+            ];
+        }
     }
 
     public function searchCustomer(Request $request)
@@ -430,20 +517,21 @@ class RegistrationController extends Controller
             ->where('m04_ro_id', Session::get('ro_id'));
 
             return DataTables::of($samples)
-            ->addIndexColumn()
-            ->addColumn('sample_id', function ($row) {
-                return $row->tr04_sample_registration_id ?? 'N/A';
-            })
-            ->addColumn('sample_description', function ($row) {
-                return $row->tr04_sample_description ?? 'N/A';
-            })
-            ->addColumn('sanple_image', function ($row) {
-                return $row->tr04_attachment ? asset('storage/' . $row->tr04_attachment) : null;
-            })
-            ->addColumn('sample_type', function ($row) {
-                $color = $row->tr04_sample_type === 'Urgent' ? 'danger badge badge-dot blink' : 'info';
-                return '<strong class="text-' . $color . '">' . strtoupper($row->tr04_sample_type) . '</strong>';
-            })
+
+                ->addIndexColumn()
+                ->addColumn('sample_id', function ($row) {
+                    return $row->tr04_sample_registration_id ?? 'N/A';
+                })
+                ->addColumn('sample_description', function ($row) {
+                    return $row->tr04_sample_description ?? 'N/A';
+                })
+                ->addColumn('sanple_image', function ($row) {
+                    return $row->tr04_attachment ? asset('storage/' . $row->tr04_attachment) : null;
+                })
+                ->addColumn('sample_type', function ($row) {
+                    $color = $row->tr04_sample_type === 'Tatkal' ? 'danger badge badge-dot blink' : 'info';
+                    return '<strong class="text-' . $color . '">' . strtoupper($row->tr04_sample_type) . '</strong>';
+                })
 
             ->addColumn('total_tests', function ($row) {
                 return $row->sampleTests->count();
@@ -466,53 +554,69 @@ class RegistrationController extends Controller
                     default:
                     $statusClass = 'bg-primary';
                 }
-
-                return '<span class="badge badge-dot ' . $statusClass . '">' . ucfirst($statusText) . '</span>';
-            })
-            ->addColumn('amount', function ($row) {
-                $amount = $row->tr04_total_charges ?? 0;
-                return '<span class="amount">&#8377; &nbsp;' . number_format($amount, 2) . '</span>';
-            })
-            ->addColumn('created_date', function ($row) {
-                return $row->created_at ? $row->created_at->format('d M Y, h:ia') : 'N/A';
-            })
-            ->addColumn('action', function ($row) {
-                $actions = '<div class="tb-odr-btns d-flex">';
-                $actions .= '<a href="' . route('print_sample_acknowledgement', $row->tr04_sample_registration_id) . '" target="_blank" 
-                class="btn btn-icon btn-white btn-dim btn-sm btn-primary">
-                <em class="icon ni ni-printer-fill"></em>
-                </a>';
-                $actions .= '<a href="' . route('view_registration_pdf', $row->tr04_sample_registration_id) . '" 
-                class="btn btn-dim btn-sm btn-primary">
-                View
-                </a>';
-
-                $actions .= '<br>'; 
-
-                $actions .= '<a href="' . route('view_invoice', $row->tr04_sample_registration_id) . '" 
-                class="btn btn-dim btn-sm btn-success">
-                <em class="icon ni ni-file-text"></em>
-
-                </a>';
-                $actions .= '<a href="' . route('view_all_invoice', $row->m07_customer_id) . 
-                '?location_id=' . $row->m08_customer_location_id . 
-                '&payment_by=' . $row->tr04_payment_by . '" 
-                class="btn btn-dim btn-sm btn-success">
-                Invoice All
-                </a>';
-
-                if ($row->tr04_sample_type !== 'Urgent') {
-                    $actions .= '<a class="btn btn-xs btn-danger upgrade-to-urgent" 
-                    data-id="' . $row->tr04_sample_registration_id . '" title="Upgrade">
-                    <em class="icon ni ni-speed"></em>&nbsp;
-                    </a>';
-                }
-
-                $actions .= '</div>';
-                return $actions;
-            })
-            ->rawColumns(['status', 'amount', 'action', 'sample_type'])
-            ->make(true);
+                    return '<span class="badge badge-dot ' . $statusClass . '">' . ucfirst($statusText) . '</span>';
+                })
+                ->addColumn('amount', function ($row) {
+                    $amount = $row->tr04_total_charges ?? 0;
+                    return '<span class="amount">&#8377; &nbsp;' . number_format($amount, 2) . '</span>';
+                })
+                ->addColumn('created_date', function ($row) {
+                    return $row->created_at ? $row->created_at->format('d M Y, h:ia') : 'N/A';
+                })
+                ->addColumn('action', function ($row) {
+                    $actions = '<td class="nk-tb-col nk-tb-col-tools">
+                    <ul class="nk-tb-actions gx-1 my-n1">
+                        <li class="me-n1">
+                            <div class="dropdown">
+                                <a href="#" class="dropdown-toggle btn btn-icon btn-trigger" data-bs-toggle="dropdown">
+                                    <em class="icon ni ni-more-h"></em>
+                                </a>
+                                <div class="dropdown-menu dropdown-menu-end">
+                                    <ul class="link-list-opt no-bdr">';
+                    // Print Acknowledgement
+                    $actions .= '<li>
+                        <a href="' . route('print_sample_acknowledgement', $row->tr04_sample_registration_id) . '" target="_blank">
+                            <em class="icon ni ni-printer-fill"></em><span>Acknowledgement</span>
+                        </a>
+                    </li>';
+                    // View Registration PDF
+                    $actions .= '<li>
+                    <a href="' . route('view_registration_pdf', $row->tr04_sample_registration_id) . '">
+                        <em class="icon ni ni-eye"></em><span>View Sample</span>
+                    </a>
+                </li>';
+                    // View Invoice
+                    $actions .= '<li>
+                        <a href="' . route('view_invoice', $row->tr04_sample_registration_id) . '">
+                            <em class="icon ni ni-file-text"></em><span>View Invoice</span>
+                        </a>
+                    </li>';
+                    // View All Invoice
+                    $actions .= '<li>
+                    <a href="' . route('view_all_invoice', $row->m07_customer_id) .
+                        '?location_id=' . $row->m08_customer_location_id .
+                        '&payment_by=' . $row->tr04_payment_by . '">
+                        <em class="icon ni ni-files"></em><span>Invoice All</span>
+                    </a>
+                </li>';
+                    // Upgrade to Tatkal (conditional)
+                    if ($row->tr04_sample_type !== 'Tatkal') {
+                        $actions .= '<li>
+                        <a href="#" class="upgrade-to-tatkal text-danger" data-id="' . $row->tr04_sample_registration_id . '" title="Upgrade to Tatkal">
+                            <em class="icon ni ni-speed"></em><span>Upgrade to Tatkal</span>
+                        </a>
+                    </li>';
+                    }
+                    $actions .= '</ul>
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+            </td>';
+                    return $actions;
+                })
+                ->rawColumns(['status', 'amount', 'action', 'sample_type'])
+                ->make(true);
         }
         return view('registration.view_registered_samples');
     }
@@ -557,26 +661,26 @@ class RegistrationController extends Controller
         return view('registration.print_pdf_acknowledgement', compact('sample','roGst'));
     }
 
-    public function upgradeToUrgent(Request $request)
+    public function upgradeToTatkal(Request $request)
     {
         if ($request->isMethod('POST')) {
             try {
                 $sample = SampleRegistration::findOrFail($request->id);
-                if ($sample->tr04_sample_type === 'Urgent') {
+                if ($sample->tr04_sample_type === 'Tatkal') {
                     return response()->json([
                         'status' => 'error',
-                        'message' => 'Sample is already marked as Urgent.'
+                        'message' => 'Sample is already marked as Tatkal.'
                     ], 400);
                 }
                 $newTotal = $sample->tr04_testing_charges + ($sample->tr04_testing_charges * 0.50) + $sample->tr04_additional_charges;
                 $sample->update([
                     'tr04_total_charges' => $newTotal,
-                    'tr04_sample_type'   => 'Urgent',
+                    'tr04_sample_type'   => 'Tatkal',
                 ]);
 
                 return response()->json([
                     'status' => 'success',
-                    'message' => 'Sample has been upgraded to Urgent successfully.',
+                    'message' => 'Sample has been upgraded to Tatkal successfully.',
                     'new_total' => number_format($newTotal, 2)
                 ]);
             } catch (\Exception $e) {
@@ -601,7 +705,7 @@ class RegistrationController extends Controller
                 "selected_customer_id" => "required|integer|exists:m07_customers,m07_customer_id",
                 "dd_department" => "required|exists:m13_departments,m13_department_id",
                 "dd_sample_type" => "required|exists:m14_lab_samples,m14_lab_sample_id",
-                "dd_priority_type" => "required|in:Normal,Urgent",
+                "dd_priority_type" => "required|in:Normal,Tatkal",
                 "txt_reference" => "required|string",
                 "txt_ref_date" => "required|date",
             ]);

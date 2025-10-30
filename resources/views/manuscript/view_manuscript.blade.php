@@ -8,10 +8,15 @@
                         <div class="nk-block-head">
                             <div class="nk-block-head-content d-flex justify-content-between align-items-center">
                                 <h4 class="nk-block-title">Manuscripts</h4>
+                                <div class="text-end">
+                                    <a href="{{ route('create_manuscript') }}" class="btn btn-primary">
+                                        <em class="icon ni ni-plus"></em>&nbsp; Create
+                                    </a>
+                                </div>
                             </div>
                         </div>
 
-                        <div class="container">
+                        {{-- <div class="container">
                             <div class="row justify-content-center">
                                 <div class="col-md-6">
                                     <div class="card shadow-lg">
@@ -33,7 +38,7 @@
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                        </div> --}}
 
                         <div class="card card-bordered card-preview mt-4">
                             <div class="card-inner">

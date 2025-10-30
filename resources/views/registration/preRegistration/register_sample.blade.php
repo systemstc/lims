@@ -1,276 +1,276 @@
 @extends('layouts.app_back')
 @section('content')
-<div class="container-fluid">
-    <div class="nk-content-inner">
-        <div class="nk-content-body">
-            <div class="components-preview wide-xl mx-auto">
-                <div class="nk-block nk-block-lg">
-                    <div class="nk-block-head">
-                        <div class="nk-block-head-content d-flex justify-content-between align-items-center">
-                            <h4 class="nk-block-title mb-0">Register Sample</h4>
-                            {{-- <a href="{{ url()->previous() }}" class="btn btn-primary">
-                                <em class="icon ni ni-back-alt-fill"></em> &nbsp; Back
-                            </a> --}}
+    <div class="container-fluid">
+        <div class="nk-content-inner">
+            <div class="nk-content-body">
+                <div class="components-preview wide-xl mx-auto">
+                    <div class="nk-block nk-block-lg">
+                        <div class="nk-block-head">
+                            <div class="nk-block-head-content d-flex justify-content-between align-items-center">
+                                <h4 class="nk-block-title mb-0">Register Sample</h4>
+                                {{-- <a href="{{ url()->previous() }}" class="btn btn-primary">
+                                    <em class="icon ni ni-back-alt-fill"></em> &nbsp; Back
+                                </a> --}}
+                            </div>
                         </div>
-                    </div>
-                    <div class="row">
-                        <!-- Main Form Section -->
-                        <div class="col-md-8">
-                            <div class="card">
-                                <div class="card-inner">
-                                    <form action="{{ route('register_sample') }}" method="POST"
-                                    class="nk-wizard nk-wizard-simple is-alter" id="wizard-01"
-                                    enctype="multipart/form-data">
-                                    @csrf
-                                    <div class="nk-wizard-head">
-                                        <h5>Customer Details</h5>
-                                    </div>
-                                    <div class="nk-wizard-content">
-                                        <div class="row gy-3">
-                                            <div class="col-md-7">
-                                                <div class="form-group">
-                                                    <label class="form-label" for="dd_customer_type">Customer
-                                                        Type<b class="text-danger">*</b></label>
-                                                        <div class="form-control-wrap">
-                                                            <select class="form-control required"
-                                                            name="dd_customer_type" id="dd_customer_type" required>
-                                                            <option value="" disabled selected>Select
-                                                                Customer
-                                                            Type</option>
-                                                            @foreach ($customerTypes as $customerType)
-                                                            <option
-                                                            value="{{ $customerType->m09_customer_type_id }}">
-                                                            {{ $customerType->m09_name }}
-                                                        </option>
-                                                        @endforeach
-                                                    </select>
-                                                </div>
+                        <div class="row">
+                            <!-- Main Form Section -->
+                            <div class="col-md-8">
+                                <div class="card">
+                                    <div class="card-inner">
+                                        <form action="{{ route('register_sample') }}" method="POST"
+                                            class="nk-wizard nk-wizard-simple is-alter" id="wizard-01"
+                                            enctype="multipart/form-data">
+                                            @csrf
+                                            <div class="nk-wizard-head">
+                                                <h5>Customer Details</h5>
                                             </div>
-                                        </div>
-                                        <!-- CUSTOMER -->
-                                        <div class="col-md-6">
-                                            <div class="form-group dropdown-container"
-                                            style="position: relative;">
-                                            <label class="form-label" for="txt_customer_name">
-                                                Customer Name<b class="text-danger">*</b>
-                                            </label>
-                                            <div class="form-control-wrap d-flex">
-                                                <input type="text" class="form-control required"
-                                                id="txt_customer_name" name="txt_customer_name"
-                                                placeholder="Start typing customer name..."
-                                                autocomplete="off" required>
-                                                <a href="{{ route('create_customer', ['from' => 'registration']) }}"
-                                                    target="_blank"
-                                                    class="btn btn-sm btn-primary ml-2">+</a>
-                                                </div>
-                                                <div class="d-flex justify-content-around">
-                                                    <span id="party-contact-person"></span>
-                                                    <span id="party-phone"></span>
-                                                    <span id="party-email"></span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <input type="hidden" id="selected_customer_id"
-                                        name="selected_customer_id" value="">
-                                        <input type="hidden" id="selected_customer_address_id"
-                                        name="selected_customer_address_id" value="">
+                                            <div class="nk-wizard-content">
+                                                <div class="row gy-3">
+                                                    <div class="col-md-7">
+                                                        <div class="form-group">
+                                                            <label class="form-label" for="dd_customer_type">Customer
+                                                                Type<b class="text-danger">*</b></label>
+                                                            <div class="form-control-wrap">
+                                                                <select class="form-control required"
+                                                                    name="dd_customer_type" id="dd_customer_type" required>
+                                                                    <option value="" disabled selected>Select
+                                                                        Customer
+                                                                        Type</option>
+                                                                    @foreach ($customerTypes as $customerType)
+                                                                        <option
+                                                                            value="{{ $customerType->m09_customer_type_id }}">
+                                                                            {{ $customerType->m09_name }}
+                                                                        </option>
+                                                                    @endforeach
+                                                                </select>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <!-- CUSTOMER -->
+                                                    <div class="col-md-6">
+                                                        <div class="form-group dropdown-container"
+                                                            style="position: relative;">
+                                                            <label class="form-label" for="txt_customer_name">
+                                                                Customer Name<b class="text-danger">*</b>
+                                                            </label>
+                                                            <div class="form-control-wrap d-flex">
+                                                                <input type="text" class="form-control required"
+                                                                    id="txt_customer_name" name="txt_customer_name"
+                                                                    placeholder="Start typing customer name..."
+                                                                    autocomplete="off" required>
+                                                                <a href="{{ route('create_customer', ['from' => 'registration']) }}"
+                                                                    target="_blank"
+                                                                    class="btn btn-sm btn-primary ml-2">+</a>
+                                                            </div>
+                                                            <div class="d-flex justify-content-around">
+                                                                <span id="party-contact-person"></span>
+                                                                <span id="party-phone"></span>
+                                                                <span id="party-email"></span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <input type="hidden" id="selected_customer_id"
+                                                        name="selected_customer_id" value="">
+                                                    <input type="hidden" id="selected_customer_address_id"
+                                                        name="selected_customer_address_id" value="">
 
-                                        <div class="col-md-6">
-                                            <div class="form-group">
-                                                <label class="form-label" for="party-address">Address</label>
-                                                <div class="input-group">
-                                                    <select id="party-address" class="form-control">
-                                                        <option value="">Loading addresses...</option>
-                                                    </select>
-                                                    <div class="input-group-append">
-                                                        <button type="button" data-type="customer"
-                                                        class="btn btn-outline-primary add-address-btn"
-                                                        disabled>
-                                                        +
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-
-                                    <!-- BUYER -->
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label class="form-label" for="txt_buyer_name">Buyer
-                                            Name</label>
-                                            <div class="form-control-wrap d-flex">
-                                                <input type="text" class="form-control"
-                                                id="txt_buyer_name" name="txt_buyer_name"
-                                                autocomplete="off">
-                                                <a href="{{ route('create_customer', ['from' => 'registration']) }}"
-                                                    target="_blank"
-                                                    class="btn btn-sm btn-primary ml-2">+</a>
-                                                </div>
-                                                <div class="d-flex justify-content-around">
-                                                    <span id="buyer-contact-person"></span>
-                                                    <span id="buyer-phone"></span>
-                                                    <span id="buyer-email"></span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <input type="hidden" id="selected_buyer_id" name="selected_buyer_id"
-                                        value="">
-                                        <input type="hidden" id="selected_buyer_address_id"
-                                        name="selected_buyer_address_id" value="">
-
-                                        <div class="col-md-6">
-                                            <div class="form-group">
-                                                <label class="form-label" for="buyer-address">Address</label>
-                                                <div class="input-group">
-                                                    <select id="buyer-address" class="form-control">
-                                                        <option value="">Loading addresses...</option>
-                                                    </select>
-                                                    <div class="input-group-append">
-                                                        <button type="button" data-type="buyer"
-                                                        class="btn btn-outline-primary add-address-btn"
-                                                        disabled>
-                                                        +
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- THIRD PARTY -->
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label class="form-label" for="txt_third_party">Third
-                                            Party</label>
-                                            <div class="form-control-wrap d-flex">
-                                                <input type="text" class="form-control"
-                                                id="txt_third_party" name="txt_third_party"
-                                                autocomplete="off">
-                                                <button type="button" class="btn btn-primary"
-                                                data-url="{{ route('create_customer', ['from' => 'registration']) }}"
-                                                onclick="openCustomerPopup(this)">
-                                                +
-                                            </button>
-                                        </div>
-                                        <div class="d-flex justify-content-around">
-                                            <span id="third-contact-person"></span>
-                                            <span id="third-phone"></span>
-                                            <span id="third-email"></span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <input type="hidden" id="selected_third_party_id"
-                                name="selected_third_party_id" value="">
-                                <input type="hidden" id="selected_third_party_address_id"
-                                name="selected_third_party_address_id" value="">
-
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label class="form-label" for="third-address">Address</label>
-                                        <div class="input-group">
-                                            <select id="third-address" class="form-control">
-                                                <option value="">Loading addresses...</option>
-                                            </select>
-                                            <div class="input-group-append">
-                                                <button type="button" data-type="third"
-                                                class="btn btn-outline-primary add-address-btn"
-                                                disabled>
-                                                +
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- CHA -->
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label class="form-label" for="txt_cha">CHA</label>
-                                    <div class="form-control-wrap d-flex">
-                                        <input type="text" class="form-control" id="txt_cha"
-                                        name="txt_cha" autocomplete="off">
-                                        <a href="{{ route('create_customer', ['from' => 'registration']) }}"
-                                            target="_blank"
-                                            class="btn btn-sm btn-primary ml-2">+</a>
-                                        </div>
-                                        <div class="d-flex justify-content-around">
-                                            <span id="cha-contact-person"></span>
-                                            <span id="cha-phone"></span>
-                                            <span id="cha-email"></span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <input type="hidden" id="selected_cha_id" name="selected_cha_id"
-                                value="">
-                                <input type="hidden" id="selected_cha_address_id"
-                                name="selected_cha_address_id" value="">
-
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label class="form-label" for="cha-address">Address</label>
-                                        <div class="input-group">
-                                            <select id="cha-address" class="form-control">
-                                                <option value="">Loading addresses...</option>
-                                            </select>
-                                            <div class="input-group-append">
-                                                <button type="button" data-type="cha"
-                                                class="btn btn-outline-primary add-address-btn"
-                                                disabled>
-                                                +
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-12">
-                                <div class="preview-block">
-                                    <span class="preview-title overline-title d-block">Payment
-                                        By<b class="text-danger">*</b></span>
-                                        <div class="row">
-                                            <div class="col-md-3 mb-2">
-                                                <div class="custom-control custom-radio">
-                                                    <input type="radio"
-                                                    class="custom-control-input required"
-                                                    id="firstParty" name="txt_payment_by"
-                                                    value="first_party" required>
-                                                    <label class="custom-control-label"
-                                                    for="firstParty">Customer</label>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-3 mb-2">
-                                                <div class="custom-control custom-radio">
-                                                    <input type="radio" class="custom-control-input"
-                                                    id="secondParty" name="txt_payment_by"
-                                                    value="second_party">
-                                                    <label class="custom-control-label"
-                                                    for="secondParty">Buyer</label>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-3 mb-2">
-                                                <div class="custom-control custom-radio">
-                                                    <input type="radio" class="custom-control-input"
-                                                    id="thirdParty" name="txt_payment_by"
-                                                    value="third_party">
-                                                    <label class="custom-control-label"
-                                                    for="thirdParty">Third Party</label>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-3 mb-2">
-                                                <div class="custom-control custom-radio">
-                                                    <input type="radio" class="custom-control-input"
-                                                    id="cha" name="txt_payment_by"
-                                                    value="cha">
-                                                    <label class="custom-control-label"
-                                                    for="cha">CHA</label>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+                                                    <div class="col-md-6">
+                                                        <div class="form-group">
+                                                            <label class="form-label" for="party-address">Address</label>
+                                                            <div class="input-group">
+                                                                <select id="party-address" class="form-control">
+                                                                    <option value="">Loading addresses...</option>
+                                                                </select>
+                                                                <div class="input-group-append">
+                                                                    <button type="button" data-type="customer"
+                                                                        class="btn btn-outline-primary add-address-btn"
+                                                                        disabled>
+                                                                        +
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
 
 
-                                <div class="col-md-12">
-                                    <div class="preview-block">
+                                                    <!-- BUYER -->
+                                                    <div class="col-md-6">
+                                                        <div class="form-group">
+                                                            <label class="form-label" for="txt_buyer_name">Buyer
+                                                                Name</label>
+                                                            <div class="form-control-wrap d-flex">
+                                                                <input type="text" class="form-control"
+                                                                    id="txt_buyer_name" name="txt_buyer_name"
+                                                                    autocomplete="off">
+                                                                <a href="{{ route('create_customer', ['from' => 'registration']) }}"
+                                                                    target="_blank"
+                                                                    class="btn btn-sm btn-primary ml-2">+</a>
+                                                            </div>
+                                                            <div class="d-flex justify-content-around">
+                                                                <span id="buyer-contact-person"></span>
+                                                                <span id="buyer-phone"></span>
+                                                                <span id="buyer-email"></span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <input type="hidden" id="selected_buyer_id" name="selected_buyer_id"
+                                                        value="">
+                                                    <input type="hidden" id="selected_buyer_address_id"
+                                                        name="selected_buyer_address_id" value="">
+
+                                                    <div class="col-md-6">
+                                                        <div class="form-group">
+                                                            <label class="form-label" for="buyer-address">Address</label>
+                                                            <div class="input-group">
+                                                                <select id="buyer-address" class="form-control">
+                                                                    <option value="">Loading addresses...</option>
+                                                                </select>
+                                                                <div class="input-group-append">
+                                                                    <button type="button" data-type="buyer"
+                                                                        class="btn btn-outline-primary add-address-btn"
+                                                                        disabled>
+                                                                        +
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- THIRD PARTY -->
+                                                    <div class="col-md-6">
+                                                        <div class="form-group">
+                                                            <label class="form-label" for="txt_third_party">Third
+                                                                Party</label>
+                                                            <div class="form-control-wrap d-flex">
+                                                                <input type="text" class="form-control"
+                                                                    id="txt_third_party" name="txt_third_party"
+                                                                    autocomplete="off">
+                                                                <button type="button" class="btn btn-primary"
+                                                                    data-url="{{ route('create_customer', ['from' => 'registration']) }}"
+                                                                    onclick="openCustomerPopup(this)">
+                                                                    +
+                                                                </button>
+                                                            </div>
+                                                            <div class="d-flex justify-content-around">
+                                                                <span id="third-contact-person"></span>
+                                                                <span id="third-phone"></span>
+                                                                <span id="third-email"></span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <input type="hidden" id="selected_third_party_id"
+                                                        name="selected_third_party_id" value="">
+                                                    <input type="hidden" id="selected_third_party_address_id"
+                                                        name="selected_third_party_address_id" value="">
+
+                                                    <div class="col-md-6">
+                                                        <div class="form-group">
+                                                            <label class="form-label" for="third-address">Address</label>
+                                                            <div class="input-group">
+                                                                <select id="third-address" class="form-control">
+                                                                    <option value="">Loading addresses...</option>
+                                                                </select>
+                                                                <div class="input-group-append">
+                                                                    <button type="button" data-type="third"
+                                                                        class="btn btn-outline-primary add-address-btn"
+                                                                        disabled>
+                                                                        +
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- CHA -->
+                                                    <div class="col-md-6">
+                                                        <div class="form-group">
+                                                            <label class="form-label" for="txt_cha">CHA</label>
+                                                            <div class="form-control-wrap d-flex">
+                                                                <input type="text" class="form-control" id="txt_cha"
+                                                                    name="txt_cha" autocomplete="off">
+                                                                <a href="{{ route('create_customer', ['from' => 'registration']) }}"
+                                                                    target="_blank"
+                                                                    class="btn btn-sm btn-primary ml-2">+</a>
+                                                            </div>
+                                                            <div class="d-flex justify-content-around">
+                                                                <span id="cha-contact-person"></span>
+                                                                <span id="cha-phone"></span>
+                                                                <span id="cha-email"></span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <input type="hidden" id="selected_cha_id" name="selected_cha_id"
+                                                        value="">
+                                                    <input type="hidden" id="selected_cha_address_id"
+                                                        name="selected_cha_address_id" value="">
+
+                                                    <div class="col-md-6">
+                                                        <div class="form-group">
+                                                            <label class="form-label" for="cha-address">Address</label>
+                                                            <div class="input-group">
+                                                                <select id="cha-address" class="form-control">
+                                                                    <option value="">Loading addresses...</option>
+                                                                </select>
+                                                                <div class="input-group-append">
+                                                                    <button type="button" data-type="cha"
+                                                                        class="btn btn-outline-primary add-address-btn"
+                                                                        disabled>
+                                                                        +
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="col-md-12">
+                                                        <div class="preview-block">
+                                                            <span class="preview-title overline-title d-block">Payment
+                                                                By<b class="text-danger">*</b></span>
+                                                            <div class="row">
+                                                                <div class="col-md-3 mb-2">
+                                                                    <div class="custom-control custom-radio">
+                                                                        <input type="radio"
+                                                                            class="custom-control-input required"
+                                                                            id="firstParty" name="txt_payment_by"
+                                                                            value="first_party" required>
+                                                                        <label class="custom-control-label"
+                                                                            for="firstParty">Customer</label>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="col-md-3 mb-2">
+                                                                    <div class="custom-control custom-radio">
+                                                                        <input type="radio" class="custom-control-input"
+                                                                            id="secondParty" name="txt_payment_by"
+                                                                            value="second_party">
+                                                                        <label class="custom-control-label"
+                                                                            for="secondParty">Buyer</label>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="col-md-3 mb-2">
+                                                                    <div class="custom-control custom-radio">
+                                                                        <input type="radio" class="custom-control-input"
+                                                                            id="thirdParty" name="txt_payment_by"
+                                                                            value="third_party">
+                                                                        <label class="custom-control-label"
+                                                                            for="thirdParty">Third Party</label>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="col-md-3 mb-2">
+                                                                    <div class="custom-control custom-radio">
+                                                                        <input type="radio" class="custom-control-input"
+                                                                            id="cha" name="txt_payment_by"
+                                                                            value="cha">
+                                                                        <label class="custom-control-label"
+                                                                            for="cha">CHA</label>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="col-md-12">
+                                                <div class="preview-block">
                                         <span class="preview-title overline-title d-block">Report
                                             To<b class="text-danger">*</b></span>
                                             <div class="row">
@@ -317,9 +317,9 @@
                                             </div>
 
                                         </div>
-                                    </div>
-                                </div>
-                            </div>
+                                                    </div>
+                                                </div>
+                                            </div>
                             <!-- STEP 2: SAMPLE INFORMATION -->
                             <div class="nk-wizard-head">
                                 <h5>Sample Information</h5>
@@ -1843,9 +1843,7 @@ function initializeCustomerEvents() {
     // === Step 4: Add additional manual charges ===
                 let additional = parseFloat($('#txt_aditional_charges').val()) || 0;
                 let finalTotal = total + additional;
-
-    // === Step 5: Apply urgent priority increase ===
-                if (priority === 'Urgent') {
+                if (priority === 'Tatkal') {
                     finalTotal += (total * 0.50);
                 }
 

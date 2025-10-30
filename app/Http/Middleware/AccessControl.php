@@ -76,7 +76,6 @@ class AccessControl
             'accept_transferred',
             'reassign',
             'history',
-            'template_manuscript',
             'import_all_tests',
             'import_all_standards',
             'import_all_primary',

@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Sample;
 use App\Models\SampleRegistration;
 use App\Models\SampleTest;
+use App\Models\TestReport;
+use App\Models\TestResult;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -19,8 +21,12 @@ class AnalystController extends Controller
         // Pending tests count
         $pendingTests = SampleTest::where('m06_alloted_to', $userId)
             ->where('tr05_status', 'ALLOTED')
+            ->distinct('tr04_sample_registration_id')
             ->count();
 
+        $rejectedTests = TestResult::where('tr07_result_status', 'REJECTED')
+            ->distinct('tr04_reference_id')
+            ->count('tr04_reference_id');
         // In progress tests count
         $inProgressTests = SampleTest::where('m06_alloted_to', $userId)
             ->where('tr05_status', 'IN_PROGRESS')
@@ -33,7 +39,9 @@ class AnalystController extends Controller
             ->count();
 
         // Total samples count
-        $totalSamples = SampleTest::where('m06_alloted_to', $userId)->count();
+        $totalSamples = SampleTest::where('m06_alloted_to', $userId)
+            ->distinct('tr04_sample_registration_id')   
+            ->count();
 
         //  Fetch recent allotted samples (grouped)
         $allottedSamples = SampleTest::where('m06_alloted_to', $userId)
@@ -81,6 +89,7 @@ class AnalystController extends Controller
         });
         return view('analyst.analyst_dashboard', compact(
             'pendingTests',
+            'rejectedTests',
             'inProgressTests',
             'completedTests',
             'totalSamples',

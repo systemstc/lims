@@ -36,6 +36,7 @@ if (!function_exists('getParties')) {
                 'address'        => $locationId == 0 ? $party?->m07_address : $location?->m08_address,
                 'state'          => $locationId == 0 ? $party?->state?->m01_name : $location?->state?->m01_name,
                 'district'       => $locationId == 0 ? $party?->district?->m02_name : $location?->district?->m02_name,
+                'pincode'       => $locationId == 0 ? $party?->m07_pincode : $location?->m08_pincode,
             ];
         };
 

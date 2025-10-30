@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Customer;
 use App\Models\SampleRegistration;
 use App\Models\SampleTest;
 use App\Models\Test;
@@ -55,7 +56,7 @@ class SampleController extends Controller
         $today = Carbon::today();
         $stats = [
             'today_samples' => SampleRegistration::where('m04_ro_id', Session::get('ro_id'))->whereDate('created_at', $today)->count(),
-            'receivedFromRosCount' => SampleTest::where('m04_transferred_to', Session::get('ro_id'))->where('tr05_status' , 'TRANSFERRED')
+            'receivedFromRosCount' => SampleTest::where('m04_transferred_to', Session::get('ro_id'))->where('tr05_status', 'TRANSFERRED')
                 ->distinct('tr04_sample_registration_id')
                 ->count('tr04_sample_registration_id'),
             'pending_tests' => $this->getPendingTestsCountOptimized(),
@@ -156,16 +157,28 @@ class SampleController extends Controller
     }
     public function viewPedingSmples()
     {
-        $roId = Session::get('ro_id');
-        $samples = SampleTest::with(['registration', 'transferredToRo'])
-            ->where('m04_transferred_to', $roId)
-            ->orderBy('tr05_transferred_at', 'asc')
-            ->get()
-            ->groupBy('tr04_sample_registration_id')
-            ->map(function ($group) {
-                return $group->first();
-            })
-            ->values();
+        if (Session::get('role') == 'ADMIN') {
+            $samples = SampleTest::with(['registration', 'transferredToRo', 'transferredBy'])
+                ->whereIn('tr05_status', ['TRANSFERRED', 'RECEIVED_ACCEPTED'])
+                ->orderBy('tr05_transferred_at', 'asc')
+                ->get()
+                ->groupBy('tr04_sample_registration_id')
+                ->map(function ($group) {
+                    return $group->first();
+                })
+                ->values();
+        } else {
+            $roId = Session::get('ro_id');
+            $samples = SampleTest::with(['registration', 'transferredToRo', 'transferredBy'])
+                ->where('m04_transferred_to', $roId)
+                ->orderBy('tr05_transferred_at', 'asc')
+                ->get()
+                ->groupBy('tr04_sample_registration_id')
+                ->map(function ($group) {
+                    return $group->first();
+                })
+                ->values();
+        }
 
         return view('registration.preRegistration.view_accept_pending', compact('samples'));
     }
@@ -177,7 +190,10 @@ class SampleController extends Controller
             $roId = Session::get('ro_id');
             DB::transaction(function () use ($id, $roId, $userId) {
                 $oldRegistration = SampleRegistration::findOrFail($id);
-
+                $customerId = Customer::where('m04_ro_id', $oldRegistration->m04_ro_id)
+                    ->where('m09_customer_type_id', 5)
+                    ->get('m07_customer_id');
+                // dd($customerId[0]->m07_customer_id);
                 $transferredTests = SampleTest::where('tr04_sample_registration_id', $id)
                     ->where('m04_transferred_to', $roId)
                     ->where('tr05_status', 'TRANSFERRED')
@@ -193,6 +209,14 @@ class SampleController extends Controller
                     $test->save();
                 }
 
+                $transferredTest = SampleTest::with('test')
+                    ->where('tr04_sample_registration_id', $id)
+                    ->where('m04_transferred_to', $roId)
+                    ->get();
+
+                // Calculate total charges
+                $totalCharges = $transferredTest->sum(fn($test) => $test->test->m12_charge ?? 0);
+
                 $newRegistrationData = $oldRegistration->replicate()->toArray();
                 unset($newRegistrationData['tr04_sample_registration_id']);
 
@@ -201,10 +225,10 @@ class SampleController extends Controller
                 $newRegistrationData['tr04_tracker_id'] = generateTrackerId($newRegistrationData['tr04_reference_id']);
                 $newRegistrationData['tr04_progress'] = 'REGISTERED';
                 $newRegistrationData['tr04_created_by'] = $userId;
+                $newRegistrationData['m09_customer_type_id'] = 5;
+                $newRegistrationData['m07_customer_id'] = $customerId[0]->m07_customer_id;
+                $newRegistrationData['m08_customer_location_id'] = 0;
                 $integerFields = [
-                    'm09_customer_type_id',
-                    'm07_customer_id',
-                    'm08_customer_location_id',
                     'm07_buyer_id',
                     'm08_buyer_location_id',
                     'm07_third_party_id',
@@ -222,9 +246,9 @@ class SampleController extends Controller
                 $newRegistrationData['tr04_reference_date'] = null;
                 $newRegistrationData['tr04_received_via'] = 'by_post';
                 $newRegistrationData['tr04_details'] = null;
-                $newRegistrationData['tr04_testing_charges'] = 0;
+                $newRegistrationData['tr04_testing_charges'] = $totalCharges;
                 $newRegistrationData['tr04_additional_charges'] = 0;
-                $newRegistrationData['tr04_total_charges'] = 0;
+                $newRegistrationData['tr04_total_charges'] = $totalCharges;
                 $newRegistrationData['created_at'] = now();
                 $newRegistrationData['updated_at'] = now();
 

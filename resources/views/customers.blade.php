@@ -34,7 +34,7 @@
                                     </thead>
                                     <tbody>
                                         @foreach ($customers as $key => $customer)
-                                            <tr>
+                                            <tr class="nk-tb-item">
                                                 <td>{{ $key + 1 }}</td>
                                                 {{-- <td>{{ $customer->m07_customer_code }}</td> --}}
                                                 <td>{{ $customer->m07_name }}</td>
@@ -49,7 +49,14 @@
                                                     <strong>{{ $customer->m07_status }}</strong>
                                                 </td>
                                                 <td class="nk-tb-col nk-tb-col-tools">
-                                                    <ul class="nk-tb-actions gx-1 my-n1">
+                                                    <ul class="nk-tb-actions gx-1">
+                                                        <li class="nk-tb-action-hidden">
+                                                            <a href="{{ route('view_wallet', $customer->m07_customer_id) }}" class="btn btn-trigger btn-icon"
+                                                                data-bs-toggle="tooltip" data-bs-placement="top"
+                                                                title="Wallet">
+                                                                <em class="icon ni ni-wallet-fill"></em>
+                                                            </a>
+                                                        </li>
                                                         <li class="me-n1">
                                                             <div class="dropdown">
                                                                 <a href="#"

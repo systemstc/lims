@@ -49,8 +49,27 @@
                                             </div>
                                         </div>
 
-                                        <input type="hidden" name="txt_ro_id" id="txt_ro_id"
-                                            value="{{ Session::get('ro_id') }}">
+                                        @if (Session::get('role') === 'ADMIN')
+                                            <div class="col-md-4">
+                                                <div class="form-group">
+                                                    <label class="form-label" for="txt_ro_id">Select Regional Office<b
+                                                            class="text-danger">*</b></label>
+                                                    <div class="form-control-wrap">
+                                                        <select name="txt_ro_id" id="txt_ro_id" class="form-select"
+                                                            required>
+                                                            <option value="">-- Select RO --</option>
+                                                            @foreach ($ros as $ro)
+                                                                <option value="{{ $ro->m04_ro_id }}"
+                                                                    {{ old('txt_ro_id') == $ro->m04_ro_id ? 'selected' : '' }}>
+                                                                    {{ $ro->m04_name }}
+                                                                </option>
+                                                            @endforeach
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        @endif
+
 
                                         <div class="col-md-4">
                                             <div class="form-group">
@@ -198,7 +217,7 @@
                                             </div>
                                         </div>
 
-                                        <div class="col-md-8">
+                                        <div class="col-md-4">
                                             <div class="form-group">
                                                 <label class="form-label" for="txt_address">Address<b
                                                         class="text-danger">*</b></label>

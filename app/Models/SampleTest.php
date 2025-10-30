@@ -72,7 +72,7 @@ class SampleTest extends Model
         return $this->belongsTo(Employee::class, 'm06_alloted_by', 'm06_employee_id');
     }
 
-    public function transferredBy(): BelongsTo
+    public function transferredBy()
     {
         return $this->belongsTo(Ro::class, 'm04_transferred_by', 'm04_ro_id');
     }
@@ -82,7 +82,7 @@ class SampleTest extends Model
         return $this->belongsTo(Ro::class, 'm04_ro_id', 'm04_ro_id');
     }
 
-    public function transferredToRo(): BelongsTo
+    public function transferredToRo()
     {
         return $this->belongsTo(Ro::class, 'm04_transferred_to', 'm04_ro_id');
     }
@@ -192,7 +192,7 @@ class SampleTest extends Model
         }
         return $query->orderByRaw("
             CASE tr05_priority 
-                WHEN 'URGENT' THEN 1
+                WHEN 'TATKAL' THEN 1
                 WHEN 'HIGH' THEN 2  
                 WHEN 'NORMAL' THEN 3
                 WHEN 'LOW' THEN 4
@@ -232,7 +232,7 @@ class SampleTest extends Model
     public function getPriorityBadgeClass(): string
     {
         return match ($this->tr05_priority ?? 'NORMAL') {
-            'URGENT' => 'bg-danger',
+            'TATKAL' => 'bg-danger',
             'NORMAL' => 'bg-info',
             default => 'bg-light',
         };

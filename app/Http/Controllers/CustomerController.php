@@ -129,7 +129,7 @@ class CustomerController extends Controller
             // dd($request->query('from'));
             $validator = Validator::make($request->all(), [
                 "txt_customer_type_id" => "required|integer|exists:m09_customer_types,m09_customer_type_id",
-                "txt_ro_id" => "required|integer",
+                "txt_ro_id" => "nullable|integer",
                 "txt_name" => "required|string|max:255",
                 "txt_email" => "required|email|max:255|unique:m07_customers,m07_email",
                 "txt_phone" => "required|digits:10|unique:m07_customers,m07_phone",
@@ -155,7 +155,6 @@ class CustomerController extends Controller
                 'txt_customer_type_id.integer' => 'Customer Type must be a number.',
                 'txt_customer_type_id.exists' => 'Selected Customer Type does not exist.',
 
-                'txt_ro_id.required' => 'RO ID is required.',
                 'txt_ro_id.integer' => 'RO ID must be a number.',
                 // 'txt_ro_id.exists' => 'Selected RO ID does not exist.',
 
@@ -214,13 +213,14 @@ class CustomerController extends Controller
             ]);
 
             if ($validator->fails()) {
+                // dd($validator);
                 return redirect()->back()->withErrors($validator)->withInput();
             }
             try {
                 DB::transaction(function () use ($request) {
                     $customer = Customer::create([
                         'm09_customer_type_id' => $request->txt_customer_type_id,
-                        'm04_ro_id' => $request->txt_ro_id,
+                        'm04_ro_id' => Session::get('role') === 'ADMIN' ? $request->txt_ro_id : Session::get('role_id'),
                         'm07_name' => $request->txt_name,
                         'm07_email' => $request->txt_email,
                         'm07_phone' => $request->txt_phone,
