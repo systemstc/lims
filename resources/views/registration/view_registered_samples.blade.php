@@ -19,8 +19,8 @@
                         <div class="nk-block-head">
                             <div class="nk-block-head-content d-flex justify-content-between align-items-center">
                                 <h4 class="nk-block-title mb-0">All Registered Samples</h4>
-                                <a href="{{ url()->previous() }}" class="btn btn-primary">
-                                    <em class="icon ni ni-back-alt-fill"></em> &nbsp; Back
+                                <a href="{{ url()->previous() }}" class="btn btn-outline-primary">
+                                    <em class="ni ni-back-alt-fill"></em> Back
                                 </a>
                             </div>
                         </div>

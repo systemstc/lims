@@ -18,32 +18,30 @@ use Carbon\Carbon;
 
 class TestResultController extends Controller
 {
-
-    /**
-     * Display a listing of test results to reporting
-     */
     public function reporting(Request $request)
     {
-        if (Session::get('ro_id') && !empty(Session::get('ro_id'))) {
-            $query = TestResult::with('creator')
-                ->where('m04_ro_id', Session::get('ro_id'))
-                ->active();
-        } else {
-            $query = TestResult::with('creator')
-                ->active();
+        // Base query with filters for 
+        $query = TestResult::with('creator')
+            ->where('tr07_result_status', 'VERIFIED')
+            ->where('tr07_is_current', 'YES')
+            ->active();
+
+        // Restrict by RO if available
+        if (Session::get('ro_id')) {
+            $query->where('m04_ro_id', Session::get('ro_id'));
         }
 
         // Apply filters
-        if ($request->filled('status')) {
-            $query->byStatus($request->status);
-        }
+        // if ($request->filled('status')) {
+        //     $query->byStatus($request->status);
+        // }
 
         if ($request->filled('date_from')) {
-            $query->where('tr07_test_date', '>=', $request->date_from);
+            $query->whereDate('tr07_test_date', '>=', $request->date_from);
         }
 
         if ($request->filled('date_to')) {
-            $query->where('tr07_test_date', '<=', $request->date_to);
+            $query->whereDate('tr07_test_date', '<=', $request->date_to);
         }
 
         if ($request->filled('search')) {
@@ -58,18 +56,15 @@ class TestResultController extends Controller
         $testResults = $query
             ->select(
                 'tr04_reference_id',
-                DB::raw('GROUP_CONCAT(DISTINCT tr07_result_status) as statuses'),
                 DB::raw('MAX(tr07_test_date) as last_test_date'),
-                DB::raw('MAX(tr07_created_at) as last_created_at'),
                 DB::raw('COUNT(*) as total_tests')
             )
             ->groupBy('tr04_reference_id')
-            ->orderByDesc('last_created_at')
-            ->get();
-
-        $testResults = $query->paginate(15);
+            ->orderByDesc('last_test_date')
+            ->paginate(15);
         return view('test-results.view_test_results', compact('testResults'));
     }
+
 
     public function templateManuscript(Request $request, $id)
     {
@@ -241,6 +236,8 @@ class TestResultController extends Controller
         $testResults = TestResult::with(['manuscript', 'test', 'creator'])
             ->where('tr04_reference_id', $id)
             ->where('m04_ro_id', Session::get('ro_id'))
+            ->where('tr07_result_status', 'VERIFIED')
+            ->where('tr07_is_current', 'YES')
             ->orderBy('m12_test_number')
             ->orderBy('tr07_test_date', 'desc')
             ->get();
@@ -250,7 +247,13 @@ class TestResultController extends Controller
         // Group by test number (parent)
         $groupedResults = $testResults->groupBy('m12_test_number');
         $sampleInfo = $testResults->first();
-        return view('test-results.show_test_result', compact('groupedResults', 'testResults', 'sampleInfo'));
+
+        $totalTests = $testResults->pluck('m12_test_number')->unique()->count();
+        $statusCounts = $testResults
+            ->groupBy('tr07_result_status')
+            ->map->count();
+
+        return view('test-results.show_test_result', compact('groupedResults', 'testResults', 'sampleInfo', 'totalTests', 'statusCounts'));
     }
 
     public function viewCompletedTests()
@@ -318,6 +321,7 @@ class TestResultController extends Controller
             'labSample',
             'testResult' => function ($q) {
                 $q->where('tr07_is_current', 'YES')
+                    ->where('tr07_result_status', 'VERIFIED')
                     ->with(['test.standard', 'manuscript']);
             }
         ])

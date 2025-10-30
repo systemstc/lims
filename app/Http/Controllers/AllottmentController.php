@@ -18,6 +18,8 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 
+use function Illuminate\Log\log;
+
 class AllottmentController extends Controller
 {
     private const BATCH_SIZE = 100;
@@ -302,14 +304,12 @@ class AllottmentController extends Controller
 
         if ($request->isMethod('post')) {
             $request->validate([
-                'test_ids' => 'required|array',
-                'test_ids.*' => 'required|exists:m12_tests,m12_test_id',
-                'standard_ids' => 'required|array',
-                'standard_ids.*' => 'required|exists:m15_standards,m15_standard_id',
-                'requirements' => 'array',
-                'remarks' => 'array',
+                'txt_test_ids' => 'required|array',
+                'txt_test_ids.*' => 'required|exists:m12_tests,m12_test_id',
+                'txt_standard_ids' => 'required|array',
+                'txt_standard_ids.*' => 'required|exists:m15_standards,m15_standard_id',
+                'txt_status' => 'array',
             ]);
-
             try {
                 DB::beginTransaction();
 
@@ -318,7 +318,7 @@ class AllottmentController extends Controller
 
                 $totalTestCharges = 0;
 
-                foreach ($request->test_ids as $index => $testId) {
+                foreach ($request->txt_test_ids as $index => $testId) {
                     $test = Test::find($testId);
                     if (!$test) continue;
 
@@ -328,12 +328,11 @@ class AllottmentController extends Controller
                         'tr04_sample_registration_id' => $id,
                         'm12_test_id' => $testId,
                         'm12_test_number' => $test->m12_test_number,
-                        'm15_standard_id' => $request->standard_ids[$index],
+                        'm15_standard_id' => $request->txt_standard_ids[$index],
                         'm04_ro_id' => $sample->m04_ro_id ?? Session::get('ro_id') ?? -1,
                         'm16_primary_test_id' => $test->m16_primary_test_id ?? null,
                         'm17_secondary_test_id' => $test->m17_secondary_test_id ?? null,
-                        'tr05_status' => $request->requirements[$index] ?? 'PENDING',
-                        'tr05_remark' => $request->remarks[$index] ?? null,
+                        'tr05_status' => $request->txt_status[$index] ?? 'PENDING',
                         'tr05_priority' => 'NORMAL',
                     ]);
                 }

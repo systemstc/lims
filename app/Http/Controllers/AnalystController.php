@@ -24,9 +24,12 @@ class AnalystController extends Controller
             ->distinct('tr04_sample_registration_id')
             ->count();
 
-        $rejectedTests = TestResult::where('tr07_result_status', 'REJECTED')
-            ->distinct('tr04_reference_id')
-            ->count('tr04_reference_id');
+        $rejectedTests = SampleTest::where('m06_alloted_to', $userId)
+            ->whereHas('registration.testResult', function ($query) {
+                $query->where('tr07_result_status', 'REJECTED');
+            })
+            ->distinct('tr04_sample_registration_id')
+            ->count('tr04_sample_registration_id');
         // In progress tests count
         $inProgressTests = SampleTest::where('m06_alloted_to', $userId)
             ->where('tr05_status', 'IN_PROGRESS')
@@ -40,7 +43,7 @@ class AnalystController extends Controller
 
         // Total samples count
         $totalSamples = SampleTest::where('m06_alloted_to', $userId)
-            ->distinct('tr04_sample_registration_id')   
+            ->distinct('tr04_sample_registration_id')
             ->count();
 
         //  Fetch recent allotted samples (grouped)
@@ -96,6 +99,120 @@ class AnalystController extends Controller
             'allottedSamples'
         ));
     }
+    public function rejectedSamples(Request $request)
+    {
+        $userId = Session::get('user_id');
+
+        $rejectedSamples = SampleTest::query()
+            ->where('m06_alloted_to', $userId)
+            ->whereHas('registration.testResult', function ($query) {
+                $query->where('tr07_result_status', 'REJECTED');
+            })
+            ->with(['registration.testResult' => function ($query) {
+                $query->orderByDesc('tr07_created_at');
+            }])
+            ->select(
+                'tr04_sample_registration_id',
+                DB::raw('COUNT(*) as total_tests'),
+                DB::raw('MAX(tr05_alloted_at) as latest_allotment'),
+                DB::raw('MAX(tr05_completed_at) as latest_completed_at'),
+                DB::raw('GROUP_CONCAT(tr05_sample_test_id) as test_ids')
+            )
+            ->groupBy('tr04_sample_registration_id')
+            ->orderByDesc('latest_allotment')
+            ->get();
+
+        // Calculate progress and status
+        foreach ($rejectedSamples as $sample) {
+            $results = $sample->registration->testResult;
+            $rejectedCount = $results->where('tr07_result_status', 'REJECTED')
+                ->where('tr07_is_current', 'YES')->count();
+            $revisedCount = $results->where('tr07_result_status', 'REVISED')
+                ->where('tr07_is_current', 'YES')->count();
+
+            // Calculate progress percentage
+            $totalToRevise = $rejectedCount + $revisedCount;
+            $progress = ($totalToRevise > 0)
+                ? round(($revisedCount / $totalToRevise) * 100)
+                : 0;
+
+            $sample->progress_percentage = $progress;
+
+            // Determine final overall status
+            if ($rejectedCount > 0 && $revisedCount == 0) {
+                $sample->overall_status = 'REJECTED';
+            } elseif ($revisedCount == $totalToRevise && $totalToRevise > 0) {
+                $sample->overall_status = 'REVISED';
+            } else {
+                $sample->overall_status = 'UNKNOWN';
+            }
+        }
+
+        return view('analyst.rejected_sample', compact('rejectedSamples'));
+    }
+
+    public function reviseTest(Request $request, $refId)
+    {
+        // GET: Show all rejected results for this sample reference
+        if ($request->isMethod('get')) {
+            $sample = SampleRegistration::with([
+                'testResult.test.standard',
+                'testResult.manuscript'
+            ])
+                ->where('tr04_reference_id', $refId)
+                ->firstOrFail();
+
+            // Group by test number for parent-child display
+            $groupedResults = $sample->testResult
+                ->where('tr07_result_status', 'REJECTED')
+                ->where('tr07_is_current', 'YES')
+                ->groupBy('m12_test_number');
+
+            if ($groupedResults->isEmpty()) {
+                Session::flash('type', 'success');
+                Session::flash('message', 'No rejected tests found for this sample.');
+                return to_route('rejected_samples');
+            }
+
+            return view('analyst.revise_tests', compact('sample', 'groupedResults'));
+        }
+
+        // POST: Save all revisions
+        if ($request->isMethod('post')) {
+            $oldResults = TestResult::where('tr04_reference_id', $refId)
+                ->where('tr07_result_status', 'REJECTED')
+                ->where('tr07_is_current', 'YES')
+                ->get();
+
+            foreach ($oldResults as $old) {
+                $old->update(['tr07_is_current' => 'NO']);
+
+                $new = new TestResult();
+                $new->fill([
+                    'm04_ro_id' => $old->m04_ro_id,
+                    'tr04_reference_id' => $old->tr04_reference_id,
+                    'm12_test_number' => $old->m12_test_number,
+                    'm22_manuscript_id' => $old->m22_manuscript_id,
+                    'tr07_result' => $request->input("txt_result_{$old->tr07_test_result_id}"),
+                    'tr07_current_version' => $old->tr07_current_version + 1,
+                    'tr07_is_current' => 'YES',
+                    'tr07_result_status' => 'REVISED',
+                    'tr07_test_date' => $request->txt_test_date,
+                    'tr07_performance_date' => $request->txt_performance_date,
+                    'tr07_remarks' => $request->input("txt_remarks_{$old->tr07_test_result_id}"),
+                    'm06_created_by' => Session::get('user_id'),
+                    'tr07_created_at' => now(),
+                    'tr07_status' => 'ACTIVE',
+                ]);
+                $new->save();
+            }
+            Session::flash('type', 'success');
+            Session::flash('message', 'Revised results saved successfully!');
+            return to_route('rejected_samples');
+        }
+    }
+
+
 
     public function viewSampleTests($sampleId)
     {

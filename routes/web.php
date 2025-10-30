@@ -178,12 +178,16 @@ Route::middleware(['access_control'])->group(function () {
     });
 
     // Analyst Ruotes
-    Route::get('analyst/dashboard', [AnalystController::class, 'viewAnalystDashboard'])->name('view_analyst_dashboard');
-    // Route::get('analyst/test/{id}', [AnalystController::class, 'viewTest'])->name('create_analysis');
-    Route::get('analyst/update/{id}', [AnalystController::class, 'updateStatus'])->name('update_analysis');
-    // Add this route to your existing routes
-    Route::get('/analyst/sample-tests/{sampleId}', [AnalystController::class, 'viewSampleTests'])->name('view_sample_tests');
+    Route::prefix('analyst')->group(function () {
+        Route::get('dashboard', [AnalystController::class, 'viewAnalystDashboard'])->name('view_analyst_dashboard');
+        // Route::get('test/{id}', [AnalystController::class, 'viewTest'])->name('create_analysis');
+        Route::get('update/{id}', [AnalystController::class, 'updateStatus'])->name('update_analysis');
+        Route::get('rejected-samples', [AnalystController::class, 'rejectedSamples'])->name('rejected_samples');
+        Route::match(['get', 'post'], 'revise-test/{refId}', [AnalystController::class, 'reviseTest'])->name('revise_test');
 
+        // Add this route to your existing routes
+        Route::get('sample-tests/{sampleId}', [AnalystController::class, 'viewSampleTests'])->name('view_sample_tests');
+    });
     // ACM Routes
     Route::get('acm-view', [MasterController::class, 'viewACM'])->name('view_acm');
     Route::match(['get', 'post'], 'update-access-to-routes', [MasterController::class, 'updatePermission'])->name('update_acm');

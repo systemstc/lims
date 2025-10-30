@@ -43,7 +43,7 @@ class SampleTest extends Model
     ];
 
     // Relationships
-    public function registration(): BelongsTo
+    public function registration()
     {
         return $this->belongsTo(SampleRegistration::class, 'tr04_sample_registration_id', 'tr04_sample_registration_id');
     }

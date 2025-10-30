@@ -494,7 +494,7 @@ class RegistrationController extends Controller
                     return $row->tr04_sample_description ?? 'N/A';
                 })
                 ->addColumn('sanple_image', function ($row) {
-                    return $row->tr04_attachment ? asset('storage/' . $row->tr04_attachment) : null;
+                    return $row->tr04_attachment ? asset('public/storage/' . $row->tr04_attachment) : null;
                 })
                 ->addColumn('sample_type', function ($row) {
                     $color = $row->tr04_sample_type === 'Tatkal' ? 'danger badge badge-dot blink' : 'info';

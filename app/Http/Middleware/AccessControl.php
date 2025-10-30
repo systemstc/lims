@@ -84,6 +84,9 @@ class AccessControl
             'view_sample_tests',
             'view_invoice',
             'view_all_invoice',
+
+            'rejected_samples',
+            'revise_test'
         ];
 
         if (in_array($routeName, $skipPermissionRoutes)) {

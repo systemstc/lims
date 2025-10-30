@@ -11,8 +11,8 @@
                         <div class="nk-block-head">
                             <div class="nk-block-head-content d-flex justify-content-between align-items-center">
                                 <h4 class="nk-block-title mb-0">Update Sample Tests</h4>
-                                <a href="{{ route('view_allottment') }}" class="btn btn-outline-secondary btn-sm">
-                                    <em class="icon ni ni-arrow-left-fill"></em> Back
+                                <a href="{{ route('view_allottment') }}" class="btn btn-outline-primary btn-sm">
+                                    <em class="icon ni ni-caret-left-fill"></em> Back
                                 </a>
                             </div>
                         </div>
@@ -30,10 +30,9 @@
                                                     <div class="form-group">
                                                         <label class="form-label" for="dd_group">Group</label>
                                                         <div class="form-control-wrap">
-                                                            <select class="form-control" name="dd_group" id="dd_group"
-                                                                required>
+                                                            <select class="form-control" name="dd_group" id="dd_group">
                                                                 <option value="">-- Select Group --</option>
-                                                                @foreach ($groups ?? [] as $group)
+                                                                @foreach ($groups as $group)
                                                                     <option
                                                                         value="{{ $group->m11_group_code ?? $group->id }}"
                                                                         {{ old('dd_group') == ($group->m11_group_code ?? $group->id) ? 'selected' : '' }}>
@@ -74,7 +73,7 @@
                                                                 <td>
                                                                     <span
                                                                         class="test-name-display">{{ $test->test->m12_name ?? 'N/A' }}</span>
-                                                                    <input type="hidden" name="test_ids[]"
+                                                                    <input type="hidden" name="txt_test_ids[]"
                                                                         value="{{ $test->m12_test_id }}">
                                                                 </td>
                                                                 <td>
@@ -87,20 +86,19 @@
                                                                             Click to choose standard
                                                                         @endif
                                                                     </button>
-                                                                    <input type="hidden" name="standard_ids[]"
+                                                                    <input type="hidden" name="txt_standard_ids[]"
                                                                         class="standard-id-input"
                                                                         value="{{ $test->m15_standard_id }}">
                                                                 </td>
                                                                 <td>
-                                                                    <input type="text" name="units[]"
+                                                                    <input type="text" name="txt_unit[]"
                                                                         class="form-control form-control-sm unit-field"
                                                                         value="{{ $test->test->m12_unit ?? '' }}" readonly>
                                                                 </td>
                                                                 <td>
-                                                                    <input type="text" name="requirements[]"
+                                                                    <input type="text" name="txt_status[]"
                                                                         class="form-control form-control-sm"
-                                                                        value="{{ $test->tr05_status ?? '' }}"
-                                                                        placeholder="e.g., 1.5-2.5">
+                                                                        value="{{ $test->tr05_status ?? '' }}" readonly>
                                                                 </td>
                                                                 <td class="text-center">
                                                                     <button type="button"
@@ -352,22 +350,21 @@
                     <tr class="test-row" data-test-id="${test.id}">
                         <td>
                             <span class="test-name-display">${test.test_name}</span>
-                            <input type="hidden" name="test_ids[]" value="${test.id}">
+                            <input type="hidden" name="txt_test_ids[]" value="${test.id}">
                         </td>
                         <td>
                             <button type="button" class="btn btn-link p-0 text-primary choose-standard-btn" 
                                 data-test-id="${test.id}">
                                 Click to choose standard
                             </button>
-                            <input type="hidden" name="standard_ids[]" class="standard-id-input" value="">
+                            <input type="hidden" name="txt_standard_ids[]" class="standard-id-input" value="">
                         </td>
                         <td>
-                            <input type="text" name="units[]" class="form-control form-control-sm unit-field" 
+                            <input type="text" name="txt_unit[]" class="form-control form-control-sm unit-field" 
                                 value="${test.unit || ''}" readonly>
                         </td>
                         <td>
-                            <input type="text" name="requirements[]" class="form-control form-control-sm" 
-                                placeholder="e.g., 1.5-2.5">
+                            <input type="text" name="txt_status[]" class="form-control form-control-sm" readonly value="PENDING">
                         </td>
                         <td class="text-center">
                             <button type="button" class="btn btn-sm btn-danger btn-delete-row" title="Delete row">
@@ -394,8 +391,8 @@
                         if (standards.length) {
                             standards.forEach(function(std) {
                                 $('#standard-list').append(`
-                                    <li class="list-group-item standard-item" data-id="${std.m15_standard_id || std.id}" style="cursor: pointer;">
-                                        ${std.m15_method || std.name}
+                                    <li class="list-group-item standard-item" data-id="${std.id}" style="cursor: pointer;">
+                                        ${std.name}
                                     </li>
                                 `);
                             });

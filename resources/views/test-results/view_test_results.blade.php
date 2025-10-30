@@ -39,7 +39,7 @@
                                     <form method="GET" action="{{ route('test_results') }}">
                                         <h5>Filter</h5>
                                         <div class="row g-3 align-center">
-                                            <div class="col-lg-3">
+                                            {{-- <div class="col-lg-3">
                                                 <div class="form-group">
                                                     <label class="form-label" for="status">Status</label>
                                                     <div class="form-control-wrap">
@@ -66,7 +66,7 @@
                                                         </select>
                                                     </div>
                                                 </div>
-                                            </div>
+                                            </div> --}}
                                             <div class="col-lg-3">
                                                 <div class="form-group">
                                                     <label class="form-label" for="date-from">Date From</label>
@@ -85,7 +85,7 @@
                                                     </div>
                                                 </div>
                                             </div>
-                                            <div class="col-lg-2">
+                                            <div class="col-lg-4">
                                                 <div class="form-group">
                                                     <label class="form-label" for="search">Search</label>
                                                     <div class="form-control-wrap">
@@ -95,12 +95,12 @@
                                                     </div>
                                                 </div>
                                             </div>
-                                            <div class="col-lg-1">
+                                            <div class="col-lg-2">
                                                 <div class="form-group">
                                                     <label class="form-label">&nbsp;</label>
                                                     <div class="form-control-wrap">
-                                                        <button type="submit" class="btn btn-primary w-100"><em
-                                                                class="icon ni ni-search"></em></button>
+                                                        <button type="submit" class="btn btn-primary"><em
+                                                                class="icon ni ni-search"></em>Search</button>
                                                     </div>
                                                 </div>
                                             </div>
@@ -120,9 +120,9 @@
                                         <tr>
                                             <th>#</th>
                                             <th>Reference ID</th>
-                                            <th>Statuses</th>
+                                            <th>Status</th>
                                             <th>Last Test Date</th>
-                                            <th>Total Tests</th>
+                                            <th>Total Outputs</th>
                                             <th>Last Created</th>
                                             <th>Action</th>
                                         </tr>
@@ -132,27 +132,7 @@
                                             <tr>
                                                 <td>{{ $key + 1 }}</td>
                                                 <td>{{ $result->tr04_reference_id }}</td>
-                                                <td>
-                                                    @php
-                                                        $statuses = explode(',', $result->statuses);
-                                                    @endphp
-                                                    @foreach ($statuses as $status)
-                                                        @php
-                                                            $color = match (strtoupper(trim($status))) {
-                                                                'DRAFT' => 'warning',
-                                                                'SUBMITTED' => 'info',
-                                                                'AUTHORIZED' => 'success',
-                                                                'REJECTED' => 'danger',
-                                                                'VERIFIED' => 'primary',
-                                                                default => 'secondary',
-                                                            };
-                                                        @endphp
-                                                        <strong
-                                                            class="text-{{ $color }} me-1">
-                                                            {{ ucfirst(trim($status)) }}
-                                                        </strong>
-                                                    @endforeach
-                                                </td>
+                                                <td><strong class="text-success fw-bold">VERIFIED</strong></td>
                                                 <td>{{ \Carbon\Carbon::parse($result->last_test_date)->format('d M, Y') }}
                                                 </td>
                                                 <td>{{ $result->total_tests }}</td>

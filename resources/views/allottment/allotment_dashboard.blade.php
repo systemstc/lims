@@ -500,12 +500,13 @@
                                                 @php
                                                     $priority = $registration->tr04_sample_type ?? 'Normal';
                                                     $priorityClass = match (strtolower($priority)) {
-                                                        'tatkal' => 'bg-danger',
-                                                        'normal' => 'bg-info',
-                                                        default => 'bg-secondary',
+                                                        'tatkal' => 'text-danger',
+                                                        'normal' => 'text-info',
+                                                        default => 'text-secondary',
                                                     };
                                                 @endphp
-                                                <span class="badge {{ $priorityClass }}">{{ ucfirst($priority) }}</span>
+                                                <span
+                                                    class="fw-bold  {{ $priorityClass }}">{{ ucfirst($priority) }}</span>
                                             </td>
                                             <td>
                                                 @php
@@ -516,12 +517,12 @@
                                                                 100
                                                             : 0;
                                                     [$status, $statusClass] = match (true) {
-                                                        $allottedPercentage == 0 => ['New', 'bg-warning'],
-                                                        $allottedPercentage == 100 => ['Complete', 'bg-success'],
-                                                        default => ['Partial', 'bg-info'],
+                                                        $allottedPercentage == 0 => ['New', 'text-warning'],
+                                                        $allottedPercentage == 100 => ['Completed', 'text-success'],
+                                                        default => ['Partial', 'text-info'],
                                                     };
                                                 @endphp
-                                                <span class="badge {{ $statusClass }}">{{ $status }}</span>
+                                                <span class="fw-bold  {{ $statusClass }}">{{ $status }}</span>
                                             </td>
                                             <td>
                                                 @php
@@ -551,37 +552,42 @@
                                                             </a>
                                                             <div class="dropdown-menu dropdown-menu-end">
                                                                 <ul class="link-list-opt no-bdr">
-                                                                    <li>
-                                                                        <a
-                                                                            href="{{ route('show_allotment', $registration->tr04_sample_registration_id) }}">
-                                                                            <em
-                                                                                class="icon ni ni-user-check text-success"></em>
-                                                                            <span>Manage Allotment</span>
-                                                                        </a>
-                                                                    </li>
-                                                                    <li>
-                                                                        <a style="cursor: pointer;"
-                                                                            onclick="quickAllot({{ $registration->tr04_sample_registration_id }})">
-                                                                            <em class="icon ni ni-spark text-primary"></em>
-                                                                            <span>Quick Allot</span>
-                                                                        </a>
-                                                                    </li>
-                                                                    <li>
-                                                                        <a style="cursor: pointer;"
-                                                                            onclick="quickTransfer({{ $registration->tr04_sample_registration_id }})">
-                                                                            <em
-                                                                                class="icon ni ni-forward-arrow text-warning"></em>
-                                                                            <span>Quick Transfer</span>
-                                                                        </a>
-                                                                    </li>
-                                                                    <li>
-                                                                        <a
-                                                                            href="{{ route('template_manuscript', $registration->tr04_sample_registration_id) }}">
-                                                                            <em
-                                                                                class="icon ni ni-check-circle text-success"></em>
-                                                                            <span>Manuscript</span>
-                                                                        </a>
-                                                                    </li>
+                                                                    @if ($allottedPercentage == 100)
+                                                                        <li>Under Reporting Stage</li>
+                                                                    @else
+                                                                        <li>
+                                                                            <a
+                                                                                href="{{ route('show_allotment', $registration->tr04_sample_registration_id) }}">
+                                                                                <em
+                                                                                    class="icon ni ni-user-check text-success"></em>
+                                                                                <span>Manage Allotment</span>
+                                                                            </a>
+                                                                        </li>
+                                                                        <li>
+                                                                            <a style="cursor: pointer;"
+                                                                                onclick="quickAllot({{ $registration->tr04_sample_registration_id }})">
+                                                                                <em
+                                                                                    class="icon ni ni-spark text-primary"></em>
+                                                                                <span>Quick Allot</span>
+                                                                            </a>
+                                                                        </li>
+                                                                        <li>
+                                                                            <a style="cursor: pointer;"
+                                                                                onclick="quickTransfer({{ $registration->tr04_sample_registration_id }})">
+                                                                                <em
+                                                                                    class="icon ni ni-forward-arrow text-warning"></em>
+                                                                                <span>Quick Transfer</span>
+                                                                            </a>
+                                                                        </li>
+                                                                        <li>
+                                                                            <a
+                                                                                href="{{ route('template_manuscript', $registration->tr04_sample_registration_id) }}">
+                                                                                <em
+                                                                                    class="icon ni ni-check-circle text-success"></em>
+                                                                                <span>Manuscript</span>
+                                                                            </a>
+                                                                        </li>
+                                                                    @endif
                                                                 </ul>
                                                             </div>
                                                         </div>
