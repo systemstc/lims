@@ -484,7 +484,27 @@
                                                             </td>
                                                         </tr>
                                                     @endif
+                                                    <tr>
+                                                        <td class="py-2" colspan="2">
+                                                            
+                                                            <strong>GST Type & Rate:</strong>
+                                                            
+                                                        </td>
+                                                        <td class="text-end py-2">
+                                                            <span class="fw-semibold">&#8377;
+                                                                @if(!empty($roGst->cgst) && !empty($roGst->sgst))
+                                                                CGST {{ $roGst->cgst }}% + SGST {{ $roGst->sgst }}%
+                                                                @elseif(!empty($roGst->igst))
+                                                                IGST {{ $roGst->igst }}%
+                                                                @else
+                                                                N/A
+                                                                @endif
+                                                            </span>
+                                                        </td>
+                                                    </tr>
                                                     <tr class="bg-white">
+                                                        <td class=" py-3" colspan="2">
+                                                        </td>
                                                         <td class=" py-3" colspan="2">
                                                             <strong class="fs-6 text-dark">Grand Total</strong>
                                                         </td>

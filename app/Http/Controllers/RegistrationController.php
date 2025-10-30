@@ -15,6 +15,7 @@ use App\Models\SampleTest;
 use App\Models\Standard;
 use App\Models\State;
 use App\Models\Test;
+use App\Models\Ro;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -29,7 +30,7 @@ class RegistrationController extends Controller
     public function preRegistration(Request $request)
     {
         if ($request->isMethod(method: 'POST')) {
-            dd($request);
+            // dd($request);
             $validator = Validator::make($request->all(), [
                 "dd_customer_type" => "required|exists:m09_customer_types,m09_customer_type_id",
                 "txt_customer_name" => "required|string",
@@ -82,7 +83,7 @@ class RegistrationController extends Controller
                     'm07_cha_id' => $request->selected_cha_id,
                     'm08_cha_location_id' => $request->selected_cha_address_id == 'default' ? 0 : $request->selected_cha_address_id,
                     'tr04_payment_by' => $request->txt_payment_by,
-                    'tr04_report_to' => $request->txt_report_to,
+                    'tr04_report_to' => json_encode($request->txt_report_to),
                     'tr04_reference_no' => $request->txt_reference,
                     'tr04_reference_date' => $request->txt_ref_date,
                     'tr04_received_via' => $request->txt_received_via,
@@ -131,6 +132,33 @@ class RegistrationController extends Controller
 
                 $registration = SampleRegistration::create($data);
                 // dd($registration);
+
+                // === Insert Additional Items & Charges ===
+                if ($request->has('additional_items') && is_array($request->additional_items)) {
+                    $totalAdditional = 0;
+                    $insertData = [];
+
+                    foreach ($request->additional_items as $item) {
+                        $price = isset($item['charge']) ? (float)$item['charge'] : 0;
+                        $totalAdditional += $price;
+
+                        $insertData[] = [
+                            'sample_id'   => $registration->tr04_sample_registration_id,
+                            'item'        => $item['item'] ?? null,
+                            'price'       => $price,
+                            'full_amount' => 0,
+                        ];
+                    }
+
+                    if (!empty($insertData)) {
+                        DB::table('tr04_sample_additional_charges')->insert($insertData);
+
+                        DB::table('tr04_sample_additional_charges')
+                        ->where('sample_id', $registration->tr04_sample_registration_id)
+                        ->update(['full_amount' => $totalAdditional]);
+                    }
+                }
+
                 foreach ($request->tests as $test) {
                     $testId = $test['test_id'] ?? null;
                     $testNumber = $test['test_number'] ?? null;
@@ -177,7 +205,10 @@ class RegistrationController extends Controller
         $groups = Group::where('m11_status', 'ACTIVE')->get(['m11_group_id', 'm11_group_code', 'm11_name']);
         $states = State::where('m01_status', 'ACTIVE')->get(['m01_state_id', 'm01_name']);
         $departments = Department::where('m13_status', 'ACTIVE')->get(['m13_department_id', 'm13_name']);
-        return view('registration.preRegistration.register_sample', compact('customerTypes', 'labSamples', 'groups', 'states', 'departments'));
+        $roGst = Ro::where('m04_ro_id',Session::get('ro_id'))->first();
+        // $roGst = $ro->ro;
+        // dd($roGst);
+        return view('registration.preRegistration.register_sample', compact('customerTypes', 'labSamples', 'groups', 'states', 'departments','roGst'));
     }
 
     public function searchCustomer(Request $request)
@@ -194,47 +225,47 @@ class RegistrationController extends Controller
             $roId  = Session::get('ro_id');
             if ($query) {
                 $customers = Customer::with(['locations', 'state', 'district'])
-                    ->where('m04_ro_id', $roId)
-                    ->when($type, function ($q) use ($type) {
-                        $q->where('m09_customer_type_id', $type);
-                    })
-                    ->where('m07_name', 'like', "%{$query}%")
-                    ->take(10)
-                    ->get()
-                    ->map(function ($customer) {
-                        return [
-                            'id' => $customer->m07_customer_id,
-                            'name' => $customer->m07_name,
-                            'default_address' => [
-                                'id' => 'default_' . $customer->m07_customer_id,
+                ->where('m04_ro_id', $roId)
+                ->when($type, function ($q) use ($type) {
+                    $q->where('m09_customer_type_id', $type);
+                })
+                ->where('m07_name', 'like', "%{$query}%")
+                ->take(10)
+                ->get()
+                ->map(function ($customer) {
+                    return [
+                        'id' => $customer->m07_customer_id,
+                        'name' => $customer->m07_name,
+                        'default_address' => [
+                            'id' => 'default_' . $customer->m07_customer_id,
+                            'customer_id' => $customer->m07_customer_id,
+                            'address' => $customer->m07_address,
+                            'state' => $customer->state?->m01_state_name,
+                            'district' => $customer->district?->m02_district_name,
+                            'pincode' => $customer->m07_pincode,
+                            'contact_person' => $customer->m07_contact_person,
+                            'email' => $customer->m07_email,
+                            'phone' => $customer->m07_phone,
+                            'gst' => $customer->m07_gst,
+                            'is_default' => true
+                        ],
+                        'other_addresses' => $customer->locations->map(function ($loc) use ($customer) {
+                            return [
+                                'id' => $loc->m08_customer_location_id,
                                 'customer_id' => $customer->m07_customer_id,
-                                'address' => $customer->m07_address,
-                                'state' => $customer->state?->m01_state_name,
-                                'district' => $customer->district?->m02_district_name,
-                                'pincode' => $customer->m07_pincode,
-                                'contact_person' => $customer->m07_contact_person,
-                                'email' => $customer->m07_email,
-                                'phone' => $customer->m07_phone,
-                                'gst' => $customer->m07_gst,
-                                'is_default' => true
-                            ],
-                            'other_addresses' => $customer->locations->map(function ($loc) use ($customer) {
-                                return [
-                                    'id' => $loc->m08_customer_location_id,
-                                    'customer_id' => $customer->m07_customer_id,
-                                    'address' => $loc->m08_address,
-                                    'state' => $loc->state?->m01_state_name,
-                                    'district' => $loc->district?->m02_district_name,
-                                    'pincode' => $loc->m08_pincode,
-                                    'contact_person' => $loc->m08_contact_person,
-                                    'email' => $loc->m08_email,
-                                    'phone' => $loc->m08_phone,
-                                    'gst' => $loc->m08_gst,
-                                    'is_default' => false
-                                ];
-                            })->values(),
-                        ];
-                    });
+                                'address' => $loc->m08_address,
+                                'state' => $loc->state?->m01_state_name,
+                                'district' => $loc->district?->m02_district_name,
+                                'pincode' => $loc->m08_pincode,
+                                'contact_person' => $loc->m08_contact_person,
+                                'email' => $loc->m08_email,
+                                'phone' => $loc->m08_phone,
+                                'gst' => $loc->m08_gst,
+                                'is_default' => false
+                            ];
+                        })->values(),
+                    ];
+                });
             } else {
                 $customers = collect();
             }
@@ -255,15 +286,15 @@ class RegistrationController extends Controller
         $groupId = $request->get('group_id');
 
         $tests = Test::query()
-            ->when($groupId, function ($q) use ($groupId) {
-                $q->where('m11_group_id', $groupId);
-            })
-            ->where(function ($q) use ($query) {
-                $q->where('m12_name', 'LIKE', "%{$query}%")
-                    ->orWhere('m12_test_number', 'LIKE', "%{$query}%");
-            })
-            ->limit(10)
-            ->get();
+        ->when($groupId, function ($q) use ($groupId) {
+            $q->where('m11_group_id', $groupId);
+        })
+        ->where(function ($q) use ($query) {
+            $q->where('m12_name', 'LIKE', "%{$query}%")
+            ->orWhere('m12_test_number', 'LIKE', "%{$query}%");
+        })
+        ->limit(10)
+        ->get();
 
         $results = $tests->map(function ($test) {
             $standard = null;
@@ -272,8 +303,8 @@ class RegistrationController extends Controller
                 $ids = explode(',', $test->m15_standard_id);
 
                 $standard = Standard::whereIn('m15_standard_id', $ids)
-                    ->where('m15_method', 'LIKE', 'IS%')
-                    ->first(['m15_standard_id as standard_id', 'm15_method as name']);
+                ->where('m15_method', 'LIKE', 'IS%')
+                ->first(['m15_standard_id as standard_id', 'm15_method as name']);
             }
 
             return [
@@ -297,8 +328,8 @@ class RegistrationController extends Controller
         }
         $standardIds = explode(',', $test->m15_standard_id);
         $standards = Standard::whereIn('m15_standard_id', $standardIds)
-            ->select('m15_standard_id as id', 'm15_method as name')
-            ->get();
+        ->select('m15_standard_id as id', 'm15_method as name')
+        ->get();
         return response()->json($standards);
     }
 
@@ -316,42 +347,42 @@ class RegistrationController extends Controller
 
         switch ($type) {
             case 'CONTRACT':
-                $query = Package::where('m19_status', 'ACTIVE')
-                    ->whereDate('m19_exp_date', '>=', Carbon::today())
-                    ->where('m19_type', 'CONTRACT');
+            $query = Package::where('m19_status', 'ACTIVE')
+            ->whereDate('m19_exp_date', '>=', Carbon::today())
+            ->where('m19_type', 'CONTRACT');
 
                 // Filter by customer contracts if customer IDs provided
-                if (!empty($customerIds)) {
-                    $query->whereIn('m07_contract_with', $customerIds);
-                }
+            if (!empty($customerIds)) {
+                $query->whereIn('m07_contract_with', $customerIds);
+            }
 
-                $data = $query->get(['m19_package_id as id', 'm19_name as name']);
-                break;
+            $data = $query->get(['m19_package_id as id', 'm19_name as name']);
+            break;
 
             case 'CUSTOM':
-                $query = Package::where('m19_status', 'ACTIVE')
-                    ->whereDate('m19_exp_date', '>=', Carbon::today())
-                    ->where('m19_type', 'CUSTOM');
+            $query = Package::where('m19_status', 'ACTIVE')
+            ->whereDate('m19_exp_date', '>=', Carbon::today())
+            ->where('m19_type', 'CUSTOM');
 
                 // Filter by customer contracts if customer IDs provided
-                if (!empty($customerIds)) {
-                    $query->whereIn('m07_contract_with', $customerIds);
-                }
+            if (!empty($customerIds)) {
+                $query->whereIn('m07_contract_with', $customerIds);
+            }
 
-                $data = $query->get(['m19_package_id as id', 'm19_name as name']);
-                break;
+            $data = $query->get(['m19_package_id as id', 'm19_name as name']);
+            break;
 
             case 'PACKAGE':
-                $data = Package::where('m19_status', 'ACTIVE')
-                    ->where('m19_type', 'PACKAGE')
-                    ->get(['m19_package_id as id', 'm19_name as name']);
-                break;
+            $data = Package::where('m19_status', 'ACTIVE')
+            ->where('m19_type', 'PACKAGE')
+            ->get(['m19_package_id as id', 'm19_name as name']);
+            break;
 
             case 'SPECIFICATION':
-                $data = Package::where('m19_status', 'ACTIVE')
-                    ->where('m19_type', 'SPECIFICATION')
-                    ->get(['m19_package_id as id', 'm19_name as name']);
-                break;
+            $data = Package::where('m19_status', 'ACTIVE')
+            ->where('m19_type', 'SPECIFICATION')
+            ->get(['m19_package_id as id', 'm19_name as name']);
+            break;
         }
 
         return response()->json(['data' => $data]);
@@ -359,8 +390,8 @@ class RegistrationController extends Controller
     public function getTestByPackage(Request $request)
     {
         $package = Package::where('m19_package_id', $request->contract_id)
-            ->with('packageTests.test', 'packageTests.standard')
-            ->firstOrFail();
+        ->with('packageTests.test', 'packageTests.standard')
+        ->firstOrFail();
         $tests = [
             'id' => $package->m19_package_id,
             'name' => $package->m19_name,
@@ -399,89 +430,89 @@ class RegistrationController extends Controller
             ->where('m04_ro_id', Session::get('ro_id'));
 
             return DataTables::of($samples)
-                ->addIndexColumn()
-                ->addColumn('sample_id', function ($row) {
-                    return $row->tr04_sample_registration_id ?? 'N/A';
-                })
-                ->addColumn('sample_description', function ($row) {
-                    return $row->tr04_sample_description ?? 'N/A';
-                })
-                ->addColumn('sanple_image', function ($row) {
-                    return $row->tr04_attachment ? asset('storage/' . $row->tr04_attachment) : null;
-                })
-                ->addColumn('sample_type', function ($row) {
-                    $color = $row->tr04_sample_type === 'Urgent' ? 'danger badge badge-dot blink' : 'info';
-                    return '<strong class="text-' . $color . '">' . strtoupper($row->tr04_sample_type) . '</strong>';
-                })
+            ->addIndexColumn()
+            ->addColumn('sample_id', function ($row) {
+                return $row->tr04_sample_registration_id ?? 'N/A';
+            })
+            ->addColumn('sample_description', function ($row) {
+                return $row->tr04_sample_description ?? 'N/A';
+            })
+            ->addColumn('sanple_image', function ($row) {
+                return $row->tr04_attachment ? asset('storage/' . $row->tr04_attachment) : null;
+            })
+            ->addColumn('sample_type', function ($row) {
+                $color = $row->tr04_sample_type === 'Urgent' ? 'danger badge badge-dot blink' : 'info';
+                return '<strong class="text-' . $color . '">' . strtoupper($row->tr04_sample_type) . '</strong>';
+            })
 
-                ->addColumn('total_tests', function ($row) {
-                    return $row->sampleTests->count();
-                })
-                ->addColumn('status', function ($row) {
-                    $statusClass = '';
-                    $statusText = $row->tr04_progress ?? 'REGISTERED';
+            ->addColumn('total_tests', function ($row) {
+                return $row->sampleTests->count();
+            })
+            ->addColumn('status', function ($row) {
+                $statusClass = '';
+                $statusText = $row->tr04_progress ?? 'REGISTERED';
 
-                    switch (strtolower($statusText)) {
-                        case 'complete':
-                        case 'completed':
-                            $statusClass = 'bg-success';
-                            break;
-                        case 'pending':
-                            $statusClass = 'bg-warning';
-                            break;
-                        case 'processing':
-                            $statusClass = 'bg-info';
-                            break;
-                        default:
-                            $statusClass = 'bg-primary';
-                    }
+                switch (strtolower($statusText)) {
+                    case 'complete':
+                    case 'completed':
+                    $statusClass = 'bg-success';
+                    break;
+                    case 'pending':
+                    $statusClass = 'bg-warning';
+                    break;
+                    case 'processing':
+                    $statusClass = 'bg-info';
+                    break;
+                    default:
+                    $statusClass = 'bg-primary';
+                }
 
-                    return '<span class="badge badge-dot ' . $statusClass . '">' . ucfirst($statusText) . '</span>';
-                })
-                ->addColumn('amount', function ($row) {
-                    $amount = $row->tr04_total_charges ?? 0;
-                    return '<span class="amount">&#8377; &nbsp;' . number_format($amount, 2) . '</span>';
-                })
-                ->addColumn('created_date', function ($row) {
-                    return $row->created_at ? $row->created_at->format('d M Y, h:ia') : 'N/A';
-                })
-                ->addColumn('action', function ($row) {
-                    $actions = '<div class="tb-odr-btns d-flex">';
-                    $actions .= '<a href="' . route('print_sample_acknowledgement', $row->tr04_sample_registration_id) . '" target="_blank" 
-                   class="btn btn-icon btn-white btn-dim btn-sm btn-primary">
-                   <em class="icon ni ni-printer-fill"></em>
+                return '<span class="badge badge-dot ' . $statusClass . '">' . ucfirst($statusText) . '</span>';
+            })
+            ->addColumn('amount', function ($row) {
+                $amount = $row->tr04_total_charges ?? 0;
+                return '<span class="amount">&#8377; &nbsp;' . number_format($amount, 2) . '</span>';
+            })
+            ->addColumn('created_date', function ($row) {
+                return $row->created_at ? $row->created_at->format('d M Y, h:ia') : 'N/A';
+            })
+            ->addColumn('action', function ($row) {
+                $actions = '<div class="tb-odr-btns d-flex">';
+                $actions .= '<a href="' . route('print_sample_acknowledgement', $row->tr04_sample_registration_id) . '" target="_blank" 
+                class="btn btn-icon btn-white btn-dim btn-sm btn-primary">
+                <em class="icon ni ni-printer-fill"></em>
                 </a>';
-                    $actions .= '<a href="' . route('view_registration_pdf', $row->tr04_sample_registration_id) . '" 
-                   class="btn btn-dim btn-sm btn-primary">
-                   View
+                $actions .= '<a href="' . route('view_registration_pdf', $row->tr04_sample_registration_id) . '" 
+                class="btn btn-dim btn-sm btn-primary">
+                View
                 </a>';
 
                 $actions .= '<br>'; 
 
                 $actions .= '<a href="' . route('view_invoice', $row->tr04_sample_registration_id) . '" 
-                   class="btn btn-dim btn-sm btn-success">
-                   <em class="icon ni ni-file-text"></em>
+                class="btn btn-dim btn-sm btn-success">
+                <em class="icon ni ni-file-text"></em>
 
                 </a>';
-                  $actions .= '<a href="' . route('view_all_invoice', $row->m07_customer_id) . 
-                    '?location_id=' . $row->m08_customer_location_id . 
-                    '&payment_by=' . $row->tr04_payment_by . '" 
-                    class="btn btn-dim btn-sm btn-success">
-                        Invoice All
-                    </a>';
+                $actions .= '<a href="' . route('view_all_invoice', $row->m07_customer_id) . 
+                '?location_id=' . $row->m08_customer_location_id . 
+                '&payment_by=' . $row->tr04_payment_by . '" 
+                class="btn btn-dim btn-sm btn-success">
+                Invoice All
+                </a>';
 
-                    if ($row->tr04_sample_type !== 'Urgent') {
-                        $actions .= '<a class="btn btn-xs btn-danger upgrade-to-urgent" 
+                if ($row->tr04_sample_type !== 'Urgent') {
+                    $actions .= '<a class="btn btn-xs btn-danger upgrade-to-urgent" 
                     data-id="' . $row->tr04_sample_registration_id . '" title="Upgrade">
                     <em class="icon ni ni-speed"></em>&nbsp;
                     </a>';
-                    }
+                }
 
-                    $actions .= '</div>';
-                    return $actions;
-                })
-                ->rawColumns(['status', 'amount', 'action', 'sample_type'])
-                ->make(true);
+                $actions .= '</div>';
+                return $actions;
+            })
+            ->rawColumns(['status', 'amount', 'action', 'sample_type'])
+            ->make(true);
         }
         return view('registration.view_registered_samples');
     }
@@ -502,7 +533,9 @@ class RegistrationController extends Controller
                 $test->append(['primary_tests', 'secondary_tests']);
             });
         });
-        return view('registration.registration_details', compact('sample'));
+        $roGst = Ro::where('m04_ro_id',Session::get('ro_id'))->first();
+        // dd($roGst);
+        return view('registration.registration_details', compact('sample','roGst'));
     }
 
     public function printSampleDetails($id)
@@ -519,8 +552,9 @@ class RegistrationController extends Controller
         $sample->sampleTests->each(function ($test) {
             $test->append(['primary_tests', 'secondary_tests']);
         });
+        $roGst = Ro::where('m04_ro_id',Session::get('ro_id'))->first();
 
-        return view('registration.print_pdf_acknowledgement', compact('sample'));
+        return view('registration.print_pdf_acknowledgement', compact('sample','roGst'));
     }
 
     public function upgradeToUrgent(Request $request)

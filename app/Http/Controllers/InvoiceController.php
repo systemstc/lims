@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 
 use App\Models\SampleRegistration;
+use Illuminate\Support\Facades\Session;
+use App\Models\Ro;
 
 
 class InvoiceController extends Controller
@@ -27,7 +29,9 @@ class InvoiceController extends Controller
             });
         });
 
-    return view('invoice.invoice_detail',compact('sample'));
+         $roGst = Ro::where('m04_ro_id',Session::get('ro_id'))->first();
+
+    return view('invoice.invoice_detail',compact('sample','roGst'));
    }
 
 
@@ -47,6 +51,7 @@ class InvoiceController extends Controller
     ->where('m07_customer_id',$id)
     ->where('m08_customer_location_id',$locationId)
     ->where('tr04_payment_by',$paymentBy)
+    ->where('m04_ro_id', Session::get('ro_id'))
 
     ->get();
 

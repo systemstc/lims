@@ -121,6 +121,24 @@
                                     <td class="text-end">₹{{ number_format($sample->tr04_additional_charges, 2) }}</td>
                                 </tr>
                                 @endif
+                                    <tr>
+                                                        <td>
+                                                            
+                                                            <label>GST Type & Rate:</label>
+                                                            
+                                                        </td>
+                                                        <td class="text-end">
+                                                            <span class="fw-semibold">
+                                                                @if(!empty($roGst->cgst) && !empty($roGst->sgst))
+                                                                CGST {{ $roGst->cgst }}% + SGST {{ $roGst->sgst }}%
+                                                                @elseif(!empty($roGst->igst))
+                                                                IGST {{ $roGst->igst }}%
+                                                                @else
+                                                                N/A
+                                                                @endif
+                                                            </span>
+                                                        </td>
+                                                    </tr>
                                 <tr class="border-top fw-bold">
                                     <td>Total</td>
                                     <td class="text-end">₹{{ number_format($sample->tr04_total_charges, 2) }}</td>

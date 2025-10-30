@@ -14,6 +14,16 @@ class Ro extends Model
         'm04_email', 
         'm04_phone', 
         'm03_role_id',
-        'm04_status'
+        'm04_status',
+        'cgst',
+        'sgst',
+        'igst',
+        'gst_no'
     ];
+
+
+    public function ro()
+    {
+        return $this->belongsTo(Ro::class, 'm04_ro_id', 'm04_ro_id');
+    }
 }

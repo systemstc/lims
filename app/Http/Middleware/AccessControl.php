@@ -82,7 +82,10 @@ class AccessControl
             'import_all_primary',
             'import_all_secondary',
             'get_test_samples_allotment',
-            'view_sample_tests'
+            'view_sample_tests',
+            'view_invoice',
+            'view_all_invoice',
+            'generate_combined_invoice'
         ];
 
         if (in_array($routeName, $skipPermissionRoutes)) {
