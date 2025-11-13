@@ -47,10 +47,11 @@ class WalletController extends Controller
             ->get()
             ->map(function ($sample) {
                 return (object)[
+                    'id' => $sample->tr04_sample_registration_id,
                     'sample_id' => $sample->tr04_reference_id,
                     'test_name' => $sample->tr04_sample_description, // You can customize this
                     'registration_date' => $sample->created_at->format('Y-m-d'),
-                    'hold_amount' => $sample->tr04_hold_amount ?? 0,
+                    'hold_amount' => $sample->tr04_total_charges ?? 0,
                     'invoice_number' => $sample->tr04_reference_id ?? 'N/A',
                     'status' => $sample->tr04_progress ?? 'Registered'
                 ];

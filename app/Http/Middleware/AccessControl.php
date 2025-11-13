@@ -87,6 +87,10 @@ class AccessControl
             'rejected_samples',
             'revise_test',
             'generate_combined_invoice',
+            'move_test_up',
+            'move_test_down',
+            'bulk_update_analysis',
+            'manuscript_template',
         ];
 
         if (in_array($routeName, $skipPermissionRoutes)) {

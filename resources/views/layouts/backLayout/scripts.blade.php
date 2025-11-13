@@ -3,7 +3,7 @@
 <script src="{{ asset('backAssets/js/libs/datatable-btns.js') }}"></script>
 <script src="{{ asset('backAssets/js/example-toastr.js') }}"></script>
 <script src="{{ asset('backAssets/js/example-sweetalert.js') }}"></script>
-<script src="{{ asset('backAssets/js/charts/chart-ecommerce.js') }}"></script>
+<script src="{{ asset('backAssets/js/charts/custom-charts.js') }}"></script>
 <script>
     // Validation
     function validateField(field, value, inputId, model) {

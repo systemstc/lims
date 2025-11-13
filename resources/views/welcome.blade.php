@@ -19,21 +19,23 @@
             --medium-gray: #e2e8f0;
             --dark-gray: #64748b;
             --text-dark: #334155;
-            --textile-red: #c41e3a;
+            --textile-red: #c41e3ae1;
             --textile-blue: #1d4ed8;
-            --textile-gold: #d4af37;
+            --textile-gold: #d4af37e1;
         }
 
         body {
             font-family: 'Inter', sans-serif;
             line-height: 1.6;
             color: var(--text-dark);
+            overflow-x: hidden;
         }
 
         .navbar {
             background: linear-gradient(135deg, var(--textile-red), var(--textile-gold));
             box-shadow: 0 2px 15px rgba(196, 30, 58, 0.2);
             backdrop-filter: blur(10px);
+            padding: 0.5rem 0;
         }
 
         .navbar-brand img {
@@ -41,8 +43,17 @@
             width: auto;
         }
 
+        .navbar-toggler {
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            padding: 0.25rem 0.5rem;
+        }
+
+        .navbar-toggler:focus {
+            box-shadow: none;
+        }
+
         .hero-section {
-            background: linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(196, 30, 58, 0.8)), url('{{ asset('frontAssets/header-image.jpg') }}');
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(228, 56, 84, 0.4)), url('{{ asset('frontAssets/header-image.jpeg') }}');
             background-size: cover;
             background-position: center;
             background-attachment: fixed;
@@ -51,6 +62,34 @@
             display: flex;
             align-items: center;
             position: relative;
+            padding: 100px 0 50px;
+        }
+
+        .hero-image {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .hero-image::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.6), rgba(228, 56, 84, 0.3));
+            border-radius: 0.5rem;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .hero-image img {
+            position: relative;
+            z-index: 0;
+            width: 100%;
+            height: auto;
+            max-width: 500px;
         }
 
         .hero-section::before {
@@ -114,6 +153,7 @@
         .stats-section {
             background: linear-gradient(135deg, var(--light-gray) 0%, #ffffff 100%);
             position: relative;
+            padding: 4rem 0;
         }
 
         .stats-section::before {
@@ -136,7 +176,7 @@
 
         .stat-item {
             text-align: center;
-            padding: 2rem;
+            padding: 1.5rem;
         }
 
         .stat-number {
@@ -148,6 +188,113 @@
             background-clip: text;
             display: block;
             margin-bottom: 0.5rem;
+            line-height: 1;
+        }
+
+        /* Image Slider Styles */
+        .slider-section {
+            background: linear-gradient(135deg, var(--light-gray) 0%, #ffffff 100%);
+            padding: 5rem 0;
+            position: relative;
+        }
+
+        .slider-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            position: relative;
+            overflow: hidden;
+            border-radius: 15px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+        }
+
+        .slider {
+            display: flex;
+            transition: transform 0.5s ease-in-out;
+        }
+
+        .slide {
+            min-width: 100%;
+            position: relative;
+        }
+
+        .slide img {
+            width: 100%;
+            height: 500px;
+            object-fit: cover;
+            display: block;
+        }
+
+        .slide-content {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
+            color: white;
+            padding: 2rem;
+            text-align: center;
+        }
+
+        .slide-title {
+            font-size: 2rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, rgba(247, 62, 38, 0.829), rgba(243, 177, 53, 0.822));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .slide-description {
+            font-size: 1rem;
+            opacity: 0.9;
+        }
+
+        .slider-nav {
+            display: flex;
+            justify-content: center;
+            margin-top: 2rem;
+            gap: 1rem;
+        }
+
+        .slider-btn {
+            background: linear-gradient(135deg, var(--textile-red), var(--textile-gold));
+            color: white;
+            border: none;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(196, 30, 58, 0.3);
+        }
+
+        .slider-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(196, 30, 58, 0.4);
+        }
+
+        .slider-dots {
+            display: flex;
+            justify-content: center;
+            margin-top: 1.5rem;
+            gap: 0.5rem;
+        }
+
+        .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--medium-gray);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .dot.active {
+            background: var(--textile-red);
+            transform: scale(1.2);
         }
 
         .contact-section {
@@ -164,7 +311,7 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background-image: url('https://images.unsplash.com/photo-1560472354-b33ff0c44a43?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80');
+            background-image: url('{{ asset('frontAssets/labimg14.jpeg') }}');
             background-size: cover;
             background-position: center;
             opacity: 0.1;
@@ -182,6 +329,7 @@
             padding: 0.75rem 1rem;
             transition: border-color 0.3s ease;
             background-color: white;
+            width: 100%;
         }
 
         .form-control:focus {
@@ -278,7 +426,7 @@
         }
 
         .textile-bg {
-            background: url('{{ asset('frontAssets/branding.jpg') }}');
+            background: url('{{ asset('frontAssets/branding.jpeg') }}');
             background-size: cover;
             background-position: center;
             background-attachment: fixed;
@@ -300,20 +448,255 @@
             z-index: 1;
         }
 
+        /* Responsive Design */
+        @media (max-width: 1200px) {
+            .hero-section {
+                padding: 90px 0 40px;
+            }
+
+            .feature-card {
+                padding: 2rem;
+            }
+        }
+
+        @media (max-width: 992px) {
+            .hero-section {
+                padding: 80px 0 30px;
+                min-height: 80vh;
+            }
+
+            .hero-content h1 {
+                font-size: 2.5rem;
+            }
+
+            .feature-card {
+                padding: 1.5rem;
+            }
+
+            .feature-icon {
+                width: 70px;
+                height: 70px;
+                font-size: 1.8rem;
+            }
+
+            .stat-number {
+                font-size: 2.8rem;
+            }
+
+            .slide img {
+                height: 400px;
+            }
+
+            .slide-content {
+                padding: 1.5rem;
+            }
+
+            .slide-title {
+                font-size: 1.8rem;
+            }
+        }
+
         @media (max-width: 768px) {
             .hero-section {
+                padding: 70px 0 20px;
                 min-height: 70vh;
                 text-align: center;
             }
 
+            .hero-content h1 {
+                font-size: 2.2rem;
+            }
+
+            .hero-content p.lead {
+                font-size: 1rem;
+            }
+
             .stat-number {
-                font-size: 2rem;
+                font-size: 2.2rem;
             }
 
             .feature-card,
             .process-step {
                 padding: 1.5rem;
+                margin-bottom: 1.5rem;
             }
+
+            .feature-icon {
+                width: 60px;
+                height: 60px;
+                font-size: 1.5rem;
+                margin-bottom: 1.5rem;
+            }
+
+            .slide img {
+                height: 300px;
+            }
+
+            .slide-content {
+                padding: 1rem;
+            }
+
+            .slide-title {
+                font-size: 1.5rem;
+            }
+
+            .slide-description {
+                font-size: 0.9rem;
+            }
+
+            .slider-btn {
+                width: 40px;
+                height: 40px;
+            }
+
+            .btn-primary,
+            .btn-outline-light {
+                padding: 0.75rem 1.5rem;
+                font-size: 0.85rem;
+            }
+
+            .navbar-brand img {
+                height: 40px;
+            }
+
+            .navbar-brand div {
+                font-size: 0.9rem;
+            }
+
+            .navbar-brand small {
+                font-size: 0.7rem;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .hero-section {
+                padding: 60px 0 15px;
+                min-height: 60vh;
+            }
+
+            .hero-content h1 {
+                font-size: 1.8rem;
+            }
+
+            .hero-content p.lead {
+                font-size: 0.9rem;
+            }
+
+            .stat-number {
+                font-size: 1.8rem;
+            }
+
+            .feature-card,
+            .process-step {
+                padding: 1.25rem;
+                margin-bottom: 1.25rem;
+            }
+
+            .feature-icon {
+                width: 50px;
+                height: 50px;
+                font-size: 1.2rem;
+                margin-bottom: 1.25rem;
+            }
+
+            .slide img {
+                height: 250px;
+            }
+
+            .slide-content {
+                padding: 0.75rem;
+            }
+
+            .slide-title {
+                font-size: 1.2rem;
+            }
+
+            .slide-description {
+                font-size: 0.8rem;
+            }
+
+            .slider-btn {
+                width: 35px;
+                height: 35px;
+            }
+
+            .btn-primary,
+            .btn-outline-light {
+                padding: 0.65rem 1.25rem;
+                font-size: 0.8rem;
+            }
+
+            .navbar-brand img {
+                height: 35px;
+            }
+
+            .navbar-brand div {
+                font-size: 0.8rem;
+            }
+
+            .navbar-brand small {
+                font-size: 0.65rem;
+            }
+
+            .footer {
+                padding: 2rem 0 1rem;
+            }
+
+            .footer .col-lg-4,
+            .footer .col-lg-2,
+            .footer .col-lg-3 {
+                margin-bottom: 1.5rem;
+            }
+        }
+
+        @media (max-width: 400px) {
+            .hero-content h1 {
+                font-size: 1.6rem;
+            }
+
+            .stat-number {
+                font-size: 1.6rem;
+            }
+
+            .btn-primary,
+            .btn-outline-light {
+                padding: 0.6rem 1rem;
+                font-size: 0.75rem;
+            }
+
+            .process-step {
+                padding: 1rem;
+            }
+
+            .process-number {
+                width: 35px;
+                height: 35px;
+                font-size: 1rem;
+            }
+        }
+
+        /* Ensure all images are responsive */
+        img {
+            max-width: 100%;
+            height: auto;
+        }
+
+        /* Fix for navbar collapse on mobile */
+        .navbar-collapse {
+            text-align: center;
+        }
+
+        .navbar-nav .nav-item {
+            margin: 0.25rem 0;
+        }
+
+        .navbar-nav .btn {
+            margin: 0.5rem 0;
+        }
+
+        /* Fix for form responsiveness */
+        .form-row .col-md-6 {
+            margin-bottom: 1rem;
         }
     </style>
 </head>
@@ -324,7 +707,8 @@
         <div class="container">
             <a class="navbar-brand d-flex align-items-center" href="#">
                 <img src="{{ asset('frontAssets/textiles_logo_200.png') }}" alt="Textile Committee of India"
-                    class="me-3 rounded-circle bg-light" style="width: 60px; height: 60px; object-fit: contain;">
+                    class="me-2 me-md-3 rounded-circle bg-light"
+                    style="width: 60px; height: 60px; object-fit: contain;">
                 <div>
                     <div class="fw-bold">Textile Committee</div>
                     <small class="opacity-75">Laboratory Information Management System</small>
@@ -351,13 +735,13 @@
                     <li class="nav-item">
                         <a class="nav-link" href="#contact">Contact</a>
                     </li>
-                    <li class="nav-item ms-3">
+                    <li class="nav-item ms-lg-3 mt-2 mt-lg-0">
                         <a href="#" class="btn btn-outline-light" data-bs-toggle="modal"
                             data-bs-target="#loginModal">
                             <em class="icon ni ni-signin me-2"></em>Access System
                         </a>
                     </li>
-                    <li class="nav-item ms-3">
+                    <li class="nav-item ms-lg-3 mt-2 mt-lg-0">
                         <a href="{{ route('admin_login') }}" class="btn btn-outline-light">
                             <em class="icon ni ni-signin me-2"></em>Admin Login
                         </a>
@@ -371,16 +755,15 @@
     <section class="hero-section" id="home">
         <div class="container">
             <div class="row align-items-center">
-                <div class="col-lg-6">
+                <div class="col-lg-6 order-2 order-lg-1">
                     <div class="hero-content">
-                        {{-- <span class="gov-badge mb-3 d-inline-block">Ministry of Textiles</span> --}}
                         <h1 id="typewriter" class="display-4 fw-bold mb-4 text-light"></h1>
                         <p class="lead mb-4">
                             Official Laboratory Information Management System developed by the Textile Committee
                             for standardized sample management, testing protocols, and quality assurance across textile
                             laboratories.
                         </p>
-                        <div class="d-flex flex-wrap gap-3">
+                        <div class="d-flex flex-wrap gap-3 justify-content-center justify-content-lg-start">
                             <a href="#features" class="btn btn-primary btn-lg">
                                 <em class="icon ni ni-info me-2"></em>System Overview
                             </a>
@@ -390,10 +773,10 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-lg-6 text-center">
-                    <div class="hero-image mt-5 mt-lg-0">
-                        <img src="{{ asset('frontAssets/branding.jpg') }}" alt="Government Textile Testing Laboratory"
-                            class="img-fluid rounded-3 shadow-lg" style="max-width: 500px;">
+                <div class="col-lg-6 order-1 order-lg-2 text-center mb-4 mb-lg-0">
+                    <div class="hero-image">
+                        <img src="{{ asset('frontAssets/branding.jpeg') }}" alt="Government Textile Testing Laboratory"
+                            class="img-fluid rounded-3 shadow-lg">
                     </div>
                 </div>
             </div>
@@ -607,57 +990,38 @@
                     </div>
                 </div>
             </div>
+        </div>
+    </section>
 
-            {{-- <div class="row">
-                <div class="col-md-4">
-                    <div class="testimonial-card">
-                        <div class="d-flex align-items-center mb-3">
-                            <div class="flex-shrink-0">
-                                <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="User"
-                                    class="rounded-circle" width="50">
-                            </div>
-                            <div class="flex-grow-1 ms-3">
-                                <h6 class="mb-0">Dr. Rajesh Kumar</h6>
-                                <small class="text-muted">Director, Central Textile Laboratory</small>
-                            </div>
-                        </div>
-                        <p class="mb-0">"The LIMS has standardized our operations across all facilities.
-                            Report generation time has been reduced by 60% while maintaining complete compliance."</p>
-                    </div>
+    <!-- Image Slider Section -->
+    <section class="slider-section p-0">
+        <div class="container">
+            <div class="row mb-5">
+                <div class="col-lg-8 mx-auto text-center">
+                    <h2 class="display-6 fw-bold mb-4">Our Laboratory Facilities</h2>
+                    <p class="lead">State-of-the-art textile testing laboratories equipped with modern instruments
+                        and technology</p>
                 </div>
-                <div class="col-md-4">
-                    <div class="testimonial-card">
-                        <div class="d-flex align-items-center mb-3">
-                            <div class="flex-shrink-0">
-                                <img src="https://randomuser.me/api/portraits/women/44.jpg" alt="User"
-                                    class="rounded-circle" width="50">
-                            </div>
-                            <div class="flex-grow-1 ms-3">
-                                <h6 class="mb-0">Dr. Priya Sharma</h6>
-                                <small class="text-muted">Senior Scientist, Quality Division</small>
-                            </div>
-                        </div>
-                        <p class="mb-0">"Equipment integration has eliminated manual data entry errors
-                            and ensures all data meets government validation requirements."</p>
-                    </div>
+            </div>
+
+            <div class="slider-container">
+                <div class="slider" id="imageSlider">
+                    <!-- Slides will be dynamically added here -->
                 </div>
-                <div class="col-md-4">
-                    <div class="testimonial-card">
-                        <div class="d-flex align-items-center mb-3">
-                            <div class="flex-shrink-0">
-                                <img src="https://randomuser.me/api/portraits/men/67.jpg" alt="User"
-                                    class="rounded-circle" width="50">
-                            </div>
-                            <div class="flex-grow-1 ms-3">
-                                <h6 class="mb-0">Mr. Vikram Singh</h6>
-                                <small class="text-muted">Lab Manager, Regional Center</small>
-                            </div>
-                        </div>
-                        <p class="mb-0">"Standardized reporting ensures consistency across all testing centers
-                            while meeting ministry requirements for official documentation."</p>
-                    </div>
+
+                <div class="slider-nav">
+                    <button class="slider-btn" id="prevBtn">
+                        <em class="icon ni ni-chevron-left"></em>
+                    </button>
+                    <button class="slider-btn" id="nextBtn">
+                        <em class="icon ni ni-chevron-right"></em>
+                    </button>
                 </div>
-            </div> --}}
+
+                <div class="slider-dots" id="sliderDots">
+                    <!-- Dots will be dynamically added here -->
+                </div>
+            </div>
         </div>
     </section>
 
@@ -754,14 +1118,14 @@
             <div class="row">
                 <div class="col-lg-4 mb-4 mb-lg-0">
                     <div class="d-flex align-items-center mb-3">
-                        <img src="{{ asset('frontAssets/textiles_logo_200.png') }}" alt="Logo" class="me-3 rounded-circle"
-                            style="height: 50px; width: 50px; object-fit: cover; background: #fff; padding: 3px;">
+                        <img src="{{ asset('frontAssets/textiles_logo_200.png') }}" alt="Logo" class="me-2"
+                            style="height: 80px; width: 80px;">
                         <div>
                             <h6 class="mb-0 text-white">Textile Committee</h6>
-                            <small class="text-light">LIMS Division</small>
+                            <small class="text-light">LIMS</small>
                         </div>
                     </div>
-                    <p class="text-light">Official laboratory information management system for
+                    <p class="text-light">Laboratory information management system for
                         textile testing facilities.</p>
                 </div>
                 <div class="col-lg-2 col-md-3 mb-4 mb-lg-0">
@@ -937,6 +1301,149 @@
                 started = true;
                 animateStats();
             }
+        });
+
+        // Image Slider Implementation
+        document.addEventListener('DOMContentLoaded', function() {
+            const slider = document.getElementById('imageSlider');
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            const dotsContainer = document.getElementById('sliderDots');
+
+            // Sample data for the slider
+            const slides = [{
+                    image: "{{ asset('frontAssets/labimg1.jpeg') }}",
+                    title: "Fiber Analysis Laboratory",
+                    description: "Advanced equipment for precise fiber identification and characterization"
+                },
+                {
+                    image: "{{ asset('frontAssets/labimg3.jpeg') }}",
+                    title: "Quality Control Division",
+                    description: "Dedicated section for quality assurance and compliance verification"
+                },
+                {
+                    image: "{{ asset('frontAssets/labimg4.jpeg') }}",
+                    title: "Chemical Testing Lab",
+                    description: "Specialized facility for chemical analysis and safety testing"
+                },
+                {
+                    image: "{{ asset('frontAssets/labimg5.jpeg') }}",
+                    title: "Sample Preparation Area",
+                    description: "Organized workspace for sample conditioning and preparation"
+                },
+                {
+                    image: "{{ asset('frontAssets/labimg6.jpeg') }}",
+                    title: "Color Measurement Lab",
+                    description: "Precision instruments for color fastness and shade matching"
+                },
+                {
+                    image: "{{ asset('frontAssets/labimg7.jpeg') }}",
+                    title: "Physical Testing Section",
+                    description: "Equipment for tensile strength, abrasion, and pilling tests"
+                },
+                {
+                    image: "{{ asset('frontAssets/labimg8.jpeg') }}",
+                    title: "Microscopy Laboratory",
+                    description: "High-resolution microscopy for detailed fiber and fabric analysis"
+                },
+                {
+                    image: "{{ asset('frontAssets/labimg9.jpeg') }}",
+                    title: "Environmental Testing",
+                    description: "Climate-controlled chambers for environmental resistance testing"
+                },
+                {
+                    image: "{{ asset('frontAssets/labimg11.jpeg') }}",
+                    title: "Data Analysis Center",
+                    description: "Digital processing of test results and report generation"
+                },
+                {
+                    image: "{{ asset('frontAssets/labimg12.jpeg') }}",
+                    title: "Technical Library",
+                    description: "Comprehensive collection of standards and reference materials"
+                },
+                {
+                    image: "{{ asset('frontAssets/labimg13.jpeg') }}",
+                    title: "Training Facility",
+                    description: "Modern training center for laboratory personnel and technicians"
+                },
+                {
+                    image: "{{ asset('frontAssets/labimg14.jpeg') }}",
+                    title: "Central Laboratory",
+                    description: "Main testing facility with integrated LIMS implementation"
+                }
+            ];
+
+            let currentSlide = 0;
+
+            // Initialize slider
+            function initSlider() {
+                // Create slides
+                slides.forEach((slide, index) => {
+                    const slideElement = document.createElement('div');
+                    slideElement.className = 'slide';
+                    slideElement.innerHTML = `
+                        <img src="${slide.image}" alt="${slide.title}">
+                        <div class="slide-content">
+                            <h3 class="slide-title">${slide.title}</h3>
+                            <p class="slide-description">${slide.description}</p>
+                        </div>
+                    `;
+                    slider.appendChild(slideElement);
+
+                    // Create dots
+                    const dot = document.createElement('div');
+                    dot.className = 'dot';
+                    if (index === 0) dot.classList.add('active');
+                    dot.addEventListener('click', () => goToSlide(index));
+                    dotsContainer.appendChild(dot);
+                });
+
+                updateSlider();
+            }
+
+            // Update slider position
+            function updateSlider() {
+                slider.style.transform = `translateX(-${currentSlide * 100}%)`;
+
+                // Update active dot
+                document.querySelectorAll('.dot').forEach((dot, index) => {
+                    dot.classList.toggle('active', index === currentSlide);
+                });
+            }
+
+            // Go to specific slide
+            function goToSlide(index) {
+                currentSlide = index;
+                updateSlider();
+            }
+
+            // Next slide
+            function nextSlide() {
+                currentSlide = (currentSlide + 1) % slides.length;
+                updateSlider();
+            }
+
+            // Previous slide
+            function prevSlide() {
+                currentSlide = (currentSlide - 1 + slides.length) % slides.length;
+                updateSlider();
+            }
+
+            // Event listeners
+            prevBtn.addEventListener('click', prevSlide);
+            nextBtn.addEventListener('click', nextSlide);
+
+            // Auto slide
+            let slideInterval = setInterval(nextSlide, 5000);
+
+            // Pause on hover
+            slider.addEventListener('mouseenter', () => clearInterval(slideInterval));
+            slider.addEventListener('mouseleave', () => {
+                slideInterval = setInterval(nextSlide, 5000);
+            });
+
+            // Initialize the slider
+            initSlider();
         });
     </script>
 </body>

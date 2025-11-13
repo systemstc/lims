@@ -7,7 +7,6 @@ use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\FrontController;
 use App\Http\Controllers\MasterController;
-use App\Http\Controllers\MeasurementController;
 use App\Http\Controllers\RegistrationController;
 use App\Http\Controllers\RoController;
 use App\Http\Controllers\SampleController;
@@ -177,11 +176,14 @@ Route::middleware(['access_control'])->group(function () {
         Route::match(['get', 'post'], 'update-sample-tests/{id}', [AllottmentController::class, 'editSampleTests'])->name('edit_sample');
     });
 
+    Route::get('sample-status-past-30-days', [SampleController::class, 'viewSampleStatus'])->name('view_sample_status_by_month');
+
     // Analyst Ruotes
     Route::prefix('analyst')->group(function () {
         Route::get('dashboard', [AnalystController::class, 'viewAnalystDashboard'])->name('view_analyst_dashboard');
         // Route::get('test/{id}', [AnalystController::class, 'viewTest'])->name('create_analysis');
         Route::get('update/{id}', [AnalystController::class, 'updateStatus'])->name('update_analysis');
+        Route::get('bulk-update-status/{id}', [AnalystController::class, 'bulkUpdateStatus'])->name('bulk_update_analysis');
         Route::get('rejected-samples', [AnalystController::class, 'rejectedSamples'])->name('rejected_samples');
         Route::match(['get', 'post'], 'revise-test/{refId}', [AnalystController::class, 'reviseTest'])->name('revise_test');
 
@@ -201,6 +203,9 @@ Route::middleware(['access_control'])->group(function () {
         Route::post('/create-result-test', [TestResultController::class, 'createResult'])->name('create_test_result');
         Route::get('show-sample-result/{id}', [TestResultController::class, 'showSampleResult'])->name('show_sample_result');
         Route::get('generate-report/{id}', [TestResultController::class, 'generateReport'])->name('generate_report');
+        // Route::get('/test-reports/generate/{id}', [TestResultController::class, 'generateReport'])->name('generate_report');
+        Route::get('/test-reports/move-up/{id}/{index}', [TestResultController::class, 'moveTestUp'])->name('move_test_up');
+        Route::get('/test-reports/move-down/{id}/{index}', [TestResultController::class, 'moveTestDown'])->name('move_test_down');
 
         Route::get('/{id}/version/{versionNumber}', [TestResultController::class, 'viewVersion'])->name('view-version');
         Route::get('/{id}/compare', [TestResultController::class, 'compareVersions'])->name('compare-versions');
@@ -283,7 +288,8 @@ Route::middleware(['access_control'])->group(function () {
     Route::get('/get-manuscripts', [MasterController::class, 'getManuscripts'])->name('get_manuscripts');
     Route::match(['get', 'post'], 'create/manuscripts', [MasterController::class, 'createManuscript'])->name('create_manuscript');
     // Manuscript Template
-    Route::get('manuscript-template/{id}', [TestResultController::class, 'templateManuscript'])->name('template_manuscript');
+    Route::get('manuscript-template/{id}', [TestResultController::class, 'templateTestResult'])->name('template_manuscript');
+    Route::get('manuscript-dd-template/{id}', [TestResultController::class, 'templateManuscript'])->name('manuscript_template');
     Route::get('completed-tests', [TestResultController::class, 'viewCompletedTests'])->name('view_completed_camples');
     // Transferred samples from other regional offices 
     Route::get('accept-pending-samples', [SampleController::class, 'viewPedingSmples'])->name('view_regional_samples');
@@ -323,3 +329,6 @@ Route::post('/razorpay/webhook', [RazorpayController::class, 'webhook'])->name('
 
 
 Route::get('/get-all-samples-data', [AllottmentController::class, 'getAllSamplesData'])->name('get_all_samples_data');
+
+Route::post('/dashboard/date-samples', [MasterController::class, 'getDateSamples'])
+    ->name('dashboard.date.samples');

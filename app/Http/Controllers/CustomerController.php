@@ -118,8 +118,11 @@ class CustomerController extends Controller
 
     public function customerAll()
     {
-        $customers = Customer::with('customerType', 'locations', 'district')->get();
-        // dd($customers);
+        if (Session::get('ro_id') && Session::get('ro_id') != -1) {
+            $customers = Customer::with('customerType', 'locations', 'district')->where('m04_ro_id', Session::get('ro_id'))->get();
+        } else {
+            $customers = Customer::with('customerType', 'locations', 'district')->get();
+        }
         return view('customers', compact('customers'));
     }
 

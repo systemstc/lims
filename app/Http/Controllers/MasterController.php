@@ -12,13 +12,17 @@ use App\Models\Menu;
 use App\Models\Package;
 use App\Models\PackageTest;
 use App\Models\PrimaryTest;
+use App\Models\Ro;
 use App\Models\Role;
 use App\Models\Sample;
+use App\Models\SampleRegistration;
 use App\Models\SampleTest;
 use App\Models\SecondaryTest;
 use App\Models\Standard;
 use App\Models\State;
 use App\Models\Test;
+use Carbon\Carbon;
+use DateTime;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -28,9 +32,571 @@ use Yajra\DataTables\Facades\DataTables;
 
 class MasterController extends Controller
 {
-    public function adminDashboard()
+    // public function adminDashboard()
+    // {
+    //     return view('dashboards.admin_dashboard');
+    // }
+
+    public function adminDashboard(Request $request)
     {
-        return view('dashboards.admin_dashboard');
+        // Get filter parameters from the request
+        $month = $request->get('month', date('m'));
+        $year = $request->get('year', date('Y'));
+        $roId = $request->get('ro_id');
+
+        // Base query
+        $query = SampleRegistration::query();
+
+        // Apply date filters
+        $query->whereYear('created_at', $year)
+            ->whereMonth('created_at', $month);
+
+        // Apply RO filter if user is admin and RO is selected
+        if (Session::get('role') === 'ADMIN' && $roId) {
+            $query->where('m04_ro_id', $roId);
+        } elseif (Session::get('role') !== 'ADMIN') {
+            // For non-admin users, filter by their associated RO
+            $query->where('m04_ro_id', Session::get('ro_id'));
+        }
+
+        // Get dashboard data
+        $dashboardData = $this->getDashboardData($query, $month, $year);
+
+        // Get RO list for admin filter
+        $ros = Session::get('role') === 'ADMIN' ? Ro::all() : collect();
+
+        return view('dashboards.admin_dashboard', compact('dashboardData', 'ros', 'month', 'year', 'roId'));
+    }
+
+    private function getDashboardData($query, $month, $year)
+    {
+        // Clone queries for different time periods
+        $currentMonthQuery = clone $query;
+
+        // Current month period
+        $currentStart = Carbon::create($year, $month, 1)->startOfMonth();
+        $currentEnd = Carbon::create($year, $month, 1)->endOfMonth();
+
+        // Last month period
+        $lastMonth = $month == 1 ? 12 : $month - 1;
+        $lastYear = $month == 1 ? $year - 1 : $year;
+        $lastStart = Carbon::create($lastYear, $lastMonth, 1)->startOfMonth();
+        $lastEnd = Carbon::create($lastYear, $lastMonth, 1)->endOfMonth();
+
+        // ==================== CHART DATA PREPARATION ====================
+
+        // Get daily data for current month
+        $dailyRevenueData = $currentMonthQuery->clone()
+            ->select(
+                DB::raw('DAY(created_at) as day'),
+                DB::raw('SUM(tr04_total_charges) as revenue'),
+                DB::raw('COUNT(*) as samples')
+            )
+            ->groupBy(DB::raw('DAY(created_at)'))
+            ->orderBy('day')
+            ->get();
+
+        // Get daily customer data for current month
+        $dailyCustomerData = $currentMonthQuery->clone()
+            ->select(
+                DB::raw('DAY(created_at) as day'),
+                DB::raw('COUNT(DISTINCT m07_customer_id) as customer_count')
+            )
+            ->groupBy(DB::raw('DAY(created_at)'))
+            ->orderBy('day')
+            ->get();
+
+        // Prepare chart labels and data arrays
+        $daysInMonth = cal_days_in_month(CAL_GREGORIAN, $month, $year);
+        $chartLabels = [];
+        for ($i = 1; $i <= $daysInMonth; $i++) {
+            $chartLabels[] = sprintf("%02d %s", $i, DateTime::createFromFormat('!m', $month)->format('M'));
+        }
+
+        // Initialize data arrays with zeros
+        $revenueData = array_fill(0, $daysInMonth, 0);
+        $samplesData = array_fill(0, $daysInMonth, 0);
+        $averageRevenueData = array_fill(0, $daysInMonth, 0);
+        $customersData = array_fill(0, $daysInMonth, 0);
+
+        // Fill revenue and samples data
+        foreach ($dailyRevenueData as $data) {
+            if ($data->day > 0 && $data->day <= $daysInMonth) {
+                $index = $data->day - 1;
+                $revenueData[$index] = (float) $data->revenue;
+                $samplesData[$index] = (int) $data->samples;
+                $averageRevenueData[$index] = $data->samples > 0 ?
+                    round((float) ($data->revenue / $data->samples), 2) : 0;
+            }
+        }
+
+        // Fill customer data
+        foreach ($dailyCustomerData as $data) {
+            if ($data->day > 0 && $data->day <= $daysInMonth) {
+                $customersData[$data->day - 1] = (int) $data->customer_count;
+            }
+        }
+
+        // ==================== REVENUE CALCULATIONS ====================
+
+        // Current month revenue
+        $currentMonthRevenue = $currentMonthQuery->clone()->sum('tr04_total_charges') ?? 0;
+
+        // Last month revenue
+        $lastMonthRevenue = SampleRegistration::query()
+            ->when(Session::get('role') !== 'ADMIN', function ($q) {
+                $q->where('m04_ro_id', Session::get('ro_id'));
+            })
+            ->when(Session::get('role') === 'ADMIN' && request()->get('ro_id'), function ($q) {
+                $q->where('m04_ro_id', request()->get('ro_id'));
+            })
+            ->whereYear('created_at', $lastYear)
+            ->whereMonth('created_at', $lastMonth)
+            ->sum('tr04_total_charges') ?? 0;
+
+        // This week revenue
+        $weekStart = Carbon::now()->startOfWeek();
+        $weekEnd = Carbon::now()->endOfWeek();
+        $thisWeekRevenue = $currentMonthQuery->clone()
+            ->whereBetween('created_at', [$weekStart, $weekEnd])
+            ->sum('tr04_total_charges') ?? 0;
+
+        // Last week revenue
+        $lastWeekStart = Carbon::now()->subWeek()->startOfWeek();
+        $lastWeekEnd = Carbon::now()->subWeek()->endOfWeek();
+        $lastWeekRevenue = SampleRegistration::query()
+            ->when(Session::get('role') !== 'ADMIN', function ($q) {
+                $q->where('m04_ro_id', Session::get('ro_id'));
+            })
+            ->when(Session::get('role') === 'ADMIN' && request()->get('ro_id'), function ($q) {
+                $q->where('m04_ro_id', request()->get('ro_id'));
+            })
+            ->whereBetween('created_at', [$lastWeekStart, $lastWeekEnd])
+            ->sum('tr04_total_charges') ?? 0;
+
+        // Revenue change percentage
+        if ($lastWeekRevenue == 0 && $thisWeekRevenue == 0) {
+            $revenueChange = 0;
+        } elseif ($lastWeekRevenue == 0) {
+            $revenueChange = $thisWeekRevenue > 0 ? 100 : -100;
+        } else {
+            $revenueChange = round((($thisWeekRevenue - $lastWeekRevenue) / abs($lastWeekRevenue)) * 100, 2);
+        }
+
+        // ==================== AVERAGE REVENUE ====================
+
+        $sampleCount = $currentMonthQuery->clone()->count();
+        $averageRevenue = $sampleCount > 0 ?
+            round($currentMonthRevenue / $sampleCount, 2) : 0;
+
+        $lastMonthSampleCount = SampleRegistration::query()
+            ->when(Session::get('role') !== 'ADMIN', function ($q) {
+                $q->where('m04_ro_id', Session::get('ro_id'));
+            })
+            ->when(Session::get('role') === 'ADMIN' && request()->get('ro_id'), function ($q) {
+                $q->where('m04_ro_id', request()->get('ro_id'));
+            })
+            ->whereYear('created_at', $lastYear)
+            ->whereMonth('created_at', $lastMonth)
+            ->count();
+
+        $lastMonthAverageRevenue = $lastMonthSampleCount > 0 ?
+            round($lastMonthRevenue / $lastMonthSampleCount, 2) : 0;
+
+        if (abs($lastMonthAverageRevenue) < 0.001) {
+            if (abs($averageRevenue) < 0.001) {
+                $averageRevenueChange = 0;
+            } else {
+                $averageRevenueChange = $averageRevenue > 0 ? 100 : -100;
+            }
+        } else {
+            $averageRevenueChange = round((($averageRevenue - $lastMonthAverageRevenue) / abs($lastMonthAverageRevenue)) * 100, 2);
+        }
+
+        // ==================== SAMPLES COUNT ====================
+
+        $samplesCount = $currentMonthQuery->clone()->count();
+
+        $lastMonthSamplesCount = SampleRegistration::query()
+            ->when(Session::get('role') !== 'ADMIN', function ($q) {
+                $q->where('m04_ro_id', Session::get('ro_id'));
+            })
+            ->when(Session::get('role') === 'ADMIN' && request()->get('ro_id'), function ($q) {
+                $q->where('m04_ro_id', request()->get('ro_id'));
+            })
+            ->whereYear('created_at', $lastYear)
+            ->whereMonth('created_at', $lastMonth)
+            ->count();
+
+        if ($lastMonthSamplesCount == 0 && $samplesCount == 0) {
+            $samplesChange = 0;
+        } elseif ($lastMonthSamplesCount == 0) {
+            $samplesChange = 100;
+        } else {
+            $samplesChange = round((($samplesCount - $lastMonthSamplesCount) / $lastMonthSamplesCount) * 100, 2);
+        }
+
+        // ==================== CUSTOMERS COUNT ====================
+
+        $customersCount = $currentMonthQuery->clone()
+            ->distinct('m07_customer_id')
+            ->count('m07_customer_id');
+
+        $lastMonthCustomersCount = SampleRegistration::query()
+            ->when(Session::get('role') !== 'ADMIN', function ($q) {
+                $q->where('m04_ro_id', Session::get('ro_id'));
+            })
+            ->when(Session::get('role') === 'ADMIN' && request()->get('ro_id'), function ($q) {
+                $q->where('m04_ro_id', request()->get('ro_id'));
+            })
+            ->whereYear('created_at', $lastYear)
+            ->whereMonth('created_at', $lastMonth)
+            ->distinct('m07_customer_id')
+            ->count('m07_customer_id');
+
+        if ($lastMonthCustomersCount == 0 && $customersCount > 0) {
+            $customersChange = 100;
+        } else if ($lastMonthCustomersCount > 0) {
+            $customersChange = round((($customersCount - $lastMonthCustomersCount) / $lastMonthCustomersCount) * 100, 2);
+        } else {
+            $customersChange = 0;
+        }
+
+        // ==================== RECENT SAMPLES ====================
+
+        $recentSamples = $currentMonthQuery->clone()
+            ->with(['customer'])
+            ->orderBy('created_at', 'desc')
+            ->limit(5)
+            ->get();
+
+        // ==================== TOP CUSTOMERS ====================
+
+        $topCustomers = $currentMonthQuery->clone()
+            ->select(
+                'm07_customer_id',
+                DB::raw('COUNT(*) as sample_count'),
+                DB::raw('SUM(tr04_total_charges) as total_amount')
+            )
+            ->with(['customer'])
+            ->groupBy('m07_customer_id')
+            ->orderBy('total_amount', 'desc')
+            ->limit(5)
+            ->get();
+
+        // ==================== LABORATORY STATISTICS ====================
+
+        $totalSamplesReceived = SampleRegistration::query()
+            ->when(Session::get('role') !== 'ADMIN', function ($q) {
+                $q->where('m04_ro_id', Session::get('ro_id'));
+            })
+            ->when(Session::get('role') === 'ADMIN' && request()->get('ro_id'), function ($q) {
+                $q->where('m04_ro_id', request()->get('ro_id'));
+            })
+            ->count();
+
+        $totalCustomers = SampleRegistration::query()
+            ->when(Session::get('role') !== 'ADMIN', function ($q) {
+                $q->where('m04_ro_id', Session::get('ro_id'));
+            })
+            ->when(Session::get('role') === 'ADMIN' && request()->get('ro_id'), function ($q) {
+                $q->where('m04_ro_id', request()->get('ro_id'));
+            })
+            ->distinct('m07_customer_id')
+            ->count('m07_customer_id');
+
+        $samplesReported = SampleRegistration::query()
+            ->when(Session::get('role') !== 'ADMIN', function ($q) {
+                $q->where('m04_ro_id', Session::get('ro_id'));
+            })
+            ->when(Session::get('role') === 'ADMIN' && request()->get('ro_id'), function ($q) {
+                $q->where('m04_ro_id', request()->get('ro_id'));
+            })
+            ->where('tr04_progress', 'REPORTED')
+            ->count();
+
+        // Test performed count
+        $testPerformed = DB::table('tr07_test_results')
+            ->when(Session::get('role') !== 'ADMIN', function ($q) {
+                $q->join('tr04_sample_registrations', 'tr07_test_results.tr04_reference_id', '=', 'tr04_sample_registrations.tr04_reference_id')
+                    ->where('tr04_sample_registrations.m04_ro_id', Session::get('ro_id'));
+            })
+            ->when(Session::get('role') === 'ADMIN' && request()->get('ro_id'), function ($q) {
+                $q->join('tr04_sample_registrations', 'tr07_test_results.tr04_reference_id', '=', 'tr04_sample_registrations.tr04_reference_id')
+                    ->where('tr04_sample_registrations.m04_ro_id', request()->get('ro_id'));
+            })
+            ->distinct('m12_test_number')
+            ->count();
+
+        // ==================== SAMPLE SOURCES ====================
+
+        $sampleSources = $currentMonthQuery->clone()
+            ->select('m09_customer_type_id', DB::raw('COUNT(*) as count'))
+            ->with(['customerType'])
+            ->groupBy('m09_customer_type_id')
+            ->orderBy('count', 'desc')
+            ->get();
+
+        // Prepare sample source data for doughnut chart
+        $chartColors = ['#9cabff', '#ffa9ce', '#b8acff', '#f9db7b', '#7bffa1', '#ff7b7b'];
+        $sampleSourceLabels = [];
+        $sampleSourceData = [];
+        $sampleSourceColors = [];
+
+        foreach ($sampleSources as $index => $source) {
+            $sampleSourceLabels[] = $source->customerType->m09_name ?? 'Unknown';
+            $sampleSourceData[] = (int) $source->count;
+            $sampleSourceColors[] = $chartColors[$index % count($chartColors)];
+        }
+
+        // If no data, show placeholder
+        if (empty($sampleSourceData)) {
+            $sampleSourceLabels = ['No Data'];
+            $sampleSourceData = [1];
+            $sampleSourceColors = ['#e5e5e5'];
+        }
+
+        // ==================== HEATMAP DATA ====================
+
+        $heatmapData = $this->generateHeatmapData($currentMonthQuery, $month, $year);
+
+        // ==================== RETURN DASHBOARD DATA ====================
+
+        return [
+            'total_revenue' => [
+                'current' => $currentMonthRevenue,
+                'last_month' => $lastMonthRevenue,
+                'this_week' => $thisWeekRevenue,
+                'revenue_change' => $revenueChange
+            ],
+            'average_revenue' => [
+                'current' => $averageRevenue,
+                'change' => $averageRevenueChange
+            ],
+            'samples' => [
+                'count' => $samplesCount,
+                'change' => $samplesChange
+            ],
+            'customers' => [
+                'count' => $customersCount,
+                'change' => $customersChange
+            ],
+            'recent_samples' => $recentSamples,
+            'top_customers' => $topCustomers,
+            'lab_stats' => [
+                'samples_received' => $totalSamplesReceived,
+                'customers' => $totalCustomers,
+                'samples_reported' => $samplesReported,
+                'test_performed' => $testPerformed
+            ],
+            'sample_sources' => $sampleSources,
+            'heatmap_data' => $heatmapData,
+            'chart_data' => [
+                // Sample Sources Doughnut Chart
+                'sample_sources' => [
+                    'labels' => $sampleSourceLabels,
+                    'data' => $sampleSourceData,
+                    'colors' => $sampleSourceColors,
+                ],
+
+                // Revenue Line Chart
+                'revenue' => [
+                    'labels' => $chartLabels,
+                    'current' => $revenueData,
+                ],
+
+                // Average Revenue Bar Chart
+                'average_revenue' => [
+                    'labels' => $chartLabels,
+                    'data' => $averageRevenueData,
+                ],
+
+                // Samples Line Chart
+                'samples' => [
+                    'labels' => $chartLabels,
+                    'data' => $samplesData,
+                ],
+
+                // Customers Line Chart
+                'customers' => [
+                    'labels' => $chartLabels,
+                    'data' => $customersData,
+                ]
+            ]
+        ];
+    }
+
+    /**
+     * Generate optimized heatmap data for sample progress
+     */
+    private function generateHeatmapData($baseQuery, $month, $year)
+    {
+        $daysInMonth = cal_days_in_month(CAL_GREGORIAN, $month, $year);
+        $currentDate = Carbon::now();
+        $monthStart = Carbon::create($year, $month, 1);
+        $monthEnd = Carbon::create($year, $month, $daysInMonth);
+
+        // Get all samples for the month with their expected dates and status
+        $samples = $baseQuery->clone()
+            ->select([
+                'tr04_reference_id',
+                'tr04_expected_date',
+                'tr04_progress',
+                'created_at'
+            ])
+            ->whereBetween('created_at', [$monthStart, $monthEnd])
+            ->get();
+
+        // Group samples by creation day
+        $samplesByDay = [];
+        foreach ($samples as $sample) {
+            $day = $sample->created_at->day;
+            if (!isset($samplesByDay[$day])) {
+                $samplesByDay[$day] = [];
+            }
+            $samplesByDay[$day][] = $sample;
+        }
+
+        // Generate heatmap data for each day
+        $heatmapData = [];
+        for ($day = 1; $day <= $daysInMonth; $day++) {
+            $daySamples = $samplesByDay[$day] ?? [];
+            $sampleCount = count($daySamples);
+
+            if ($sampleCount === 0) {
+                $heatmapData[] = [
+                    'day' => $day,
+                    'sample_count' => 0,
+                    'status_class' => 'empty',
+                    'tooltip' => "No samples on " . sprintf("%02d", $day) . " " . DateTime::createFromFormat('!m', $month)->format('M')
+                ];
+                continue;
+            }
+
+            // Calculate day status based on sample deadlines
+            $dayStatus = $this->calculateDayStatus($daySamples, $day, $month, $year, $currentDate);
+
+            $heatmapData[] = [
+                'day' => $day,
+                'sample_count' => $sampleCount,
+                'status_class' => $dayStatus['class'],
+                'tooltip' => $dayStatus['tooltip']
+            ];
+        }
+
+        return $heatmapData;
+    }
+
+    /**
+     * Calculate status for a day based on sample deadlines
+     */
+    private function calculateDayStatus($samples, $day, $month, $year, $currentDate)
+    {
+        $sampleDate = Carbon::create($year, $month, $day);
+        $allReported = true;
+        $anyOverdue = false;
+        $anyNearDeadline = false;
+        $totalSamples = count($samples);
+        $reportedCount = 0;
+
+        foreach ($samples as $sample) {
+            // Check if sample is reported
+            if ($sample->tr04_progress === 'REPORTED') {
+                $reportedCount++;
+            } else {
+                $allReported = false;
+
+                // Check if sample has expected date
+                if ($sample->tr04_expected_date) {
+                    $expectedDate = Carbon::parse($sample->tr04_expected_date);
+                    $daysUntilDeadline = $currentDate->diffInDays($expectedDate, false);
+
+                    if ($daysUntilDeadline < 0) {
+                        $anyOverdue = true;
+                    } elseif ($daysUntilDeadline <= 3) {
+                        $anyNearDeadline = true;
+                    }
+                }
+            }
+        }
+
+        // Determine status
+        if ($allReported) {
+            return [
+                'class' => 'reported',
+                'tooltip' => sprintf("%02d %s: All %d samples reported", $day, DateTime::createFromFormat('!m', $month)->format('M'), $totalSamples)
+            ];
+        } elseif ($anyOverdue) {
+            return [
+                'class' => 'overdue',
+                'tooltip' => sprintf("%02d %s: %d samples (%d reported) - Some overdue", $day, DateTime::createFromFormat('!m', $month)->format('M'), $totalSamples, $reportedCount)
+            ];
+        } elseif ($anyNearDeadline) {
+            return [
+                'class' => 'near-deadline',
+                'tooltip' => sprintf("%02d %s: %d samples (%d reported) - Deadline approaching", $day, DateTime::createFromFormat('!m', $month)->format('M'), $totalSamples, $reportedCount)
+            ];
+        } else {
+            return [
+                'class' => 'on-time',
+                'tooltip' => sprintf("%02d %s: %d samples (%d reported) - On track", $day, DateTime::createFromFormat('!m', $month)->format('M'), $totalSamples, $reportedCount)
+            ];
+        }
+    }
+
+
+    public function getDateSamples(Request $request)
+    {
+        $request->validate([
+            'day' => 'required|integer|min:1|max:31',
+            'month' => 'required|integer|min:1|max:12',
+            'year' => 'required|integer'
+        ]);
+
+        $day = $request->day;
+        $month = $request->month;
+        $year = $request->year;
+
+        // Build query based on user role and filters
+        $query = SampleRegistration::query();
+
+        // Apply the same filters as in adminDashboard
+        $query->whereYear('created_at', $year)
+            ->whereMonth('created_at', $month)
+            ->whereDay('created_at', $day);
+
+        // Apply RO filter if user is admin and RO is selected
+        if (Session::get('role') === 'ADMIN' && request()->get('ro_id')) {
+            $query->where('m04_ro_id', request()->get('ro_id'));
+        } elseif (Session::get('role') !== 'ADMIN') {
+            // For non-admin users, filter by their associated RO
+            $query->where('m04_ro_id', Session::get('ro_id'));
+        }
+
+        // Get samples with required fields
+        $samples = $query->select([
+            'tr04_reference_id',
+            'tr04_progress',
+            'tr04_expected_date',
+            'created_at'
+        ])
+            ->orderByRaw("CASE 
+                WHEN tr04_progress = 'IN_PROGRESS' THEN 1
+                WHEN tr04_progress = 'REGISTERED' THEN 2
+                WHEN tr04_progress = 'ALLOTED' THEN 3
+                WHEN tr04_progress = 'RESULT_ENTRY' THEN 4
+                WHEN tr04_progress = 'VERIFIED' THEN 5
+                WHEN tr04_progress = 'REPORTED' THEN 6
+                ELSE 7
+            END ASC")
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'samples' => $samples,
+            'count' => $samples->count()
+        ]);
     }
 
     public function viewStates()

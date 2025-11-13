@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Validator;
 
@@ -61,7 +62,7 @@ class RoController extends Controller
                 return to_route('view_ros');
             } catch (\Exception $e) {
                 DB::rollBack();
-                \Log::error('Employee creation failed', ['error' => $e->getMessage()]);
+                Log::error('Employee creation failed', ['error' => $e->getMessage()]);
                 Session::flash('type', 'error');
                 Session::flash('message', 'Failed to create RO. Please try again.');
                 return redirect()->back();

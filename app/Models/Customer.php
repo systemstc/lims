@@ -29,29 +29,29 @@ class Customer extends Model
 
     public function customerType()
     {
-        return $this->belongsTo(CustomerType::class, 'm09_customer_type_id');
+        return $this->belongsTo(CustomerType::class, 'm09_customer_type_id', 'm09_customer_type_id');
     }
 
     public function locations()
     {
-        return $this->hasMany(CustomerLocation::class, 'm07_customer_id');
+        return $this->hasMany(CustomerLocation::class, 'm07_customer_id', 'm07_customer_id');
     }
 
     public function state()
     {
-        return $this->belongsTo(State::class, 'm01_state_id');
+        return $this->belongsTo(State::class, 'm01_state_id', 'm01_state_id');
     }
     public function district()
     {
-        return $this->hasOne(District::class, 'm02_district_id');
+        return $this->hasOne(District::class, 'm02_district_id','m02_district_id');
     }
 
     public function ro()
     {
-        return $this->belongsTo(Ro::class, 'm04_ro_id');
+        return $this->belongsTo(Ro::class, 'm04_ro_id', 'm04_ro_id');
     }
     public function packages()
     {
-        return $this->hasMany(Package::class, 'm19_package_id');
+        return $this->hasMany(Package::class, 'm19_package_id', 'm19_package_id');
     }
 }

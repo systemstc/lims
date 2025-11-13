@@ -76,12 +76,12 @@
                                     </div>
 
                                     <div class="d-flex justify-content-between align-items-center mt-2">
-                                        <h3 class="amount mb-0 fw-bold text-success" id="availableBalance">
+                                        <h3 class="amount mb-0 fw-bold text-{{ $wallet->tr02_balance < $wallet->tr02_hold_amount ? 'danger' : 'success' }}"
+                                            id="availableBalance">
                                             ₹{{ number_format(($wallet->tr02_balance ?? 0) - ($wallet->tr02_hold_amount ?? 0), 2) }}
                                         </h3>
-                                        <a href="#"
-                                            class="btn btn-outline-primary btn-sm"
-                                            data-bs-toggle="modal" data-bs-target="#topupModal">
+                                        <a href="#" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal"
+                                            data-bs-target="#topupModal">
                                             <em class="icon ni ni-plus"></em>
                                             <span>Add Money</span>
                                         </a>
@@ -159,9 +159,10 @@
                                                                 {{ $transaction->tr04_sample_registration_id }}</span>
                                                         @endif
                                                     </td>
+                                                    
                                                     <td class="nk-tb-col">
-                                                        @if ($transaction->tr03_invoice_number)
-                                                            <a href="#"
+                                                        @if ($transaction->tr03_invoice_number && $transaction->tr04_sample_registration_id)
+                                                            <a href="{{ route('view_invoice', $transaction->tr04_sample_registration_id) }}"
                                                                 class="text-secondary">{{ $transaction->tr03_invoice_number }}</a>
                                                         @else
                                                             <span class="text-soft">—</span>
@@ -229,7 +230,7 @@
                                                             class="tb-amount text-warning">₹{{ number_format($sample->hold_amount, 2) }}</span>
                                                     </td>
                                                     <td class="nk-tb-col">
-                                                        <a href="#"
+                                                        <a href="{{ route('view_invoice', $sample->id) }}"
                                                             class="text-primary">{{ $sample->invoice_number }}</a>
                                                     </td>
                                                     <td class="nk-tb-col">
@@ -473,6 +474,7 @@
                     method: 'POST',
                     data: {
                         amount: amount,
+                        customerId: '{{ $wallet->m07_customer_id }}',
                         _token: '{{ csrf_token() }}'
                     },
                     success: function(response) {

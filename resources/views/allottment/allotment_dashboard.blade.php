@@ -366,8 +366,7 @@
                                                                     <li>
                                                                         <a
                                                                             href="{{ route('edit_sample', $registration->tr04_sample_registration_id) }}">
-                                                                            <em
-                                                                                class="icon ni ni-user-check text-success"></em>
+                                                                            <em class="icon ni ni-edit text-primary"></em>
                                                                             <span>Edit</span>
                                                                         </a>
                                                                     </li>
@@ -396,9 +395,9 @@
                                                                     </li>
                                                                     <li>
                                                                         <a
-                                                                            href="{{ route('template_manuscript', $registration->tr04_sample_registration_id) }}">
+                                                                            href="{{ route('manuscript_template', $registration->tr04_sample_registration_id) }}">
                                                                             <em
-                                                                                class="icon ni ni-check-circle text-success"></em>
+                                                                                class="icon ni ni-clipboad-check text-success"></em>
                                                                             <span>Manuscript</span>
                                                                         </a>
                                                                     </li>
@@ -553,7 +552,12 @@
                                                             <div class="dropdown-menu dropdown-menu-end">
                                                                 <ul class="link-list-opt no-bdr">
                                                                     @if ($allottedPercentage == 100)
-                                                                        <li>Under Reporting Stage</li>
+                                                                        <li> <a
+                                                                                href="{{ route('manuscript_template', $registration->tr04_sample_registration_id) }}">
+                                                                                <em
+                                                                                    class="icon ni ni-check-circle text-success"></em>
+                                                                                <span>Manuscript</span>
+                                                                            </a></li>
                                                                     @else
                                                                         <li>
                                                                             <a
@@ -577,14 +581,6 @@
                                                                                 <em
                                                                                     class="icon ni ni-forward-arrow text-warning"></em>
                                                                                 <span>Quick Transfer</span>
-                                                                            </a>
-                                                                        </li>
-                                                                        <li>
-                                                                            <a
-                                                                                href="{{ route('template_manuscript', $registration->tr04_sample_registration_id) }}">
-                                                                                <em
-                                                                                    class="icon ni ni-check-circle text-success"></em>
-                                                                                <span>Manuscript</span>
                                                                             </a>
                                                                         </li>
                                                                     @endif

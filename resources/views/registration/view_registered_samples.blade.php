@@ -31,7 +31,7 @@
                                         <table class="table" id="samples-table">
                                             <thead>
                                                 <tr>
-                                                    <th>Sample ID</th>
+                                                    <th>Registration ID</th>
                                                     <th>Date</th>
                                                     <th>Sample Description</th>
                                                     <th>Sample Image</th>
@@ -81,8 +81,8 @@
                     type: 'GET'
                 },
                 columns: [{
-                        data: 'sample_id',
-                        name: 'sample_id'
+                        data: 'registration_id',
+                        name: 'registration_id'
                     },
                     {
                         data: 'created_date',

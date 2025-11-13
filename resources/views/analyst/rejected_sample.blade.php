@@ -13,7 +13,7 @@
                 </div>
 
                 <!-- Recent Allotted Samples -->
-                <div class="nk-block mt-5">
+                <div class="nk-block">
                     <div class="card card-bordered">
                         <div class="card-inner">
                             <h5 class="card-title">Rejected Samples</h5>
@@ -97,7 +97,7 @@
                                     @endforeach
                                 @else
                                     <div class="col-12">
-                                        <p class="text-muted text-center">No samples allotted yet.</p>
+                                        <p class="text-muted text-center">No samples rejected yet.</p>
                                     </div>
                                 @endif
                             </div>

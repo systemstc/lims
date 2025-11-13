@@ -83,10 +83,18 @@ class SampleRegistration extends Model
     {
         return $this->hasMany(TestResult::class, 'tr04_reference_id', 'tr04_reference_id');
     }
+    public function customFields()
+    {
+        return $this->hasMany(CustomField::class, 'tr04_reference_id', 'tr04_reference_id');
+    }
 
     public function sampleTests()
     {
         return $this->hasMany(SampleTest::class, 'tr04_sample_registration_id', 'tr04_sample_registration_id');
+    }
+    public function additional()
+    {
+        return $this->hasMany(SampleAdditional::class, 'sample_id', 'tr04_sample_registration_id');
     }
 
     public function customerType()

@@ -1,284 +1,353 @@
 @extends('layouts.app_back')
 
 @section('content')
-    <div class="nk-content">
-        <div class="container-fluid">
-            <div class="nk-content-inner">
-                <div class="nk-content-body">
+    <div class="container-fluid">
+        <div class="nk-content-inner">
+            <div class="nk-content-body">
 
-                    {{-- Page Header --}}
-                    <div class="nk-block-head nk-block-head-sm">
-                        <div class="nk-block-between">
-                            <div class="nk-block-head-content">
-                                <h3 class="nk-block-title page-title">{{ $sampleInfo->tr04_reference_id }}</h3>
-                                <div class="nk-block-des text-soft">
-                                    <p>Sample ID: {{ $sampleInfo->tr04_reference_id }} | Total Tests: {{ $totalTests }}
-                                    </p>
-                                </div>
+                {{-- Page Header --}}
+                <div class="nk-block-head nk-block-head-sm">
+                    <div class="nk-block-between">
+                        <div class="nk-block-head-content">
+                            <h3 class="nk-block-title page-title">Test Results</h3>
+                            <div class="nk-block-des text-soft">
+                                <h6 class="mb-0">Sample: <strong
+                                        class="fw-bold text-primary">#{{ $sampleInfo->tr04_reference_id }}</strong></h6>
                             </div>
-                                <a href="{{ route('test_results') }}" class="btn btn-outline-primary">
-                                    <em class="icon ni ni-caret-left-fill"></em> Back
-                                </a>
+                        </div>
+                        <div class="nk-block-head-content">
+                            <a href="{{ route('test_results') }}" class="btn btn-outline-primary btn-sm">
+                                <em class="icon ni ni-caret-left-fill"></em> Back
+                            </a>
                         </div>
                     </div>
+                </div>
 
-                    {{-- Main Layout --}}
-                    <div class="nk-block">
-                        <div class="row g-gs">
-                            {{-- LEFT COLUMN: Tests --}}
-                            <div class="col-lg-8">
-                                @forelse($groupedResults as $testNumber => $results)
-                                    @php
-                                        $parentTest = $results->first();
-                                    @endphp
+                {{-- Main Layout --}}
+                <div class="nk-block">
+                    {{-- Summary Cards --}}
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-3 col-6">
+                            <div class="card card-bordered h-100">
+                                <div class="card-inner text-center p-3">
+                                    <div class="icon-circle icon-circle-md bg-primary-dim mx-auto mb-2">
+                                        <em class="icon ni ni-activity text-primary"></em>
+                                    </div>
+                                    <h5 class="mb-1">{{ $totalTests }}</h5>
+                                    <span class="text-soft fs-sm">Total Tests</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-6">
+                            <div class="card card-bordered h-100">
+                                <div class="card-inner text-center p-3">
+                                    <div class="icon-circle icon-circle-md bg-success-dim mx-auto mb-2">
+                                        <em class="icon ni ni-check-circle text-success"></em>
+                                    </div>
+                                    <h5 class="mb-1">{{ $testResults->count() }}</h5>
+                                    <span class="text-soft fs-sm">Results</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-6">
+                            <div class="card card-bordered h-100">
+                                <div class="card-inner text-center p-3">
+                                    <div class="icon-circle icon-circle-md bg-warning-dim mx-auto mb-2">
+                                        <em class="icon ni ni-edit text-warning"></em>
+                                    </div>
+                                    <h5 class="mb-1">{{ $customFields->count() }}</h5>
+                                    <span class="text-soft fs-sm">Custom Fields</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-6">
+                            <div class="card card-bordered h-100">
+                                <div class="card-inner text-center p-3">
+                                    <div class="icon-circle icon-circle-md bg-info-dim mx-auto mb-2">
+                                        <em class="icon ni ni-file-text text-info"></em>
+                                    </div>
+                                    <h5 class="mb-1">{{ $statusCounts['VERIFIED'] ?? 0 }}</h5>
+                                    <span class="text-soft fs-sm">Verified</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row g-4">
+                        {{-- LEFT COLUMN: Tests --}}
+                        <div class="col-xxl-9">
 
-                                    <div class="card card-bordered mb-4" id="test-{{ $parentTest->tr07_test_result_id }}">
-                                        {{-- Card Header --}}
-                                        <div class="card-inner border-bottom bg-light">
-                                            <div class="row g-3 align-items-center">
-                                                <div class="col-md-1">
-                                                    <span class="icon-circle icon-circle-lg bg-primary-dim">
-                                                        <em class="icon ni ni-activity text-primary"></em>
-                                                    </span>
-                                                </div>
-                                                <div class="col-md-7">
-                                                    <h5 class="mb-1">{{ $parentTest->test->m12_name ?? 'Unknown Test' }}
-                                                    </h5>
-                                                    <span class="text-soft fs-sm">Test #{{ $testNumber }}</span>
-                                                </div>
-                                                <div class="col-md-4 text-end">
-                                                    <span class="badge bg-primary">
-                                                        {{ $results->count() }}
-                                                        {{ $results->count() > 1 ? 'Results' : 'Result' }}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </div>
+                            {{-- Tests Accordion --}}
+                            <div class="card card-bordered">
+                                <div class="card-inner">
+                                    <div class="accordion accordion-md" id="testResultsAccordion">
+                                        @forelse($groupedResults as $testNumber => $results)
+                                            @php
+                                                $parentTest = $results->first();
+                                                $testCustomFields = $groupedCustomFields[$testNumber] ?? collect();
+                                                $hasCustomFields = $testCustomFields->isNotEmpty();
+                                                $totalEntries = $results->count() + ($hasCustomFields ? 1 : 0);
+                                            @endphp
 
-                                        {{-- Card Body: All Manuscripts / Results --}}
-                                        @foreach ($results as $index => $testResult)
-                                            <div class="card-inner {{ $index > 0 ? 'border-top' : '' }} ">
-                                                <div class="row g-3 align-items-center mb-3">
-                                                    <div class="col-md-8">
-                                                        @if ($testResult->manuscript)
-                                                            <div class="d-flex align-items-center">
-                                                                <em class="icon ni ni-file-text text-info me-2"></em>
-                                                                <div>
-                                                                    <span
-                                                                        class="fw-medium d-block">{{ $testResult->manuscript->m22_name }}</span>
-                                                                    <span class="fs-sm text-soft">Manuscript ID:
-                                                                        {{ $testResult->manuscript->m22_manuscript_id }}</span>
-                                                                </div>
+                                            <div class="accordion-item border-0 mb-3">
+                                                <div class="accordion-header" id="heading-{{ $testNumber }}">
+                                                    <button class="accordion-button collapsed rounded" type="button"
+                                                        data-bs-toggle="collapse"
+                                                        data-bs-target="#collapse-{{ $testNumber }}" aria-expanded="false"
+                                                        aria-controls="collapse-{{ $testNumber }}">
+                                                        <div class="d-flex align-items-center w-100">
+                                                            <div class="flex-grow-1 text-start">
+                                                                <h6 class="mb-1">
+                                                                    {{ $parentTest->test->m12_name ?? 'Test #' . $testNumber }}
+                                                                </h6>
+                                                                <small class="text-muted">Test #{{ $testNumber }} •
+                                                                    {{ $totalEntries }} entries</small>
+                                                            </div>
+                                                            <div class="flex-shrink-0">
+                                                            </div>
+                                                        </div>
+                                                    </button>
+                                                </div>
+
+                                                <div id="collapse-{{ $testNumber }}" class="accordion-collapse collapse"
+                                                    aria-labelledby="heading-{{ $testNumber }}"
+                                                    data-bs-parent="#testResultsAccordion">
+                                                    <div class="accordion-body p-0">
+                                                        {{-- Test Results --}}
+                                                        <div class="p-3 bg-light border-bottom">
+                                                            <h6 class="text-primary mb-3">
+                                                                <em class="icon ni ni-activity me-1"></em>
+                                                                Test Results
+                                                            </h6>
+
+                                                            @foreach ($results->groupBy('m16_primary_test_id') as $primaryTestId => $primaryResults)
+                                                                @php
+                                                                    $primaryTest = $primaryResults->first()->primaryTest;
+                                                                    $hasPrimaryTest = !empty($primaryTestId);
+                                                                @endphp
+
+                                                                @if ($hasPrimaryTest)
+                                                                    <div class="mb-3">
+                                                                        <div class="d-flex align-items-center mb-2">
+                                                                            <em class="icon ni ni-list text-primary me-2"></em>
+                                                                            <strong class="text-dark">{{ $primaryTest->m16_name ?? 'Primary Test' }}</strong>
+                                                                            @if ($primaryTest->m16_requirement)
+                                                                                <small class="text-muted ms-2">({{ $primaryTest->m16_requirement }})</small>
+                                                                            @endif
+                                                                        </div>
+                                                                    </div>
+                                                                @endif
+
+                                                                {{-- Group results in pairs for two columns per row --}}
+                                                                @php
+                                                                    $allResults = [];
+                                                                    foreach ($primaryResults->groupBy('m17_secondary_test_id') as $secondaryTestId => $secondaryResults) {
+                                                                        $allResults[] = [
+                                                                            'hasSecondaryTest' => !empty($secondaryTestId),
+                                                                            'testResult' => $secondaryResults->first(),
+                                                                            'secondaryTest' => $secondaryResults->first()->secondaryTest,
+                                                                        ];
+                                                                    }
+
+                                                                    // Split results into chunks of 2 for rows
+                                                                    $resultChunks = array_chunk($allResults, 2);
+                                                                @endphp
+
+                                                                @foreach ($resultChunks as $resultRow)
+                                                                    <div class="row g-2 mb-3">
+                                                                        @foreach ($resultRow as $resultData)
+                                                                            <div class="col-xl-6 col-lg-6 col-md-6">
+                                                                                <div class="card card-sm bg-white border">
+                                                                                    <div class="card-body p-3">
+                                                                                        @if ($resultData['hasSecondaryTest'] && $resultData['secondaryTest'])
+                                                                                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                                                                                <strong class="text-dark fs-14">{{ $resultData['secondaryTest']->m17_name }}</strong>
+                                                                                                <strong class="text-success fw-bold">Verified</strong>
+                                                                                            </div>
+                                                                                            <div class="d-flex justify-content-between">
+                                                                                                <span class="text-muted fs-12">Result:</span>
+                                                                                                <strong class="text-primary">{{ $resultData['testResult']->tr07_result ?? 'N/A' }}</strong>
+                                                                                            </div>
+                                                                                        @else
+                                                                                            <div class="d-flex justify-content-between align-items-center">
+                                                                                                <span class="text-dark fs-14">Test Result</span>
+                                                                                                <div>
+                                                                                                    <strong class="text-primary me-2">{{ $resultData['testResult']->tr07_result ?? 'N/A' }}</strong>
+                                                                                                    <strong class="text-success fw-bold">Verified</strong>
+                                                                                                </div>
+                                                                                            </div>
+                                                                                        @endif
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        @endforeach
+
+                                                                        {{-- Add empty column if odd number of results --}}
+                                                                        @if (count($resultRow) == 1)
+                                                                            <div class="col-xl-6 col-lg-6 col-md-6"></div>
+                                                                        @endif
+                                                                    </div>
+                                                                @endforeach
+                                                            @endforeach
+                                                        </div>
+
+                                                        {{-- Custom Fields --}}
+                                                        @if ($hasCustomFields)
+                                                            <div class="p-3 bg-light border-top">
+                                                                <h6 class="text-info mb-3">
+                                                                    <em class="icon ni ni-plus-circle-fill me-1"></em>
+                                                                    Additional
+                                                                </h6>
+                                                                @php
+                                                                    $customFieldChunks = array_chunk($testCustomFields->toArray(), 2);
+                                                                @endphp
+                                                                
+                                                                @foreach ($customFieldChunks as $customFieldRow)
+                                                                    <div class="row g-2 mb-3">
+                                                                        @foreach ($customFieldRow as $customField)
+                                                                            <div class="col-xl-6 col-lg-6 col-md-6">
+                                                                                <div class="card card-sm bg-white border">
+                                                                                    <div class="card-body p-3">
+                                                                                        <div class="d-flex justify-content-between align-items-start mb-2">
+                                                                                            <strong class="text-dark fs-14">{{ $customField['tr08_field_name'] }}</strong>
+                                                                                            <strong class="text-info fw-bold">Verified</strong>
+                                                                                        </div>
+                                                                                        <div class="d-flex justify-content-between align-items-center">
+                                                                                            <span class="text-muted fs-12">Value:</span>
+                                                                                            <div>
+                                                                                                <strong class="text-primary">{{ $customField['tr08_field_value'] }}</strong>
+                                                                                                @if ($customField['tr08_field_unit'])
+                                                                                                    <small class="text-muted ms-1">({{ $customField['tr08_field_unit'] }})</small>
+                                                                                                @endif
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        @endforeach
+
+                                                                        {{-- Add empty column if odd number of custom fields --}}
+                                                                        @if (count($customFieldRow) == 1)
+                                                                            <div class="col-xl-6 col-lg-6 col-md-6"></div>
+                                                                        @endif
+                                                                    </div>
+                                                                @endforeach
                                                             </div>
                                                         @endif
-                                                    </div>
 
-                                                    <div class="col-md-4 text-end">
-                                                        @php $status = strtoupper($testResult->tr07_result_status); @endphp
-                                                        <span
-                                                            class="badge badge-dot has-bg 
-                                                        @if ($status === 'REJECTED') bg-danger
-                                                        @elseif ($status === 'VERIFIED') bg-info
-                                                        @elseif ($status === 'AUTHORIZED') bg-success
-                                                        @elseif ($status === 'REVISED') bg-secondary @endif">
-                                                            {{ ucfirst(strtolower($status)) }}
-                                                        </span>
-                                                    </div>
-                                                </div>
-
-                                                {{-- Result Info --}}
-                                                <div class="row g-3 mb-3">
-                                                    <div class="col-md-3">
-                                                        <span class="fs-sm text-soft">Version</span>
-                                                        <span
-                                                            class="fw-medium d-block">v{{ $testResult->tr07_current_version }}</span>
-                                                    </div>
-                                                    <div class="col-md-3">
-                                                        <span class="fs-sm text-soft">Result</span>
-                                                        <span
-                                                            class="fw-bold text-primary d-block">{{ $testResult->tr07_result ?? 'N/A' }}</span>
-                                                    </div>
-                                                    <div class="col-md-3">
-                                                        <span class="fs-sm text-soft">Test Date</span>
-                                                        <span class="d-block">
-                                                            {{ $testResult->tr07_test_date ? \Carbon\Carbon::parse($testResult->tr07_test_date)->format('M d, Y') : 'N/A' }}
-                                                        </span>
-                                                    </div>
-                                                    <div class="col-md-3">
-                                                        <span class="fs-sm text-soft">Performance Date</span>
-                                                        <span class="d-block">
-                                                            {{ $testResult->tr07_performance_date ? \Carbon\Carbon::parse($testResult->tr07_performance_date)->format('M d, Y') : 'N/A' }}
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        @endforeach
-                                    </div>
-
-                                @empty
-                                    <div class="card card-bordered">
-                                        <div class="card-inner text-center py-5">
-                                            <div class="icon-circle icon-circle-lg bg-primary-dim mb-3">
-                                                <em class="icon ni ni-activity text-primary"></em>
-                                            </div>
-                                            <h5>No Test Results Found</h5>
-                                            <p class="text-soft">No tests exist for this sample.</p>
-                                        </div>
-                                    </div>
-                                @endforelse
-                            </div>
-
-                            {{-- RIGHT COLUMN: Sidebar --}}
-                            <div class="col-lg-4">
-                                {{-- Sample Overview --}}
-                                <div class="card card-bordered mb-3">
-                                    <div class="card-inner">
-                                        <h6 class="card-title mb-3">Sample Overview</h6>
-                                        <ul class="list-group list-group-flush">
-                                            <li class="list-group-item px-0">
-                                                <span class="text-soft fs-sm">Sample ID</span>
-                                                <span class="d-block fw-medium">{{ $sampleInfo->tr04_reference_id }}</span>
-                                            </li>
-                                            <li class="list-group-item px-0">
-                                                <span class="text-soft fs-sm">Total Outputs</span>
-                                                <span class="d-block fw-medium">{{ $testResults->count() }}</span>
-                                            </li>
-                                            <li class="list-group-item px-0">
-                                                <span class="text-soft fs-sm">Test Date Range</span>
-                                                <span class="d-block fw-medium">
-                                                    @php
-                                                        $dates = $testResults->pluck('tr07_test_date')->filter();
-                                                        $minDate = $dates->min();
-                                                        $maxDate = $dates->max();
-                                                    @endphp
-                                                    @if ($minDate && $maxDate)
-                                                        {{ \Carbon\Carbon::parse($minDate)->format('M d, Y') }}
-                                                        @if ($minDate != $maxDate)
-                                                            - {{ \Carbon\Carbon::parse($maxDate)->format('M d, Y') }}
-                                                        @endif
-                                                    @else
-                                                        N/A
-                                                    @endif
-                                                </span>
-                                            </li>
-                                        </ul>
-                                    </div>
-                                </div>
-
-                                {{-- Status Summary --}}
-                                <div class="card card-bordered mb-3">
-                                    <div class="card-inner">
-                                        <h6 class="card-title mb-3">Output Status Summary</h6>
-                                        <div class="row g-3">
-                                            <div class="col-6">
-                                                <div class="status-card bg-warning-dim p-3 rounded text-center">
-                                                    <h4 class="mb-1">{{ $statusCounts['DRAFT'] ?? 0 }}</h4>
-                                                    <span class="fs-sm">Draft</span>
-                                                </div>
-                                            </div>
-                                            <div class="col-6">
-                                                <div class="status-card bg-info-dim p-3 rounded text-center">
-                                                    <h4 class="mb-1">{{ $statusCounts['SUBMITTED'] ?? 0 }}</h4>
-                                                    <span class="fs-sm">Submitted</span>
-                                                </div>
-                                            </div>
-                                            <div class="col-6">
-                                                <div class="status-card bg-danger-dim p-3 rounded text-center">
-                                                    <h4 class="mb-1">{{ $statusCounts['REVISED'] ?? 0 }}</h4>
-                                                    <span class="fs-sm">Revised</span>
-                                                </div>
-                                            </div>
-                                            <div class="col-6">
-                                                <div class="status-card bg-success-dim p-3 rounded text-center">
-                                                    <h4 class="mb-1">{{ $statusCounts['VERIFIED'] ?? 0 }}</h4>
-                                                    <span class="fs-sm">Verified</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {{-- Quick Navigation --}}
-                                <div class="card card-bordered mb-3">
-                                    <div class="card-inner">
-                                        <h6 class="card-title mb-3">Quick Navigation</h6>
-                                        <div class="accordion" id="testAccordion">
-                                            @foreach ($groupedResults as $testNumber => $tests)
-                                                <div class="accordion-item mb-2">
-                                                    <h2 class="accordion-header" id="heading-{{ $testNumber }}">
-                                                        <button class="accordion-button collapsed" type="button"
-                                                            data-bs-toggle="collapse"
-                                                            data-bs-target="#collapse-{{ $testNumber }}"
-                                                            aria-expanded="false"
-                                                            aria-controls="collapse-{{ $testNumber }}">
-                                                            Test No: {{ $testNumber }}
-                                                            <span
-                                                                class="text-primary ms-2 fw-medium">{{ $tests->count() }}
-                                                                results</span>
-                                                        </button>
-                                                    </h2>
-                                                    <div id="collapse-{{ $testNumber }}"
-                                                        class="accordion-collapse collapse"
-                                                        aria-labelledby="heading-{{ $testNumber }}"
-                                                        data-bs-parent="#testAccordion">
-                                                        <div class="accordion-body p-0">
-                                                            <div class="list-group list-group-flush">
-                                                                @foreach ($tests as $test)
-                                                                    <a href="#test-{{ $test->tr07_test_result_id }}"
-                                                                        class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
-                                                                        <div>
-                                                                            <span
-                                                                                class="fw-medium d-block">{{ $test->test->m12_name ?? 'Test #' . $test->tr07_test_result_id }}</span>
-                                                                            <span class="fs-sm text-soft">
-                                                                                v{{ $test->tr07_current_version }} •
-                                                                                {{ $test->tr07_test_date ? \Carbon\Carbon::parse($test->tr07_test_date)->format('M d, Y') : 'N/A' }}
-                                                                            </span>
-                                                                        </div>
-                                                                        <span
-                                                                            class="fw-bold
-                                                                        @if ($test->tr07_result_status === 'DRAFT') text-warning
-                                                                        @elseif ($test->tr07_result_status === 'SUBMITTED') text-info
-                                                                        @elseif ($test->tr07_result_status === 'REVISED') text-danger
-                                                                        @elseif ($test->tr07_result_status === 'VERIFIED') text-success
-                                                                        @else text-secondary @endif">
-                                                                            {{ ucfirst(strtolower($test->tr07_result_status)) }}
-                                                                        </span>
-                                                                    </a>
-                                                                @endforeach
+                                                        {{-- Test Metadata --}}
+                                                        <div class="p-3 bg-light border-top">
+                                                            <div class="row text-center g-3">
+                                                                <div class="col-md-4">
+                                                                    <small class="text-muted d-block">Performance Date</small>
+                                                                    <span class="fw-medium fs-14">
+                                                                        {{ $parentTest->tr07_performance_date ? \Carbon\Carbon::parse($parentTest->tr07_performance_date)->format('M d, Y') : 'N/A' }}
+                                                                    </span>
+                                                                </div>
+                                                                <div class="col-md-4">
+                                                                    <small class="text-muted d-block">Test Date</small>
+                                                                    <span class="fw-medium fs-14">
+                                                                        {{ $parentTest->tr07_test_date ? \Carbon\Carbon::parse($parentTest->tr07_test_date)->format('M d, Y') : 'N/A' }}
+                                                                    </span>
+                                                                </div>
+                                                                <div class="col-md-4">
+                                                                    <small class="text-muted d-block">Version</small>
+                                                                    <span class="fw-medium fs-14">v{{ $parentTest->tr07_current_version }}</span>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </div>
                                                 </div>
+                                            </div>
+                                        @empty
+                                            <div class="text-center py-5">
+                                                <div class="icon-circle icon-circle-lg bg-primary-dim mx-auto mb-3">
+                                                    <em class="icon ni ni-activity text-primary"></em>
+                                                </div>
+                                                <h5>No Test Results Found</h5>
+                                                <p class="text-soft">No verified test results exist for this sample.</p>
+                                            </div>
+                                        @endforelse
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- RIGHT COLUMN: Sidebar --}}
+                        <div class="col-xxl-3">
+                            {{-- Quick Actions --}}
+                            <div class="card card-bordered mb-4">
+                                <div class="card-inner">
+                                    <h6 class="card-title mb-3">Quick Actions</h6>
+                                    <div class="d-grid gap-2 mb-3">
+                                        <a href="{{ route('generate_report', $sampleInfo->tr04_reference_id) }}" class="btn btn-primary">
+                                            <em class="icon ni ni-file-docs me-1"></em>
+                                            Generate Report
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {{-- Test Navigation --}}
+                            <div class="card card-bordered mb-4">
+                                <div class="card-inner">
+                                    <h6 class="card-title mb-3">Test Navigation</h6>
+                                    <div class="nav-scroll-container" style="max-height: 400px; overflow-y: auto;">
+                                        <div class="nav flex-column nav-pills nav-pills-sm">
+                                            @foreach ($groupedResults as $testNumber => $tests)
+                                                <a class="nav-link text-start mb-2" href="#heading-{{ $testNumber }}"
+                                                    data-bs-toggle="collapse" data-bs-target="#collapse-{{ $testNumber }}">
+                                                    <div class="d-flex justify-content-between align-items-center">
+                                                        <span class="text-truncate">
+                                                            <em class="icon ni ni-activity me-1 fs-12"></em>
+                                                            Test #{{ $testNumber }}
+                                                        </span>
+                                                    </div>
+                                                </a>
+                                            @endforeach
+
+                                            @foreach ($groupedCustomFields as $testNumber => $fields)
+                                                @if (!isset($groupedResults[$testNumber]))
+                                                    <a class="nav-link text-start mb-2" href="#heading-{{ $testNumber }}"
+                                                        data-bs-toggle="collapse" data-bs-target="#collapse-{{ $testNumber }}">
+                                                        <div class="d-flex justify-content-between align-items-center">
+                                                            <span class="text-truncate">
+                                                                <em class="icon ni ni-edit me-1 fs-12"></em>
+                                                                Custom #{{ $testNumber }}
+                                                            </span>
+                                                            <span class="badge bg-warning fs-10">{{ $fields->count() }}</span>
+                                                        </div>
+                                                    </a>
+                                                @endif
                                             @endforeach
                                         </div>
                                     </div>
                                 </div>
+                            </div>
 
-                                {{-- Sample Actions --}}
-                                <div class="card card-bordered">
-                                    <div class="card-inner">
-                                        <h6 class="card-title mb-3">Sample Actions</h6>
-                                        <ul class="list-group list-group-flush">
-                                            <li
-                                                class="list-group-item px-0 d-flex justify-content-between align-items-center">
-                                                <span>Generate Final Report</span>
-                                                <a href="{{ route('generate_report', $sampleInfo->tr04_reference_id) }}"
-                                                    class="btn btn-sm btn-outline-primary">
-                                                    <em class="icon ni ni-file-docs"></em>
-                                                </a>
-                                            </li>
-                                            <li
-                                                class="list-group-item px-0 d-flex justify-content-between align-items-center">
-                                                <span>View Full Audit Trail</span>
-                                                <a href="#" class="btn btn-sm btn-outline-info">
-                                                    <em class="icon ni ni-eye"></em>
-                                                </a>
-                                            </li>
-                                        </ul>
+                            {{-- Sample Info --}}
+                            <div class="card card-bordered">
+                                <div class="card-inner">
+                                    <h6 class="card-title mb-3">Sample Information</h6>
+                                    <div class="list-group list-group-flush">
+                                        <div class="list-group-item px-0 py-2">
+                                            <small class="text-muted d-block">Sample ID</small>
+                                            <strong>{{ $sampleInfo->tr04_reference_id }}</strong>
+                                        </div>
+                                        <div class="list-group-item px-0 py-2">
+                                            <small class="text-muted d-block">Total Tests</small>
+                                            <strong>{{ $totalTests }}</strong>
+                                        </div>
+                                        <div class="list-group-item px-0 py-2">
+                                            <small class="text-muted d-block">Total Results</small>
+                                            <strong>{{ $testResults->count() }}</strong>
+                                        </div>
+                                        <div class="list-group-item px-0 py-2">
+                                            <small class="text-muted d-block">Custom Fields</small>
+                                            <strong>{{ $customFields->count() }}</strong>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                            {{-- End Sidebar --}}
                         </div>
                     </div>
                 </div>
@@ -286,70 +355,118 @@
         </div>
     </div>
 
-<style>
-/* small highlight when navigating */
-.ring-highlight {
-  box-shadow: 0 0 0 4px rgba(59,130,246,0.15), 0 2px 8px rgba(0,0,0,0.06);
-  transition: box-shadow 250ms ease-in-out;
-}
-</style>
-
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    // adjust this offset if you have a fixed header (in px)
-    const SCROLL_OFFSET = 80;
-
-    // attach to all anchor links that point to test cards
-    document.querySelectorAll('a[href^="#test-"]').forEach(function (anchor) {
-        anchor.addEventListener('click', function (e) {
-            e.preventDefault();
-
-            const href = anchor.getAttribute('href'); // "#test-57"
-            if (!href) return;
-
-            const id = href.slice(1);
-            const target = document.getElementById(id);
-            if (!target) {
-                // If target not present, fallback to updating hash only (no reload)
-                history.replaceState(null, '', href);
-                return;
-            }
-
-            // If the target is inside a Bootstrap collapse, open that collapse first
-            const collapseEl = target.closest('.collapse');
-            if (collapseEl && !collapseEl.classList.contains('show')) {
-                // Use Bootstrap 5's Collapse API to show it, then scroll after it's fully shown
-                const bsCollapse = bootstrap.Collapse.getOrCreateInstance(collapseEl);
-                const onShown = function () {
-                    collapseEl.removeEventListener('shown.bs.collapse', onShown);
-                    doScrollAndHighlight(target, href);
-                };
-                collapseEl.addEventListener('shown.bs.collapse', onShown);
-                bsCollapse.show();
-            } else {
-                doScrollAndHighlight(target, href);
-            }
-        }, { passive: false });
-    });
-
-    function doScrollAndHighlight(target, href) {
-        // compute exact position with offset
-        const top = target.getBoundingClientRect().top + window.pageYOffset - SCROLL_OFFSET;
-
-        window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
-
-        // update URL hash without page jump / history entry
-        try {
-            history.replaceState(null, '', href);
-        } catch (err) {
-            // some older browsers may fail; ignore safely
+    <style>
+        .nav-scroll-container::-webkit-scrollbar {
+            width: 4px;
         }
 
-        // add highlight so it's visible to user
-        target.classList.add('ring-highlight');
-        setTimeout(() => target.classList.remove('ring-highlight'), 1400);
-    }
-});
-</script>
+        .nav-scroll-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 2px;
+        }
 
+        .nav-scroll-container::-webkit-scrollbar-thumb {
+            background: #c5c5c5;
+            border-radius: 2px;
+        }
+
+        .nav-scroll-container::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+
+        .accordion-button:not(.collapsed) {
+            background-color: #f8f9fa;
+            border-color: #dee2e6;
+        }
+
+        .card-sm {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .card-sm:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .fs-12 {
+            font-size: 0.75rem;
+        }
+
+        .fs-14 {
+            font-size: 0.875rem;
+        }
+
+        @media (max-width: 1399.98px) {
+            .col-xxl-9 {
+                flex: 0 0 100%;
+                max-width: 100%;
+            }
+
+            .col-xxl-3 {
+                flex: 0 0 100%;
+                max-width: 100%;
+                margin-top: 1.5rem;
+            }
+        }
+
+        @media (max-width: 767.98px) {
+            .row.g-2 .col-xl-6 {
+                flex: 0 0 100%;
+                max-width: 100%;
+            }
+        }
+    </style>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Smooth scroll for navigation links
+            document.querySelectorAll('.nav-pills .nav-link').forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const targetId = this.getAttribute('data-bs-target');
+                    const targetElement = document.querySelector(targetId);
+
+                    if (targetElement) {
+                        // Collapse all other accordion items
+                        document.querySelectorAll('.accordion-collapse.show').forEach(collapse => {
+                            if (collapse.id !== targetId.replace('#', '')) {
+                                bootstrap.Collapse.getInstance(collapse)?.hide();
+                            }
+                        });
+
+                        // Show the target accordion
+                        const bsCollapse = new bootstrap.Collapse(targetElement);
+                        bsCollapse.show();
+
+                        // Scroll to the accordion
+                        setTimeout(() => {
+                            const accordionHeader = document.querySelector(
+                                `[data-bs-target="${targetId}"]`);
+                            if (accordionHeader) {
+                                const offsetTop = accordionHeader.getBoundingClientRect()
+                                    .top + window.pageYOffset - 100;
+                                window.scrollTo({
+                                    top: offsetTop,
+                                    behavior: 'smooth'
+                                });
+                            }
+                        }, 350);
+                    }
+                });
+            });
+
+            // Add active class to navigation pills
+            document.querySelectorAll('.accordion-button').forEach(button => {
+                button.addEventListener('click', function() {
+                    const targetId = this.getAttribute('data-bs-target');
+                    document.querySelectorAll('.nav-pills .nav-link').forEach(navLink => {
+                        navLink.classList.remove('active');
+                        if (navLink.getAttribute('data-bs-target') === targetId) {
+                            navLink.classList.add('active');
+                        }
+                    });
+                });
+            });
+        });
+    </script>
 @endsection

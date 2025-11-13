@@ -19,7 +19,6 @@
                                 </a>
                             </div>
                         </div>
-
                         <!-- Form -->
                         <form action="{{ route('create_test_result') }}" method="POST" enctype="multipart/form-data">
                             @csrf
@@ -102,6 +101,7 @@
                                                 <th style="width: 10%">Sr. No.</th>
                                                 <th>Test Name</th>
                                                 <th style="width: 35%">Result / Entry</th>
+                                                {{-- <th style="width: 15%">Action</th> --}}
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -111,6 +111,11 @@
                                                         <td>{{ $key + 1 }}</td>
                                                         <td colspan="2">{{ $manuscript->test->m12_name ?? 'N/A' }} - (
                                                             {{ $manuscript->standard->m15_method ?? 'N/A' }} )</td>
+                                                        {{-- <td><button class="btn btn-outline-primary btn-sm">Raw
+                                                                Entry</button>
+                                                            <button class="btn btn-outline-primary btn-sm"><em
+                                                                    class="icon ni ni-plus"></em></button>
+                                                        </td> --}}
                                                     </tr>
 
                                                     @foreach ($manuscript->manuscript as $mKey => $manu)
@@ -137,7 +142,7 @@
                                                                     class="form-control form-control-sm border-0 bg-light"
                                                                     name="manuscript_data[{{ $key }}][{{ $mKey }}][result]"
                                                                     value="{{ old('manuscript_data.' . $key . '.' . $mKey . '.result', $existingResult->tr07_result ?? '') }}"
-                                                                    placeholder="Enter result value">
+                                                                    placeholder="Enter result value" autocomplete="off">
                                                             </td>
                                                         </tr>
                                                     @endforeach
@@ -152,7 +157,8 @@
                                                         <td>{{ $key + 1 }}</td>
                                                         <td>{{ $manuscript->test->m12_name ?? 'N/A' }} - (
                                                             {{ $manuscript->standard->m15_method ?? 'N/A' }} )</td>
-                                                        <td>
+                                                        <td class="align-middle">
+                                                            {{-- <div class="d-flex align-items-center gap-2"> --}}
                                                             <input type="hidden"
                                                                 name="test_data[{{ $key }}][test_id]"
                                                                 value="{{ $manuscript->m12_test_number }}">
@@ -160,11 +166,18 @@
                                                                 name="test_data[{{ $key }}][result_id]"
                                                                 value="{{ $existingResult->tr07_test_result_id ?? '' }}">
                                                             <input type="text"
-                                                                class="form-control form-control-sm border-0 bg-light"
+                                                                class="form-control form-control-sm bg-light"
                                                                 name="test_data[{{ $key }}][result]"
                                                                 value="{{ old('test_data.' . $key . '.result', $existingResult->tr07_result ?? '') }}"
-                                                                placeholder="Enter result value">
+                                                                placeholder="Enter result value" autocomplete="off">
+                                                            {{-- </div> --}}
                                                         </td>
+                                                        {{-- <td>
+                                                            <button class="btn btn-outline-primary btn-sm flex-shrink-0">Raw
+                                                                Entry</button>
+                                                            <button class="btn btn-outline-primary btn-sm"><em
+                                                                    class="icon ni ni-plus"></em></button>
+                                                        </td> --}}
                                                     </tr>
                                                 @endif
                                             @endforeach
@@ -197,7 +210,7 @@
                                             <em class="icon ni ni-printer"></em> Print / Save as PDF
                                         </button>
                                     @endif
-                                    <div class="btn-group">
+                                    {{-- <div class="btn-group">
                                         @if (optional($existingResults->first())->tr07_result_status != 'SUBMITTED')
                                             <button type="submit" name="action" value="DRAFT"
                                                 class="btn btn-outline-primary">
@@ -215,7 +228,7 @@
                                                 <em class="icon ni ni-check-circle"></em> Save & Complete
                                             </button>
                                         @endif
-                                    </div>
+                                    </div> --}}
                                 </div>
                             </div>
 

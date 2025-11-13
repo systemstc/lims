@@ -5,6 +5,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <link rel="shortcut icon" href="{{ asset('frontAssets/textiles_logo_200.png') }}">
+    <link rel="stylesheet" href="{{ asset('backAssets/css/dashlite.css') }}">
     <title>Admin Login | Textile Testing LIMS</title>
 
     <style>
@@ -53,7 +54,9 @@
         }
 
         @keyframes float {
-            0%, 100% {
+
+            0%,
+            100% {
                 transform: translateY(0);
             }
 
@@ -89,7 +92,7 @@
             object-fit: contain;
         }
 
-        .brand-text h1 {
+        .brand-text h2 {
             font-size: 2rem;
             font-weight: 800;
             margin-bottom: 6px;
@@ -112,6 +115,9 @@
             font-size: 1.6rem;
             font-weight: 600;
             margin-bottom: 20px;
+            background: linear-gradient(135deg, #fff 0%, #dcd6f7 100%);
+             -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
 
         .brand-content p {
@@ -272,7 +278,8 @@
 
             <div class="brand-content">
                 <h2>Welcome Admin!</h2>
-                <p>Log in to manage users, oversee laboratory operations, and control administrative tasks with ease.</p>
+                <p>Log in to manage users, oversee laboratory operations, and control administrative tasks with ease.
+                </p>
             </div>
 
             <div class="brand-footer">
@@ -292,9 +299,10 @@
                     <div class="form-group">
                         <label class="form-label" for="txt_email">Email Address</label>
                         <div class="form-control-wrap">
-                            <input type="email" class="form-control" id="txt_email" name="txt_email" placeholder="Enter your email" required>
+                            <input type="email" class="form-control" id="txt_email" name="txt_email"
+                                placeholder="Enter your email" required>
                             @error('txt_email')
-                                <span class="error-message">{{ $message }}</span>
+                                <span class="error-message text-danger">{{ $message }}</span>
                             @enderror
                         </div>
                     </div>
@@ -302,10 +310,11 @@
                     <div class="form-group">
                         <label class="form-label" for="txt_password">Password</label>
                         <div class="form-control-wrap" style="position: relative;">
-                            <input type="password" class="form-control" id="txt_password" name="txt_password" placeholder="Enter your password" required>
+                            <input type="password" class="form-control" id="txt_password" name="txt_password"
+                                placeholder="Enter your password" required>
                             <button type="button" class="password-toggle" onclick="togglePassword()">👁</button>
                             @error('txt_password')
-                                <span class="error-message">{{ $message }}</span>
+                                <span class="error-message text-danger">{{ $message }}</span>
                             @enderror
                         </div>
                     </div>
@@ -330,4 +339,5 @@
         }
     </script>
 </body>
+
 </html>

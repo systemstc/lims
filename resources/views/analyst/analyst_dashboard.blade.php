@@ -97,7 +97,7 @@
                 </div>
 
                 <!-- Recent Allotted Samples -->
-                <div class="nk-block mt-5">
+                <div class="nk-block">
                     <div class="card card-bordered">
                         <div class="card-inner">
                             <h5 class="card-title">Recent Allotted Samples</h5>

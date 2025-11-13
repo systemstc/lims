@@ -291,4 +291,18 @@ class SampleController extends Controller
             ], 400);
         }
     }
+
+
+    public function viewSampleStatus()
+    {
+        $startDate = now()->subDays(30)->startOfDay();
+        $endDate = now()->endOfDay();
+
+        $samples = SampleRegistration::with(['customer'])
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return view('samples.view_sample_status', compact('samples'));
+    }
 }

@@ -254,4 +254,45 @@ class AnalystController extends Controller
         Session::flash('message', 'Something wents wrong');
         return redirect()->back();
     }
+    public function bulkUpdateStatus($refId)
+    {
+        $sample = SampleRegistration::where('tr04_reference_id', $refId)->first();
+        $userId = Session::get('user_id');
+
+        // Get all tests for the same reference and current user
+        $tests = SampleTest::where('tr04_sample_registration_id', $sample->tr04_sample_registration_id)
+            ->where('m06_alloted_to', $userId)
+            ->get();
+
+        if ($tests->isEmpty()) {
+            Session::flash('type', 'warning');
+            Session::flash('message', 'No tests found for this reference.');
+            return redirect()->back();
+        }
+
+        $updated = false;
+
+        foreach ($tests as $test) {
+            if ($test->tr05_status === 'ALLOTED') {
+                $test->update(['tr05_status' => 'IN_PROGRESS']);
+                $updated = true;
+            } elseif ($test->tr05_status === 'IN_PROGRESS') {
+                $test->update([
+                    'tr05_status' => 'COMPLETED',
+                    'tr05_completed_at' => now(),
+                ]);
+                $updated = true;
+            }
+        }
+
+        if ($updated) {
+            Session::flash('type', 'success');
+            Session::flash('message', 'Tests updated successfully.');
+        } else {
+            Session::flash('type', 'info');
+            Session::flash('message', 'No status changes were required.');
+        }
+
+        return redirect()->back();
+    }
 }

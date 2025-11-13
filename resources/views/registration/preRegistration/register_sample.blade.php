@@ -441,7 +441,7 @@
                                             <select class="form-select" name="dd_priority_type"
                                             id="dd_priority_type">
                                             <option value="Normal" selected>Normal</option>
-                                            <option value="Urgent">Urgent</option>
+                                            <option value="Tatkal">Tatkal</option>
                                         </select>
                                     </div>
                                 </div>
@@ -747,7 +747,7 @@
                                         <div class="col-4">
                                             <div class="stats-count">
                                                 <span class="amount" id="pending_tests">-</span>
-                                                <span class="sub-text">Pending</span>
+                                                <span class="sub-text">Pending Tests</span>
                                             </div>
                                         </div>
                                     </div>
@@ -964,6 +964,10 @@ aria-hidden="true">
     }
 </style>
 <style>
+    /* Fix wizard navigation button order for the list structure */
+    .actions.clearfix ul {
+        flex-direction: row-reverse !important;
+    }
     /* Reusable dropdown style */
     .custom-dropdown {
         position: absolute;
@@ -1815,7 +1819,7 @@ function initializeCustomerEvents() {
             //     $("#txt_testing_charges").val(total.toFixed(2));
             //     let additional = parseFloat($('#txt_aditional_charges').val()) || 0;
             //     let finalTotal = total + additional;
-            //     if (priority === 'Urgent') {
+            //     if (priority === 'Tatkal') {
             //         finalTotal += (total * 0.50);
             //     }
             //     $("#txt_total_charges").val(finalTotal.toFixed(2));
@@ -2171,12 +2175,18 @@ function initializeCustomerEvents() {
                     if (sampleData.report_to) {
                         $('input[name="txt_report_to[]"]').prop('checked', false);
 
-                        let reportToArray = Array.isArray(sampleData.report_to)
-                        ? sampleData.report_to
-                        : sampleData.report_to.split(',');
+                        let reportToArray;
+                        try {
+                            reportToArray = JSON.parse(sampleData.report_to);
+                        } catch (e) {
+                            console.error("Invalid JSON in report_to:", sampleData.report_to);
+                            reportToArray = [];
+                        }
 
                         reportToArray.forEach(val => {
-                            $('input[name="txt_report_to[]"][value="' + val.trim() + '"]').prop('checked', true);
+                            $('input[name="txt_report_to[]"]').filter(function() {
+                                return $(this).val() === val.trim();
+                            }).prop('checked', true);
                         });
                     }
 

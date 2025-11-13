@@ -37,7 +37,8 @@ class RazorpayController extends Controller
     {
         try {
             $request->validate([
-                'amount' => 'required|numeric|min:100'
+                'amount' => 'required|numeric|min:100',
+                'customerId' => 'required'
             ]);
 
             $userId = Session::get('user_id');
@@ -57,7 +58,7 @@ class RazorpayController extends Controller
                 'tr02_order_id' => $order['id'],
                 'tr02_amount' => $amount,
                 'tr02_status' => 'created',
-                'm07_customer_id' => $userId,
+                'm07_customer_id' => $request->customerId,
                 'tr02_type' => 'wallet_topup',
                 'created_at' => now()
             ]);
@@ -65,7 +66,7 @@ class RazorpayController extends Controller
             Log::info('Razorpay Order Created', [
                 'order_id' => $order['id'],
                 'amount' => $amount,
-                'user_id' => $userId
+                'user_id' => $request->customerId,
             ]);
 
             return response()->json([
@@ -123,28 +124,30 @@ class RazorpayController extends Controller
 
             DB::beginTransaction();
 
-            // Update payment record
+            // ✅ Fetch the payment record
             $payment = Payment::where('tr02_order_id', $razorpayOrderId)->first();
 
             if (!$payment) {
                 throw new \Exception('Payment record not found');
             }
 
+            // ✅ Always use the customer ID linked to this payment
+            $customerId = $payment->m07_customer_id;
+
+            // Update payment status
             $payment->update([
                 'tr02_payment_t_id' => $razorpayPaymentId,
                 'tr02_status' => 'paid',
                 'tr02_payment_verified_at' => now()
             ]);
 
-            // Credit wallet
-            $userId = Session::get('user_id');
-            $wallet = Wallet::where('m07_customer_id', $userId)->lockForUpdate()->first();
+            // Lock or create the customer wallet
+            $wallet = Wallet::where('m07_customer_id', $customerId)->lockForUpdate()->first();
 
             if (!$wallet) {
-                // Create wallet if doesn't exist
                 $wallet = Wallet::create([
                     'tr02_wallet_uuid' => (string) Str::uuid(),
-                    'm07_customer_id' => $userId,
+                    'm07_customer_id' => $customerId,
                     'tr02_balance' => 0,
                     'tr02_hold_amount' => 0,
                     'tr02_currency' => 'INR',
@@ -171,7 +174,7 @@ class RazorpayController extends Controller
                 'tr03_balance_before' => $balanceBefore,
                 'tr03_balance_after' => $wallet->tr02_balance,
                 'tr03_status' => 'completed',
-                'm07_created_by' => $userId,
+                'm07_created_by' => Auth::id() ?? $customerId, // whoever performed the action
                 'tr03_payment_method' => 'Razorpay',
                 'tr03_razorpay_order_id' => $razorpayOrderId,
                 'tr03_razorpay_payment_id' => $razorpayPaymentId
@@ -185,7 +188,7 @@ class RazorpayController extends Controller
             DB::commit();
 
             Log::info('Payment Verified and Wallet Credited', [
-                'user_id' => $userId,
+                'customer_id' => $customerId,
                 'amount' => $amountInRupees,
                 'transaction_id' => $transaction->tr03_transaction_uuid,
                 'new_balance' => $wallet->tr02_balance
@@ -212,6 +215,7 @@ class RazorpayController extends Controller
             ], 500);
         }
     }
+
 
     /**
      * Webhook handler for Razorpay

@@ -4,13 +4,17 @@ namespace App\Http\Controllers;
 
 use App\Models\Employee;
 use App\Models\Group;
+use App\Models\Package;
 use App\Models\Ro;
 use App\Models\Sample;
+use App\Models\SampleAdditional;
 use App\Models\SampleRegistration;
 use App\Models\SampleTest;
 use App\Models\Standard;
 use App\Models\Test;
 use App\Models\TestTransfer;
+use App\Models\Wallet;
+use App\Models\WalletTransaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Session;
@@ -289,26 +293,45 @@ class AllottmentController extends Controller
     public function editSampleTests(Request $request, $id = null)
     {
         if ($request->isMethod('get')) {
-            $sample = SampleRegistration::findOrFail($id);
+            $sample = SampleRegistration::with('additional')->findOrFail($id);
+
+            // Get package information if exists
+            $package = null;
+            $packageTests = collect();
+
+            if ($sample->m19_package_id) {
+                $package = Package::with(['packageTests.test'])->find($sample->m19_package_id);
+                if ($package) {
+                    $packageTests = $package->packageTests;
+                }
+            }
+
             $sampleTests = SampleTest::with('test', 'standard')
                 ->where('tr04_sample_registration_id', $id)
                 ->get();
 
-            $allTests = Test::orderBy('m12_name')->get();
-            $samples = Sample::where('m10_status', 'ACTIVE')->get();
-            $allStandards = Standard::orderBy('m15_method')->get();
-            $groups = Group::where('m11_status', 'ACTIVE')->get();
+            $groups = Group::all();
+            $roGst = Ro::where('m04_ro_id', $sample->m04_ro_id)->first();
 
-            return view('allottment.update_sample_tests', compact('samples', 'groups', 'sample', 'sampleTests', 'allTests', 'allStandards'));
+            return view('allottment.update_sample_tests', compact(['sample', 'sampleTests', 'groups', 'roGst', 'package', 'packageTests']));
         }
 
         if ($request->isMethod('post')) {
-            $request->validate([
+            $validator = Validator::make($request->all(), [
                 'txt_test_ids' => 'required|array',
                 'txt_test_ids.*' => 'required|exists:m12_tests,m12_test_id',
                 'txt_standard_ids' => 'required|array',
                 'txt_standard_ids.*' => 'required|exists:m15_standards,m15_standard_id',
+                'txt_is_package' => 'array',
                 'txt_status' => 'array',
+                'additional_items' => 'array',
+                'additional_items.*.item' => 'nullable|string|max:255',
+                'additional_items.*.charge' => 'nullable|numeric|min:0',
+                'txt_package_charges' => 'required|numeric|min:0',
+                'txt_regular_testing_charges' => 'required|numeric|min:0',
+                'txt_total_testing_charges' => 'required|numeric|min:0',
+                'txt_aditional_charges' => 'required|numeric|min:0',
+                'txt_total_charges' => 'required|numeric|min:0',
             ]);
             try {
                 DB::beginTransaction();
@@ -316,13 +339,10 @@ class AllottmentController extends Controller
                 $sample = SampleRegistration::findOrFail($id);
                 SampleTest::where('tr04_sample_registration_id', $id)->delete();
 
-                $totalTestCharges = 0;
-
+                // Create sample tests from the request
                 foreach ($request->txt_test_ids as $index => $testId) {
                     $test = Test::find($testId);
                     if (!$test) continue;
-
-                    $totalTestCharges += (float) $test->m12_charge;
 
                     SampleTest::create([
                         'tr04_sample_registration_id' => $id,
@@ -333,28 +353,51 @@ class AllottmentController extends Controller
                         'm16_primary_test_id' => $test->m16_primary_test_id ?? null,
                         'm17_secondary_test_id' => $test->m17_secondary_test_id ?? null,
                         'tr05_status' => $request->txt_status[$index] ?? 'PENDING',
-                        'tr05_priority' => 'NORMAL',
+                        'tr05_priority' => $request->txt_sample_type == 'Tatkal' ? 'TATKAL' : 'NORMAL',
                     ]);
                 }
 
-                $additionalCharges = (float) ($sample->tr04_additional_charges ?? 0);
-                $totalCharges = $totalTestCharges + $additionalCharges;
 
-                if (strtolower($sample->tr04_sample_type) === 'tatkal') {
-                    $totalCharges = $totalTestCharges * 1.5 + $additionalCharges;
+                // Handle additional items
+                SampleAdditional::where('sample_id', $id)->delete();
+                if ($request->has('additional_items')) {
+                    foreach ($request->additional_items as $item) {
+                        if (!empty($item['item']) && isset($item['charge'])) {
+                            SampleAdditional::create([
+                                'sample_id' => $id,
+                                'item' => $item['item'],
+                                'price' => $item['charge'],
+                                'full_amount' => $request->txt_aditional_charges,
+                            ]);
+                        }
+                    }
                 }
 
-                $update = $sample->update([
-                    'tr04_testing_charges' => $totalTestCharges,
-                    'tr04_additional_charges' => $additionalCharges,
-                    'tr04_total_charges' => $totalCharges,
+                // Update sample with all charges and additional items
+                $sample->update([
+                    'tr04_testing_charges' => (float) $request->txt_total_testing_charges,
+                    'tr04_additional_charges' => (float) $request->txt_aditional_charges,
+                    'tr04_total_charges' => (float) $request->txt_total_charges,
+                    'tr04_sample_type' => $request->txt_sample_type,
                 ]);
+
+                $transaction = WalletTransaction::where('tr04_sample_registration_id', $id)->first();
+
+                if ($transaction) {
+                    $transaction->update(['tr03_amount' => (float) $request->txt_total_charges]);
+
+                    Wallet::where('tr02_wallet_id', $transaction->tr02_wallet_id)
+                        ->update(['tr02_hold_amount' => (float) $request->txt_total_charges]);
+                }
                 DB::commit();
                 Session::flash('type', 'success');
                 Session::flash('message', 'Sample tests and charges updated successfully.');
                 return to_route('view_allottment');
             } catch (\Exception $e) {
                 DB::rollBack();
+                Log::error('Sample Test Edition Error: ' . $e->getMessage(), [
+                    'trace' => $e->getTraceAsString()
+                ]);
                 Session::flash('type', 'error');
                 Session::flash('message', ['error' => 'Failed to update tests: ' . $e->getMessage()]);
                 return back();
