@@ -24,7 +24,7 @@ class TestResultController extends Controller
     {
         // Base query with filters for 
         $query = TestResult::with('creator')
-            ->where('tr07_result_status', 'VERIFIED')
+            ->whereIn('tr07_result_status', ['VERIFIED', 'REPORTED'])
             ->where('tr07_is_current', 'YES')
             ->active();
 
@@ -59,6 +59,8 @@ class TestResultController extends Controller
             ->select(
                 'tr04_reference_id',
                 DB::raw('MAX(tr07_test_date) as last_test_date'),
+                DB::raw('MAX(tr07_result_status) as result_status'),
+                DB::raw('MAX(created_at) as created_at'),
                 DB::raw('COUNT(*) as total_tests')
             )
             ->groupBy('tr04_reference_id')
@@ -366,6 +368,27 @@ class TestResultController extends Controller
             'performanceDate'
         ));
     }
+
+    public function uploadDocument(Request $request, $id)
+    {
+        $request->validate([
+            'result_file' => 'required|mimes:pdf,jpg,jpeg,png,doc,docx|max:2048',
+        ]);
+        $file = $request->file('result_file');
+        $originalExtension = $file->getClientOriginalExtension();
+        $fileName = 'manuscript_' . $id . '_' . now()->timestamp . '.' . $originalExtension;
+        $folderPath = 'test_results';
+
+        $filePath = $file->storeAs($folderPath, $fileName, 'public');
+
+        SampleRegistration::where('tr04_reference_id', $id)->update([
+            'tr04_manuscript' => $fileName,
+        ]);
+        Session::flash('type', 'success');
+        Session::flash('message', 'Document uploaded successfully.');
+        return back();
+    }
+
 
     // public function createResult(Request $request)
     // {
@@ -977,6 +1000,10 @@ class TestResultController extends Controller
 
         // Check if we're generating PDF
         if (request()->has('generate_pdf')) {
+            $update = TestResult::where('tr04_reference_id', $sampleId)
+                ->where('m04_ro_id', Session::get('ro_id'))
+                ->where('tr07_is_current', 'YES')
+                ->update(['tr07_result_status' => 'REPORTED']);
             return $this->generatePdfReport($sample, $groupedResults, $groupedCustomFields, $orderedItems, $meta);
         }
 
@@ -1276,6 +1303,157 @@ class TestResultController extends Controller
 
         return redirect()->route('generate_report', ['id' => $sampleId]);
     }
+
+    // Add these methods to your TestResultController
+
+    /**
+     * Update test order via AJAX
+     */
+    public function updateOrder($sampleId, Request $request)
+    {
+        try {
+            $orderKey = 'report_order_' . $sampleId;
+            $newOrder = $request->input('order');
+
+            // Validate the order data
+            if (!is_array($newOrder)) {
+                return response()->json(['success' => false, 'message' => 'Invalid order data']);
+            }
+
+            // Store the new order in session
+            Session::put($orderKey, $newOrder);
+
+            Log::info("Test order updated for sample {$sampleId}", ['order' => $newOrder]);
+
+            return response()->json(['success' => true, 'message' => 'Order updated successfully']);
+        } catch (\Exception $e) {
+            Log::error("Error updating test order: " . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Error updating order']);
+        }
+    }
+
+    /**
+     * Reset test order to default
+     */
+    public function resetOrder($sampleId)
+    {
+        try {
+            $orderKey = 'report_order_' . $sampleId;
+
+            // Clear the session order
+            Session::forget($orderKey);
+
+            Log::info("Test order reset for sample {$sampleId}");
+
+            return response()->json(['success' => true, 'message' => 'Order reset successfully']);
+        } catch (\Exception $e) {
+            Log::error("Error resetting test order: " . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Error resetting order']);
+        }
+    }
+
+    /**
+     * Preview PDF without saving
+     */
+    public function previewReport($sampleId)
+    {
+        // Reuse your existing generateReport logic but return PDF for preview
+        $sample = SampleRegistration::with([
+            'labSample',
+            'testResult' => function ($q) {
+                $q->where('tr07_is_current', 'YES')
+                    ->where('tr07_result_status', 'VERIFIED')
+                    ->with(['test', 'primaryTest', 'secondaryTest']);
+            }
+        ])
+            ->where('tr04_reference_id', $sampleId)
+            ->where('m04_ro_id', Session::get('ro_id'))
+            ->firstOrFail();
+
+        // Get custom fields
+        $customFields = CustomField::with(['test', 'primaryTest', 'secondaryTest'])
+            ->where('tr04_reference_id', $sampleId)
+            ->where('tr08_result_status', 'VERIFIED')
+            ->orderBy('m12_test_number')
+            ->orderBy('m16_primary_test_id')
+            ->orderBy('m17_secondary_test_id')
+            ->get();
+
+        // Group results
+        $groupedResults = $sample->testResult->groupBy('m12_test_number');
+        $groupedCustomFields = $customFields->groupBy('m12_test_number');
+
+        // Get order from session
+        $orderKey = 'report_order_' . $sampleId;
+        $orderedItems = Session::get($orderKey, []);
+
+        // If no order in session, create default order (same as in generateReport)
+        if (empty($orderedItems)) {
+            $orderedItems = [];
+            foreach ($groupedResults as $testNumber => $results) {
+                $orderedItems[] = [
+                    'type' => 'test',
+                    'test_number' => $testNumber,
+                    'sort_order' => count($orderedItems)
+                ];
+            }
+
+            foreach ($groupedCustomFields as $testNumber => $fields) {
+                if (!isset($groupedResults[$testNumber])) {
+                    $orderedItems[] = [
+                        'type' => 'custom',
+                        'test_number' => $testNumber,
+                        'sort_order' => count($orderedItems)
+                    ];
+                }
+            }
+        }
+
+        $meta = [
+            'customer_name'     => $sample->parties['customer']['name'],
+            'customer_address'  => $sample->parties['customer']['address'] . ' , ' . $sample->parties['customer']['district'] . ' , ' . $sample->parties['customer']['state'] . ' , ' . $sample->parties['customer']['pincode'],
+            'report_no'         => $sample->tr04_reference_id,
+            'date'              => now()->format('d M Y'),
+            'reference'         => $sample->tr04_reference_no ?? '_',
+            'reference_date'    => Carbon::parse($sample->tr04_reference_date)->format('d M Y') ?? '_',
+            'buyer'             => $sample->parties['buyer']['name'] ?? '_',
+            'sample_description' => $sample->tr04_sample_description ?? '_',
+            'be_no'             => $sample->tr04_be_no ?? '_',
+            'sample_characteristics' => $sample->labSample->m14_name ?? '_',
+            'test_performance_date'  => $sample->testResult->first() ? Carbon::parse($sample->testResult->first()->tr07_performance_date)->format('d M Y') : now()->format('d M Y'),
+        ];
+
+        // Get latest report for version number
+        $report = TestReport::where('tr04_reference_id', $sample->tr04_reference_id)
+            ->where('tr09_is_current', 'YES')
+            ->first();
+
+        if (!$report) {
+            $latestVersion = TestReport::where('tr04_reference_id', $sample->tr04_reference_id)
+                ->max('tr09_version_number');
+            $nextVersion = $latestVersion ? $latestVersion + 1 : 1;
+
+            $report = new TestReport([
+                'tr09_version_number' => $nextVersion,
+                'm06_generated_by' => Session::get('user_id'),
+            ]);
+        }
+
+        // Generate PDF for preview (don't save)
+        $pdf = Pdf::loadView('reports.final_report_pdf', compact(
+            'sample',
+            'groupedResults',
+            'groupedCustomFields',
+            'orderedItems',
+            'meta',
+            'report'
+        ))->setPaper('A4', 'portrait');
+
+        $pdf->setOptions(['isPhpEnabled' => true]);
+
+        return $pdf->stream('report_preview_' . $sample->tr04_reference_id . '.pdf');
+    }
+
     public function audit(Request $request)
     {
         // $query = TestResultAudit::with(['testResult', 'user', 'version'])

@@ -91,8 +91,16 @@
 
                             <!-- Test Results -->
                             <div class="card border-0 shadow-sm mb-4">
-                                <div class="card-header bg-primary text-white py-2 px-3 rounded-top">
-                                    <h6 class="mb-0 text-uppercase"><em class="icon ni ni-layers"></em> Test Results</h6>
+                                <div
+                                    class="card-header bg-primary text-white py-2 px-3 d-flex justify-content-between align-items-center rounded-top">
+                                    <h6 class="mb-0 text-uppercase">
+                                        <em class="icon ni ni-layers"></em> Test Results
+                                    </h6>
+                                    <!-- Button to Open Modal -->
+                                    <button class="btn btn-light btn-sm text-primary" data-bs-toggle="modal"
+                                        data-bs-target="#uploadModal">
+                                        <em class="icon ni ni-upload"></em> Upload Manuscript
+                                    </button>
                                 </div>
                                 <div class="card-body px-4 py-3">
                                     <table class="table table-bordered align-middle mb-0">
@@ -238,6 +246,43 @@
             </div>
         </div>
     </div>
+    @php
+        $id = optional($manuscripts->first()?->registration)->tr04_reference_id;
+    @endphp
+    <!-- Upload Modal - Fixed Version -->
+    <div class="modal fade" id="uploadModal" tabindex="-1" aria-labelledby="uploadModalLabel" aria-hidden="true"
+        style="display: none;">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="uploadModalLabel">Upload Test Result Document</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <form action="{{ route('testresult_upload', $id) }}" method="POST" enctype="multipart/form-data">
+                    @csrf
+
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Select Document</label>
+                            <input type="file" name="result_file" class="form-control" required
+                                accept=".pdf,.jpg,.jpeg,.png,.doc,.docx">
+                            <small class="text-muted">Allowed formats: PDF, JPG, JPEG, PNG, DOC, DOCX</small>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary">
+                            <em class="icon ni ni-upload"></em> Upload
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+
 
     <style>
         body {

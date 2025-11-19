@@ -1,7 +1,6 @@
 @extends('layouts.app_back')
 
 @section('content')
-<div class="nk-content">
     <div class="container-fluid">
         <div class="nk-content-inner">
             <div class="nk-content-body">
@@ -160,5 +159,4 @@
             </div>
         </div>
     </div>
-</div>
 @endsection

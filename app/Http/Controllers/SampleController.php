@@ -299,6 +299,7 @@ class SampleController extends Controller
         $endDate = now()->endOfDay();
 
         $samples = SampleRegistration::with(['customer'])
+            ->where('m04_ro_id', Session::get('ro_id'))
             ->whereBetween('created_at', [$startDate, $endDate])
             ->orderBy('created_at', 'desc')
             ->get();

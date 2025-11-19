@@ -91,6 +91,9 @@ class AccessControl
             'move_test_down',
             'bulk_update_analysis',
             'manuscript_template',
+            'update_test_order',
+            'reset_test_order',
+            'generate_report_preview',
         ];
 
         if (in_array($routeName, $skipPermissionRoutes)) {

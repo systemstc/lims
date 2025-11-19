@@ -77,4 +77,9 @@ class FrontController extends Controller
         }
         return redirect()->back();
     }
+
+    public function viewSupport()
+    {
+        return view('front.view_support');
+    }
 }

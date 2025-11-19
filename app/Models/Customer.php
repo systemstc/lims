@@ -43,7 +43,7 @@ class Customer extends Model
     }
     public function district()
     {
-        return $this->hasOne(District::class, 'm02_district_id','m02_district_id');
+        return $this->hasOne(District::class, 'm02_district_id', 'm02_district_id');
     }
 
     public function ro()
@@ -52,6 +52,6 @@ class Customer extends Model
     }
     public function packages()
     {
-        return $this->hasMany(Package::class, 'm19_package_id', 'm19_package_id');
+        return $this->hasMany(Package::class, 'm07_contract_with', 'm07_customer_id');
     }
 }

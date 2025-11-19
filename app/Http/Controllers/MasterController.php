@@ -433,8 +433,6 @@ class MasterController extends Controller
     {
         $daysInMonth = cal_days_in_month(CAL_GREGORIAN, $month, $year);
         $currentDate = Carbon::now();
-        $monthStart = Carbon::create($year, $month, 1);
-        $monthEnd = Carbon::create($year, $month, $daysInMonth);
 
         // Get all samples for the month with their expected dates and status
         $samples = $baseQuery->clone()
@@ -444,8 +442,17 @@ class MasterController extends Controller
                 'tr04_progress',
                 'created_at'
             ])
-            ->whereBetween('created_at', [$monthStart, $monthEnd])
+            // CHANGE THIS: Use same filtering as modal
+            ->whereYear('created_at', $year)
+            ->whereMonth('created_at', $month)
             ->get();
+
+        // DEBUG: Check what's being fetched
+        logger("Heatmap Debug - Month: {$month}, Year: {$year}");
+        logger("Samples found: " . $samples->count());
+        foreach ($samples as $sample) {
+            logger("Sample: {$sample->tr04_reference_id}, Created: {$sample->created_at}, Expected: {$sample->tr04_expected_date}");
+        }
 
         // Group samples by creation day
         $samplesByDay = [];
@@ -550,26 +557,32 @@ class MasterController extends Controller
         $request->validate([
             'day' => 'required|integer|min:1|max:31',
             'month' => 'required|integer|min:1|max:12',
-            'year' => 'required|integer'
+            'year' => 'required|integer',
+            'ro_id' => 'nullable|integer' // Add this
         ]);
 
         $day = $request->day;
         $month = $request->month;
         $year = $request->year;
+        $roId = $request->ro_id; // Get RO ID from request
 
         // Build query based on user role and filters
         $query = SampleRegistration::query();
 
-        // Apply the same filters as in adminDashboard
+        // Apply date filters
         $query->whereYear('created_at', $year)
             ->whereMonth('created_at', $month)
             ->whereDay('created_at', $day);
 
-        // Apply RO filter if user is admin and RO is selected
-        if (Session::get('role') === 'ADMIN' && request()->get('ro_id')) {
-            $query->where('m04_ro_id', request()->get('ro_id'));
+        // Apply RO filter - use the one from request if provided, otherwise use session logic
+        if (Session::get('role') === 'ADMIN') {
+            if ($roId) {
+                // Use RO ID from AJAX request
+                $query->where('m04_ro_id', $roId);
+            }
+            // If no RO ID in request and no filter selected, show all (no where clause)
         } elseif (Session::get('role') !== 'ADMIN') {
-            // For non-admin users, filter by their associated RO
+            // For non-admin users, always filter by their associated RO
             $query->where('m04_ro_id', Session::get('ro_id'));
         }
 
@@ -581,21 +594,27 @@ class MasterController extends Controller
             'created_at'
         ])
             ->orderByRaw("CASE 
-                WHEN tr04_progress = 'IN_PROGRESS' THEN 1
-                WHEN tr04_progress = 'REGISTERED' THEN 2
-                WHEN tr04_progress = 'ALLOTED' THEN 3
-                WHEN tr04_progress = 'RESULT_ENTRY' THEN 4
-                WHEN tr04_progress = 'VERIFIED' THEN 5
-                WHEN tr04_progress = 'REPORTED' THEN 6
-                ELSE 7
-            END ASC")
+        WHEN tr04_progress = 'IN_PROGRESS' THEN 1
+        WHEN tr04_progress = 'REGISTERED' THEN 2
+        WHEN tr04_progress = 'ALLOTED' THEN 3
+        WHEN tr04_progress = 'RESULT_ENTRY' THEN 4
+        WHEN tr04_progress = 'VERIFIED' THEN 5
+        WHEN tr04_progress = 'REPORTED' THEN 6
+        ELSE 7
+    END ASC")
             ->orderBy('created_at', 'desc')
             ->get();
 
         return response()->json([
             'success' => true,
             'samples' => $samples,
-            'count' => $samples->count()
+            'count' => $samples->count(),
+            'filters_applied' => [
+                'ro_id' => $roId ?: (Session::get('role') !== 'ADMIN' ? Session::get('ro_id') : 'All ROs'),
+                'month' => $month,
+                'year' => $year,
+                'day' => $day
+            ]
         ]);
     }
 

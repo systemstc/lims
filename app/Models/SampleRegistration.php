@@ -48,6 +48,7 @@ class SampleRegistration extends Model
         'tr04_progress',
         'tr03_hold_transaction_id',
         'tr04_hold_amount',
+        'tr04_manuscript',
     ];
 
     protected $appends = ['parties', 'test_details'];

@@ -373,10 +373,12 @@
                                     <tr class="table-primary">
                                         <td class="text-center">{{ $counter }}</td>
                                         <td>
-                                            <strong>{{ $testName ?: 'Test #' . $item['test_number'] }}</strong>&nbsp; - &nbsp;
+                                            <strong>{{ $testName ?: 'Test #' . $item['test_number'] }}</strong>&nbsp; -
+                                            &nbsp;
                                             @if ($parent->test->standard->m15_method ?? false)
                                                 <small>({{ $parent->test->standard->m15_method }})</small>
                                             @endif
+                                            {{ $parent->tr07_unit }}
                                         </td>
                                         <td class="text-center">
                                             @php
@@ -411,7 +413,8 @@
                                                         <td class="text-center">
                                                             {{ $counter }}.{{ $subCounter++ }}</td>
                                                         <td class="ps-4">
-                                                            <em>{{ $secondary->secondaryTest->m17_name ?? 'Secondary Parameter' }}</em>
+                                                            <em>{{ $secondary->secondaryTest->m17_name ?? 'Secondary Parameter' }}
+                                                                <strong>({{ $secondary->tr07_unit ?? '-' }})</strong></em>
                                                         </td>
                                                         <td class="text-center">{{ $secondary->tr07_result ?? '-' }}
                                                         </td>
@@ -423,11 +426,8 @@
                                                     <td class="text-center">{{ $counter }}.{{ $subCounter++ }}
                                                     </td>
                                                     <td class="ps-4">
-                                                        <em>{{ $primaryTest->m16_name ?? 'Primary Parameter' }}</em>
-                                                        @if ($primaryTest->m16_requirement)
-                                                            <br><small>Requirement:
-                                                                {{ $primaryTest->m16_requirement }}</small>
-                                                        @endif
+                                                        <em>{{ $primaryTest->m16_name ?? 'Primary Parameter' }}
+                                                            <strong>({{ $primaryResults->first()->tr07_unit ?? '-' }})</strong></em>
                                                     </td>
                                                     <td class="text-center">
                                                         {{ $primaryResults->first()->tr07_result ?? '-' }}
@@ -446,12 +446,14 @@
                                         @foreach ($customFields as $custom)
                                             <tr class="table-secondary">
                                                 <td class="text-center">{{ $counter }}.{{ $subCounter++ }}</td>
-                                                <td class="ps-4">{{ $custom->tr08_field_name }}</td>
+                                                <td class="ps-4">{{ $custom->tr08_field_name }} <strong>
+                                                        @if ($custom->tr08_field_unit)
+                                                            ({{ $custom->tr08_field_unit }})
+                                                        @endif
+                                                    </strong></td>
                                                 <td class="text-center">
                                                     {{ $custom->tr08_field_value }}
-                                                    @if ($custom->tr08_field_unit)
-                                                        ({{ $custom->tr08_field_unit }})
-                                                    @endif
+
                                                 </td>
                                             </tr>
                                         @endforeach

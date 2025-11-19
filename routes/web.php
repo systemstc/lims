@@ -13,6 +13,7 @@ use App\Http\Controllers\SampleController;
 use App\Http\Controllers\TestResultController;
 use App\Http\Controllers\ValidationController;
 use App\Http\Controllers\InvoiceController;
+use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\RazorpayController;
 use App\Http\Controllers\VerificationController;
 use App\Http\Controllers\WalletController;
@@ -202,10 +203,17 @@ Route::middleware(['access_control'])->group(function () {
         Route::get('view-test-results', [TestResultController::class, 'reporting'])->name('test_results');
         Route::post('/create-result-test', [TestResultController::class, 'createResult'])->name('create_test_result');
         Route::get('show-sample-result/{id}', [TestResultController::class, 'showSampleResult'])->name('show_sample_result');
+        // routes/web.php
+
+        // Existing routes
         Route::get('generate-report/{id}', [TestResultController::class, 'generateReport'])->name('generate_report');
-        // Route::get('/test-reports/generate/{id}', [TestResultController::class, 'generateReport'])->name('generate_report');
         Route::get('/test-reports/move-up/{id}/{index}', [TestResultController::class, 'moveTestUp'])->name('move_test_up');
         Route::get('/test-reports/move-down/{id}/{index}', [TestResultController::class, 'moveTestDown'])->name('move_test_down');
+
+        // New routes for enhanced interface
+        Route::post('/test-reports/{id}/update-order', [TestResultController::class, 'updateOrder'])->name('update_test_order');
+        Route::post('/test-reports/{id}/reset-order', [TestResultController::class, 'resetOrder'])->name('reset_test_order');
+        Route::get('/test-reports/{id}/preview', [TestResultController::class, 'previewReport'])->name('generate_report_preview');
 
         Route::get('/{id}/version/{versionNumber}', [TestResultController::class, 'viewVersion'])->name('view-version');
         Route::get('/{id}/compare', [TestResultController::class, 'compareVersions'])->name('compare-versions');
@@ -291,6 +299,8 @@ Route::middleware(['access_control'])->group(function () {
     Route::get('manuscript-template/{id}', [TestResultController::class, 'templateTestResult'])->name('template_manuscript');
     Route::get('manuscript-dd-template/{id}', [TestResultController::class, 'templateManuscript'])->name('manuscript_template');
     Route::get('completed-tests', [TestResultController::class, 'viewCompletedTests'])->name('view_completed_camples');
+    Route::post('/test-result/upload/{id}', [TestResultController::class, 'uploadDocument'])->name('testresult_upload');
+
     // Transferred samples from other regional offices 
     Route::get('accept-pending-samples', [SampleController::class, 'viewPedingSmples'])->name('view_regional_samples');
     Route::post('accept-pending-transfer-sample/{id}', [SampleController::class, 'acceptTransferdSample'])->name('accept_sample');
@@ -304,6 +314,7 @@ Route::middleware(['access_control'])->group(function () {
     // Route::post('/create-order', [RazorpayController::class, 'createOrder'])->name('razorpay.createOrder');
     // Route::post('/verify-payment', [RazorpayController::class, 'verifyPayment'])->name('razorpay.verifyPayment');
 
+    Route::get('view-support', [FrontController::class, 'viewSupport'])->name('view_support');
 });
 Route::get('customer-wallet/{id}', [WalletController::class, 'viewWallet'])->name('view_wallet');
 
@@ -332,3 +343,10 @@ Route::get('/get-all-samples-data', [AllottmentController::class, 'getAllSamples
 
 Route::post('/dashboard/date-samples', [MasterController::class, 'getDateSamples'])
     ->name('dashboard.date.samples');
+
+// Forgot Password Routes
+
+Route::get('/forgot-password', [PasswordResetController::class, 'showForgotPasswordForm'])->name('password.request');
+Route::post('/forgot-password', [PasswordResetController::class, 'sendResetLinkEmail'])->name('password.email');
+Route::get('/reset-password/{token}', [PasswordResetController::class, 'showResetForm'])->name('password.reset');
+Route::post('/reset-password', [PasswordResetController::class, 'reset'])->name('password.update');

@@ -20,6 +20,8 @@ class CustomField extends Model
         'tr08_field_name',
         'tr08_field_value',
         'tr08_field_unit',
+        'tr08_is_current',
+        'tr08_current_version',
         'tr08_result_status',
         'tr08_test_date',
         'tr08_performance_date',

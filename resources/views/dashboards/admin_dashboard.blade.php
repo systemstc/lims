@@ -47,7 +47,7 @@
                                                     @foreach ($ros as $ro)
                                                         <option value="{{ $ro->m04_ro_id }}"
                                                             {{ $roId == $ro->m04_ro_id ? 'selected' : '' }}>
-                                                            {{ $ro->m02_name }}
+                                                            {{ $ro->m04_name }}
                                                         </option>
                                                     @endforeach
                                                 </select>
@@ -655,7 +655,7 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-outline-danger btn-sm" data-bs-dismiss="modal">Close</button>
                 </div>
             </div>
         </div>
@@ -803,6 +803,13 @@
             const url = '{{ route('dashboard.date.samples') }}';
             const csrfToken = '{{ csrf_token() }}';
 
+            // Get the current RO ID from the form filter
+            const roId = document.querySelector('select[name="ro_id"]')?.value || '';
+
+            // Get the current month and year from the form (in case they changed)
+            const currentMonth = document.querySelector('select[name="month"]')?.value || month;
+            const currentYear = document.querySelector('select[name="year"]')?.value || year;
+
             fetch(url, {
                     method: 'POST',
                     headers: {
@@ -812,23 +819,24 @@
                     },
                     body: JSON.stringify({
                         day: day,
-                        month: month,
-                        year: year
+                        month: currentMonth, // Use current form value
+                        year: currentYear, // Use current form value
+                        ro_id: roId // Include RO ID filter
                     })
                 })
                 .then(response => response.json())
                 .then(data => {
-                    displaySamplesInModal(data.samples, day, month, year);
+                    displaySamplesInModal(data.samples, day, currentMonth, currentYear);
                 })
                 .catch(error => {
                     console.error('Error fetching samples:', error);
                     document.getElementById('modalSamplesTable').innerHTML = `
-            <tr>
-                <td colspan="4" class="text-center text-danger">
-                    Error loading samples. Please try again.
-                </td>
-            </tr>
-        `;
+        <tr>
+            <td colspan="4" class="text-center text-danger">
+                Error loading samples. Please try again.
+            </td>
+        </tr>
+    `;
                 });
         }
 
@@ -867,9 +875,11 @@
                 <td>
                     ${isReported ? 
                         '<span class="text-success"><em class="icon ni ni-check-circle"></em> Completed</span>' :
-                        (typeof daysRemaining === 'number' ? 
-                            `<span class="${daysRemainingClass}">${daysRemaining} days</span>` : 
-                            'N/A'
+                        (daysRemaining > 0 ? 
+                            `<span class="${daysRemainingClass}">${daysRemaining} days</span>` :
+                            daysRemaining === 0 ?
+                                `<span class="${daysRemainingClass}">Due today</span>` :
+                                `<span class="${daysRemainingClass}">${Math.abs(daysRemaining)} day${Math.abs(daysRemaining) === 1 ? '' : 's'} overdue</span>`
                         )
                     }
                 </td>

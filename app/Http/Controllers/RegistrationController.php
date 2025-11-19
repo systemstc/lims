@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\SampleRegisteredMail;
 use App\Models\Accreditation;
 use App\Models\Customer;
 use App\Models\CustomerType;
@@ -26,6 +27,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Yajra\DataTables\Facades\DataTables;
 use App\Models\Ro;
+use Illuminate\Support\Facades\Mail;
 
 class RegistrationController extends Controller
 {
@@ -219,6 +221,8 @@ class RegistrationController extends Controller
                     $request->txt_total_charges,
                     $invoiceNumber
                 );
+                $customer = Customer::find($selectedCustomerId);
+                Mail::to($customer->m07_email)->send(new SampleRegisteredMail($registration));
 
                 if (!$holdResult['success']) {
                     throw new \Exception('Wallet Hold Failed: ' . $holdResult['message']);

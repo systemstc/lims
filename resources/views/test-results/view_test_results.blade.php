@@ -122,7 +122,7 @@
                                         <th>Status</th>
                                         <th>Last Test Date</th>
                                         <th>Total Outputs</th>
-                                        <th>Last Created</th>
+                                        <th>Created At</th>
                                         <th>Action</th>
                                     </tr>
                                 </thead>
@@ -131,11 +131,11 @@
                                         <tr>
                                             <td>{{ $key + 1 }}</td>
                                             <td>{{ $result->tr04_reference_id }}</td>
-                                            <td><strong class="text-success fw-bold">VERIFIED</strong></td>
+                                            <td><strong class="text-{{ $result->result_status === 'VERIFIED' ? 'primary' : 'success' }} fw-bold">{{ $result->result_status }}</strong></td>
                                             <td>{{ \Carbon\Carbon::parse($result->last_test_date)->format('d M, Y') }}
                                             </td>
                                             <td>{{ $result->total_tests }}</td>
-                                            <td>{{ \Carbon\Carbon::parse($result->last_created_at)->format('d M, Y h:i A') }}
+                                            <td>{{ \Carbon\Carbon::parse($result->created_at)->format('d M, Y h:i A') }}
                                             </td>
                                             <td class="nk-tb-col nk-tb-col-tools text-center">
                                                 <ul class="nk-tb-actions gx-1 my-n1">

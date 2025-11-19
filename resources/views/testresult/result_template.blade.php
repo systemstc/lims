@@ -93,288 +93,299 @@
 
                             <!-- Test Results -->
                             <div class="card border-0 shadow-sm mb-4">
-                                <div class="card-header bg-primary text-white py-2 px-3 rounded-top">
-                                    <h6 class="mb-0 text-uppercase"><em class="icon ni ni-layers"></em> Test Results</h6>
-                                </div>
-                                <div class="">
-                                    <table class="table table-bordered align-middle mb-0">
-                                        <thead class="table-light">
-                                            <tr>
-                                                <th style="width: 10%">Sr. No.</th>
-                                                <th>Test Name</th>
-                                                <th style="width: 35%">Result / Entry</th>
-                                                <th style="width: 15%">Action</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="testResultsBody">
-                                            @foreach ($sampleTests as $key => $sampleTest)
-                                                @php
-                                                    $test = $sampleTest->test;
-                                                    $primaryTests = $test->primaryTests ?? collect();
-                                                    $existingTestResults = $existingResults->where(
-                                                        'm12_test_number',
-                                                        $test->m12_test_number,
-                                                    );
-                                                    $existingMainTestResult = $existingTestResults
-                                                        ->whereNull('m16_primary_test_id')
-                                                        ->whereNull('m17_secondary_test_id')
-                                                        ->first();
-                                                @endphp
+                                <div class="card border-0 shadow-sm mb-4">
+                                    <div
+                                        class="card-header bg-primary text-white py-2 px-3 d-flex justify-content-between align-items-center rounded-top">
+                                        <h6 class="mb-0 text-uppercase"><em class="icon ni ni-layers"></em> Test Results
+                                        </h6>
 
-                                                <!-- Main Test Row -->
-                                                <tr class="bg-light fw-bold test-main-row"
-                                                    data-test-id="{{ $test->m12_test_id }}"
-                                                    data-test-number="{{ $test->m12_test_number }}">
-                                                    <td>{{ $key + 1 }}</td>
-                                                    <td>
-                                                        <strong>{{ $test->m12_name ?? 'N/A' }}</strong>
-                                                        @if ($sampleTest->standard)
-                                                            - ( {{ $sampleTest->standard->m15_method ?? 'N/A' }} )
-                                                        @endif
-                                                    </td>
-                                                    <td>
-                                                        @if ($primaryTests->isEmpty())
-                                                            <!-- Input field for main test when no primary tests -->
-                                                            <div class="input-group input-group-sm">
-                                                                <input type="text"
-                                                                    class="form-control form-control-sm bg-light"
-                                                                    name="results[{{ $test->m12_test_number }}][test][result]"
-                                                                    value="{{ old('results.' . $test->m12_test_number . '.test.result', $existingMainTestResult->tr07_result ?? '') }}"
-                                                                    placeholder="Enter result value" autocomplete="off">
-                                                                <input type="text"
-                                                                    class="form-control form-control-sm bg-light"
-                                                                    style="max-width: 80px;"
-                                                                    name="results[{{ $test->m12_test_number }}][test][unit]"
-                                                                    value="{{ old('results.' . $test->m12_test_number . '.test.unit', $existingMainTestResult->tr07_unit ?? ($test->m12_unit ?? '')) }}"
-                                                                    placeholder="Unit">
-                                                                <input type="hidden"
-                                                                    name="results[{{ $test->m12_test_number }}][test][test_id]"
-                                                                    value="{{ $test->m12_test_number }}">
-                                                                <input type="hidden"
-                                                                    name="results[{{ $test->m12_test_number }}][test][result_id]"
-                                                                    value="{{ $existingMainTestResult->tr07_test_result_id ?? '' }}">
-                                                            </div>
-                                                        @endif
-                                                    </td>
-                                                    <td>
-                                                        @if ($primaryTests->isNotEmpty())
-                                                            <button type="button"
-                                                                class="btn btn-outline-primary btn-sm add-primary-test"
-                                                                data-test-id="{{ $test->m12_test_id }}"
-                                                                data-test-number="{{ $test->m12_test_number }}"
-                                                                data-primary-tests="{{ $primaryTests->toJson() }}">
-                                                                <em class="icon ni ni-plus"></em> Primary
-                                                            </button>
-                                                        @else
-                                                            <button type="button"
-                                                                class="btn btn-outline-warning btn-sm add-custom-field"
-                                                                data-test-id="{{ $test->m12_test_id }}"
-                                                                data-test-number="{{ $test->m12_test_number }}"
-                                                                data-type="test">
-                                                                <em class="icon ni ni-plus"></em> Custom
-                                                            </button>
-                                                        @endif
-                                                    </td>
+                                        <!-- PDF View Button - Only show if manuscript exists -->
+                                        @if (isset($sampleTests) && $sampleTests->first()?->registration?->tr04_manuscript)
+                                            <button type="button" class="btn btn-light btn-sm text-primary"
+                                                data-bs-toggle="modal" data-bs-target="#pdfModal">
+                                                <em class="icon ni ni-eye"></em> View Manuscript
+                                            </button>
+                                        @endif
+                                    </div>
+                                    <div class="">
+                                        <table class="table table-bordered align-middle mb-0">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th style="width: 10%">Sr. No.</th>
+                                                    <th>Test Name</th>
+                                                    <th style="width: 35%">Result / Entry</th>
+                                                    <th style="width: 15%">Action</th>
                                                 </tr>
-
-                                                <!-- Existing Primary Tests from Database -->
-                                                @foreach ($existingTestResults->whereNotNull('m16_primary_test_id')->whereNull('m17_secondary_test_id') as $existingPrimaryResult)
+                                            </thead>
+                                            <tbody id="testResultsBody">
+                                                @foreach ($sampleTests as $key => $sampleTest)
                                                     @php
-                                                        $primaryTest = $primaryTests
-                                                            ->where(
-                                                                'm16_primary_test_id',
-                                                                $existingPrimaryResult->m16_primary_test_id,
-                                                            )
+                                                        $test = $sampleTest->test;
+                                                        $primaryTests = $test->primaryTests ?? collect();
+                                                        $existingTestResults = $existingResults->where(
+                                                            'm12_test_number',
+                                                            $test->m12_test_number,
+                                                        );
+                                                        $existingMainTestResult = $existingTestResults
+                                                            ->whereNull('m16_primary_test_id')
+                                                            ->whereNull('m17_secondary_test_id')
                                                             ->first();
                                                     @endphp
-                                                    @if ($primaryTest)
-                                                        <!-- Primary Test Row -->
-                                                        <tr class="primary-test-row"
-                                                            data-test-id="{{ $test->m12_test_id }}"
-                                                            data-test-number="{{ $test->m12_test_number }}"
-                                                            data-primary-test-id="{{ $primaryTest->m16_primary_test_id }}">
-                                                            <td>{{ $key + 1 }}.{{ $loop->index + 1 }}</td>
-                                                            <td>
-                                                                <strong>{{ $primaryTest->m16_name ?? 'N/A' }}</strong>
-                                                                @if ($primaryTest->m16_requirement)
-                                                                    <br><small class="text-info">Requirement:
-                                                                        {{ $primaryTest->m16_requirement }}</small>
-                                                                @endif
-                                                            </td>
-                                                            <td>
+
+                                                    <!-- Main Test Row -->
+                                                    <tr class="bg-light fw-bold test-main-row"
+                                                        data-test-id="{{ $test->m12_test_id }}"
+                                                        data-test-number="{{ $test->m12_test_number }}">
+                                                        <td>{{ $key + 1 }}</td>
+                                                        <td>
+                                                            <strong>{{ $test->m12_name ?? 'N/A' }}</strong>
+                                                            @if ($sampleTest->standard)
+                                                                - ( {{ $sampleTest->standard->m15_method ?? 'N/A' }} )
+                                                            @endif
+                                                        </td>
+                                                        <td>
+                                                            @if ($primaryTests->isEmpty())
+                                                                <!-- Input field for main test when no primary tests -->
                                                                 <div class="input-group input-group-sm">
+                                                                    <input type="text"
+                                                                        class="form-control form-control-sm bg-light"
+                                                                        name="results[{{ $test->m12_test_number }}][test][result]"
+                                                                        value="{{ old('results.' . $test->m12_test_number . '.test.result', $existingMainTestResult->tr07_result ?? '') }}"
+                                                                        placeholder="Enter result value" autocomplete="off">
+                                                                    <input type="text"
+                                                                        class="form-control form-control-sm bg-light"
+                                                                        style="max-width: 80px;"
+                                                                        name="results[{{ $test->m12_test_number }}][test][unit]"
+                                                                        value="{{ old('results.' . $test->m12_test_number . '.test.unit', $existingMainTestResult->tr07_unit ?? ($test->m12_unit ?? '')) }}"
+                                                                        placeholder="Unit">
                                                                     <input type="hidden"
-                                                                        name="results[{{ $test->m12_test_number }}][primary_tests][{{ $primaryTest->m16_primary_test_id }}][test_id]"
+                                                                        name="results[{{ $test->m12_test_number }}][test][test_id]"
                                                                         value="{{ $test->m12_test_number }}">
                                                                     <input type="hidden"
-                                                                        name="results[{{ $test->m12_test_number }}][primary_tests][{{ $primaryTest->m16_primary_test_id }}][primary_test_id]"
-                                                                        value="{{ $primaryTest->m16_primary_test_id }}">
-                                                                    <input type="hidden"
-                                                                        name="results[{{ $test->m12_test_number }}][primary_tests][{{ $primaryTest->m16_primary_test_id }}][result_id]"
-                                                                        value="{{ $existingPrimaryResult->tr07_test_result_id ?? '' }}">
-                                                                    <input type="text"
-                                                                        class="form-control form-control-sm border-0 bg-light"
-                                                                        name="results[{{ $test->m12_test_number }}][primary_tests][{{ $primaryTest->m16_primary_test_id }}][result]"
-                                                                        value="{{ old('results.' . $test->m12_test_number . '.primary_tests.' . $primaryTest->m16_primary_test_id . '.result', $existingPrimaryResult->tr07_result ?? '') }}"
-                                                                        placeholder="Enter result value"
-                                                                        autocomplete="off">
-                                                                    <input type="text"
-                                                                        class="form-control form-control-sm border-0 bg-light"
-                                                                        style="max-width: 80px;"
-                                                                        name="results[{{ $test->m12_test_number }}][primary_tests][{{ $primaryTest->m16_primary_test_id }}][unit]"
-                                                                        value="{{ old('results.' . $test->m12_test_number . '.primary_tests.' . $primaryTest->m16_primary_test_id . '.unit', $existingPrimaryResult->tr07_unit ?? ($primaryTest->m16_unit ?? '')) }}"
-                                                                        placeholder="Unit">
+                                                                        name="results[{{ $test->m12_test_number }}][test][result_id]"
+                                                                        value="{{ $existingMainTestResult->tr07_test_result_id ?? '' }}">
                                                                 </div>
-                                                            </td>
-                                                            <td>
+                                                            @endif
+                                                        </td>
+                                                        <td>
+                                                            @if ($primaryTests->isNotEmpty())
                                                                 <button type="button"
-                                                                    class="btn btn-outline-danger btn-sm remove-test-row"
-                                                                    data-type="primary"
-                                                                    data-test-number="{{ $test->m12_test_number }}"
-                                                                    data-id="{{ $primaryTest->m16_primary_test_id }}">
-                                                                    <em class="icon ni ni-trash"></em>
-                                                                </button>
-                                                                @if ($primaryTest->secondaryTests && $primaryTest->secondaryTests->isNotEmpty())
-                                                                    <button type="button"
-                                                                        class="btn btn-outline-success btn-sm add-secondary-test"
-                                                                        data-test-number="{{ $test->m12_test_number }}"
-                                                                        data-primary-test-id="{{ $primaryTest->m16_primary_test_id }}"
-                                                                        data-secondary-tests='{{ $primaryTest->secondaryTests->toJson() }}'>
-                                                                        <em class="icon ni ni-plus"></em> Secondary
-                                                                    </button>
-                                                                @endif
-                                                                <button type="button"
-                                                                    class="btn btn-outline-primary btn-sm add-custom-field"
+                                                                    class="btn btn-outline-primary btn-sm add-primary-test"
                                                                     data-test-id="{{ $test->m12_test_id }}"
                                                                     data-test-number="{{ $test->m12_test_number }}"
-                                                                    data-primary-test-id="{{ $primaryTest->m16_primary_test_id }}"
-                                                                    data-type="primary">
+                                                                    data-primary-tests="{{ $primaryTests->toJson() }}">
+                                                                    <em class="icon ni ni-plus"></em> Primary
+                                                                </button>
+                                                            @else
+                                                                <button type="button"
+                                                                    class="btn btn-outline-warning btn-sm add-custom-field"
+                                                                    data-test-id="{{ $test->m12_test_id }}"
+                                                                    data-test-number="{{ $test->m12_test_number }}"
+                                                                    data-type="test">
                                                                     <em class="icon ni ni-plus"></em> Custom
                                                                 </button>
-                                                            </td>
-                                                        </tr>
-
-                                                        <!-- Existing Secondary Tests for this Primary Test -->
-                                                        @foreach ($existingTestResults->where('m16_primary_test_id', $primaryTest->m16_primary_test_id)->whereNotNull('m17_secondary_test_id') as $existingSecondaryResult)
-                                                            @php
-                                                                $secondaryTest = $primaryTest->secondaryTests
-                                                                    ->where(
-                                                                        'm17_secondary_test_id',
-                                                                        $existingSecondaryResult->m17_secondary_test_id,
-                                                                    )
-                                                                    ->first();
-                                                            @endphp
-                                                            @if ($secondaryTest)
-                                                                <tr class="secondary-test-row"
-                                                                    data-test-number="{{ $test->m12_test_number }}"
-                                                                    data-primary-test-id="{{ $primaryTest->m16_primary_test_id }}"
-                                                                    data-secondary-test-id="{{ $secondaryTest->m17_secondary_test_id }}">
-                                                                    <td>{{ $key + 1 }}.{{ $loop->parent->index + 1 }}.{{ $loop->index + 1 }}
-                                                                    </td>
-                                                                    <td>{{ $secondaryTest->m17_name ?? 'N/A' }}</td>
-                                                                    <td>
-                                                                        <div class="input-group input-group-sm">
-                                                                            <input type="hidden"
-                                                                                name="results[{{ $test->m12_test_number }}][primary_tests][{{ $primaryTest->m16_primary_test_id }}][secondary_tests][{{ $secondaryTest->m17_secondary_test_id }}][test_id]"
-                                                                                value="{{ $test->m12_test_number }}">
-                                                                            <input type="hidden"
-                                                                                name="results[{{ $test->m12_test_number }}][primary_tests][{{ $primaryTest->m16_primary_test_id }}][secondary_tests][{{ $secondaryTest->m17_secondary_test_id }}][primary_test_id]"
-                                                                                value="{{ $primaryTest->m16_primary_test_id }}">
-                                                                            <input type="hidden"
-                                                                                name="results[{{ $test->m12_test_number }}][primary_tests][{{ $primaryTest->m16_primary_test_id }}][secondary_tests][{{ $secondaryTest->m17_secondary_test_id }}][secondary_test_id]"
-                                                                                value="{{ $secondaryTest->m17_secondary_test_id }}">
-                                                                            <input type="hidden"
-                                                                                name="results[{{ $test->m12_test_number }}][primary_tests][{{ $primaryTest->m16_primary_test_id }}][secondary_tests][{{ $secondaryTest->m17_secondary_test_id }}][result_id]"
-                                                                                value="{{ $existingSecondaryResult->tr07_test_result_id ?? '' }}">
-                                                                            <input type="text"
-                                                                                class="form-control form-control-sm border-0 bg-light"
-                                                                                name="results[{{ $test->m12_test_number }}][primary_tests][{{ $primaryTest->m16_primary_test_id }}][secondary_tests][{{ $secondaryTest->m17_secondary_test_id }}][result]"
-                                                                                value="{{ old('results.' . $test->m12_test_number . '.primary_tests.' . $primaryTest->m16_primary_test_id . '.secondary_tests.' . $secondaryTest->m17_secondary_test_id . '.result', $existingSecondaryResult->tr07_result ?? '') }}"
-                                                                                placeholder="Enter result value"
-                                                                                autocomplete="off">
-                                                                            <input type="text"
-                                                                                class="form-control form-control-sm border-0 bg-light"
-                                                                                style="max-width: 80px;"
-                                                                                name="results[{{ $test->m12_test_number }}][primary_tests][{{ $primaryTest->m16_primary_test_id }}][secondary_tests][{{ $secondaryTest->m17_secondary_test_id }}][unit]"
-                                                                                value="{{ old('results.' . $test->m12_test_number . '.primary_tests.' . $primaryTest->m16_primary_test_id . '.secondary_tests.' . $secondaryTest->m17_secondary_test_id . '.unit', $existingSecondaryResult->tr07_unit ?? ($secondaryTest->m17_unit ?? '')) }}"
-                                                                                placeholder="Unit">
-                                                                        </div>
-                                                                    </td>
-                                                                    <td>
-                                                                        <button type="button"
-                                                                            class="btn btn-outline-danger btn-sm remove-test-row"
-                                                                            data-type="secondary"
-                                                                            data-test-number="{{ $test->m12_test_number }}"
-                                                                            data-primary-test-id="{{ $primaryTest->m16_primary_test_id }}"
-                                                                            data-id="{{ $secondaryTest->m17_secondary_test_id }}">
-                                                                            <em class="icon ni ni-trash"></em>
-                                                                        </button>
-                                                                        <button type="button"
-                                                                            class="btn btn-outline-primary btn-sm add-custom-field"
-                                                                            data-test-id="{{ $test->m12_test_id }}"
-                                                                            data-test-number="{{ $test->m12_test_number }}"
-                                                                            data-primary-test-id="{{ $primaryTest->m16_primary_test_id }}"
-                                                                            data-secondary-test-id="{{ $secondaryTest->m17_secondary_test_id }}"
-                                                                            data-type="secondary">
-                                                                            <em class="icon ni ni-plus"></em> Custom
-                                                                        </button>
-                                                                    </td>
-                                                                </tr>
                                                             @endif
-                                                        @endforeach
-                                                    @endif
+                                                        </td>
+                                                    </tr>
+
+                                                    <!-- Existing Primary Tests from Database -->
+                                                    @foreach ($existingTestResults->whereNotNull('m16_primary_test_id')->whereNull('m17_secondary_test_id') as $existingPrimaryResult)
+                                                        @php
+                                                            $primaryTest = $primaryTests
+                                                                ->where(
+                                                                    'm16_primary_test_id',
+                                                                    $existingPrimaryResult->m16_primary_test_id,
+                                                                )
+                                                                ->first();
+                                                        @endphp
+                                                        @if ($primaryTest)
+                                                            <!-- Primary Test Row -->
+                                                            <tr class="primary-test-row"
+                                                                data-test-id="{{ $test->m12_test_id }}"
+                                                                data-test-number="{{ $test->m12_test_number }}"
+                                                                data-primary-test-id="{{ $primaryTest->m16_primary_test_id }}">
+                                                                <td>{{ $key + 1 }}.{{ $loop->index + 1 }}</td>
+                                                                <td>
+                                                                    <strong>{{ $primaryTest->m16_name ?? 'N/A' }}</strong>
+                                                                    @if ($primaryTest->m16_requirement)
+                                                                        <br><small class="text-info">Requirement:
+                                                                            {{ $primaryTest->m16_requirement }}</small>
+                                                                    @endif
+                                                                </td>
+                                                                <td>
+                                                                    <div class="input-group input-group-sm">
+                                                                        <input type="hidden"
+                                                                            name="results[{{ $test->m12_test_number }}][primary_tests][{{ $primaryTest->m16_primary_test_id }}][test_id]"
+                                                                            value="{{ $test->m12_test_number }}">
+                                                                        <input type="hidden"
+                                                                            name="results[{{ $test->m12_test_number }}][primary_tests][{{ $primaryTest->m16_primary_test_id }}][primary_test_id]"
+                                                                            value="{{ $primaryTest->m16_primary_test_id }}">
+                                                                        <input type="hidden"
+                                                                            name="results[{{ $test->m12_test_number }}][primary_tests][{{ $primaryTest->m16_primary_test_id }}][result_id]"
+                                                                            value="{{ $existingPrimaryResult->tr07_test_result_id ?? '' }}">
+                                                                        <input type="text"
+                                                                            class="form-control form-control-sm border-0 bg-light"
+                                                                            name="results[{{ $test->m12_test_number }}][primary_tests][{{ $primaryTest->m16_primary_test_id }}][result]"
+                                                                            value="{{ old('results.' . $test->m12_test_number . '.primary_tests.' . $primaryTest->m16_primary_test_id . '.result', $existingPrimaryResult->tr07_result ?? '') }}"
+                                                                            placeholder="Enter result value"
+                                                                            autocomplete="off">
+                                                                        <input type="text"
+                                                                            class="form-control form-control-sm border-0 bg-light"
+                                                                            style="max-width: 80px;"
+                                                                            name="results[{{ $test->m12_test_number }}][primary_tests][{{ $primaryTest->m16_primary_test_id }}][unit]"
+                                                                            value="{{ old('results.' . $test->m12_test_number . '.primary_tests.' . $primaryTest->m16_primary_test_id . '.unit', $existingPrimaryResult->tr07_unit ?? ($primaryTest->m16_unit ?? '')) }}"
+                                                                            placeholder="Unit">
+                                                                    </div>
+                                                                </td>
+                                                                <td>
+                                                                    <button type="button"
+                                                                        class="btn btn-outline-danger btn-sm remove-test-row"
+                                                                        data-type="primary"
+                                                                        data-test-number="{{ $test->m12_test_number }}"
+                                                                        data-id="{{ $primaryTest->m16_primary_test_id }}">
+                                                                        <em class="icon ni ni-trash"></em>
+                                                                    </button>
+                                                                    @if ($primaryTest->secondaryTests && $primaryTest->secondaryTests->isNotEmpty())
+                                                                        <button type="button"
+                                                                            class="btn btn-outline-success btn-sm add-secondary-test"
+                                                                            data-test-number="{{ $test->m12_test_number }}"
+                                                                            data-primary-test-id="{{ $primaryTest->m16_primary_test_id }}"
+                                                                            data-secondary-tests='{{ $primaryTest->secondaryTests->toJson() }}'>
+                                                                            <em class="icon ni ni-plus"></em> Secondary
+                                                                        </button>
+                                                                    @endif
+                                                                    <button type="button"
+                                                                        class="btn btn-outline-primary btn-sm add-custom-field"
+                                                                        data-test-id="{{ $test->m12_test_id }}"
+                                                                        data-test-number="{{ $test->m12_test_number }}"
+                                                                        data-primary-test-id="{{ $primaryTest->m16_primary_test_id }}"
+                                                                        data-type="primary">
+                                                                        <em class="icon ni ni-plus"></em> Custom
+                                                                    </button>
+                                                                </td>
+                                                            </tr>
+
+                                                            <!-- Existing Secondary Tests for this Primary Test -->
+                                                            @foreach ($existingTestResults->where('m16_primary_test_id', $primaryTest->m16_primary_test_id)->whereNotNull('m17_secondary_test_id') as $existingSecondaryResult)
+                                                                @php
+                                                                    $secondaryTest = $primaryTest->secondaryTests
+                                                                        ->where(
+                                                                            'm17_secondary_test_id',
+                                                                            $existingSecondaryResult->m17_secondary_test_id,
+                                                                        )
+                                                                        ->first();
+                                                                @endphp
+                                                                @if ($secondaryTest)
+                                                                    <tr class="secondary-test-row"
+                                                                        data-test-number="{{ $test->m12_test_number }}"
+                                                                        data-primary-test-id="{{ $primaryTest->m16_primary_test_id }}"
+                                                                        data-secondary-test-id="{{ $secondaryTest->m17_secondary_test_id }}">
+                                                                        <td>{{ $key + 1 }}.{{ $loop->parent->index + 1 }}.{{ $loop->index + 1 }}
+                                                                        </td>
+                                                                        <td>{{ $secondaryTest->m17_name ?? 'N/A' }}</td>
+                                                                        <td>
+                                                                            <div class="input-group input-group-sm">
+                                                                                <input type="hidden"
+                                                                                    name="results[{{ $test->m12_test_number }}][primary_tests][{{ $primaryTest->m16_primary_test_id }}][secondary_tests][{{ $secondaryTest->m17_secondary_test_id }}][test_id]"
+                                                                                    value="{{ $test->m12_test_number }}">
+                                                                                <input type="hidden"
+                                                                                    name="results[{{ $test->m12_test_number }}][primary_tests][{{ $primaryTest->m16_primary_test_id }}][secondary_tests][{{ $secondaryTest->m17_secondary_test_id }}][primary_test_id]"
+                                                                                    value="{{ $primaryTest->m16_primary_test_id }}">
+                                                                                <input type="hidden"
+                                                                                    name="results[{{ $test->m12_test_number }}][primary_tests][{{ $primaryTest->m16_primary_test_id }}][secondary_tests][{{ $secondaryTest->m17_secondary_test_id }}][secondary_test_id]"
+                                                                                    value="{{ $secondaryTest->m17_secondary_test_id }}">
+                                                                                <input type="hidden"
+                                                                                    name="results[{{ $test->m12_test_number }}][primary_tests][{{ $primaryTest->m16_primary_test_id }}][secondary_tests][{{ $secondaryTest->m17_secondary_test_id }}][result_id]"
+                                                                                    value="{{ $existingSecondaryResult->tr07_test_result_id ?? '' }}">
+                                                                                <input type="text"
+                                                                                    class="form-control form-control-sm border-0 bg-light"
+                                                                                    name="results[{{ $test->m12_test_number }}][primary_tests][{{ $primaryTest->m16_primary_test_id }}][secondary_tests][{{ $secondaryTest->m17_secondary_test_id }}][result]"
+                                                                                    value="{{ old('results.' . $test->m12_test_number . '.primary_tests.' . $primaryTest->m16_primary_test_id . '.secondary_tests.' . $secondaryTest->m17_secondary_test_id . '.result', $existingSecondaryResult->tr07_result ?? '') }}"
+                                                                                    placeholder="Enter result value"
+                                                                                    autocomplete="off">
+                                                                                <input type="text"
+                                                                                    class="form-control form-control-sm border-0 bg-light"
+                                                                                    style="max-width: 80px;"
+                                                                                    name="results[{{ $test->m12_test_number }}][primary_tests][{{ $primaryTest->m16_primary_test_id }}][secondary_tests][{{ $secondaryTest->m17_secondary_test_id }}][unit]"
+                                                                                    value="{{ old('results.' . $test->m12_test_number . '.primary_tests.' . $primaryTest->m16_primary_test_id . '.secondary_tests.' . $secondaryTest->m17_secondary_test_id . '.unit', $existingSecondaryResult->tr07_unit ?? ($secondaryTest->m17_unit ?? '')) }}"
+                                                                                    placeholder="Unit">
+                                                                            </div>
+                                                                        </td>
+                                                                        <td>
+                                                                            <button type="button"
+                                                                                class="btn btn-outline-danger btn-sm remove-test-row"
+                                                                                data-type="secondary"
+                                                                                data-test-number="{{ $test->m12_test_number }}"
+                                                                                data-primary-test-id="{{ $primaryTest->m16_primary_test_id }}"
+                                                                                data-id="{{ $secondaryTest->m17_secondary_test_id }}">
+                                                                                <em class="icon ni ni-trash"></em>
+                                                                            </button>
+                                                                            <button type="button"
+                                                                                class="btn btn-outline-primary btn-sm add-custom-field"
+                                                                                data-test-id="{{ $test->m12_test_id }}"
+                                                                                data-test-number="{{ $test->m12_test_number }}"
+                                                                                data-primary-test-id="{{ $primaryTest->m16_primary_test_id }}"
+                                                                                data-secondary-test-id="{{ $secondaryTest->m17_secondary_test_id }}"
+                                                                                data-type="secondary">
+                                                                                <em class="icon ni ni-plus"></em> Custom
+                                                                            </button>
+                                                                        </td>
+                                                                    </tr>
+                                                                @endif
+                                                            @endforeach
+                                                        @endif
+                                                    @endforeach
                                                 @endforeach
-                                            @endforeach
-                                        </tbody>
-                                    </table>
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </div>
-                            </div>
 
-                            <!-- Signature Section -->
-                            <div class="card shadow-sm border-0 mb-4">
-                                <div class="card-body px-4 py-3">
-                                    <div class="d-flex justify-content-between text-center flex-wrap">
-                                        <div class="signature-box flex-fill me-3">
-                                            <div class="signature-line mb-3"></div>
-                                            <strong>Signature of QAO / JQAO</strong>
-                                        </div>
-                                        <div class="signature-box flex-fill ms-3">
-                                            <div class="signature-line mb-3"></div>
-                                            <strong>Signature of Technical Manager</strong>
+                                <!-- Signature Section -->
+                                <div class="card shadow-sm border-0 mb-4">
+                                    <div class="card-body px-4 py-3">
+                                        <div class="d-flex justify-content-between text-center flex-wrap">
+                                            <div class="signature-box flex-fill me-3">
+                                                <div class="signature-line mb-3"></div>
+                                                <strong>Signature of QAO / JQAO</strong>
+                                            </div>
+                                            <div class="signature-box flex-fill ms-3">
+                                                <div class="signature-line mb-3"></div>
+                                                <strong>Signature of Technical Manager</strong>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
 
-                            <!-- Action Buttons -->
-                            <div class="card border-0 shadow-sm">
-                                <div class="card-body d-flex justify-content-between align-items-center">
-                                    @if (!isset($existingResults) || $existingResults->isEmpty())
-                                        <button type="button" class="btn btn-outline-dark" onclick="window.print()">
-                                            <em class="icon ni ni-printer"></em> Print / Save as PDF
-                                        </button>
-                                    @endif
-                                    <div class="btn-group">
-                                        @if (optional($existingResults->first())->tr07_result_status != 'SUBMITTED')
-                                            <button type="submit" name="action" value="DRAFT"
-                                                class="btn btn-outline-primary">
-                                                <em class="icon ni ni-file-text"></em> Save as Draft
+                                <!-- Action Buttons -->
+                                <div class="card border-0 shadow-sm">
+                                    <div class="card-body d-flex justify-content-between align-items-center">
+                                        @if (!isset($existingResults) || $existingResults->isEmpty())
+                                            <button type="button" class="btn btn-outline-dark" onclick="window.print()">
+                                                <em class="icon ni ni-printer"></em> Print / Save as PDF
                                             </button>
                                         @endif
-                                        @if (Session::get('role') === 'DEO')
-                                            <button type="submit" name="action" value="RESULTED"
-                                                class="btn btn-primary">
-                                                <em class="icon ni ni-check-circle"></em> Save & Complete
-                                            </button>
-                                        @else
-                                            <button type="submit" name="action" value="SUBMITTED"
-                                                class="btn btn-primary">
-                                                <em class="icon ni ni-check-circle"></em> Save & Complete
-                                            </button>
-                                        @endif
+                                        <div class="btn-group">
+                                            @if (optional($existingResults->first())->tr07_result_status != 'SUBMITTED')
+                                                <button type="submit" name="action" value="DRAFT"
+                                                    class="btn btn-outline-primary">
+                                                    <em class="icon ni ni-file-text"></em> Save as Draft
+                                                </button>
+                                            @endif
+                                            @if (Session::get('role') === 'DEO')
+                                                <button type="submit" name="action" value="RESULTED"
+                                                    class="btn btn-primary">
+                                                    <em class="icon ni ni-check-circle"></em> Save & Complete
+                                                </button>
+                                            @else
+                                                <button type="submit" name="action" value="SUBMITTED"
+                                                    class="btn btn-primary">
+                                                    <em class="icon ni ni-check-circle"></em> Save & Complete
+                                                </button>
+                                            @endif
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
 
                         </form>
                     </div>
@@ -407,6 +418,45 @@
                             </tbody>
                         </table>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PDF Modal -->
+    <div class="modal fade" id="pdfModal" tabindex="-1" aria-labelledby="pdfModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="pdfModalLabel">Test Result Manuscript</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-0">
+                    @if (isset($sampleTests) && $sampleTests->first()?->registration?->tr04_manuscript)
+                        @php
+                            $manuscriptPath = $sampleTests->first()->registration->tr04_manuscript;
+                            $pdfUrl = asset('public/storage/test_results/'.$manuscriptPath);
+                        @endphp
+
+                        <div class="ratio ratio-16x9">
+                            <iframe src="{{ $pdfUrl }}#toolbar=0&navpanes=0" frameborder="0"
+                                style="width: 100%; height: 70vh;">
+                            </iframe>
+                        </div>
+
+                        <!-- Download Button -->
+                        <div class="p-3 border-top">
+                            <a href="{{ $pdfUrl }}" download class="btn btn-primary btn-sm">
+                                <em class="icon ni ni-download"></em> Download PDF
+                            </a>
+                            <span class="text-muted ms-2">If PDF doesn't load, download and view separately.</span>
+                        </div>
+                    @else
+                        <div class="text-center py-5">
+                            <em class="icon ni ni-file-text display-4 text-muted"></em>
+                            <p class="text-muted mt-3">No manuscript file found.</p>
+                        </div>
+                    @endif
                 </div>
             </div>
         </div>
@@ -647,7 +697,7 @@
                     const primaryTestUnit = e.target.getAttribute('data-primary-test-unit');
                     const hasSecondary = e.target.getAttribute('data-has-secondary') === 'true';
                     const secondaryTests = JSON.parse(e.target.getAttribute('data-secondary-tests') ||
-                    '[]');
+                        '[]');
 
                     addPrimaryTestRow(currentTestNumber, currentTestId, primaryTestId, primaryTestName,
                         primaryTestUnit, hasSecondary, secondaryTests);
@@ -698,14 +748,14 @@
                             <em class="icon ni ni-trash"></em>
                         </button>
                         ${hasSecondaryTests ? `
-                            <button type="button"
-                                class="btn btn-outline-success btn-sm add-secondary-test"
-                                data-test-number="${testNumber}"
-                                data-primary-test-id="${primaryTestId}"
-                                data-secondary-tests='${JSON.stringify(secondaryTests)}'>
-                                <em class="icon ni ni-plus"></em> Secondary
-                            </button>
-                            ` : ''}
+                                        <button type="button"
+                                            class="btn btn-outline-success btn-sm add-secondary-test"
+                                            data-test-number="${testNumber}"
+                                            data-primary-test-id="${primaryTestId}"
+                                            data-secondary-tests='${JSON.stringify(secondaryTests)}'>
+                                            <em class="icon ni ni-plus"></em> Secondary
+                                        </button>
+                                        ` : ''}
                         <button type="button"
                             class="btn btn-outline-warning btn-sm add-custom-field"
                             data-test-id="${testId}"
@@ -912,7 +962,7 @@
 
                 if (type === 'secondary' && secondaryTestId) {
                     const secondaryTestRow = document.querySelector(
-                    `[data-secondary-test-id="${secondaryTestId}"]`);
+                        `[data-secondary-test-id="${secondaryTestId}"]`);
                     if (secondaryTestRow) {
                         const currentSerial = secondaryTestRow.cells[0].textContent;
                         serialNumber = currentSerial + '.C';
@@ -1008,7 +1058,7 @@
 
                 if (type === 'secondary' && secondaryTestId) {
                     const secondaryTestRow = document.querySelector(
-                    `[data-secondary-test-id="${secondaryTestId}"]`);
+                        `[data-secondary-test-id="${secondaryTestId}"]`);
                     if (secondaryTestRow) {
                         const currentSerial = secondaryTestRow.cells[0].textContent;
                         serialNumber = currentSerial + '.C';
@@ -1124,7 +1174,7 @@
                         const testNumber = this.getAttribute('data-test-number');
                         const primaryTestId = this.getAttribute('data-primary-test-id');
                         const secondaryTests = JSON.parse(this.getAttribute('data-secondary-tests') ||
-                        '[]');
+                            '[]');
                         addSecondaryTestDropdown(testNumber, primaryTestId, secondaryTests);
                     });
                 }
