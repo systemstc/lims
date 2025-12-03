@@ -80,6 +80,7 @@ class FrontController extends Controller
 
     public function viewSupport()
     {
-        return view('front.view_support');
+        $supports = Support::orderBy('tr11_support_id', 'desc')->get();
+        return view('front.view_support', compact('supports'));
     }
 }

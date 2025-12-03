@@ -27,7 +27,7 @@ class AccessControl
 
         // 2. AUTH CHECK
         if (!Session::has('role_id')) {
-            return to_route('admin_login')->with('error', 'Please login first.');
+            return to_route('user_login')->with('error', 'Please login first.');
         }
 
         $roleId = Session::get('role_id');

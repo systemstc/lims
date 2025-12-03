@@ -71,7 +71,7 @@ class RegistrationController extends Controller
             }
             DB::beginTransaction();
             try {
-                $refId =  generateReferenceId($request->dd_department);
+                $refId =  generateReferenceId($request->dd_department, $request->dd_customer_type, $request->dd_sample_type);
                 $tracId = generateTrackerId($refId);
                 $data = [
                     'm04_ro_id' => Session::get('ro_id') ?? -1,
@@ -742,7 +742,7 @@ class RegistrationController extends Controller
 
             DB::beginTransaction();
             try {
-                $refId = generateReferenceId($request->dd_department);
+                $refId = generateReferenceId($request->dd_department, $request->dd_customer_type, $request->dd_sample_type);
                 $tracId = generateTrackerId($refId);
 
                 $data = [

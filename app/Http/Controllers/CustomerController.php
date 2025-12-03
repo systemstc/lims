@@ -7,11 +7,13 @@ use App\Models\CustomerLocation;
 use App\Models\CustomerType;
 use App\Models\Ro;
 use App\Models\State;
+use App\Models\Wallet;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 
 class CustomerController extends Controller
 {
@@ -221,6 +223,7 @@ class CustomerController extends Controller
             }
             try {
                 DB::transaction(function () use ($request) {
+                    // 1. Create Customer
                     $customer = Customer::create([
                         'm09_customer_type_id' => $request->txt_customer_type_id,
                         'm04_ro_id' => Session::get('role') === 'ADMIN' ? $request->txt_ro_id : Session::get('role_id'),
@@ -235,6 +238,16 @@ class CustomerController extends Controller
                         'm07_gst' => $request->txt_gst,
                         'm07_iec_code' => $request->txt_iec,
                     ]);
+                    // 2. Create Wallet Automatically
+                    Wallet::create([
+                        'm07_customer_id' => $customer->m07_customer_id,
+                        'tr02_wallet_uuid' => (string) Str::uuid(),
+                        'tr02_balance' => 0,
+                        'tr02_hold_amount' => 0,
+                        'tr02_currency' => 'INR',
+                        'tr02_status' => 'active'
+                    ]);
+                    // 3. Create Customer Locations if available
                     if ($request->has('contacts') && is_array($request->contacts)) {
                         foreach ($request->contacts as $contactData) {
                             CustomerLocation::create([

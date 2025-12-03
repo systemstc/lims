@@ -92,10 +92,6 @@
         <div class="nk-sidebar-content">
             <div class="nk-sidebar-menu" data-simplebar>
                 <ul class="nk-menu">
-                    <li class="nk-menu-heading">
-                        <h6 class="overline-title text-primary-alt">Dashboards</h6>
-                    </li>
-
                     @foreach ($menus as $menu)
                         @if ($menu->m05_has_submenu == 'NO')
                             <li class="nk-menu-item">

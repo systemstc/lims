@@ -29,14 +29,14 @@ Route::middleware(['access_control'])->group(function () {
     Route::match(['get', 'post'], 'admin/login', [AuthController::class, 'adminLogin'])->name('admin_login');
     Route::match(['get', 'post'], 'user/login', [AuthController::class, 'userLogin'])->name('user_login');
     Route::get('dashboard', [MasterController::class, 'adminDashboard'])->name('dashboard');
-    Route::get('admin/logout', function () {
-        Session::flush();
-        return to_route('admin_login')->with('success', 'Logged out successfully.');
-    })->name('admin_logout');
     Route::get('user/logout', function () {
         Session::flush();
         return to_route('user_login')->with('success', 'Logged out successfully.');
     })->name('user_logout');
+    Route::get('admin/logout', function () {
+        Session::flush();
+        return to_route('admin_login')->with('success', 'Logged out successfully.');
+    })->name('admin_logout');
     Route::get('states', [MasterController::class, 'viewStates'])->name('view_states');
 
     Route::get('districts', [MasterController::class, 'viewDistricts'])->name('view_districts');
