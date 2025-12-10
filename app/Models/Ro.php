@@ -26,4 +26,8 @@ class Ro extends Model
     {
         return $this->belongsTo(Ro::class, 'm04_ro_id', 'm04_ro_id');
     }
+    public function role()
+    {
+        return $this->belongsTo(Role::class, 'm03_role_id', 'm03_role_id');
+    }
 }

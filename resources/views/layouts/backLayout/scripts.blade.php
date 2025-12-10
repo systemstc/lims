@@ -61,4 +61,28 @@
             districtSelect.html('<option value=""></option>');
         }
     }
+
+    // SCript to teggle DashLite dark/light mode
+    document.addEventListener('DOMContentLoaded', function() {
+        // Load saved theme
+        const savedTheme = localStorage.getItem('theme-mode') || 'light';
+        if (savedTheme === 'dark') {
+            document.body.classList.add('dark-mode');
+        }
+
+        document.querySelectorAll('.dark-switch').forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+
+                const isDark = document.body.classList.contains('dark-mode');
+                const newTheme = isDark ? 'light' : 'dark';
+
+                // Save to localStorage
+                localStorage.setItem('theme-mode', newTheme);
+
+                // Reload the page to apply theme
+                window.location.reload();
+            });
+        });
+    });
 </script>
