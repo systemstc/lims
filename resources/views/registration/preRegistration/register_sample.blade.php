@@ -281,7 +281,7 @@
                                                         id="reportFirstParty" name="txt_report_to[]"
                                                         value="first_party">
                                                         <label class="custom-control-label"
-                                                        for="reportFirstParty">First Party</label>
+                                                        for="reportFirstParty">Customer</label>
                                                     </div>
                                                 </div>
                                                 <div class="col-md-3 mb-2">
@@ -291,7 +291,7 @@
                                                         id="reportSecondParty" name="txt_report_to[]"
                                                         value="second_party">
                                                         <label class="custom-control-label"
-                                                        for="reportSecondParty">Second Party</label>
+                                                        for="reportSecondParty">Buyer</label>
                                                     </div>
                                                 </div>
                                                 <div class="col-md-3 mb-2">

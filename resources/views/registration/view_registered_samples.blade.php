@@ -28,7 +28,7 @@
                             <div class="card card-stretch">
                                 <div class="card-inner-group">
                                     <div class="card-inner p-0">
-                                        <table class="table" id="samples-table">
+                                        <table class="table table-bordered" id="samples-table">
                                             <thead>
                                                 <tr>
                                                     <th>Registration ID</th>
@@ -71,18 +71,41 @@
         </div>
     </div>
 
+    <!-- DataTables Export Dependencies -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js"></script>
+
     <script>
         $(document).ready(function() {
             $('#samples-table').DataTable({
                 processing: true,
                 serverSide: true,
+                // Added p-3 to container rows to prevent overflow and provide spacing from edges
+                dom: '<"row justify-content-between align-items-center p-3"<"col-md-6 text-start"B><"col-md-6"f>>rt<"row justify-content-between align-items-center mt-3 p-3"<"col-md-6"i><"col-md-6"p>>',
+                buttons: [{
+                    extend: 'copy',
+                    className: 'btn btn-white btn-outline-light'
+                }, {
+                    extend: 'csv',
+                    className: 'btn btn-white btn-outline-light'
+                }, {
+                    extend: 'excel',
+                    className: 'btn btn-white btn-outline-light'
+                }, {
+                    extend: 'pdf',
+                    className: 'btn btn-white btn-outline-light'
+                }, {
+                    extend: 'print',
+                    className: 'btn btn-white btn-outline-light'
+                }],
                 ajax: {
                     url: "{{ route('view_registered_samples') }}",
                     type: 'GET'
                 },
                 columns: [{
                         data: 'registration_id',
-                        name: 'registration_id'
+                        name: 'tr04_reference_id'
                     },
                     {
                         data: 'created_date',
@@ -90,11 +113,11 @@
                     },
                     {
                         data: 'sample_description',
-                        name: 'sample_description'
+                        name: 'tr04_sample_description'
                     },
                     {
                         data: 'sanple_image',
-                        name: 'sanple_image',
+                        name: 'tr04_attachment',
                         render: function(data, type, row) {
                             if (data) {
                                 return `<button class="btn view-image" data-image="${data}">
@@ -107,19 +130,20 @@
 
                     {
                         data: 'sample_type',
-                        name: 'sample_type'
+                        name: 'tr04_sample_type'
                     },
                     {
                         data: 'amount',
-                        name: 'amount'
+                        name: 'tr04_total_charges'
                     },
                     {
                         data: 'status',
-                        name: 'status'
+                        name: 'tr04_progress'
                     },
                     {
                         data: 'total_tests',
-                        name: 'total_tests'
+                        name: 'total_tests',
+                        searchable: false
                     },
                     {
                         data: 'action',

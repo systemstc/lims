@@ -190,6 +190,9 @@ Route::middleware(['access_control'])->group(function () {
 
         // Add this route to your existing routes
         Route::get('sample-tests/{sampleId}', [AnalystController::class, 'viewSampleTests'])->name('view_sample_tests');
+
+        // Calendar Drilldown
+        Route::post('get-date-samples', [AnalystController::class, 'getAnalystDateSamples'])->name('analyst_date_samples');
     });
     // ACM Routes
     Route::get('acm-view', [MasterController::class, 'viewACM'])->name('view_acm');
@@ -286,6 +289,7 @@ Route::middleware(['access_control'])->group(function () {
     Route::post('/get-test-samples-allotment', [AllottmentController::class, 'getTestSamplesForAllotment'])->name('get_test_samples_allotment');
     // Route::post('/search-tests-allotment', [AllottmentController::class, 'searchTestsForAllotment'])->name('search_tests_allotment');
     Route::post('/allot-specific-tests', [AllottmentController::class, 'allotSpecificTests'])->name('allot_specific_tests');
+    Route::post('/get-analyst-test-details', [AllottmentController::class, 'getAnalystTestDetails'])->name('get_analyst_test_details');
     // Additional operations
     Route::post('/reassign', [AllottmentController::class, 'reassignTest'])->name('reassign');
     Route::get('/history/{testId}', [AllottmentController::class, 'getAllotmentHistory'])->name('history');

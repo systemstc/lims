@@ -18,9 +18,11 @@ use Illuminate\Support\Facades\Session;
 
 class AnalystController extends Controller
 {
-    public function viewAnalystDashboard()
+    public function viewAnalystDashboard(Request $request)
     {
         $userId = Session::get('user_id');
+        $month = $request->get('month', date('n'));
+        $year = $request->get('year', date('Y'));
 
         // Pending tests count
         $pendingTests = SampleTest::where('m06_alloted_to', $userId)
@@ -85,6 +87,7 @@ class AnalystController extends Controller
             })
             ->take(10);
 
+        // Allotted Samples Logic (Existing)
         $inProgressWeight = 0.4;
         $allottedSamples->each(function ($sample) use ($inProgressWeight) {
             if ($sample->test_count > 0) {
@@ -94,14 +97,214 @@ class AnalystController extends Controller
                 $sample->progress_percentage = 0;
             }
         });
+
+        // NEW: Weekly Trend (Last 7 Days) - Completed Tests & Samples
+        $weeklyTrend = SampleTest::where('m06_alloted_to', $userId)
+            ->where('tr05_status', 'COMPLETED')
+            ->whereDate('tr05_completed_at', '>=', Carbon::now()->subDays(6))
+            ->select(
+                DB::raw('DATE(tr05_completed_at) as date'),
+                DB::raw('count(*) as tests_count'),
+                DB::raw('count(distinct tr04_sample_registration_id) as samples_count')
+            )
+            ->groupBy('date')
+            ->orderBy('date')
+            ->get();
+
+        // Fill in missing dates with 0
+        $trendData = [];
+        for ($i = 6; $i >= 0; $i--) {
+            $date = Carbon::now()->subDays($i)->format('Y-m-d');
+            $dayData = $weeklyTrend->firstWhere('date', $date);
+            $trendData[] = [
+                'date' => $date,
+                'tests_count' => $dayData ? $dayData->tests_count : 0,
+                'samples_count' => $dayData ? $dayData->samples_count : 0
+            ];
+        }
+
+        // NEW: Test Distribution by Standard/Type
+        // Assuming we want to see what KIND of tests they are doing (Microbiology, Chemical, etc - represented by Standard or Group?)
+        // Let's use Standard Name or Test Name distribution (Top 5)
+        $testDistribution = SampleTest::join('m12_tests', 'tr05_sample_tests.m12_test_id', '=', 'm12_tests.m12_test_id')
+            ->where('m06_alloted_to', $userId)
+            ->select('m12_tests.m12_name', DB::raw('count(*) as count'))
+            ->groupBy('m12_tests.m12_name')
+            ->orderByDesc('count')
+            ->take(5)
+            ->take(5)
+            ->get();
+
+        $heatmapData = $this->generateAnalystHeatmapData($userId, $month, $year);
+
         return view('analyst.analyst_dashboard', compact(
             'pendingTests',
             'rejectedTests',
             'inProgressTests',
             'completedTests',
             'totalSamples',
-            'allottedSamples'
+            'allottedSamples',
+            'trendData',        // NEW
+            'testDistribution',  // NEW
+            'heatmapData',
+            'month',
+            'year'
         ));
+    }
+
+    private function generateAnalystHeatmapData($userId, $month, $year)
+    {
+        $daysInMonth = cal_days_in_month(CAL_GREGORIAN, $month, $year);
+        $currentDate = Carbon::now();
+
+        // Get all samples ALLOTTED to this user in this month/year
+        // Using tr05_alloted_at as the primary date for the calendar
+        $samples = SampleTest::with('registration')
+            ->where('m06_alloted_to', $userId)
+            ->whereYear('tr05_alloted_at', $year)
+            ->whereMonth('tr05_alloted_at', $month)
+            ->get();
+
+        // Group samples by allotment day
+        $samplesByDay = [];
+        foreach ($samples as $sample) {
+            $day = Carbon::parse($sample->tr05_alloted_at)->day;
+            if (!isset($samplesByDay[$day])) {
+                $samplesByDay[$day] = [];
+            }
+            $samplesByDay[$day][] = $sample;
+        }
+
+        // Generate heatmap data for each day
+        $heatmapData = [];
+        for ($day = 1; $day <= $daysInMonth; $day++) {
+            $daySamples = $samplesByDay[$day] ?? [];
+            // Count unique samples (based on registration ID) instead of total tests
+            $sampleCount = collect($daySamples)->pluck('tr04_sample_registration_id')->unique()->count();
+
+            if ($sampleCount === 0) {
+                $heatmapData[] = [
+                    'day' => $day,
+                    'sample_count' => 0,
+                    'status_class' => 'empty',
+                    'tooltip' => "No allotments on " . sprintf("%02d", $day) . " " . \DateTime::createFromFormat('!m', $month)->format('M')
+                ];
+                continue;
+            }
+
+            // Calculate day status based on sample statuses & deadlines
+            $dayStatus = $this->calculateAnalystDayStatus($daySamples, $day, $month, $year, $currentDate);
+
+            $heatmapData[] = [
+                'day' => $day,
+                'sample_count' => $sampleCount,
+                'status_class' => $dayStatus['class'],
+                'tooltip' => $dayStatus['tooltip']
+            ];
+        }
+
+        return $heatmapData;
+    }
+
+    private function calculateAnalystDayStatus($samples, $day, $month, $year, $currentDate)
+    {
+        $allCompleted = true;
+        $anyOverdue = false;
+        $anyNearDeadline = false;
+        $totalTests = count($samples);
+        $totalUniqueSamples = collect($samples)->pluck('tr04_sample_registration_id')->unique()->count();
+        $completedCount = 0;
+
+        foreach ($samples as $sample) {
+            // Check completion status
+            if ($sample->tr05_status === 'COMPLETED' || $sample->tr05_status === 'REPORTED') {
+                $completedCount++;
+            } else {
+                $allCompleted = false;
+
+                // Check deadlines for pending items
+                // Use registration expected date
+                if ($sample->registration && $sample->registration->tr04_expected_date) {
+                    $expectedDate = Carbon::parse($sample->registration->tr04_expected_date);
+                    $daysUntilDeadline = $currentDate->diffInDays($expectedDate, false);
+
+                    if ($daysUntilDeadline < 0) {
+                        $anyOverdue = true;
+                    } elseif ($daysUntilDeadline <= 3) {
+                        $anyNearDeadline = true;
+                    }
+                }
+            }
+        }
+
+        // Determine status class
+        if ($allCompleted) {
+            return [
+                'class' => 'on-time', // Reusing 'on-time' (green) for all completed
+                'tooltip' => sprintf("%02d: All %d samples completed", $day, $totalUniqueSamples)
+            ];
+        } elseif ($anyOverdue) {
+            return [
+                'class' => 'overdue',
+                'tooltip' => sprintf("%02d: %d samples (%d tests done) - Overdue", $day, $totalUniqueSamples, $completedCount)
+            ];
+        } elseif ($anyNearDeadline) {
+            return [
+                'class' => 'near-deadline',
+                'tooltip' => sprintf("%02d: %d samples (%d tests done) - Deadline approaching", $day, $totalUniqueSamples, $completedCount)
+            ];
+        } else {
+            return [
+                'class' => 'reported', // Using gray/neutral for "In Progress" without urgent issues
+                'tooltip' => sprintf("%02d: %d samples (%d tests done) - In progress", $day, $totalUniqueSamples, $completedCount)
+            ];
+        }
+    }
+
+    public function getAnalystDateSamples(Request $request)
+    {
+        $userId = Session::get('user_id');
+        $day = $request->day;
+        $month = $request->month;
+        $year = $request->year;
+
+        $samples = SampleTest::with(['registration', 'test'])
+            ->where('m06_alloted_to', $userId)
+            ->whereYear('tr05_alloted_at', $year)
+            ->whereMonth('tr05_alloted_at', $month)
+            ->whereDay('tr05_alloted_at', $day)
+            ->orderBy('tr05_status') // COMPLETED checks last usually, but 'C' comes before 'I' (In progress)?
+            // Default alphabetic: ALLOTED, COMPLETED, IN_PROGRESS. 
+            // We might want pending first.
+            ->get();
+
+        // Map to simpler format for frontend
+        $mappedSamples = $samples->map(function ($s) {
+            $expectedDate = $s->registration->tr04_expected_date ? Carbon::parse($s->registration->tr04_expected_date)->format('d/m/Y') : '-';
+
+            // Calculate days remaining/overdue
+            $daysRemaining = '-';
+            if ($s->registration->tr04_expected_date && $s->tr05_status !== 'COMPLETED') {
+                $diff = now()->diffInDays(Carbon::parse($s->registration->tr04_expected_date), false);
+                $daysRemaining = $diff < 0 ? abs(round($diff)) . ' days overdue' : round($diff) . ' days left';
+            }
+
+            return [
+                'reference_id' => $s->registration->tr04_reference_id ?? 'N/A',
+                'sample_test_id' => $s->tr05_sample_test_id, // For viewing
+                'test_name' => $s->test->m12_name ?? 'N/A',
+                'status' => $s->tr05_status,
+                'expected_date' => $expectedDate,
+                'days_remaining' => $daysRemaining,
+                'reg_id' => $s->tr04_sample_registration_id
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'samples' => $mappedSamples,
+            'count' => $mappedSamples->count()
+        ]);
     }
     public function rejectedSamples(Request $request)
     {

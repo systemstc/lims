@@ -26,6 +26,7 @@
         </div>
     </div>
     @include('layouts.backLayout.scripts')
+    @yield('scripts')
     <script>
         // Function that toggles status between active and inactive 
         function bindToggleStatus(className = '.eg-swal-av3', route = null) {

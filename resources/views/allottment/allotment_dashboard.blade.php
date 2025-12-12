@@ -92,6 +92,50 @@
                 </div>
             </div>
         </div>
+
+        <!-- Analyst Trends Chart -->
+        <div class="card card-bordered mb-4">
+            <div class="card-inner">
+                <div class="card-title-group align-start mb-2">
+                    <div class="card-title">
+                        <h6 class="title">Analyst Performance Trends</h6>
+                    </div>
+                </div>
+                <div class="nk-ck-sm">
+                    <canvas class="analyst-trend-chart" id="analystTrendChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Analyst Details Modal -->
+        <div class="modal fade" id="analystDetailsModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Analyst Performance Details</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Ref ID</th>
+                                        <th>Registered Date</th>
+                                        <th>Status</th>
+                                        <th>View</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="analystDetailsBody">
+                                    <!-- Content will be loaded here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="card card-bordered shadow-sm mb-4">
             <div class="card-inner p-2">
                 <div class="row align-items-end g-3">
@@ -526,19 +570,55 @@
                                             <td>
                                                 @php
                                                     $daysPending = $registration->created_at->floatDiffInDays(now());
-                                                    $daysPending = round($daysPending, 1);
-                                                    $urgencyClass = match (true) {
-                                                        $daysPending > 3 => 'text-danger fw-bold',
-                                                        $daysPending > 1 => 'text-warning',
-                                                        default => 'text-muted',
-                                                    };
+                                                    
+                                                    // Check if fully completed (all tests completed/reported/verified) OR registration status is reported
+                                                    $isCompleted = ($registration->total_tests > 0 && $registration->completed_tests >= $registration->total_tests) || strtolower($registration->tr04_status) === 'reported';
+                                                    
+                                                    // Determine completion date
+                                                    $completedAt = null;
+                                                    if ($registration->last_test_completed_at) {
+                                                        $completedAt = \Carbon\Carbon::parse($registration->last_test_completed_at);
+                                                    } elseif ($isCompleted) {
+                                                        $completedAt = $registration->updated_at;
+                                                    }
+                                                    
+                                                    $expectedDate = $registration->tr04_expected_date ? \Carbon\Carbon::parse($registration->tr04_expected_date) : null;
                                                 @endphp
-                                                <span class="{{ $urgencyClass }}">
-                                                    {{ $daysPending }} days
-                                                    @if ($daysPending > 3)
-                                                        <em class="icon ni ni-alert-circle text-danger"></em>
+
+                                                @if ($isCompleted && $completedAt)
+                                                    @php
+                                                        $daysTaken = $registration->created_at->floatDiffInDays($completedAt);
+                                                        $isOnTime = false;
+                                                        if ($expectedDate) {
+                                                            // Check if completed date is same day or before expected date
+                                                            $isOnTime = $completedAt->lte($expectedDate) || $completedAt->isSameDay($expectedDate);
+                                                        } else {
+                                                            // Fallback logic if no expected date
+                                                            $isOnTime = $daysTaken <= 3;
+                                                        }
+                                                    @endphp
+
+                                                    @if ($isOnTime)
+                                                        <span class="text-primary fw-bold">Completed on time</span>
+                                                    @else
+                                                        <span class="text-danger fw-bold">Completed after {{ round($daysTaken) }} days</span>
                                                     @endif
-                                                </span>
+                                                @else
+                                                    @php
+                                                        $daysPending = round($daysPending, 1);
+                                                        $urgencyClass = match (true) {
+                                                            $daysPending > 3 => 'text-danger fw-bold',
+                                                            $daysPending > 1 => 'text-warning',
+                                                            default => 'text-muted',
+                                                        };
+                                                    @endphp
+                                                    <span class="{{ $urgencyClass }}">
+                                                        {{ $daysPending }} days
+                                                        @if ($daysPending > 3)
+                                                            <em class="icon ni ni-alert-circle text-danger"></em>
+                                                        @endif
+                                                    </span>
+                                                @endif
                                             </td>
                                             <td>
                                                 <ul class="nk-tb-actions gx-1">
@@ -1274,4 +1354,132 @@
             @endif
         });
     </script>
+@section('scripts')
+    <script>
+        $(document).ready(function() {
+            var analystStats = @json($analystStats);
+
+            var labels = analystStats.map(function(item) {
+                return item.name;
+            });
+            var allottedData = analystStats.map(function(item) {
+                return item.allotted;
+            });
+            var completedData = analystStats.map(function(item) {
+                return item.completed;
+            });
+            var pendingData = analystStats.map(function(item) {
+                return item.pending;
+            });
+            // var rejectedData = analystStats.map(function(item) {
+            //     return item.rejected;
+            // });
+
+            var ctx = document.getElementById('analystTrendChart').getContext('2d');
+            var chart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                            label: 'Allotted',
+                            data: allottedData,
+                            backgroundColor: 'rgba(54, 162, 235, 0.7)', // Blue
+                            borderColor: 'rgba(54, 162, 235, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Completed',
+                            data: completedData,
+                            backgroundColor: 'rgba(75, 192, 192, 0.7)', // Green
+                            borderColor: 'rgba(75, 192, 192, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Pending',
+                            data: pendingData,
+                            backgroundColor: 'rgba(255, 206, 86, 0.7)', // Yellow
+                            borderColor: 'rgba(255, 206, 86, 1)',
+                            borderWidth: 1
+                        }
+                        // {
+                        //     label: 'Rejected',
+                        //     data: rejectedData,
+                        //     backgroundColor: 'rgba(255, 99, 132, 0.7)', // Red
+                        //     borderColor: 'rgba(255, 99, 132, 1)',
+                        //     borderWidth: 1
+                        // }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                precision: 0
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            onClick: null // Disable legend click filtering if desired, or leave default
+                        },
+                        title: {
+                            display: true,
+                            text: 'Workload & Performance Analysis (Click bars for details)'
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                        }
+                    },
+                    onClick: function(e) {
+                         const points = chart.getElementsAtEventForMode(e, 'nearest', { intersect: true }, true);
+
+                        if (points.length) {
+                            const firstPoint = points[0];
+                            const labelIndex = firstPoint.index;
+                            const datasetIndex = firstPoint.datasetIndex;
+                            
+                            const analystName = labels[labelIndex];
+                            // We need the analyst ID. Let's assume analystStats array aligns with labels array index.
+                            const analystData = analystStats[labelIndex];
+                            const analystId = analystData.emp_id;
+
+                            const statusLabel = chart.data.datasets[datasetIndex].label.toLowerCase(); // allotted, completed, pending
+
+                            // Call backend to get details
+                             $('#analystDetailsModal .modal-title').text(analystName + ' - ' + statusLabel.charAt(0).toUpperCase() + statusLabel.slice(1) + ' Samples');
+                             $('#analystDetailsBody').html('<tr><td colspan="4" class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></td></tr>');
+                             $('#analystDetailsModal').modal('show');
+
+                            $.ajax({
+                                url: '{{ route('get_analyst_test_details') }}',
+                                method: 'POST',
+                                data: {
+                                    _token: '{{ csrf_token() }}',
+                                    emp_id: analystId,
+                                    status: statusLabel
+                                },
+                                success: function(response) {
+                                    $('#analystDetailsBody').html(response.html);
+                                },
+                                error: function() {
+                                    $('#analystDetailsBody').html('<tr><td colspan="4" class="text-center text-danger">Failed to load data.</td></tr>');
+                                }
+                            });
+                        }
+                    },
+                     onHover: function(e) {
+                        const point = chart.getElementsAtEventForMode(e, 'nearest', { intersect: true }, true);
+                        if (point.length) e.native.target.style.cursor = 'pointer';
+                        else e.native.target.style.cursor = 'default';
+                    }
+                }
+            });
+        });
+    </script>
+@endsection
 @endsection

@@ -565,7 +565,7 @@ class RegistrationController extends Controller
                 })
                 ->addColumn('amount', function ($row) {
                     $amount = $row->tr04_total_charges ?? 0;
-                    return '<span class="amount">&#8377; &nbsp;' . number_format($amount, 2) . '</span>';
+                    return '<span class="amount">&#8377; ' . number_format($amount, 2) . '</span>';
                 })
                 ->addColumn('created_date', function ($row) {
                     return $row->created_at ? $row->created_at->format('d M Y, h:ia') : 'N/A';

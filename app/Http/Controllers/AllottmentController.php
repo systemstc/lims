@@ -10,6 +10,7 @@ use App\Models\Sample;
 use App\Models\SampleAdditional;
 use App\Models\SampleRegistration;
 use App\Models\SampleTest;
+use App\Models\TestResult;
 use App\Models\Standard;
 use App\Models\Test;
 use App\Models\TestTransfer;
@@ -47,6 +48,7 @@ class AllottmentController extends Controller
         });
 
         $stats = $this->calculateLabManagerStats($roId);
+        $analystStats = $this->getAnalystStats($roId); // NEW
         $employees = $this->getLabEmployees($roId);
         $ros = Ro::select('m04_ro_id', 'm04_name')->where('m04_ro_id', '!=', $roId)->orderBy('m04_name')->get();
         $availableTests = $this->getAvailableTestsForAllotment();
@@ -56,10 +58,79 @@ class AllottmentController extends Controller
             'allSamples',           // NEW
             'unallottedOrPartial',  // NEW
             'stats',
+            'analystStats', // NEW
             'employees',
             'ros',
             'availableTests'
         ));
+    }
+
+    private function getAnalystStats($roId)
+    {
+        // Get all analysts for the current RO
+        $analysts = Employee::join('m03_roles', 'm06_employees.m03_role_id', '=', 'm03_roles.m03_role_id')
+            ->where('m06_employees.m04_ro_id', $roId)
+            ->where('m03_roles.m03_name', 'Analyst')
+            ->select('m06_employees.m06_employee_id', 'm06_employees.m06_name')
+            ->get();
+
+        $stats = [];
+
+        foreach ($analysts as $analyst) {
+            $analystId = $analyst->m06_employee_id;
+
+            // 1. Total Allotted Samples
+            // Count distinct samples currently assigned to this analyst
+            $totalAllotted = SampleTest::where('m06_alloted_to', $analystId)
+                ->distinct('tr04_sample_registration_id')
+                ->count('tr04_sample_registration_id');
+
+            // 2. Pending Samples
+            // Distinct samples where the analyst has incomplete tests
+            $pending = SampleTest::where('m06_alloted_to', $analystId)
+                ->whereIn('tr05_status', ['ALLOTED', 'IN_PROGRESS'])
+                ->distinct('tr04_sample_registration_id')
+                ->count('tr04_sample_registration_id');
+
+            // 3. Completed Samples
+            // Samples where the analyst has completed tests AND has no pending tests for that same sample
+            // Logic: (Samples with Completed Tests) - (Samples with Pending Tests that also have Completed Tests)
+            // Simpler: Samples where `m06_alloted_to` == User AND `status` == COMPLETED
+            //          AND ensuring that sample doesn't also have a 'PENDING' test for this user.
+
+            // Get IDs of samples with pending work for this analyst
+            $pendingSampleIds = SampleTest::where('m06_alloted_to', $analystId)
+                ->whereIn('tr05_status', ['ALLOTED', 'IN_PROGRESS'])
+                ->pluck('tr04_sample_registration_id')
+                ->toArray();
+
+            // Count samples that have completed tests and are NOT in the pending list
+            $completed = SampleTest::where('m06_alloted_to', $analystId)
+                ->where('tr05_status', 'COMPLETED')
+                ->whereNotIn('tr04_sample_registration_id', $pendingSampleIds)
+                ->distinct('tr04_sample_registration_id')
+                ->count('tr04_sample_registration_id');
+
+
+            // 4. Rejected Samples
+            // Distinct samples where this analyst created a rejected TestResult
+            $rejected = TestResult::where('m06_created_by', $analystId)
+                ->where('tr07_result_status', 'REJECTED')
+                ->where('tr07_is_current', 'YES')
+                ->distinct('tr04_reference_id')
+                ->count('tr04_reference_id');
+
+            $stats[] = [
+                'emp_id' => $analystId,
+                'name' => $analyst->m06_name,
+                'allotted' => $totalAllotted,
+                'completed' => $completed,
+                'pending' => $pending,
+                'rejected' => $rejected
+            ];
+        }
+
+        return $stats;
     }
 
     public function getAvailableTestsForAllotment(Request $request = null)
@@ -165,14 +236,18 @@ class AllottmentController extends Controller
     {
         return SampleRegistration::selectRaw("
             tr04_sample_registrations.*,
-            COUNT(st.tr05_sample_test_id) as total_tests,
-            COUNT(CASE WHEN st.m06_alloted_to IS NOT NULL THEN 1 END) as allotted_tests,
-            COUNT(CASE WHEN st.m06_alloted_to IS NULL THEN 1 END) as pending_tests,
+            COUNT(CASE WHEN NOT (st.m04_ro_id = {$roId} AND st.tr05_status = 'TRANSFERRED') THEN st.tr05_sample_test_id END) as total_tests,
+            COUNT(CASE WHEN st.m06_alloted_to IS NOT NULL AND NOT (st.m04_ro_id = {$roId} AND st.tr05_status = 'TRANSFERRED') THEN 1 END) as allotted_tests,
+            COUNT(CASE WHEN st.tr05_status IN ('COMPLETED', 'REPORTED', 'VERIFIED', 'RECEIVED_ACCEPTED') THEN 1 END) as completed_tests,
+            COUNT(CASE WHEN st.tr05_status = 'REPORTED' THEN 1 END) as reported_tests,
+            MAX(st.tr05_completed_at) as last_test_completed_at,
+            COUNT(CASE WHEN st.m06_alloted_to IS NULL AND NOT (st.m04_ro_id = {$roId} AND st.tr05_status = 'TRANSFERRED') THEN 1 END) as pending_tests,
             COUNT(CASE WHEN st.tr05_status = 'TRANSFERRED' AND st.m04_ro_id = {$roId} THEN 1 END) as transferred_tests
         ")
             ->join('tr05_sample_tests as st', 'st.tr04_sample_registration_id', '=', 'tr04_sample_registrations.tr04_sample_registration_id')
             ->where(function ($query) use ($roId) {
-                $query->where('st.m04_ro_id', $roId);
+                $query->where('st.m04_ro_id', $roId)
+                    ->orWhere('st.m04_transferred_to', $roId);
             })
             ->groupBy(
                 'tr04_sample_registrations.tr04_sample_registration_id',
@@ -218,6 +293,55 @@ class AllottmentController extends Controller
                 ELSE 3
             END
         ")->orderBy('tr04_sample_registrations.created_at', 'asc');
+    }
+
+    public function getAnalystTestDetails(Request $request)
+    {
+        $analystId = $request->emp_id;
+        $status = $request->status;
+
+        $query = SampleTest::with(['registration', 'test'])
+            ->where('m06_alloted_to', $analystId);
+
+        if ($status === 'allotted') {
+            // Allotted includes everything assigned
+            $query->distinct('tr04_sample_registration_id');
+        } elseif ($status === 'pending') {
+            $query->whereIn('tr05_status', ['ALLOTED', 'IN_PROGRESS']);
+        } elseif ($status === 'completed') {
+            $query->where('tr05_status', 'COMPLETED');
+            // Ensure we don't show completed if there are still pending tests for this sample
+            // Logic: (Samples with Completed Tests) - (Samples with Pending Tests that also have Completed Tests)
+            $pendingSampleIds = SampleTest::where('m06_alloted_to', $analystId)
+                ->whereIn('tr05_status', ['ALLOTED', 'IN_PROGRESS'])
+                ->pluck('tr04_sample_registration_id')
+                ->toArray();
+            $query->whereNotIn('tr04_sample_registration_id', $pendingSampleIds);
+        }
+
+        $samples = $query->get()->unique('tr04_sample_registration_id');
+
+        $html = '';
+        if ($samples->isEmpty()) {
+            $html = '<tr><td colspan="4" class="text-center">No samples found for this category.</td></tr>';
+        } else {
+            foreach ($samples as $sample) {
+                $regDate = $sample->registration ? $sample->registration->created_at->format('d M Y') : 'Unknown';
+                $refId = $sample->registration->tr04_reference_id ?? 'N/A';
+                $testName = $sample->test->m12_name ?? 'N/A';
+
+                // Construct HTML row
+                $html .= '<tr>';
+                $html .= '<td><span class="fw-bold">' . $refId . '</span></td>';
+                $html .= '<td>' . $regDate . '</td>';
+                //  $html .= '<td>' . $testName . '</td>'; // Show test name if relevant, or "Multiple" if grouped
+                $html .= '<td><span class="badge badge-dim ' . ($sample->tr05_status == 'COMPLETED' ? 'bg-success' : 'bg-warning') . '">' . $sample->tr05_status . '</span></td>';
+                $html .= '<td><a href="' . route('show_allotment', $sample->tr04_sample_registration_id) . '" class="btn btn-sm btn-icon btn-trigger"><em class="icon ni ni-eye"></em></a></td>';
+                $html .= '</tr>';
+            }
+        }
+
+        return response()->json(['html' => $html]);
     }
 
     private function calculateLabManagerStats($roId)

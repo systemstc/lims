@@ -94,6 +94,8 @@ class AccessControl
             'update_test_order',
             'reset_test_order',
             'generate_report_preview',
+            'get_analyst_test_details',
+            'analyst_date_samples'
         ];
 
         if (in_array($routeName, $skipPermissionRoutes)) {

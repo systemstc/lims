@@ -252,13 +252,13 @@
                                         <div class="nk-tb-col tb-col-sm"><span>Customer</span></div>
                                         <div class="nk-tb-col tb-col-md"><span>Date</span></div>
                                         <div class="nk-tb-col"><span>Amount</span></div>
-                                        <div class="nk-tb-col"><span class="d-none d-sm-inline">Status</span></div>
+                                        <div class="nk-tb-col"><span class="d-none d-sm-inline">Payment Status</span></div>
                                     </div>
                                     @foreach ($dashboardData['recent_samples'] as $sample)
                                         <div class="nk-tb-item">
                                             <div class="nk-tb-col">
                                                 <span class="tb-lead"><a
-                                                        href="#">{{ $sample->tr04_reference_id }}</a></span>
+                                                        href="{{ route('view_registration_pdf', $sample->tr04_sample_registration_id) }}">{{ $sample->tr04_reference_id }}</a></span>
                                             </div>
                                             <div class="nk-tb-col tb-col-sm">
                                                 <div class="user-card">
