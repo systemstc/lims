@@ -51,7 +51,7 @@
                                                     @if ($sample->tr05_status == 'TRANSFERRED')
                                                         <b class="badge badge-dot blink text-danger"> PENDING</b>
                                                     @elseif($sample->tr05_status == 'RECEIVED_ACCEPTED')
-                                                    <b class="badge badge-dot text-primary">ACCEPTED</b>
+                                                        <b class="badge badge-dot text-primary">ACCEPTED</b>
                                                     @else
                                                         <b>{{ $sample->tr05_status }}</b>
                                                     @endif
@@ -67,20 +67,23 @@
                                                                         class="icon ni ni-more-h"></em></a>
                                                                 <div class="dropdown-menu dropdown-menu-end">
                                                                     <ul class="link-list-opt no-bdr">
-                                                                        <li>
-                                                                            <a href="#" class="accept-sample-btn btn"
-                                                                                data-id="{{ $sample->tr04_sample_registration_id }}">
-                                                                                <em
-                                                                                    class="icon ni ni-check-circle-cut text-success"></em>
-                                                                                Accept
-                                                                            </a>
-                                                                        </li>
-                                                                        <li><a class="btn eg-swal-av3"
-                                                                                data-id="{{ $sample->tr04_sample_registration_id }}"
-                                                                                data-status="{{ $sample->tr05_status }}"><em
-                                                                                    class="icon ni ni-alert text-danger"></em>Edit
-                                                                                & Accept</a>
-                                                                        </li>
+                                                                        @if ($sample->tr05_status != 'RECEIVED_ACCEPTED')
+                                                                            <li>
+                                                                                <a href="#"
+                                                                                    class="accept-sample-btn btn"
+                                                                                    data-id="{{ $sample->tr04_sample_registration_id }}">
+                                                                                    <em
+                                                                                        class="icon ni ni-check-circle-cut text-success"></em>
+                                                                                    Accept
+                                                                                </a>
+                                                                            </li>
+                                                                            <li><a class="btn eg-swal-av3"
+                                                                                    data-id="{{ $sample->tr04_sample_registration_id }}"
+                                                                                    data-status="{{ $sample->tr05_status }}"><em
+                                                                                        class="icon ni ni-alert text-danger"></em>Edit
+                                                                                    & Accept</a>
+                                                                            </li>
+                                                                        @endif
                                                                     </ul>
                                                                 </div>
                                                             </div>

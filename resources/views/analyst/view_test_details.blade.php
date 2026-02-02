@@ -63,15 +63,19 @@
                                         @endphp
 
                                         <div class="d-flex gap-3 justify-content-end align-items-center">
-                                            @if ($testStatus === 'COMPLETED')
+                                            @if ($testStatus === 'COMPLETED' || $testStatus === 'IN_PROGRESS' || $testStatus === 'ALLOTED')
                                                 <a href="{{ route('manuscript_template', $sample->tr04_sample_registration_id) }}"
                                                     class="btn btn-sm btn-outline-primary">
-                                                    <em class="icon ni ni-file-text"></em> View Manuscript
+                                                    <em class="icon ni ni-edit"></em> Enter Results
+                                                </a>
+                                                <a href="{{ route('manuscript_template', $sample->tr04_sample_registration_id) }}"
+                                                    class="btn btn-sm btn-outline-secondary">
+                                                    <em class="icon ni ni-file-text"></em> Manuscript
                                                 </a>
                                             @else
                                                 <button type="button"
                                                     class="btn btn-sm btn-outline-secondary disabled-btn">
-                                                    <em class="icon ni ni-file-text"></em> View Manuscript
+                                                    <em class="icon ni ni-file-text"></em> Enter Results
                                                 </button>
                                             @endif
 
@@ -100,7 +104,7 @@
                                                     <th>Test Name & Description</th>
                                                     <th>Standard/Method</th>
                                                     <th>Unit</th>
-                                                    {{-- <th>Primary Test</th> --}}
+                                                    <th>Remarks</th>
                                                     {{-- <th>Secondary Test</th> --}}
                                                     <th>Status</th>
                                                     {{-- <th>Action</th> --}}
@@ -128,9 +132,17 @@
                                                             @endif
                                                         </td>
                                                         <td>{{ $sampleTest->test->m12_unit ?? 'N/A' }}</td>
-                                                        {{-- <td>{{ $sampleTest->primary_tests[0]->m16_name ?? 'N/A' }}</td>
-                                                        <td>{{ $sampleTest->secondary_tests[0]->m17_name ?? 'N/A' }}
-                                                        </td> --}}
+                                                        {{-- {{-- <td>{{ $sampleTest->primary_tests[0]->m16_name ?? 'N/A' }}</td> --}}
+                                                        <td class="remark-cell">
+                                                            <span
+                                                                class="remark-text">{{ $sampleTest->tr05_remark ?? 'N/A' }}</span>
+                                                            <a href="javascript:void(0)"
+                                                                class="edit-remark ms-2 text-primary"
+                                                                data-id="{{ $sampleTest->tr05_sample_test_id }}"
+                                                                data-remark="{{ $sampleTest->tr05_remark }}">
+                                                                <em class="icon ni ni-edit"></em>
+                                                            </a>
+                                                        </td>
                                                         <td>
                                                             <strong
                                                                 class="fw-bold
@@ -258,6 +270,65 @@
                         confirmButtonText: 'OK',
                         confirmButtonColor: '#6576ff',
                     });
+                });
+            });
+
+            // Edit Remark
+            document.querySelectorAll('.edit-remark').forEach(icon => {
+                icon.addEventListener('click', function(e) {
+                    const id = this.dataset.id;
+                    const currentRemark = this.dataset.remark || '';
+                    const cell = this.closest('.remark-cell');
+                    const textSpan = cell.querySelector('.remark-text');
+
+                    Swal.fire({
+                        title: 'Update Remark',
+                        input: 'text',
+                        inputValue: currentRemark,
+                        showCancelButton: true,
+                        confirmButtonText: 'Save',
+                        showLoaderOnConfirm: true,
+                        preConfirm: (newRemark) => {
+                            return fetch('{{ route('save_remark') }}', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                                    },
+                                    body: JSON.stringify({
+                                        sample_test_id: id,
+                                        remark: newRemark
+                                    })
+                                })
+                                .then(response => {
+                                    if (!response.ok) {
+                                        throw new Error(response.statusText)
+                                    }
+                                    return response.json()
+                                })
+                                .catch(error => {
+                                    Swal.showValidationMessage(
+                                        `Request failed: ${error}`
+                                    )
+                                })
+                        },
+                        allowOutsideClick: () => !Swal.isLoading()
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            textSpan.innerText = result.value || 'N/A';
+                            this.dataset.remark = result.value;
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Updated!',
+                                text: 'Remark has been saved.',
+                                timer: 1500,
+                                showConfirmButton: false
+                            });
+                        }
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1000);
+                    })
                 });
             });
         });

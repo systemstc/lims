@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Customer;
+use App\Models\Ro;
 use App\Models\SampleRegistration;
 use App\Models\SampleTest;
 use App\Models\Test;
+use App\Models\TestTransfer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -188,12 +190,12 @@ class SampleController extends Controller
         try {
             $userId = Session::get('user_id') ?? -1;
             $roId = Session::get('ro_id');
-            DB::transaction(function () use ($id, $roId, $userId) {
-                $oldRegistration = SampleRegistration::findOrFail($id);
-                $customerId = Customer::where('m04_ro_id', $oldRegistration->m04_ro_id)
-                    ->where('m09_customer_type_id', 5)
-                    ->get('m07_customer_id');
-                // dd($customerId[0]->m07_customer_id);
+            // Get current RO details to use for logic if needed
+            $currentRo = Ro::find($roId);
+
+            DB::transaction(function () use ($id, $roId, $userId, $currentRo) {
+                // Find tests waiting for transfer acceptance
+                // We lock the source tests but do not move them.
                 $transferredTests = SampleTest::where('tr04_sample_registration_id', $id)
                     ->where('m04_transferred_to', $roId)
                     ->where('tr05_status', 'TRANSFERRED')
@@ -203,83 +205,115 @@ class SampleController extends Controller
                     throw new \Exception('No pending tests available to accept for this registration.');
                 }
 
-                foreach ($transferredTests as $test) {
-                    $test->tr05_status = 'RECEIVED_ACCEPTED';
-                    $test->tr05_accepted_at = now();
-                    $test->save();
+                // 1. Identify Sender RO
+                // All tests in this batch should come from the same RO (the owner of the sample)
+                $firstTest = $transferredTests->first();
+                $senderRoId = $firstTest->m04_ro_id;
+                $senderRo = Ro::find($senderRoId);
+
+                // 2. Find or Create Customer representing the Sender RO
+                // We check if a customer exists with the name of the RO
+                $customerIdx = Customer::where('m07_name', $senderRo->m04_name)->first();
+
+                if (!$customerIdx) {
+                    $customerIdx = Customer::create([
+                        'm07_name' => $senderRo->m04_name,
+                        'm07_cust_type' => 'RO', // Assuming this field exists or similar. If not, maybe use a default or 'OTHER'
+                        'm07_status' => 'Active',
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
                 }
 
-                $transferredTest = SampleTest::with('test')
-                    ->where('tr04_sample_registration_id', $id)
-                    ->where('m04_transferred_to', $roId)
-                    ->get();
+                // 3. Create NEW Sample Registration at Destination RO
+                // Clone details from original registration but override specifics
+                $originalReg = SampleRegistration::find($id);
 
-                // Calculate total charges
-                $totalCharges = $transferredTest->sum(fn($test) => $test->test->m12_charge ?? 0);
+                // Use standard ID generation
+                $newRefId = generateReferenceId(
+                    $originalReg->m13_department_id,
+                    $customerIdx->m09_customer_type_id ?? $originalReg->m09_customer_type_id,
+                    $originalReg->m14_lab_sample_id
+                );
+                $newTrackerId = generateTrackerId($newRefId);
 
-                $newRegistrationData = $oldRegistration->replicate()->toArray();
-                unset($newRegistrationData['tr04_sample_registration_id']);
+                $newReg = SampleRegistration::create([
+                    'm04_ro_id' => $roId,
+                    'tr04_reference_id' => $newRefId,
+                    'tr04_tracker_id' => $newTrackerId,
 
-                $newRegistrationData['m04_ro_id'] = $roId;
-                $newRegistrationData['tr04_reference_id'] = generateReferenceId($oldRegistration->m13_department_id);
-                $newRegistrationData['tr04_tracker_id'] = generateTrackerId($newRegistrationData['tr04_reference_id']);
-                $newRegistrationData['tr04_progress'] = 'REGISTERED';
-                $newRegistrationData['tr04_created_by'] = $userId;
-                $newRegistrationData['m09_customer_type_id'] = 5;
-                $newRegistrationData['m07_customer_id'] = $customerId[0]->m07_customer_id;
-                $newRegistrationData['m08_customer_location_id'] = 0;
-                $integerFields = [
-                    'm07_buyer_id',
-                    'm08_buyer_location_id',
-                    'm07_third_party_id',
-                    'm08_third_party_location_id',
-                    'm07_cha_id',
-                    'm08_cha_location_id'
-                ];
-                foreach ($integerFields as $field) {
-                    $newRegistrationData[$field] = null;
-                }
+                    'm07_customer_id' => $customerIdx->m07_customer_id, // The customer is the SENDER RO
+                    'm09_customer_type_id' => $customerIdx->m09_customer_type_id ?? $originalReg->m09_customer_type_id,
 
-                $newRegistrationData['tr04_payment_by'] = 'first_party';
-                $newRegistrationData['tr04_report_to'] = 'first_party';
-                $newRegistrationData['tr04_reference_no'] = null;
-                $newRegistrationData['tr04_reference_date'] = null;
-                $newRegistrationData['tr04_received_via'] = 'by_post';
-                $newRegistrationData['tr04_details'] = null;
-                $newRegistrationData['tr04_testing_charges'] = $totalCharges;
-                $newRegistrationData['tr04_additional_charges'] = 0;
-                $newRegistrationData['tr04_total_charges'] = $totalCharges;
-                $newRegistrationData['created_at'] = now();
-                $newRegistrationData['updated_at'] = now();
+                    'tr04_payment_status' => 'NOT_APPLICABLE', // Non-commercial
+                    'tr04_progress' => 'REGISTERED',
 
-                $newRegistration = SampleRegistration::create($newRegistrationData);
+                    'tr04_sample_type' => $originalReg->tr04_sample_type,
+                    'tr04_sample_description' => $originalReg->tr04_sample_description . ' (Transferred from ' . $senderRo->m04_name . ')',
+                    'tr04_received_via' => 'TRANSFER',
 
-                // Clone transferred tests
+                    // Copy other relevant fields
+                    'm13_department_id' => $originalReg->m13_department_id,
+                    'm14_lab_sample_id' => $originalReg->m14_lab_sample_id,
+                    'tr04_test_type' => $originalReg->tr04_test_type,
+
+                    'tr04_created_by' => $userId,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+
+
                 foreach ($transferredTests as $test) {
-                    $newTest = $test->replicate();
-                    unset($newTest->tr05_sample_test_id);
-                    $newTest->tr04_sample_registration_id = $newRegistration->tr04_sample_registration_id;
-                    $newTest->m04_ro_id = $roId;
-                    $newTest->tr05_status = 'PENDING';
-                    $newTest->tr05_remark = null;
-                    $newTest->m06_alloted_to = null;
-                    $newTest->m06_alloted_by = null;
-                    $newTest->m04_transferred_to = null;
-                    $newTest->m04_transferred_by = null;
-                    $newTest->tr05_alloted_at = null;
-                    $newTest->tr05_transferred_at = null;
-                    $newTest->tr05_reassigned_at = null;
-                    $newTest->tr05_completed_at = null;
-                    $newTest->tr05_accepted_at = null;
-                    $newTest->created_at = now();
-                    $newTest->updated_at = now();
-                    $newTest->save();
+                    // Update the TestTransfer record to mark as received and LINK to new sample
+                    $transferRecord = TestTransfer::where('tr05_sample_test_id', $test->tr05_sample_test_id)
+                        ->where('m04_to_ro_id', $roId)
+                        ->whereNull('m06_received_by')
+                        ->first();
+
+                    if ($transferRecord) {
+                        // 4. Create NEW Test Record
+                        $newTest = SampleTest::create([
+                            'tr04_sample_registration_id' => $newReg->tr04_sample_registration_id,
+                            'm12_test_id' => $test->m12_test_id,
+                            'm12_test_number' => $test->m12_test_number,
+                            'm16_primary_test_id' => $test->m16_primary_test_id,
+                            'm17_secondary_test_id' => $test->m17_secondary_test_id,
+                            'm15_standard_id' => $test->m15_standard_id,
+
+                            'm04_ro_id' => $roId, // Belongs to CURRENT RO
+
+                            'tr05_status' => 'PENDING',
+                            'tr05_priority' => $test->tr05_priority,
+
+                            'tr05_accepted_at' => now(),
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ]);
+
+                        // Update Transfer Request
+                        $transferRecord->update([
+                            'm06_received_by' => $userId,
+                            'tr06_received_at' => now(),
+                            'tr06_remark' => json_encode([
+                                'new_sample_id' => $newReg->tr04_sample_registration_id,
+                                'new_test_id' => $newTest->tr05_sample_test_id,
+                                'original_remark' => $transferRecord->tr06_remark
+                            ])
+                        ]);
+
+                        // Update Original Test
+                        // We change status to RECEIVED_ACCEPTED to prevent double acceptance
+                        $test->update([
+                            'tr05_status' => 'RECEIVED_ACCEPTED',
+                            'tr05_accepted_at' => now()
+                        ]);
+                    }
                 }
             });
 
             return response()->json([
                 'status' => 'success',
-                'message' => 'Transferred sample accepted and new registration created.'
+                'message' => 'Transferred sample accepted. A new registration has been created in your RO.'
             ]);
         } catch (\Exception $e) {
             Log::error('Accept Transferred Sample Error: ' . $e->getMessage(), [
@@ -305,5 +339,62 @@ class SampleController extends Controller
             ->get();
 
         return view('samples.view_sample_status', compact('samples'));
+    }
+
+    /**
+     * Search sample by Tracker ID and redirect based on role
+     */
+    public function searchTracker(Request $request)
+    {
+        $trackerId = $request->input('tracker_id');
+        if (!$trackerId) {
+            return back()->with('message', 'Please enter a Tracker ID')->with('type', 'warning');
+        }
+        return $this->trackSample($trackerId);
+    }
+
+    /**
+     * Track sample by ID and redirect based on role
+     */
+    public function trackSample($trackerId)
+    {
+        $sample = SampleRegistration::where('tr04_tracker_id', $trackerId)->first();
+
+        if (!$sample) {
+            return redirect()->route('dashboard')->with('message', 'Sample not found for Tracker ID: ' . $trackerId)->with('type', 'error');
+        }
+
+        $role = Session::get('role');
+        $id = $sample->tr04_sample_registration_id;
+
+        // Dispatch based on role
+        // Analyst -> Analyst Dashboard / Test Views
+        if ($role === 'Analyst') {
+            // Check if Analyst has tests for this sample
+            // The route view_sample_tests takes sampleId
+            return redirect()->route('view_sample_tests', ['sampleId' => $id]);
+        }
+
+        // Verification Officer -> Verification View
+        // Assuming role name, checking if they have access
+        if ($role === 'Verification Officer' || $role === 'Jr.QA') {
+            // The verification view takes report/sample ID? 
+            // view_result_verification list all. verify_result/{id} verifies specific.
+            // We can redirect to verify_result
+            return redirect()->route('verify_result', ['id' => $sample->tr04_sample_registration_id]);
+        }
+
+        // Manager / Admin -> Full Details + Reports
+        if ($role === 'Manager' || $role === 'Admin') {
+            return redirect()->route('view_registration_pdf', ['id' => $id]);
+        }
+
+        // Registrar / DEO -> Registration Details
+        if ($role === 'Registrar' || $role === 'DEO') {
+            return redirect()->route('view_registration_pdf', ['id' => $id]);
+        }
+
+        // Default Fallback
+        return redirect()->route('view_registration_pdf', ['id' => $id]);
     }
 }

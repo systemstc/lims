@@ -95,7 +95,18 @@ class AccessControl
             'reset_test_order',
             'generate_report_preview',
             'get_analyst_test_details',
-            'analyst_date_samples'
+            'analyst_date_samples',
+            'get_formula_details',
+            'get_formula_details',
+            'save_raw_entry',
+            'get_raw_entry',
+            'save_remark',
+            'pull_result',
+            'download_remote_report',
+            'track_sample',
+            'search_tracker',
+            'create_test_result',
+            'dispatch_sample',
         ];
 
         if (in_array($routeName, $skipPermissionRoutes)) {

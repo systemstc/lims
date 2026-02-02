@@ -121,17 +121,21 @@
 
                                                             @foreach ($results->groupBy('m16_primary_test_id') as $primaryTestId => $primaryResults)
                                                                 @php
-                                                                    $primaryTest = $primaryResults->first()->primaryTest;
+                                                                    $primaryTest = $primaryResults->first()
+                                                                        ->primaryTest;
                                                                     $hasPrimaryTest = !empty($primaryTestId);
                                                                 @endphp
 
                                                                 @if ($hasPrimaryTest)
                                                                     <div class="mb-3">
                                                                         <div class="d-flex align-items-center mb-2">
-                                                                            <em class="icon ni ni-list text-primary me-2"></em>
-                                                                            <strong class="text-dark">{{ $primaryTest->m16_name ?? 'Primary Test' }}</strong>
+                                                                            <em
+                                                                                class="icon ni ni-list text-primary me-2"></em>
+                                                                            <strong
+                                                                                class="text-dark">{{ $primaryTest->m16_name ?? 'Primary Test' }}</strong>
                                                                             @if ($primaryTest->m16_requirement)
-                                                                                <small class="text-muted ms-2">({{ $primaryTest->m16_requirement }})</small>
+                                                                                <small
+                                                                                    class="text-muted ms-2">({{ $primaryTest->m16_requirement }})</small>
                                                                             @endif
                                                                         </div>
                                                                     </div>
@@ -140,11 +144,19 @@
                                                                 {{-- Group results in pairs for two columns per row --}}
                                                                 @php
                                                                     $allResults = [];
-                                                                    foreach ($primaryResults->groupBy('m17_secondary_test_id') as $secondaryTestId => $secondaryResults) {
+                                                                    foreach (
+                                                                        $primaryResults->groupBy(
+                                                                            'm17_secondary_test_id',
+                                                                        )
+                                                                        as $secondaryTestId => $secondaryResults
+                                                                    ) {
                                                                         $allResults[] = [
-                                                                            'hasSecondaryTest' => !empty($secondaryTestId),
+                                                                            'hasSecondaryTest' => !empty(
+                                                                                $secondaryTestId
+                                                                            ),
                                                                             'testResult' => $secondaryResults->first(),
-                                                                            'secondaryTest' => $secondaryResults->first()->secondaryTest,
+                                                                            'secondaryTest' => $secondaryResults->first()
+                                                                                ->secondaryTest,
                                                                         ];
                                                                     }
 
@@ -159,20 +171,31 @@
                                                                                 <div class="card card-sm bg-white border">
                                                                                     <div class="card-body p-3">
                                                                                         @if ($resultData['hasSecondaryTest'] && $resultData['secondaryTest'])
-                                                                                            <div class="d-flex justify-content-between align-items-start mb-2">
-                                                                                                <strong class="text-dark fs-14">{{ $resultData['secondaryTest']->m17_name }}</strong>
-                                                                                                <strong class="text-success fw-bold">Verified</strong>
+                                                                                            <div
+                                                                                                class="d-flex justify-content-between align-items-start mb-2">
+                                                                                                <strong
+                                                                                                    class="text-dark fs-14">{{ $resultData['secondaryTest']->m17_name }}</strong>
+                                                                                                <strong
+                                                                                                    class="text-success fw-bold">Verified</strong>
                                                                                             </div>
-                                                                                            <div class="d-flex justify-content-between">
-                                                                                                <span class="text-muted fs-12">Result:</span>
-                                                                                                <strong class="text-primary">{{ $resultData['testResult']->tr07_result ?? 'N/A' }}</strong>
+                                                                                            <div
+                                                                                                class="d-flex justify-content-between">
+                                                                                                <span
+                                                                                                    class="text-muted fs-12">Result:</span>
+                                                                                                <strong
+                                                                                                    class="text-primary">{{ $resultData['testResult']->tr07_result ?? 'N/A' }}</strong>
                                                                                             </div>
                                                                                         @else
-                                                                                            <div class="d-flex justify-content-between align-items-center">
-                                                                                                <span class="text-dark fs-14">Test Result</span>
+                                                                                            <div
+                                                                                                class="d-flex justify-content-between align-items-center">
+                                                                                                <span
+                                                                                                    class="text-dark fs-14">Test
+                                                                                                    Result</span>
                                                                                                 <div>
-                                                                                                    <strong class="text-primary me-2">{{ $resultData['testResult']->tr07_result ?? 'N/A' }}</strong>
-                                                                                                    <strong class="text-success fw-bold">Verified</strong>
+                                                                                                    <strong
+                                                                                                        class="text-primary me-2">{{ $resultData['testResult']->tr07_result ?? 'N/A' }}</strong>
+                                                                                                    <strong
+                                                                                                        class="text-success fw-bold">Verified</strong>
                                                                                                 </div>
                                                                                             </div>
                                                                                         @endif
@@ -198,25 +221,35 @@
                                                                     Additional
                                                                 </h6>
                                                                 @php
-                                                                    $customFieldChunks = array_chunk($testCustomFields->toArray(), 2);
+                                                                    $customFieldChunks = array_chunk(
+                                                                        $testCustomFields->toArray(),
+                                                                        2,
+                                                                    );
                                                                 @endphp
-                                                                
+
                                                                 @foreach ($customFieldChunks as $customFieldRow)
                                                                     <div class="row g-2 mb-3">
                                                                         @foreach ($customFieldRow as $customField)
                                                                             <div class="col-xl-6 col-lg-6 col-md-6">
                                                                                 <div class="card card-sm bg-white border">
                                                                                     <div class="card-body p-3">
-                                                                                        <div class="d-flex justify-content-between align-items-start mb-2">
-                                                                                            <strong class="text-dark fs-14">{{ $customField['tr08_field_name'] }}</strong>
-                                                                                            <strong class="text-info fw-bold">Verified</strong>
+                                                                                        <div
+                                                                                            class="d-flex justify-content-between align-items-start mb-2">
+                                                                                            <strong
+                                                                                                class="text-dark fs-14">{{ $customField['tr08_field_name'] }}</strong>
+                                                                                            <strong
+                                                                                                class="text-info fw-bold">Verified</strong>
                                                                                         </div>
-                                                                                        <div class="d-flex justify-content-between align-items-center">
-                                                                                            <span class="text-muted fs-12">Value:</span>
+                                                                                        <div
+                                                                                            class="d-flex justify-content-between align-items-center">
+                                                                                            <span
+                                                                                                class="text-muted fs-12">Value:</span>
                                                                                             <div>
-                                                                                                <strong class="text-primary">{{ $customField['tr08_field_value'] }}</strong>
+                                                                                                <strong
+                                                                                                    class="text-primary">{{ $customField['tr08_field_value'] }}</strong>
                                                                                                 @if ($customField['tr08_field_unit'])
-                                                                                                    <small class="text-muted ms-1">({{ $customField['tr08_field_unit'] }})</small>
+                                                                                                    <small
+                                                                                                        class="text-muted ms-1">({{ $customField['tr08_field_unit'] }})</small>
                                                                                                 @endif
                                                                                             </div>
                                                                                         </div>
@@ -238,7 +271,8 @@
                                                         <div class="p-3 bg-light border-top">
                                                             <div class="row text-center g-3">
                                                                 <div class="col-md-4">
-                                                                    <small class="text-muted d-block">Performance Date</small>
+                                                                    <small class="text-muted d-block">Performance
+                                                                        Date</small>
                                                                     <span class="fw-medium fs-14">
                                                                         {{ $parentTest->tr07_performance_date ? \Carbon\Carbon::parse($parentTest->tr07_performance_date)->format('M d, Y') : 'N/A' }}
                                                                     </span>
@@ -251,7 +285,8 @@
                                                                 </div>
                                                                 <div class="col-md-4">
                                                                     <small class="text-muted d-block">Version</small>
-                                                                    <span class="fw-medium fs-14">v{{ $parentTest->tr07_current_version }}</span>
+                                                                    <span
+                                                                        class="fw-medium fs-14">v{{ $parentTest->tr07_current_version }}</span>
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -279,7 +314,8 @@
                                 <div class="card-inner">
                                     <h6 class="card-title mb-3">Quick Actions</h6>
                                     <div class="d-grid gap-2 mb-3">
-                                        <a href="{{ route('generate_report', $sampleInfo->tr04_reference_id) }}" class="btn btn-primary">
+                                        <a href="{{ route('generate_report', $sampleInfo->tr04_reference_id) }}"
+                                            class="btn btn-primary">
                                             <em class="icon ni ni-file-docs me-1"></em>
                                             Generate Report
                                         </a>
@@ -295,7 +331,8 @@
                                         <div class="nav flex-column nav-pills nav-pills-sm">
                                             @foreach ($groupedResults as $testNumber => $tests)
                                                 <a class="nav-link text-start mb-2" href="#heading-{{ $testNumber }}"
-                                                    data-bs-toggle="collapse" data-bs-target="#collapse-{{ $testNumber }}">
+                                                    data-bs-toggle="collapse"
+                                                    data-bs-target="#collapse-{{ $testNumber }}">
                                                     <div class="d-flex justify-content-between align-items-center">
                                                         <span class="text-truncate">
                                                             <em class="icon ni ni-activity me-1 fs-12"></em>
@@ -307,14 +344,16 @@
 
                                             @foreach ($groupedCustomFields as $testNumber => $fields)
                                                 @if (!isset($groupedResults[$testNumber]))
-                                                    <a class="nav-link text-start mb-2" href="#heading-{{ $testNumber }}"
-                                                        data-bs-toggle="collapse" data-bs-target="#collapse-{{ $testNumber }}">
+                                                    <a class="nav-link text-start mb-2"
+                                                        href="#heading-{{ $testNumber }}" data-bs-toggle="collapse"
+                                                        data-bs-target="#collapse-{{ $testNumber }}">
                                                         <div class="d-flex justify-content-between align-items-center">
                                                             <span class="text-truncate">
                                                                 <em class="icon ni ni-edit me-1 fs-12"></em>
                                                                 Custom #{{ $testNumber }}
                                                             </span>
-                                                            <span class="badge bg-warning fs-10">{{ $fields->count() }}</span>
+                                                            <span
+                                                                class="badge bg-warning fs-10">{{ $fields->count() }}</span>
                                                         </div>
                                                     </a>
                                                 @endif
@@ -361,22 +400,22 @@
         }
 
         .nav-scroll-container::-webkit-scrollbar-track {
-            background: #f1f1f1;
+            background: #222222;
             border-radius: 2px;
         }
 
         .nav-scroll-container::-webkit-scrollbar-thumb {
-            background: #c5c5c5;
+            background: #242323;
             border-radius: 2px;
         }
 
         .nav-scroll-container::-webkit-scrollbar-thumb:hover {
-            background: #a8a8a8;
+            background: #292828;
         }
 
         .accordion-button:not(.collapsed) {
-            background-color: #f8f9fa;
-            border-color: #dee2e6;
+            background-color: #1b1b1b;
+            border-color: #181818;
         }
 
         .card-sm {

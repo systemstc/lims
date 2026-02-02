@@ -27,7 +27,24 @@
                                             </div>
                                             <div class="nk-wizard-content">
                                                 <div class="row gy-3">
-                                                    <div class="col-md-7">
+                                                    <div class="col-md-6 mb-3">
+                                                        <label class="form-label">Commercial Category <span class="text-danger">*</span></label>
+                                                        <div class="row">
+                                                            <div class="col-md-6">
+                                                                <div class="custom-control custom-radio">
+                                                                    <input type="radio" id="commercial" name="commercial_type" class="custom-control-input" value="1" required>
+                                                                    <label class="custom-control-label" for="commercial">Commercial</label>
+                                                                </div>
+                                                            </div>
+                                                            <div class="col-md-6">
+                                                                <div class="custom-control custom-radio">
+                                                                    <input type="radio" id="non_commercial" name="commercial_type" class="custom-control-input" value="2" required>
+                                                                    <label class="custom-control-label" for="non_commercial">Non-Commercial</label>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-6">
                                                         <div class="form-group">
                                                             <label class="form-label" for="dd_customer_type">Customer
                                                                 Type<b class="text-danger">*</b></label>
@@ -651,6 +668,7 @@
                     <input type="hidden" id="igst" value="{{ $roGst->igst ?? 0 }}">
                     <input type="hidden" id="cgst" value="{{ $roGst->cgst ?? 0 }}">
                     <input type="hidden" id="sgst" value="{{ $roGst->sgst ?? 0 }}">
+                    <input type="hidden" id="ro_gst_no" value="{{ $roGst->gst_no ?? '' }}">
 
                     <div class="col-md-4">
                         <label>GST Type & Rate:</label>
@@ -1009,6 +1027,16 @@ aria-hidden="true">
 
  
     $(document).ready(function() {
+        // SweetAlert for Registration Success
+        @if(Session::has('registration_id'))
+            Swal.fire({
+                title: "Success!",
+                text: "Sample Registered Successfully! Registration ID: {{ Session::get('registration_id') }}",
+                icon: "success",
+                confirmButtonText: "OK"
+            });
+        @endif
+
         console.log('Document ready - initializing form...');
             // get districts while adding address on the basis of selected state
         $('#modal_state_id').on('change', function() {
@@ -1540,6 +1568,7 @@ function initializeCustomerEvents() {
                             .data('contact_person', addr.contact_person)
                             .data('phone', addr.phone)
                             .data('email', addr.email)
+                            .data('gst', addr.gst)
                             .appendTo($addressSelect);
                         });
                         // trigger default (first) selection details
@@ -1858,21 +1887,59 @@ function initializeCustomerEvents() {
                 $("#txt_testing_charges").val(total.toFixed(2));
 
     // === Step 7: GST Calculation ===
-                let igst = parseFloat($('#igst').val()) || 0;
-                let cgst = parseFloat($('#cgst').val()) || 0;
-                let sgst = parseFloat($('#sgst').val()) || 0;
+    // === Step 7: GST Calculation ===
+                // Get RO GST No
+                let roGstNo = $('#ro_gst_no').val() || '';
+                let customerGstNo = '';
+
+                // Determine which customer is paying to get their GST
+                let paymentBy = $('input[name="txt_payment_by"]:checked').val();
+                if (paymentBy) {
+                    // Logic to find the selected address option for the paying party
+                    let addressSelector = '';
+                    if (paymentBy === 'first_party') addressSelector = '#party-address';
+                    else if (paymentBy === 'second_party') addressSelector = '#buyer-address';
+                    else if (paymentBy === 'third_party') addressSelector = '#third-address';
+                    else if (paymentBy === 'cha') addressSelector = '#cha-address';
+
+                    if (addressSelector) {
+                        let selectedOption = $(addressSelector).find('option:selected');
+                        customerGstNo = selectedOption.data('gst') || '';
+                    }
+                }
+
+                let roStateCode = roGstNo.substring(0, 2);
+                let custStateCode = customerGstNo.substring(0, 2);
+
+                // Default GST rates (fallback to hidden fields if needed, or assume standard)
+                // Actually, hidden fields 'igst', 'cgst', 'sgst' contain rates from controller
+                let roIgstRate = parseFloat($('#igst').val()) || 18;
+                let roCgstRate = parseFloat($('#cgst').val()) || 9;
+                let roSgstRate = parseFloat($('#sgst').val()) || 9;
+
+                // Handle case where IGST might be 0 in DB but CGST/SGST are set, or vice versa
+                // If IGST is 0, sum CGST+SGST for Interstate? Usually IGST = CGST+SGST
+                if(roIgstRate == 0 && (roCgstRate > 0 || roSgstRate > 0)) {
+                    roIgstRate = roCgstRate + roSgstRate;
+                }
 
                 let gstPercent = 0;
                 let gstType = '';
 
-                if (igst > 0) {
-                    gstPercent = igst;
-                    gstType = `IGST ${igst}%`;
-                } else if (cgst > 0 || sgst > 0) {
-                    gstPercent = cgst + sgst;
-                    gstType = `CGST ${cgst}% + SGST ${sgst}%`;
+                // GST Logic:
+                // If RO GST or Customer GST is missing, what to do? 
+                // Assumption: If missing, apply IGST? Or default to Intra?
+                // Usually if registered vs unregistered, rules apply.
+                // For now, if codes avail and match -> Intra (CGST+SGST). Else -> Inter (IGST).
+
+                if (roStateCode && custStateCode && roStateCode === custStateCode) {
+                    // Match: CGST + SGST
+                    gstPercent = roCgstRate + roSgstRate;
+                    gstType = `CGST ${roCgstRate}% + SGST ${roSgstRate}%`;
                 } else {
-                    gstType = 'No GST';
+                    // No Match or Missing: IGST
+                    gstPercent = roIgstRate;
+                    gstType = `IGST ${roIgstRate}%`;
                 }
 
                 $("#txt_gst_type").val(gstType);
@@ -1892,7 +1959,10 @@ function initializeCustomerEvents() {
                     gstType,
                     gstPercent,
                     gstAmount,
-                    grandTotal
+                    grandTotal,
+                    roGstNo,
+                    customerGstNo,
+                    paymentBy
                 });
             }
 

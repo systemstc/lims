@@ -13,6 +13,8 @@ class Test extends Model
         'm12_test_number',
         'm10_sample_id',
         'm11_group_id',
+        'm11_group_code',
+        'm23_formula_id',
         'm12_name',
         'm12_description',
         'm15_standard_id',
@@ -35,12 +37,31 @@ class Test extends Model
         'tr01_created_by',
     ];
 
+    public static function booted()
+    {
+        static::creating(function ($test) {
+            if (empty($test->m12_test_number)) {
+                $test->m12_test_number = self::generateNextTestNumber();
+            }
+        });
+    }
+
+    public static function generateNextTestNumber()
+    {
+        // Get the last test's m12_test_number
+        $lastTest = self::orderBy('m12_test_number', 'desc')->first();
+
+        // Increment it to get the second one if there is no any entery then start it from 1000
+        return $lastTest && $lastTest->m12_test_number ? $lastTest->m12_test_number + 1 : 1000;
+    }
+
     public function standard()
     {
         return $this->belongsTo(Standard::class, 'm15_standard_id', 'm15_standard_id');
     }
 
-    public function manuscript(){
+    public function manuscript()
+    {
         return $this->hasMany(Manuscript::class, 'm12_test_number', 'm12_test_number');
     }
     public function sample()
@@ -50,7 +71,12 @@ class Test extends Model
 
     public function group()
     {
-        return $this->belongsTo(Group::class, 'm11_group_id', 'm11_group_code');
+        return $this->belongsTo(Group::class, 'm11_group_code', 'm11_group_code');
+    }
+
+    public function formula()
+    {
+        return $this->belongsTo(Formula::class, 'm23_formula_id', 'm23_formula_id');
     }
 
     public function user()

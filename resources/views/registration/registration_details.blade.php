@@ -236,13 +236,13 @@
                                 <div class="invoice-bills">
                                     <h5 class="mb-3">Test Details</h5>
                                     <div class="table-responsive">
-                                        <table class="table table-striped">
+                                        <table class="table table-striped" style="border-bottom: 1px solid #b0b0d3;">
                                             <thead>
                                                 <tr>
                                                     <th class="w-150px">Test ID</th>
                                                     <th class="w-60">Test Name & Description</th>
                                                     <th>Standard/Method</th>
-                                                    <th>Unit</th>
+                                                    {{-- <th>Unit</th> --}}
                                                     <th>Charge</th>
                                                     <th>Status</th>
                                                 </tr>
@@ -250,10 +250,10 @@
                                             <tbody>
                                                 {{-- @dd($sample) --}}
                                                 @forelse($sample->sampleTests as $sampleTest)
-                                                    <tr>
-                                                        <td>{{ $sampleTest['test']['m12_test_id'] }}</td>
+                                                    <tr style="border-bottom: 1px solid #0d0d0e;">
+                                                        <td>{{ $sampleTest['test']['m12_test_id'] ?? 'N/A' }}</td>
                                                         <td>
-                                                            <strong>{{ $sampleTest['test']['m12_name'] }}</strong>
+                                                            <strong>{{ $sampleTest['test']['m12_name'] ?? 'Unknown Test' }}</strong>
                                                             {{-- @if ($sampleTest['test']['m12_description'])
                                                                 <br><small
                                                                     class="text-muted">{{ $sampleTest['test']['m12_description'] }}</small>
@@ -274,8 +274,8 @@
                                                                 </span>
                                                             @endif
                                                         </td>
-                                                        <td>{{ $sampleTest['test']['m12_unit'] ?? '_' }}</td>
-                                                        <td>&#8377;{{ number_format($sampleTest['test']['m12_charge'], 2) }}
+                                                        {{-- <td>{{ $sampleTest['test']['m12_unit'] ?? '_' }}</td> --}}
+                                                        <td>&#8377;{{ number_format($sampleTest['test']['m12_charge'] ?? 0, 2) }}
                                                         </td>
                                                         <td>
                                                             <span
@@ -295,73 +295,87 @@
                                                     </tr>
                                                 @endforelse
                                             </tbody>
-                                            <tfoot class="bg-light">
-                                                <tr>
-                                                    <!-- QR Code Cell -->
-                                                    <td rowspan ='3'><small class="my-auto text-muted">Scan to view
-                                                            registration >>></small></td>
-                                                    <td rowspan="{{ $sample->tr04_additional_charges > 0 ? 3 : 2 }}">
-                                                        <div class="d-flex flex-column align-items-center p-2">
-                                                            {!! QrCode::size(100)->generate(route('view_registration_pdf', $sample->tr04_sample_registration_id)) !!}
-                                                            <strong class="text-dark fw-semibold">
-                                                                {{ $sample->tr04_tracker_id }}</strong>
-                                                        </div>
-                                                    </td>
-
-
-
-                                                    <!-- Testing Charges -->
-                                                    <td class="py-2" colspan="2">
-                                                        <strong>Testing Charges</strong>
-                                                    </td>
-                                                    <td class="text-end py-2">
-                                                        <span class="fw-semibold">&#8377;
-                                                            {{ number_format($sample->tr04_testing_charges, 2) }}</span>
-                                                    </td>
-                                                </tr>
-
-                                                @if ($sample->tr04_additional_charges > 0)
+                                             <tfoot class="bg-light">
                                                     <tr>
-                                                        <td class="py-2" colspan="2">
-                                                            <strong>Additional Charges</strong>
-                                                        </td>
-                                                        <td class="text-end py-2">
-                                                            <span class="fw-semibold">&#8377;
-                                                                {{ number_format($sample->tr04_additional_charges, 2) }}</span>
+                                                        <!-- QR Code Cell -->
+                                                        <td rowspan = {{ $sample->tr04_igst > 0 ? '4' : '5' }}><small class="my-auto text-muted">Scan to
+                                                                view
+                                                                registration >>></small></td>
+                                                        <td
+                                                            rowspan={{ $sample->tr04_igst > 0 ? '4' : '5' }}>
+                                                            <div class="d-flex flex-column align-items-center p-2">
+                                                                {!! QrCode::size(100)->generate(route('track_sample', ['trackerId' => $sample->tr04_tracker_id])) !!}
+                                                                <strong class="text-dark fw-semibold">
+                                                                    {{ $sample->tr04_tracker_id }}</strong>
+                                                            </div>
                                                         </td>
                                                     </tr>
-                                                @endif
-                                                <tr>
-                                                    <td class="py-2" colspan="2">
+                                                    <tr>
+                                                        <!-- Testing Charges -->
+                                                        <td>
+                                                            <strong>Testing Charges</strong>
+                                                        </td>
+                                                        <td class="text-end">
+                                                            <span class="fw-semibold">&#8377;
+                                                                {{ number_format($sample->tr04_testing_charges, 2) }}</span>
+                                                        </td>
+                                                    </tr>
+                                                        <tr>
+                                                            <td>
+                                                                <strong>Additional Charges</strong>
+                                                            </td>
+                                                            <td class="text-end">
+                                                                <span class="fw-semibold">&#8377;
+                                                                    {{ number_format($sample->tr04_additional_charges, 2) ?? 0 }}</span>
+                                                            </td>
+                                                        </tr>
+                                                    @php
+                                                        $taxableAmount = $sample->tr04_testing_charges + $sample->tr04_additional_charges;
+                                                        $cgstRate = ($taxableAmount > 0 && $sample->tr04_cgst > 0) ? ($sample->tr04_cgst / $taxableAmount) * 100 : 0;
+                                                        $sgstRate = ($taxableAmount > 0 && $sample->tr04_sgst > 0) ? ($sample->tr04_sgst / $taxableAmount) * 100 : 0;
+                                                        $igstRate = ($taxableAmount > 0 && $sample->tr04_igst > 0) ? ($sample->tr04_igst / $taxableAmount) * 100 : 0;
+                                                    @endphp
+                                                    
+                                                    <!-- Update rowspan dynamically via JS or just set it here if we could. 
+                                                         Since we are inside the table body/footer, we can't easily change the previous TD's rowspan 
+                                                         without JS or checking beforehand.
+                                                         However, for now let's focus on the GST breakdown row content. -->
 
-                                                        <label>GST Type & Rate:</label>
+                                                    @if($sample->tr04_cgst > 0 || $sample->tr04_sgst > 0)
+                                                        <tr>
+                                                            <td><strong>CGST ({{ round($cgstRate) }}%)</strong></td>
+                                                            <td class="text-end">
+                                                                <span class="fw-semibold">&#8377;{{ number_format($sample->tr04_cgst, 2) }}</span>
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td><strong>SGST ({{ round($sgstRate) }}%)</strong></td>
+                                                            <td class="text-end">
+                                                                <span class="fw-semibold">&#8377;{{ number_format($sample->tr04_sgst, 2) }}</span>
+                                                            </td>
+                                                        </tr>
+                                                    @elseif($sample->tr04_igst > 0)
+                                                        <tr>
+                                                            <td><strong>IGST ({{ round($igstRate) }}%)</strong></td>
+                                                            <td class="text-end">
+                                                                <span class="fw-semibold">&#8377;{{ number_format($sample->tr04_igst, 2) }}</span>
+                                                            </td>
+                                                        </tr>
+                                                    @endif
 
-                                                    </td>
-                                                    <td class="text-end py-2">
-                                                        <span class="fw-semibold">
-                                                            @if (!empty($roGst->cgst) && !empty($roGst->sgst))
-                                                                CGST {{ $roGst->cgst }}% + SGST {{ $roGst->sgst }}%
-                                                            @elseif(!empty($roGst->igst))
-                                                                IGST {{ $roGst->igst }}%
-                                                            @else
-                                                                N/A
-                                                            @endif
-                                                        </span>
-                                                    </td>
-                                                </tr>
-
-                                                <tr class="bg-white">
-                                                    <td class=" py-3" colspan="2">
-                                                    </td>
-                                                    <td class=" py-3" colspan="2">
-                                                        <strong class="fs-6 text-dark">Grand Total</strong>
-                                                    </td>
-                                                    <td class="text-end py-3">
-                                                        <strong class="text-primary fs-5">&#8377;
-                                                            {{ number_format($sample->tr04_total_charges, 2) }}</strong>
-                                                    </td>
-                                                </tr>
-                                            </tfoot>
+                                                    <tr class="bg-white">
+                                                        <td class="" colspan="2">
+                                                        </td>
+                                                        <td class="text-start">
+                                                            <strong class="fs-6 text-dark">Grand Total</strong>
+                                                        </td>
+                                                        <td class="float-end">
+                                                            <strong class="text-primary fs-5">&#8377;
+                                                                {{ number_format($sample->tr04_total_charges, 2) }}</strong>
+                                                        </td>
+                                                        <td></td>
+                                                    </tr>
+                                                </tfoot>
                                         </table>
                                         @if ($sample->tr04_details)
                                             <div class="nk-notes ff-italic fs-12px text-soft mt-3">

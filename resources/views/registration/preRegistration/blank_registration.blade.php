@@ -17,6 +17,21 @@
                                     <div class="row mb-3">
                                         <div class="col-md-4">
                                             <div class="form-group">
+                                                <label class="form-label">Commercial Category <span class="text-danger">*</span></label>
+                                                <div class="form-control-wrap">
+                                                    <div class="custom-control custom-radio custom-control-inline">
+                                                        <input type="radio" id="commercial" name="commercial_type" class="custom-control-input" value="1" required>
+                                                        <label class="custom-control-label" for="commercial">Commercial</label>
+                                                    </div>
+                                                    <div class="custom-control custom-radio custom-control-inline">
+                                                        <input type="radio" id="non_commercial" name="commercial_type" class="custom-control-input" value="2" required>
+                                                        <label class="custom-control-label" for="non_commercial">Non-Commercial</label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="form-group">
                                                 <label class="form-label" for="dd_customer_type">Customer
                                                     Type<b class="text-danger">*</b></label>
                                                 <div class="form-control-wrap">

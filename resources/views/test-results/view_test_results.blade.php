@@ -131,7 +131,9 @@
                                         <tr>
                                             <td>{{ $key + 1 }}</td>
                                             <td>{{ $result->tr04_reference_id }}</td>
-                                            <td><strong class="text-{{ $result->result_status === 'VERIFIED' ? 'primary' : 'success' }} fw-bold">{{ $result->result_status }}</strong></td>
+                                            <td><strong
+                                                    class="text-{{ $result->result_status === 'VERIFIED' ? 'primary' : 'success' }} fw-bold">{{ $result->result_status }}</strong>
+                                            </td>
                                             <td>{{ \Carbon\Carbon::parse($result->last_test_date)->format('d M, Y') }}
                                             </td>
                                             <td>{{ $result->total_tests }}</td>
@@ -156,11 +158,13 @@
                                                                         </a>
                                                                     </li>
                                                                     <li>
-                                                                        <a
-                                                                            href="{{ route('generate_report', $result->tr04_reference_id) }}">
-                                                                            <em class="icon ni ni-file-docs"></em>
-                                                                            <span>Generate Report</span>
-                                                                        </a>
+                                                                        @if (optional($result->registration)->tr04_progress != 'DISPATCHED')
+                                                                            <a
+                                                                                href="{{ route('generate_report', $result->tr04_reference_id) }}">
+                                                                                <em class="icon ni ni-file-docs"></em>
+                                                                                <span>Generate Report</span>
+                                                                            </a>
+                                                                        @endif
                                                                         {{-- <a
                                                                                 href="{{ route('test_results.report', $result->tr04_reference_id) }}">
                                                                                 <em class="icon ni ni-file-docs"></em>

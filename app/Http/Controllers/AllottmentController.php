@@ -204,8 +204,7 @@ class AllottmentController extends Controller
                 )
                 ->where('tr05_sample_tests.m12_test_id', $testId)
                 ->where(function ($query) use ($roId) {
-                    $query->where('tr05_sample_tests.m04_ro_id', $roId)
-                        ->orWhere('tr05_sample_tests.m04_transferred_to', $roId);
+                    $query->where('tr05_sample_tests.m04_ro_id', $roId);
                 })
                 ->whereNull('tr05_sample_tests.m06_alloted_to')
                 ->whereNotIn('tr05_sample_tests.tr05_status', ['COMPLETED', 'TRANSFERRED'])
@@ -234,50 +233,58 @@ class AllottmentController extends Controller
 
     private function buildPendingQuery($roId)
     {
-        return SampleRegistration::selectRaw("
-            tr04_sample_registrations.*,
-            COUNT(CASE WHEN NOT (st.m04_ro_id = {$roId} AND st.tr05_status = 'TRANSFERRED') THEN st.tr05_sample_test_id END) as total_tests,
-            COUNT(CASE WHEN st.m06_alloted_to IS NOT NULL AND NOT (st.m04_ro_id = {$roId} AND st.tr05_status = 'TRANSFERRED') THEN 1 END) as allotted_tests,
-            COUNT(CASE WHEN st.tr05_status IN ('COMPLETED', 'REPORTED', 'VERIFIED', 'RECEIVED_ACCEPTED') THEN 1 END) as completed_tests,
-            COUNT(CASE WHEN st.tr05_status = 'REPORTED' THEN 1 END) as reported_tests,
-            MAX(st.tr05_completed_at) as last_test_completed_at,
-            COUNT(CASE WHEN st.m06_alloted_to IS NULL AND NOT (st.m04_ro_id = {$roId} AND st.tr05_status = 'TRANSFERRED') THEN 1 END) as pending_tests,
-            COUNT(CASE WHEN st.tr05_status = 'TRANSFERRED' AND st.m04_ro_id = {$roId} THEN 1 END) as transferred_tests
-        ")
-            ->join('tr05_sample_tests as st', 'st.tr04_sample_registration_id', '=', 'tr04_sample_registrations.tr04_sample_registration_id')
-            ->where(function ($query) use ($roId) {
-                $query->where('st.m04_ro_id', $roId)
-                    ->orWhere('st.m04_transferred_to', $roId);
+        return SampleRegistration::query()
+            ->with(['sampleTests']) // Eager load to prevent N+1 if accessed
+            ->whereHas('sampleTests', function ($query) use ($roId) {
+                $query->where('m04_ro_id', $roId);
             })
-            ->groupBy(
-                'tr04_sample_registrations.tr04_sample_registration_id',
-                'tr04_sample_registrations.tr04_reference_id',
-                'tr04_sample_registrations.tr04_sample_type',
-                'tr04_sample_registrations.tr04_progress',
-                'tr04_sample_registrations.tr04_status',
-                'tr04_sample_registrations.created_at'
-            );
+            ->withCount([
+                'sampleTests as total_tests' => function ($query) use ($roId) {
+                    $query->where('m04_ro_id', $roId)
+                        ->where('tr05_status', '!=', 'TRANSFERRED');
+                },
+                'sampleTests as allotted_tests' => function ($query) use ($roId) {
+                    $query->where('m04_ro_id', $roId)
+                        ->where('tr05_status', '!=', 'TRANSFERRED')
+                        ->whereNotNull('m06_alloted_to');
+                },
+                'sampleTests as completed_tests' => function ($query) {
+                    $query->whereIn('tr05_status', ['COMPLETED', 'REPORTED', 'VERIFIED', 'RECEIVED_ACCEPTED']);
+                },
+                'sampleTests as reported_tests' => function ($query) {
+                    $query->where('tr05_status', 'REPORTED');
+                },
+                'sampleTests as pending_tests' => function ($query) use ($roId) {
+                    $query->where('m04_ro_id', $roId)
+                        ->where('tr05_status', '!=', 'TRANSFERRED')
+                        ->whereNull('m06_alloted_to');
+                },
+                'sampleTests as transferred_tests' => function ($query) use ($roId) {
+                    $query->where('m04_ro_id', $roId)
+                        ->where('tr05_status', 'TRANSFERRED');
+                }
+            ])
+            ->withMax('sampleTests as last_test_completed_at', 'tr05_completed_at');
     }
 
     private function applyFilters($query, Request $request)
     {
         if ($request->filled('priority')) {
-            $query->where('tr04_sample_registrations.tr04_sample_type', $request->priority);
+            $query->where('tr04_sample_type', $request->priority);
         }
 
         if ($request->filled('days_pending')) {
             $days = (int) $request->days_pending;
-            $query->where('tr04_sample_registrations.created_at', '<=', now()->subDays($days));
+            $query->where('created_at', '<=', now()->subDays($days));
         }
 
         if ($request->filled('status')) {
-            // dd($request);
             match ($request->status) {
                 'new' => $query->having('allotted_tests', '=', 0),
                 'partial' => $query->havingRaw('allotted_tests > 0 AND allotted_tests < total_tests'),
                 'tatkal' => $query->where(function ($q) {
-                    $q->where('tr04_sample_registrations.tr04_sample_type', 'Tatkal')
-                        ->orWhere('tr04_sample_registrations.created_at', '<=', now()->subDays(3));
+                    $q->where('tr04_sample_type', 'Tatkal')
+                        ->orWhere('created_at', '<=', now()->subDays(3));
                 }),
                 default => null
             };
@@ -292,7 +299,7 @@ class AllottmentController extends Controller
                 WHEN tr04_sample_registrations.tr04_sample_type = 'Normal' THEN 2
                 ELSE 3
             END
-        ")->orderBy('tr04_sample_registrations.created_at', 'asc');
+        ")->orderBy('tr04_sample_registrations.created_at', 'desc');
     }
 
     public function getAnalystTestDetails(Request $request)
@@ -398,11 +405,7 @@ class AllottmentController extends Controller
 
         $tests = SampleTest::where('tr04_sample_registration_id', $registrationId)
             ->where(function ($q) use ($roId) {
-                $q->where('m04_ro_id', $roId)
-                    ->orWhere(function ($subQ) use ($roId) {
-                        $subQ->where('m04_transferred_to', $roId)
-                            ->where('tr05_status', 'TRANSFERRED');
-                    });
+                $q->where('m04_ro_id', $roId);
             })
             ->whereNotIn('tr05_status', ['RECEIVED_ACCEPTED'])
             ->with(['test', 'standard', 'allotedTo', 'transfers'])
@@ -561,8 +564,7 @@ class AllottmentController extends Controller
             foreach ($sampleIds as $sampleId) {
                 $tests = SampleTest::where('tr04_sample_registration_id', $sampleId)
                     ->where(function ($query) use ($roId) {
-                        $query->where('m04_ro_id', $roId)
-                            ->orWhere('m04_transferred_to', $roId);
+                        $query->where('m04_ro_id', $roId);
                     })
                     ->whereNull('m06_alloted_to')
                     ->whereNotIn('tr05_status', ['COMPLETED', 'TRANSFERRED'])
@@ -652,6 +654,7 @@ class AllottmentController extends Controller
                         'updated_at' => $now,
                     ];
 
+                    // Mark original as Transferred
                     $test->update([
                         'm04_transferred_to' => $request->ro_id,
                         'm06_alloted_to' => null,
@@ -689,6 +692,7 @@ class AllottmentController extends Controller
     // Quick Allot Single Sample
     public function quickAllotSample(Request $request)
     {
+        Log::info('Entering quickAllotSample', ['request' => $request->all(), 'session_ro' => Session::get('ro_id')]);
         $validator = Validator::make($request->all(), [
             'sample_id' => 'required|exists:tr04_sample_registrations,tr04_sample_registration_id',
             'emp_id' => 'required|exists:m06_employees,m06_employee_id'
@@ -708,8 +712,7 @@ class AllottmentController extends Controller
 
             $tests = SampleTest::where('tr04_sample_registration_id', $request->sample_id)
                 ->where(function ($query) use ($roId) {
-                    $query->where('m04_ro_id', $roId)
-                        ->orWhere('m04_transferred_to', $roId);
+                    $query->where('m04_ro_id', $roId);
                 })
                 ->whereNull('m06_alloted_to')
                 ->whereNotIn('tr05_status', ['COMPLETED', 'TRANSFERRED'])
@@ -919,10 +922,10 @@ class AllottmentController extends Controller
             foreach ($testIdChunks as $chunk) {
                 $updated = SampleTest::whereIn('tr05_sample_test_id', $chunk)
                     ->where(function ($query) use ($roId) {
-                        $query->where('m04_ro_id', $roId)
-                            ->orWhere('m04_transferred_to', $roId);
+                        $query->where('m04_ro_id', $roId);
                     })
                     ->whereNull('m06_alloted_to')
+                    ->whereNotIn('tr05_status', ['COMPLETED', 'TRANSFERRED'])
                     ->update([
                         'm06_alloted_to' => $request->emp_id,
                         'm06_alloted_by' => $userId,

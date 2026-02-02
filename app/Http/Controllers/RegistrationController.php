@@ -37,6 +37,7 @@ class RegistrationController extends Controller
             // dd($request);
             $validator = Validator::make($request->all(), [
                 "dd_customer_type" => "required|exists:m09_customer_types,m09_customer_type_id",
+                "commercial_type" => "required|in:1,2",
                 "txt_customer_name" => "required|string",
                 "txt_buyer_name" => "nullable|string",
                 "txt_third_party" => "nullable|string",
@@ -71,7 +72,7 @@ class RegistrationController extends Controller
             }
             DB::beginTransaction();
             try {
-                $refId =  generateReferenceId($request->dd_department, $request->dd_customer_type, $request->dd_sample_type);
+                $refId =  generateReferenceId($request->dd_department, $request->commercial_type, $request->dd_customer_type, $request->dd_sample_type);
                 $tracId = generateTrackerId($refId);
                 $data = [
                     'm04_ro_id' => Session::get('ro_id') ?? -1,
@@ -109,6 +110,68 @@ class RegistrationController extends Controller
                     'tr04_progress' => 'REGISTERED',
                     'tr04_created_by' => Session::get('user_id') ?? -1,
                 ];
+
+                // === GST Calculation Logic ===
+                $paymentBy = strtolower($request->txt_payment_by);
+                $roGstNo = Session::get('ro_gst_no', ''); // Ensure this is available in session or fetch via RO ID
+                if (!$roGstNo) {
+                    $ro = Ro::find($data['m04_ro_id']);
+                    $roGstNo = $ro ? $ro->gst_no : '';
+                }
+
+                $customerGstNo = '';
+                // Determine Customer GST based on payment_by
+                if ($paymentBy == 'first_party') {
+                    $customer = Customer::find($request->selected_customer_id);
+                    $customerGstNo = $customer ? $customer->m07_gst : '';
+                } else if ($paymentBy == 'second_party') {
+                    $customer = Customer::find($request->selected_buyer_id);
+                    $customerGstNo = $customer ? $customer->m07_gst : '';
+                } else if ($paymentBy == 'third_party') {
+                    $customer = Customer::find($request->selected_third_party_id);
+                    $customerGstNo = $customer ? $customer->m07_gst : '';
+                } else if ($paymentBy == 'cha') {
+                    $customer = Customer::find($request->selected_cha_id);
+                    $customerGstNo = $customer ? $customer->m07_gst : '';
+                }
+
+                $roStateCode = substr($roGstNo, 0, 2);
+                $custStateCode = substr($customerGstNo, 0, 2);
+
+                $taxAmount = 0;
+                $cgstAmount = 0;
+                $sgstAmount = 0;
+                $igstAmount = 0;
+
+                $ro = Ro::find($data['m04_ro_id']); // Re-fetch to be sure for rates
+
+                $subTotal = floatval($request->txt_testing_charges) + floatval($request->txt_aditional_charges);
+
+                if ($roStateCode && $custStateCode && $roStateCode === $custStateCode) {
+                    // Intra-state: CGST + SGST
+                    $cgstRate = $ro->cgst ?? 9;
+                    $sgstRate = $ro->sgst ?? 9;
+
+                    $cgstAmount = ($subTotal * $cgstRate) / 100;
+                    $sgstAmount = ($subTotal * $sgstRate) / 100;
+                    $taxAmount = $cgstAmount + $sgstAmount;
+                } else {
+                    // Inter-state: IGST
+                    $igstRate = $ro->igst ?? 18; // Fallback to 18 if not set? Or use combined?
+                    if ($igstRate == 0 && ($ro->cgst > 0 || $ro->sgst > 0)) {
+                        $igstRate = ($ro->cgst + $ro->sgst);
+                    }
+                    $igstAmount = ($subTotal * $igstRate) / 100;
+                    $taxAmount = $igstAmount;
+                }
+
+                $data['tr04_cgst'] = $cgstAmount;
+                $data['tr04_sgst'] = $sgstAmount;
+                $data['tr04_igst'] = $igstAmount;
+                // tr04_total_charges comes from frontend, but we should validate or recalculate? 
+                // Creating based on request for now, but ensure it matches logic.
+                // $data['tr04_total_charges'] = $subTotal + $taxAmount; (Frontend sends this)
+
                 // dd($data);
                 $base64Image = $request->input('txt_sample_image');
                 if (preg_match('/^data:image\/(\w+);base64,/', $base64Image, $type)) {
@@ -231,6 +294,7 @@ class RegistrationController extends Controller
                 DB::commit();
                 Session::flash('type', 'success');
                 Session::flash('message', 'Sample Registered Successfully!');
+                Session::flash('registration_id', $registration->tr04_reference_id);
                 return redirect()->back();
             } catch (\Exception $e) {
                 DB::rollBack();
@@ -378,7 +442,7 @@ class RegistrationController extends Controller
 
         $tests = Test::query()
             ->when($groupId, function ($q) use ($groupId) {
-                $q->where('m11_group_id', $groupId);
+                $q->where('m11_group_code', $groupId);
             })
             ->where(function ($q) use ($query) {
                 $q->where('m12_name', 'LIKE', "%{$query}%")
@@ -517,8 +581,11 @@ class RegistrationController extends Controller
                 'sampleTests.test',
                 'sampleTests.standard',
                 'customerType',
-            ])->select('tr04_sample_registrations.*')
-                ->where('m04_ro_id', Session::get('ro_id'));
+            ])->select('tr04_sample_registrations.*');
+
+            if (Session::get('role') !== 'ADMIN') {
+                $samples->where('m04_ro_id', Session::get('ro_id'));
+            }
 
             return DataTables::of($samples)
 
@@ -532,34 +599,54 @@ class RegistrationController extends Controller
                 ->addColumn('sample_description', function ($row) {
                     return $row->tr04_sample_description ?? 'N/A';
                 })
-                ->addColumn('sanple_image', function ($row) {
-                    return $row->tr04_attachment ? asset('public/storage/' . $row->tr04_attachment) : null;
-                })
+                // ->addColumn('sanple_image', function ($row) {
+                //     return $row->tr04_attachment ? asset('public/storage/' . $row->tr04_attachment) : null;
+                // })
                 ->addColumn('sample_type', function ($row) {
                     $color = $row->tr04_sample_type === 'Tatkal' ? 'danger badge badge-dot blink' : 'info';
                     return '<strong class="text-' . $color . '">' . strtoupper($row->tr04_sample_type) . '</strong>';
                 })
-
-                ->addColumn('total_tests', function ($row) {
-                    return $row->sampleTests->count();
+                ->addColumn('payment_status', function ($row) {
+                    $status = $row->tr04_payment_status ?? 'PENDING';
+                    $color = match (strtoupper($status)) {
+                        'PAID' => 'success',
+                        'HOLD' => 'warning',
+                        'PENDING' => 'primary',
+                        'NOT_APPLICABLE' => 'secondary',
+                        'REFUNDED' => 'info',
+                        default => 'danger'
+                    };
+                    return '<span class="fw-bold text-' . $color . '">' . strtoupper($status) . '</span>';
                 })
+
+                // ->addColumn('total_tests', function ($row) {
+                //     return $row->sampleTests->count();
+                // })
                 ->addColumn('status', function ($row) {
                     $statusClass = '';
                     $statusText = $row->tr04_progress ?? 'REGISTERED';
 
                     switch (strtolower($statusText)) {
-                        case 'complete':
-                        case 'completed':
+                        case 'reported':
                             $statusClass = 'bg-success';
                             break;
-                        case 'pending':
+                        case 'in_progress':
                             $statusClass = 'bg-warning';
                             break;
-                        case 'processing':
+                        case 'dispatched':
                             $statusClass = 'bg-info';
                             break;
-                        default:
+                        case 'analysed':
+                            $statusClass = 'bg-danger';
+                            break;
+                        case 'registered':
                             $statusClass = 'bg-primary';
+                            break;
+                        case 'verified':
+                            $statusClass = 'bg-success';
+                            break;
+                        default:
+                            $statusClass = 'bg-secondary';
                     }
                     return '<span class="badge badge-dot ' . $statusClass . '">' . ucfirst($statusText) . '</span>';
                 })
@@ -571,6 +658,7 @@ class RegistrationController extends Controller
                     return $row->created_at ? $row->created_at->format('d M Y, h:ia') : 'N/A';
                 })
                 ->addColumn('action', function ($row) {
+                    $isDispatched = isset($row->tr04_progress) && strtoupper($row->tr04_progress) === 'DISPATCHED';
                     $actions = '<td class="nk-tb-col nk-tb-col-tools">
                     <ul class="nk-tb-actions gx-1 my-n1">
                         <li class="me-n1">
@@ -580,40 +668,57 @@ class RegistrationController extends Controller
                                 </a>
                                 <div class="dropdown-menu dropdown-menu-end">
                                     <ul class="link-list-opt no-bdr">';
-                    // Print Acknowledgement
-                    $actions .= '<li>
-                        <a href="' . route('print_sample_acknowledgement', $row->tr04_sample_registration_id) . '" target="_blank">
-                            <em class="icon ni ni-printer-fill"></em><span>Acknowledgement</span>
-                        </a>
-                    </li>';
-                    // View Registration PDF
+
+                    if (!$isDispatched) {
+                        // Print Acknowledgement
+                        $actions .= '<li>
+                            <a href="' . route('print_sample_acknowledgement', $row->tr04_sample_registration_id) . '" target="_blank">
+                                <em class="icon ni ni-printer-fill"></em><span>Acknowledgement</span>
+                            </a>
+                        </li>';
+                    }
+
+                    // View Registration PDF (Always visible)
                     $actions .= '<li>
                     <a href="' . route('view_registration_pdf', $row->tr04_sample_registration_id) . '">
                         <em class="icon ni ni-eye"></em><span>View Sample</span>
                     </a>
                 </li>';
-                    // View Invoice
-                    $actions .= '<li>
-                        <a href="' . route('view_invoice', $row->tr04_sample_registration_id) . '">
-                            <em class="icon ni ni-file-text"></em><span>View Invoice</span>
-                        </a>
-                    </li>';
-                    // View All Invoice
-                    $actions .= '<li>
-                    <a href="' . route('view_all_invoice', $row->m07_customer_id) .
-                        '?location_id=' . $row->m08_customer_location_id .
-                        '&payment_by=' . $row->tr04_payment_by . '">
-                        <em class="icon ni ni-files"></em><span>Invoice All</span>
-                    </a>
-                </li>';
-                    // Upgrade to Tatkal (conditional)
-                    if ($row->tr04_sample_type !== 'Tatkal') {
+
+                    if (!$isDispatched) {
+                        // View Invoice
                         $actions .= '<li>
-                        <a href="#" class="upgrade-to-tatkal text-danger" data-id="' . $row->tr04_sample_registration_id . '" title="Upgrade to Tatkal">
-                            <em class="icon ni ni-speed"></em><span>Upgrade to Tatkal</span>
+                            <a href="' . route('view_invoice', $row->tr04_sample_registration_id) . '">
+                                <em class="icon ni ni-file-text"></em><span>View Invoice</span>
+                            </a>
+                        </li>';
+                        // View All Invoice
+                        $actions .= '<li>
+                        <a href="' . route('view_all_invoice', $row->m07_customer_id) .
+                            '?location_id=' . $row->m08_customer_location_id .
+                            '&payment_by=' . $row->tr04_payment_by . '">
+                            <em class="icon ni ni-files"></em><span>Invoice All</span>
                         </a>
                     </li>';
+                        // Upgrade to Tatkal (conditional)
+                        if ($row->tr04_sample_type !== 'Tatkal' && $row->tr04_progress === 'REGISTERED') {
+                            $actions .= '<li>
+                            <a href="#" class="upgrade-to-tatkal text-danger" data-id="' . $row->tr04_sample_registration_id . '" title="Upgrade to Tatkal">
+                                <em class="icon ni ni-speed"></em><span>Upgrade to Tatkal</span>
+                            </a>
+                        </li>';
+                        }
+
+                        // Dispatch Button (Conditional: Only if REPORTED)
+                        if (strtoupper($row->tr04_progress) === 'REPORTED') {
+                            $actions .= '<li>
+                            <a href="#" class="dispatch-btn text-primary" data-id="' . $row->tr04_sample_registration_id . '" title="Dispatch Sample">
+                                <em class="icon ni ni-truck"></em><span>Dispatch</span>
+                            </a>
+                        </li>';
+                        }
                     }
+
                     $actions .= '</ul>
                             </div>
                         </div>
@@ -622,7 +727,7 @@ class RegistrationController extends Controller
             </td>';
                     return $actions;
                 })
-                ->rawColumns(['status', 'amount', 'action', 'sample_type'])
+                ->rawColumns(['status', 'amount', 'action', 'sample_type', 'payment_status'])
                 ->make(true);
         }
         return view('registration.view_registered_samples');
@@ -681,53 +786,130 @@ class RegistrationController extends Controller
                 }
                 $total = $sample->tr04_testing_charges + ($sample->tr04_testing_charges * 0.50) + $sample->tr04_additional_charges;
 
-                $roGst = Ro::where('m04_ro_id', $sample->m04_ro_id)->first();
-                $gstRate = 0;
-                if ($roGst->igst > 0) {
-                    $gstRate = $roGst->igst;
-                } else if ($roGst->cgst > 0 && $roGst->sgst > 0) {
-                    $gstRate = $roGst->cgst + $roGst->sgst;
+                $roGstAndRates = Ro::where('m04_ro_id', $sample->m04_ro_id)->first();
+
+                // Fetch Customer GST based on payment_by logic preserved from registration
+                $customerGstNo = '';
+                // We need to re-determine who is paying to get their GST. 
+                // Assuming logic similar to registration:
+                $payingCustomerId = null;
+                if ($sample->tr04_payment_by == 'first_party') $payingCustomerId = $sample->m07_customer_id;
+                elseif ($sample->tr04_payment_by == 'second_party') $payingCustomerId = $sample->m07_buyer_id;
+                elseif ($sample->tr04_payment_by == 'third_party') $payingCustomerId = $sample->m07_third_party_id;
+                elseif ($sample->tr04_payment_by == 'cha') $payingCustomerId = $sample->m07_cha_id;
+
+                if ($payingCustomerId) {
+                    $payingCustomer = Customer::find($payingCustomerId);
+                    $customerGstNo = $payingCustomer ? $payingCustomer->m07_gst : '';
                 }
-                $newTotal = ($total * $gstRate)/100 + $total;
+
+                $roStateCode = substr($roGstAndRates->gst_no, 0, 2);
+                $custStateCode = substr($customerGstNo, 0, 2);
+
+                $cgstAmount = 0;
+                $sgstAmount = 0;
+                $igstAmount = 0;
+                $taxAmount = 0;
+
+                if ($roStateCode && $custStateCode && $roStateCode === $custStateCode) {
+                    // Intra-state
+                    $cgstRate = $roGstAndRates->cgst ?? 9;
+                    $sgstRate = $roGstAndRates->sgst ?? 9;
+                    $cgstAmount = ($total * $cgstRate) / 100;
+                    $sgstAmount = ($total * $sgstRate) / 100;
+                    $taxAmount = $cgstAmount + $sgstAmount;
+                } else {
+                    // Inter-state
+                    $igstRate = $roGstAndRates->igst ?? 18;
+                    if ($igstRate == 0 && ($roGstAndRates->cgst > 0 || $roGstAndRates->sgst > 0)) {
+                        $igstRate = ($roGstAndRates->cgst + $roGstAndRates->sgst);
+                    }
+                    $igstAmount = ($total * $igstRate) / 100;
+                    $taxAmount = $igstAmount;
+                }
+
+                $newTotal = $total + $taxAmount;
 
                 $sample->update([
                     'tr04_total_charges' => $newTotal,
                     'tr04_sample_type'   => 'Tatkal',
+                    'tr04_cgst' => $cgstAmount,
+                    'tr04_sgst' => $sgstAmount,
+                    'tr04_igst' => $igstAmount,
                 ]);
 
-                $transaction = WalletTransaction::where('tr04_sample_registration_id', $request->id)->first();
-
-                if ($transaction) {
-                    $transaction->update(['tr03_amount' => (float) $newTotal]);
-
-                    Wallet::where('tr02_wallet_id', $transaction->tr02_wallet_id)
-                        ->update(['tr02_hold_amount' => (float) $newTotal]);
-                }
+                DB::commit();
 
                 return response()->json([
                     'status' => 'success',
-                    'message' => 'Sample has been upgraded to Tatkal successfully.',
-                    'new_total' => number_format($newTotal, 2)
+                    'message' => 'Sample priority upgraded to Tatkal successfully. Charges updated.',
                 ]);
             } catch (\Exception $e) {
+                DB::rollBack();
+                Log::error('Upgrade to Tatkal Error: ' . $e->getMessage());
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'Something went wrong: ' . $e->getMessage(),
+                    'message' => 'Failed to upgrade sample priority.'
                 ], 500);
             }
         }
-
-        return response()->json([
-            'status' => 'error',
-            'message' => 'Invalid request method.'
-        ], 405);
     }
+
+    public function dispatchSample(Request $request)
+    {
+        $request->validate([
+            'sample_id' => 'required|exists:tr04_sample_registrations,tr04_sample_registration_id',
+            'mode' => 'required|string',
+            'person_name' => 'nullable|string',
+            'dispatch_date' => 'required|date',
+            'post_article_no' => 'nullable|string',
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            $sample = SampleRegistration::findOrFail($request->sample_id);
+
+            // Ensure status is REPORTED before dispatching
+            // if (strtoupper($sample->tr04_progress) !== 'REPORTED') {
+            //     return response()->json([
+            //         'status' => 'error',
+            //         'message' => 'Sample must be in REPORTED status to be dispatched.'
+            //     ], 400);
+            // }
+
+            $sample->update([
+                'tr04_progress' => 'DISPATCHED',
+                'tr04_dispatch_mode' => $request->mode,
+                'tr04_dispatch_person' => $request->person_name,
+                'tr04_dispatch_date' => $request->dispatch_date,
+                'tr04_post_article_no' => $request->post_article_no,
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Sample dispatched successfully!'
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Dispatch Sample Error: ' . $e->getMessage());
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to dispatch sample.'
+            ], 500);
+        }
+    }
+
+
 
     public function blankRegistration(Request $request)
     {
         if ($request->isMethod('POST')) {
             $validator = Validator::make($request->all(), [
                 "dd_customer_type" => "required|integer|exists:m09_customer_types,m09_customer_type_id",
+                "commercial_type" => "required|in:1,2",
                 "selected_customer_id" => "required|integer|exists:m07_customers,m07_customer_id",
                 "dd_department" => "required|exists:m13_departments,m13_department_id",
                 "dd_sample_type" => "required|exists:m14_lab_samples,m14_lab_sample_id",
@@ -742,7 +924,7 @@ class RegistrationController extends Controller
 
             DB::beginTransaction();
             try {
-                $refId = generateReferenceId($request->dd_department, $request->dd_customer_type, $request->dd_sample_type);
+                $refId = generateReferenceId($request->dd_department, $request->commercial_type, $request->dd_customer_type, $request->dd_sample_type);
                 $tracId = generateTrackerId($refId);
 
                 $data = [

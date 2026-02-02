@@ -4,9 +4,10 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <title>Sample Details Print | LIMS</title>
+    <title>Sample Registration Acknowledgement | LIMS</title>
     <!-- DashLite Styles -->
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <link rel="icon" href="{{ asset('backAssets/images/favicon.png') }}">
     <link rel="stylesheet" href="{{ asset('backAssets/css/dashlite.css') }}">
     <link id="skin-default" rel="stylesheet" href="{{ asset('backAssets/css/theme.css') }}">
     <script src="{{ asset('backAssets/js/jquery.js') }}"></script>
@@ -331,7 +332,7 @@
                                                 <div class="card border">
                                                     <div class="card-inner">
                                                         <div class="row">
-                                                            <div class="col-6">
+                                                            {{-- <div class="col-6"> --}}
                                                                 <h6 class="card-title mb-3">Sample Information</h6>
                                                                 <ul class="list-plain">
                                                                     <li><strong>Lab Sample:</strong>
@@ -344,14 +345,14 @@
                                                                         {{ ucfirst(str_replace('_', ' ', $sample->tr04_received_via)) }}
                                                                     </li>
                                                                 </ul>
-                                                            </div>
+                                                            {{-- </div>
                                                             <div class="col-6">
                                                                 @if ($sample->tr04_attachment)
                                                                     <img src="{{ asset('storage/' . $sample->tr04_attachment) }}"
                                                                         alt="Sample Image" class="img-thumbnail"
                                                                         style="width: 100%; max-width: 200px; height: auto; object-fit: cover;">
                                                                 @endif
-                                                            </div>
+                                                            </div> --}}
                                                         </div>
                                                     </div>
                                                 </div>
@@ -365,15 +366,15 @@
                                                                 {{ ucfirst(str_replace('_', ' ', $sample->tr04_payment_by)) }}
                                                             </li>
                                                             <li><strong>Report To:</strong>
-                                                                {{ ucfirst(str_replace('_', ' ', $sample->tr04_report_to)) }}
+                                                                 {{ implode(', ', array_map(fn($item) => ucwords(str_replace('_', ' ', $item)), json_decode($sample->tr04_report_to, true))) }}
                                                             </li>
                                                             <li><strong>Payment Status:</strong>
                                                                 <span
-                                                                    class="badge 
-                                                                    @if ($sample->tr04_payment == 'COMPLETED') bg-success 
-                                                                    @elseif($sample->tr04_payment == 'PENDING') bg-warning 
-                                                                    @else bg-secondary @endif">
-                                                                    {{ $sample->tr04_payment }}
+                                                                    class="fw-bold 
+                                                                    @if ($sample->tr04_payment_status == 'COMPLETED') text-success 
+                                                                    @elseif($sample->tr04_payment_status == 'PENDING') text-warning 
+                                                                    @else text-secondary @endif">
+                                                                    {{ $sample->tr04_payment_status }}
                                                                 </span>
                                                             </li>
                                                             @if ($sample->package)
@@ -391,20 +392,20 @@
                                     <div class="invoice-bills">
                                         <h5 class="mb-3">Test Details</h5>
                                         <div class="table-responsive">
-                                            <table class="table table-striped">
+                                            <table class="table table-striped" style="border: 1px solid #cac8c8;">
                                                 <thead>
                                                     <tr>
                                                         <th class="w-150px">Test ID</th>
                                                         <th class="w-60">Test Name & Description</th>
                                                         <th>Standard/Method</th>
-                                                        <th>Unit</th>
+                                                        {{-- <th>Unit</th> --}}
                                                         <th>Charge</th>
                                                         <th>Status</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
                                                     @forelse($sample->sampleTests as $sampleTest)
-                                                        <tr>
+                                                        <tr style="border-bottom: 1px solid #141414;">
                                                             <td>{{ $sampleTest['test']['m12_test_id'] }}</td>
                                                             <td>
                                                                 <strong>{{ $sampleTest['test']['m12_name'] }}</strong>
@@ -419,7 +420,8 @@
                                                             </td>
                                                             <td>
                                                                 {{ $sampleTest['standard']['m15_method'] ?? '_' }}
-                                                                @if (!empty($sampleTest['standard']['accreditationForCurrentRo']) &&
+                                                                @if (
+                                                                    !empty($sampleTest['standard']['accreditationForCurrentRo']) &&
                                                                         $sampleTest['standard']['accreditationForCurrentRo']['m21_is_accredited'] === 'YES')
                                                                     <br><span
                                                                         class="badge bg-outline-success badge-xs">
@@ -428,7 +430,7 @@
                                                                     </span>
                                                                 @endif
                                                             </td>
-                                                            <td>{{ $sampleTest['test']['m12_unit'] ?? '_' }}</td>
+                                                            {{-- <td>{{ $sampleTest['test']['m12_unit'] ?? '_' }}</td> --}}
                                                             <td>&#8377;{{ number_format($sampleTest['test']['m12_charge'], 2) }}
                                                             </td>
                                                             <td>
@@ -452,66 +454,84 @@
                                                 <tfoot class="bg-light">
                                                     <tr>
                                                         <!-- QR Code Cell -->
-                                                        <td rowspan ='3'><small class="my-auto text-muted">Scan to
+                                                        <td rowspan = {{ $sample->tr04_igst > 0 ? '4' : '5' }}><small class="my-auto text-muted">Scan to
                                                                 view
                                                                 registration >>></small></td>
                                                         <td
-                                                            rowspan="{{ $sample->tr04_additional_charges > 0 ? 3 : 2 }}">
+                                                            rowspan={{ $sample->tr04_igst > 0 ? '4' : '5' }}>
                                                             <div class="d-flex flex-column align-items-center p-2">
-                                                                {!! QrCode::size(100)->generate(route('view_registration_pdf', $sample->tr04_sample_registration_id)) !!}
+                                                                {!! QrCode::size(100)->generate(route('track_sample', ['trackerId' => $sample->tr04_tracker_id])) !!}
                                                                 <strong class="text-dark fw-semibold">
                                                                     {{ $sample->tr04_tracker_id }}</strong>
                                                             </div>
                                                         </td>
-
+                                                    </tr>
+                                                    <tr>
+    
                                                         <!-- Testing Charges -->
-                                                        <td class="py-2" colspan="2">
+                                                        <td>
                                                             <strong>Testing Charges</strong>
                                                         </td>
-                                                        <td class="text-end py-2">
+                                                        <td class="text-end">
                                                             <span class="fw-semibold">&#8377;
                                                                 {{ number_format($sample->tr04_testing_charges, 2) }}</span>
                                                         </td>
                                                     </tr>
-                                                    @if ($sample->tr04_additional_charges > 0)
                                                         <tr>
-                                                            <td class="py-2" colspan="2">
+                                                            <td>
                                                                 <strong>Additional Charges</strong>
                                                             </td>
-                                                            <td class="text-end py-2">
+                                                            <td class="text-end">
                                                                 <span class="fw-semibold">&#8377;
-                                                                    {{ number_format($sample->tr04_additional_charges, 2) }}</span>
+                                                                    {{ number_format($sample->tr04_additional_charges, 2) ?? 0 }}</span>
+                                                            </td>
+                                                        </tr>
+                                                    @php
+                                                        $taxableAmount = $sample->tr04_testing_charges + $sample->tr04_additional_charges;
+                                                        $cgstRate = ($taxableAmount > 0 && $sample->tr04_cgst > 0) ? ($sample->tr04_cgst / $taxableAmount) * 100 : 0;
+                                                        $sgstRate = ($taxableAmount > 0 && $sample->tr04_sgst > 0) ? ($sample->tr04_sgst / $taxableAmount) * 100 : 0;
+                                                        $igstRate = ($taxableAmount > 0 && $sample->tr04_igst > 0) ? ($sample->tr04_igst / $taxableAmount) * 100 : 0;
+                                                        $rowCountQR = ($sample->tr04_cgst > 0 || $sample->tr04_sgst > 0) ? 5 : 4; 
+                                                    @endphp
+                                                    
+                                                    <!-- Update rowspan dynamically via JS or just set it here if we could. 
+                                                         Since we are inside the table body/footer, we can't easily change the previous TD's rowspan 
+                                                         without JS or checking beforehand.
+                                                         However, for now let's focus on the GST breakdown row content. -->
+
+                                                    @if($sample->tr04_cgst > 0 || $sample->tr04_sgst > 0)
+                                                        <tr>
+                                                            <td><strong>CGST ({{ round($cgstRate) }}%)</strong></td>
+                                                            <td class="text-end">
+                                                                <span class="fw-semibold">&#8377;{{ number_format($sample->tr04_cgst, 2) }}</span>
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td><strong>SGST ({{ round($sgstRate) }}%)</strong></td>
+                                                            <td class="text-end">
+                                                                <span class="fw-semibold">&#8377;{{ number_format($sample->tr04_sgst, 2) }}</span>
+                                                            </td>
+                                                        </tr>
+                                                    @elseif($sample->tr04_igst > 0)
+                                                        <tr>
+                                                            <td><strong>IGST ({{ round($igstRate) }}%)</strong></td>
+                                                            <td class="text-end">
+                                                                <span class="fw-semibold">&#8377;{{ number_format($sample->tr04_igst, 2) }}</span>
                                                             </td>
                                                         </tr>
                                                     @endif
-                                                    <tr>
-                                                        <td class="py-2" colspan="2">
-                                                            
-                                                            <strong>GST Type & Rate:</strong>
-                                                            
-                                                        </td>
-                                                        <td class="text-end py-2">
-                                                            <span class="fw-semibold">&#8377;
-                                                                @if(!empty($roGst->cgst) && !empty($roGst->sgst))
-                                                                CGST {{ $roGst->cgst }}% + SGST {{ $roGst->sgst }}%
-                                                                @elseif(!empty($roGst->igst))
-                                                                IGST {{ $roGst->igst }}%
-                                                                @else
-                                                                N/A
-                                                                @endif
-                                                            </span>
-                                                        </td>
-                                                    </tr>
+
                                                     <tr class="bg-white">
-                                                        <td class=" py-3" colspan="2">
+                                                        <td class="" colspan="2">
                                                         </td>
-                                                        <td class=" py-3" colspan="2">
+                                                        <td class="">
                                                             <strong class="fs-6 text-dark">Grand Total</strong>
                                                         </td>
-                                                        <td class="text-end py-3">
+                                                        <td class="float-end">
                                                             <strong class="text-primary fs-5">&#8377;
                                                                 {{ number_format($sample->tr04_total_charges, 2) }}</strong>
                                                         </td>
+                                                        <td></td>
                                                     </tr>
                                                 </tfoot>
                                             </table>

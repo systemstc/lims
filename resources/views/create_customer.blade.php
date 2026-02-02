@@ -48,7 +48,6 @@
                                                 @enderror
                                             </div>
                                         </div>
-
                                         @if (Session::get('role') === 'ADMIN')
                                             <div class="col-md-4">
                                                 <div class="form-group">

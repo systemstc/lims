@@ -1288,7 +1288,7 @@ class MasterController extends Controller
             // dd($request);
             $rules = [
                 "txt_sample_id" => "required|integer|exists:m10_samples,m10_sample_id",
-                "txt_group_id" => "required|integer|exists:m11_groups,m11_group_id",
+                "txt_group_id" => "required|integer|exists:m11_groups,m11_group_code",
                 "txt_name" => "required|string|max:255|unique:m12_tests,m12_name",
                 "txt_category_id" => "required|string|max:255",
                 "txt_input_mode" => "required|string|max:255",
@@ -1302,15 +1302,15 @@ class MasterController extends Controller
                 "txt_remark" => "nullable|string|max:500",
                 "standard_ids" => "required|array|min:1",
                 "standard_ids.*" => "required|integer|exists:m15_standards,m15_standard_id",
-                "primary_test_ids" => "required|array|min:1",
-                "primary_test_ids.*" => "required|integer|exists:m16_primary_tests,m16_primary_test_id",
+                "primary_test_ids" => "nullable|array|min:1",
+                "primary_test_ids.*" => "nullable|integer|exists:m16_primary_tests,m16_primary_test_id",
                 "secondary_test_ids" => "nullable|array",
                 "secondary_test_ids.*" => "nullable|integer|exists:m17_secondary_tests,m17_secondary_test_id",
                 "secondary_test_primary_ids" => "nullable|array",
                 "secondary_test_primary_ids.*" => "nullable|integer|exists:m16_primary_tests,m16_primary_test_id",
                 "lab_sample_ids" => "required|array",
                 "lab_sample_ids.*" => "required|integer|exists:m14_lab_samples,m14_lab_sample_id",
-                "results" => "required|string|min:1",
+                "results" => "nullable|string|min:1",
             ];
 
             // Additional validation for MULTI STAGE
@@ -1397,7 +1397,7 @@ class MasterController extends Controller
                 // Create the main test record
                 $test = Test::create([
                     'm10_sample_id' => $request->txt_sample_id,
-                    'm11_group_id' => $request->txt_group_id,
+                    'm11_group_code' => $request->txt_group_id,
                     'm12_name' => $request->txt_name,
                     'm12_category' => $request->txt_category_id,
                     'm12_input_mode' => $request->txt_input_mode,
@@ -1471,7 +1471,7 @@ class MasterController extends Controller
         }
 
         $standards = Standard::where('m15_status', 'ACTIVE')
-            ->where('m11_group_id', $selectedGroupId)
+            // ->where('m11_group_id', $selectedGroupId)
             ->where('m15_method', 'LIKE', "%{$query}%")
             ->select('m15_standard_id as id', 'm15_method as name')
             ->limit(10)
@@ -1530,13 +1530,14 @@ class MasterController extends Controller
 
     public function createAjaxStandard(Request $request)
     {
+        // dd($request);
         $validator = Validator::make($request->all(), [
             'name'        => 'required|string|max:255|unique:m15_standards,m15_method',
             'accredited'  => 'required|in:YES,NO',
             'description' => 'nullable|string|max:500',
             'accExp'      => 'nullable|date',
             'sampleId'    => 'required|integer|exists:m10_samples,m10_sample_id',
-            'groupId'     => 'required|integer|exists:m11_groups,m11_group_id',
+            'groupId'     => 'required|integer|exists:m11_groups,m11_group_code',
         ], [
             'name.required'       => 'Standard Name is required.',
             'name.unique'         => 'This standard already exists.',
@@ -1558,7 +1559,7 @@ class MasterController extends Controller
                 'm15_method'      => $request->name,
                 'm15_description' => $request->description,
                 'm10_sample_id'   => $request->sampleId,
-                'm11_group_id'    => $request->groupId,
+                'm11_group_code'    => $request->groupId,
                 'tr01_created_by' => Session::get('user_id') ?? -1,
             ]);
 
@@ -1602,7 +1603,7 @@ class MasterController extends Controller
             $validator = Validator::make($request->all(), [
                 'name' => 'required|string|max:255|unique:m16_primary_tests,m16_name',
                 'sampleId' => 'required|integer|exists:m10_samples,m10_sample_id',
-                'groupId' => 'required|integer|exists:m11_groups,m11_group_id'
+                'groupId' => 'required|integer|exists:m11_groups,m11_group_code'
             ]);
 
             if ($validator->fails()) {
@@ -1615,7 +1616,7 @@ class MasterController extends Controller
             $primaryTest = PrimaryTest::create([
                 'm16_name' => $request->name,
                 'm10_sample_id' => $request->sampleId,
-                'm11_group_id' => $request->groupId,
+                'm11_group_code' => $request->groupId,
                 'm16_status' => 'ACTIVE',
                 'tr01_created_by' => Session::get('user_id') ?? -1,
             ]);
@@ -1712,7 +1713,7 @@ class MasterController extends Controller
         if ($request->isMethod('POST')) {
             $rules = [
                 "txt_sample_id"             => "required|integer|exists:m10_samples,m10_sample_id",
-                "txt_group_id"              => "required|integer|exists:m11_groups,m11_group_id",
+                "txt_group_id"              => "required|integer|exists:m11_groups,m11_group_code",
                 "txt_name"                  => "required|string|max:255",
                 "txt_category_id"           => "required|string|max:255",
                 "txt_input_mode"            => "required|string|max:255",
@@ -1725,11 +1726,11 @@ class MasterController extends Controller
                 "txt_instrument"            => "nullable|string|max:255",
                 "txt_remark"                => "nullable|string|max:500",
 
-                "standard_ids"              => "required|array|min:1",
-                "standard_ids.*"            => "required|integer|exists:m15_standards,m15_standard_id",
+                "standard_ids"              => "nullable|array|min:1",
+                "standard_ids.*"            => "nullable|integer|exists:m15_standards,m15_standard_id",
 
-                "primary_test_ids"          => "required|array|min:1",
-                "primary_test_ids.*"        => "required|integer|exists:m16_primary_tests,m16_primary_test_id",
+                "primary_test_ids"          => "nullable|array|min:1",
+                "primary_test_ids.*"        => "nullable|integer|exists:m16_primary_tests,m16_primary_test_id",
 
                 "secondary_test_ids"        => "nullable|array",
                 "secondary_test_ids.*"      => "nullable|integer|exists:m17_secondary_tests,m17_secondary_test_id",
@@ -1737,8 +1738,8 @@ class MasterController extends Controller
                 "secondary_test_primary_ids" => "nullable|array",
                 "secondary_test_primary_ids.*" => "nullable|integer|exists:m16_primary_tests,m16_primary_test_id",
 
-                "results"                   => "required|min:1",
-                "results.*.name"            => "required|string|max:255",
+                "results"                   => "nullable|min:1",
+                "results.*.name"            => "nullable|string|max:255",
                 "lab_sample_ids" => "required|array",
                 "lab_sample_ids.*" => "required|integer|exists:m14_lab_samples,m14_lab_sample_id",
             ];
@@ -2119,7 +2120,7 @@ class MasterController extends Controller
 
     public function viewPrimaryTests()
     {
-        $primaryTests = PrimaryTest::with(['sample', 'group', 'user'])->get();
+        $primaryTests = PrimaryTest::with(['sample', 'group', 'employee'])->get();
         return view('test.primary.primary_tests', compact('primaryTests'));
     }
     public function createPrimaryTest(Request $request)
@@ -2127,11 +2128,13 @@ class MasterController extends Controller
         if ($request->isMethod('POST')) {
             $validator = Validator::make($request->all(), [
                 'txt_sample_id'   => 'required|exists:m10_samples,m10_sample_id',
-                'txt_group_id'    => 'required|exists:m11_groups,m11_group_id',
+                'txt_group_id'    => 'required|exists:m11_groups,m11_group_code',
                 'txt_name'        => 'required|string|max:255',
                 'txt_unit'        => 'nullable|string|max:255',
                 'txt_requirement' => 'nullable|string|max:255',
                 'txt_remark'      => 'nullable|string|max:255',
+                'txt_lab_sample_ids' => 'nullable|array',
+                'txt_lab_sample_ids.*' => 'integer|exists:m14_lab_samples,m14_lab_sample_id',
             ], [
                 'txt_sample_id.required'   => 'Please select a sample.',
                 'txt_sample_id.exists'     => 'Selected sample is invalid.',
@@ -2158,11 +2161,12 @@ class MasterController extends Controller
 
             PrimaryTest::create([
                 'm10_sample_id'   => $request->txt_sample_id,
-                'm11_group_id'    => $request->txt_group_id,
+                'm11_group_code'    => $request->txt_group_id,
                 'm16_name'        => $request->txt_name,
                 'm16_unit'        => $request->txt_unit,
                 'm16_requirement' => $request->txt_requirement,
                 'm16_remark'      => $request->txt_remark,
+                'm14_lab_sample_ids' => $request->txt_lab_sample_ids,
                 'tr01_created_by'      => Session::get('user_id'),
             ]);
             Session::flash('type', 'success');
@@ -2171,7 +2175,8 @@ class MasterController extends Controller
         }
 
         $samples = Sample::where('m10_status', 'ACTIVE')->get(['m10_sample_id', 'm10_name']);
-        return view('test.primary.create_primary_test', compact('samples'));
+        $labSamples = LabSample::where('m14_status', 'ACTIVE')->get(['m14_lab_sample_id', 'm14_name']);
+        return view('test.primary.create_primary_test', compact('samples', 'labSamples'));
     }
 
     public function updatePrimaryTest(Request $request, $id)
@@ -2180,11 +2185,13 @@ class MasterController extends Controller
             $validator = Validator::make($request->all(), [
                 "txt_edit_id" => "required|exists:m16_primary_tests,m16_primary_test_id",
                 "txt_edit_sample_id" => "required|exists:m10_samples,m10_sample_id",
-                "txt_edit_group_id" => "required|exists:m11_groups,m11_group_id",
+                "txt_edit_group_id" => "required|exists:m11_groups,m11_group_code",
                 "txt_edit_name" => "required|string|max:255",
                 "txt_edit_unit" => "nullable|string|max:255",
                 "txt_edit_requirement" => "nullable|string|max:255",
                 "txt_edit_remark" => "nullable|string|max:255",
+                "txt_edit_lab_sample_ids" => "nullable|array",
+                "txt_edit_lab_sample_ids.*" => "integer|exists:m14_lab_samples,m14_lab_sample_id",
             ], [
                 "txt_edit_sample_id.required" => "Sample selection is required.",
                 "txt_edit_group_id.required" => "Group selection is required.",
@@ -2198,11 +2205,12 @@ class MasterController extends Controller
             $primaryTest = PrimaryTest::findOrFail($request->txt_edit_id);
             $primaryTest->update([
                 'm10_sample_id' => $request->txt_edit_sample_id,
-                'm11_group_id' => $request->txt_edit_group_id,
+                'm11_group_code' => $request->txt_edit_group_id,
                 'm16_name' => $request->txt_edit_name,
                 'm16_unit' => $request->txt_edit_unit,
                 'm16_requirement' => $request->txt_edit_requirement,
                 'm16_remark' => $request->txt_edit_remark,
+                'm14_lab_sample_ids' => $request->txt_edit_lab_sample_ids,
             ]);
 
             Session::flash('type', 'success');
@@ -2212,8 +2220,9 @@ class MasterController extends Controller
 
         $primaryTest = PrimaryTest::findOrFail($id);
         $samples = Sample::where('m10_status', 'ACTIVE')->get(['m10_sample_id', 'm10_name']);
+        $labSamples = LabSample::where('m14_status', 'ACTIVE')->get(['m14_lab_sample_id', 'm14_name']);
 
-        return view('test.primary.edit_primary_test', compact('primaryTest', 'samples'));
+        return view('test.primary.edit_primary_test', compact('primaryTest', 'samples', 'labSamples'));
     }
 
     public function deletePrimaryTest(Request $request)

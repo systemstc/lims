@@ -32,7 +32,8 @@ class AnalystController extends Controller
 
         $rejectedTests = SampleTest::where('m06_alloted_to', $userId)
             ->whereHas('registration.testResult', function ($query) {
-                $query->where('tr07_result_status', 'REJECTED');
+                $query->where('tr07_result_status', 'REJECTED')
+                    ->where('tr07_is_current', 'YES');
             })
             ->distinct('tr04_sample_registration_id')
             ->count('tr04_sample_registration_id');
@@ -313,7 +314,8 @@ class AnalystController extends Controller
         $rejectedSamples = SampleTest::query()
             ->where('m06_alloted_to', $userId)
             ->whereHas('registration.testResult', function ($query) {
-                $query->where('tr07_result_status', 'REJECTED');
+                $query->where('tr07_result_status', 'REJECTED')
+                    ->where('tr07_is_current', 'YES');
             })
             ->with(['registration.testResult' => function ($query) {
                 $query->orderByDesc('tr07_created_at');
@@ -600,6 +602,9 @@ class AnalystController extends Controller
                     }
                 }
 
+                // Auto-complete SampleTest status
+                $this->autoCompleteSampleTests($refId, $userId);
+
                 DB::commit();
 
                 $message = $request->action === 'DRAFT'
@@ -800,12 +805,49 @@ class AnalystController extends Controller
 
         if ($updated) {
             Session::flash('type', 'success');
-            Session::flash('message', 'Tests updated successfully.');
-        } else {
-            Session::flash('type', 'info');
-            Session::flash('message', 'No status changes were required.');
+            Session::flash('message', 'Tests Updated Successfully');
+            return redirect()->back();
         }
-
+        Session::flash('type', 'warning');
+        Session::flash('message', 'No tests could be updated.');
         return redirect()->back();
+    }
+
+    private function autoCompleteSampleTests($registrationId, $userId)
+    {
+        $query = SampleTest::where('tr04_sample_registration_id', $registrationId)
+            ->where('tr05_status', '!=', 'COMPLETED')
+            ->where('tr05_status', '!=', 'REPORTED');
+
+        // If not admin/manager, restrict to user's tests
+        // But for rejection flow, we might want to be permissive if they are fixing it
+        $query->where('m06_alloted_to', $userId);
+
+        $tests = $query->get();
+
+        foreach ($tests as $test) {
+            $test->update([
+                'tr05_status' => 'COMPLETED',
+                'tr05_completed_at' => now(),
+            ]);
+        }
+    }
+
+    public function saveRemark(Request $request)
+    {
+        try {
+            $request->validate([
+                'sample_test_id' => 'required',
+                'remark' => 'nullable|string'
+            ]);
+
+            $sampleTest = SampleTest::where('tr05_sample_test_id', $request->sample_test_id)->firstOrFail();
+            $sampleTest->update(['tr05_remark' => $request->remark]);
+
+            return response()->json(['success' => true]);
+        } catch (\Exception $e) {
+            Log::error('Error saving remark: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Error saving remark'], 500);
+        }
     }
 }

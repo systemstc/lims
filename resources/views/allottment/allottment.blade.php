@@ -130,9 +130,9 @@
                     <input type="hidden" name="txt_sample_registration_id"
                         value="{{ $registration->tr04_sample_registration_id }}">
 
-                    <div class="table-responsive">
-                        <table class="table table-bordered table-hover">
-                            <thead class="thead-light">
+                    <div class="">
+                        <table class="table table-orders">
+                            <thead class="tb-odr-head">
                                 <tr>
                                     <th width="50">
                                         <input type="checkbox" id="header-checkbox" onchange="toggleAllCheckboxes()">
@@ -141,6 +141,7 @@
                                     <th>Test Name</th>
                                     <th>Standard/Method</th>
                                     <th>Current Status</th>
+                                    <th>Remarks</th>
                                     <th>Assigned To</th>
                                     <th>Allot To</th>
                                     <th width="150">Actions</th>
@@ -178,6 +179,7 @@
                                                 </small>
                                             @endif
                                         </td>
+                                        <td>{{ $test->tr05_remark }}</td>
                                         <td>
                                             @if ($test->allotedTo)
                                                 <span class="text-success">

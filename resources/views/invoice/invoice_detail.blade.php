@@ -120,24 +120,46 @@
                                     <td class="text-end">₹{{ number_format($sample->tr04_additional_charges, 2) }}</td>
                                 </tr>
                                 @endif
-                                    <tr>
-                                                        <td>
-                                                            
-                                                            <label>GST Type & Rate:</label>
-                                                            
-                                                        </td>
-                                                        <td class="text-end">
-                                                            <span class="fw-semibold">
-                                                                @if(!empty($roGst->cgst) && !empty($roGst->sgst))
-                                                                CGST {{ $roGst->cgst }}% + SGST {{ $roGst->sgst }}%
-                                                                @elseif(!empty($roGst->igst))
-                                                                IGST {{ $roGst->igst }}%
-                                                                @else
-                                                                N/A
-                                                                @endif
-                                                            </span>
-                                                        </td>
-                                                    </tr>
+                                    @php
+                                        $taxableAmount = $sample->tr04_testing_charges + $sample->tr04_additional_charges;
+                                        $cgstRate = ($taxableAmount > 0 && $sample->tr04_cgst > 0) ? ($sample->tr04_cgst / $taxableAmount) * 100 : 0;
+                                        $sgstRate = ($taxableAmount > 0 && $sample->tr04_sgst > 0) ? ($sample->tr04_sgst / $taxableAmount) * 100 : 0;
+                                        $igstRate = ($taxableAmount > 0 && $sample->tr04_igst > 0) ? ($sample->tr04_igst / $taxableAmount) * 100 : 0;
+                                    @endphp
+
+                                    @if($sample->tr04_cgst > 0 || $sample->tr04_sgst > 0)
+                                        <tr>
+                                            <td>CGST ({{ round($cgstRate) }}%)</td>
+                                            <td class="text-end">₹{{ number_format($sample->tr04_cgst, 2) }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td>SGST ({{ round($sgstRate) }}%)</td>
+                                            <td class="text-end">₹{{ number_format($sample->tr04_sgst, 2) }}</td>
+                                        </tr>
+                                    @elseif($sample->tr04_igst > 0)
+                                        <tr>
+                                            <td>IGST ({{ round($igstRate) }}%)</td>
+                                            <td class="text-end">₹{{ number_format($sample->tr04_igst, 2) }}</td>
+                                        </tr>
+                                    @else
+                                        <!-- Fallback for old records -->
+                                         <tr>
+                                             <td>
+                                                 <label>GST Type & Rate:</label>
+                                             </td>
+                                             <td class="text-end">
+                                                 <span class="fw-semibold">
+                                                     @if(!empty($roGst->cgst) && !empty($roGst->sgst))
+                                                     CGST {{ $roGst->cgst }}% + SGST {{ $roGst->sgst }}%
+                                                     @elseif(!empty($roGst->igst))
+                                                     IGST {{ $roGst->igst }}%
+                                                     @else
+                                                     N/A
+                                                     @endif
+                                                 </span>
+                                             </td>
+                                         </tr>
+                                    @endif
                                 <tr class="border-top fw-bold">
                                     <td>Total</td>
                                     <td class="text-end">₹{{ number_format($sample->tr04_total_charges, 2) }}</td>

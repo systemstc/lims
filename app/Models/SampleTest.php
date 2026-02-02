@@ -33,6 +33,7 @@ class SampleTest extends Model
         'tr05_transferred_at',
         'tr05_reassigned_at',
         'tr05_accepted_at',
+        'm12_transferred_from_test_id',
         'tr05_completed_at'
     ];
     protected $casts = [

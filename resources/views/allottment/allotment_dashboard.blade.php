@@ -40,7 +40,7 @@
                             </div>
                             <div class="card-tools">
                                 <em class="card-hint-icon icon ni ni-help" data-bs-toggle="tooltip"
-                                    title="Samples waiting for allotment"></em>
+                                    title="Pending Samples that are not reported yet"></em>
                             </div>
                         </div>
                         <div class="align-end flex-sm-wrap g-4">
@@ -117,7 +117,7 @@
                     </div>
                     <div class="modal-body">
                         <div class="table-responsive">
-                            <table class="table table-bordered table-striped">
+                            <table class="table table-hover" id="analystDetailsTable">
                                 <thead>
                                     <tr>
                                         <th>Ref ID</th>
@@ -570,28 +570,40 @@
                                             <td>
                                                 @php
                                                     $daysPending = $registration->created_at->floatDiffInDays(now());
-                                                    
+
                                                     // Check if fully completed (all tests completed/reported/verified) OR registration status is reported
-                                                    $isCompleted = ($registration->total_tests > 0 && $registration->completed_tests >= $registration->total_tests) || strtolower($registration->tr04_status) === 'reported';
-                                                    
+                                                    $isCompleted =
+                                                        ($registration->total_tests > 0 &&
+                                                            $registration->completed_tests >=
+                                                                $registration->total_tests) ||
+                                                        strtolower($registration->tr04_status) === 'reported';
+
                                                     // Determine completion date
                                                     $completedAt = null;
                                                     if ($registration->last_test_completed_at) {
-                                                        $completedAt = \Carbon\Carbon::parse($registration->last_test_completed_at);
+                                                        $completedAt = \Carbon\Carbon::parse(
+                                                            $registration->last_test_completed_at,
+                                                        );
                                                     } elseif ($isCompleted) {
                                                         $completedAt = $registration->updated_at;
                                                     }
-                                                    
-                                                    $expectedDate = $registration->tr04_expected_date ? \Carbon\Carbon::parse($registration->tr04_expected_date) : null;
+
+                                                    $expectedDate = $registration->tr04_expected_date
+                                                        ? \Carbon\Carbon::parse($registration->tr04_expected_date)
+                                                        : null;
                                                 @endphp
 
                                                 @if ($isCompleted && $completedAt)
                                                     @php
-                                                        $daysTaken = $registration->created_at->floatDiffInDays($completedAt);
+                                                        $daysTaken = $registration->created_at->floatDiffInDays(
+                                                            $completedAt,
+                                                        );
                                                         $isOnTime = false;
                                                         if ($expectedDate) {
                                                             // Check if completed date is same day or before expected date
-                                                            $isOnTime = $completedAt->lte($expectedDate) || $completedAt->isSameDay($expectedDate);
+                                                            $isOnTime =
+                                                                $completedAt->lte($expectedDate) ||
+                                                                $completedAt->isSameDay($expectedDate);
                                                         } else {
                                                             // Fallback logic if no expected date
                                                             $isOnTime = $daysTaken <= 3;
@@ -601,7 +613,8 @@
                                                     @if ($isOnTime)
                                                         <span class="text-primary fw-bold">Completed on time</span>
                                                     @else
-                                                        <span class="text-danger fw-bold">Completed after {{ round($daysTaken) }} days</span>
+                                                        <span class="text-danger fw-bold">Completed after
+                                                            {{ round($daysTaken) }} days</span>
                                                     @endif
                                                 @else
                                                     @php
@@ -1436,24 +1449,31 @@
                         }
                     },
                     onClick: function(e) {
-                         const points = chart.getElementsAtEventForMode(e, 'nearest', { intersect: true }, true);
+                        const points = chart.getElementsAtEventForMode(e, 'nearest', {
+                            intersect: true
+                        }, true);
 
                         if (points.length) {
                             const firstPoint = points[0];
                             const labelIndex = firstPoint.index;
                             const datasetIndex = firstPoint.datasetIndex;
-                            
+
                             const analystName = labels[labelIndex];
                             // We need the analyst ID. Let's assume analystStats array aligns with labels array index.
                             const analystData = analystStats[labelIndex];
                             const analystId = analystData.emp_id;
 
-                            const statusLabel = chart.data.datasets[datasetIndex].label.toLowerCase(); // allotted, completed, pending
+                            const statusLabel = chart.data.datasets[datasetIndex].label
+                                .toLowerCase(); // allotted, completed, pending
 
                             // Call backend to get details
-                             $('#analystDetailsModal .modal-title').text(analystName + ' - ' + statusLabel.charAt(0).toUpperCase() + statusLabel.slice(1) + ' Samples');
-                             $('#analystDetailsBody').html('<tr><td colspan="4" class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></td></tr>');
-                             $('#analystDetailsModal').modal('show');
+                            $('#analystDetailsModal .modal-title').text(analystName + ' - ' +
+                                statusLabel.charAt(0).toUpperCase() + statusLabel.slice(1) +
+                                ' Samples');
+                            $('#analystDetailsBody').html(
+                                '<tr><td colspan="4" class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></td></tr>'
+                            );
+                            $('#analystDetailsModal').modal('show');
 
                             $.ajax({
                                 url: '{{ route('get_analyst_test_details') }}',
@@ -1464,16 +1484,46 @@
                                     status: statusLabel
                                 },
                                 success: function(response) {
+                                    // Destroy existing DataTable if it exists
+                                    if ($.fn.DataTable.isDataTable(
+                                        '#analystDetailsTable')) {
+                                        $('#analystDetailsTable').DataTable().destroy();
+                                    }
+
                                     $('#analystDetailsBody').html(response.html);
+
+                                    // Re-initialize DataTable
+                                    $('#analystDetailsTable').DataTable({
+                                        "paging": true,
+                                        "ordering": true,
+                                        "info": true,
+                                        "searching": true,
+                                        "responsive": true,
+                                        "autoWidth": false,
+                                        "lengthChange": true,
+                                        "pageLength": 10,
+                                        "language": {
+                                            "search": "Search:",
+                                            "searchPlaceholder": "Search records"
+                                        },
+                                        "columnDefs": [{
+                                            "orderable": false,
+                                            "targets": 3 // Disable sorting on 'View' column
+                                        }]
+                                    });
                                 },
                                 error: function() {
-                                    $('#analystDetailsBody').html('<tr><td colspan="4" class="text-center text-danger">Failed to load data.</td></tr>');
+                                    $('#analystDetailsBody').html(
+                                        '<tr><td colspan="4" class="text-center text-danger">Failed to load data.</td></tr>'
+                                    );
                                 }
                             });
                         }
                     },
-                     onHover: function(e) {
-                        const point = chart.getElementsAtEventForMode(e, 'nearest', { intersect: true }, true);
+                    onHover: function(e) {
+                        const point = chart.getElementsAtEventForMode(e, 'nearest', {
+                            intersect: true
+                        }, true);
                         if (point.length) e.native.target.style.cursor = 'pointer';
                         else e.native.target.style.cursor = 'default';
                     }

@@ -9,13 +9,16 @@ use App\Models\SampleTest;
 use App\Models\SecondaryTest;
 use App\Models\TestReport;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Facades\DB;
 use App\Models\TestResult;
+use App\Models\Formula;
+use App\Models\RawEntry;
 use App\Models\Wallet;
 use App\Models\WalletTransaction;
 use Barryvdh\DomPDF\Facade\Pdf;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Session;
 use Carbon\Carbon;
 
 class TestResultController extends Controller
@@ -56,6 +59,7 @@ class TestResultController extends Controller
         }
 
         $testResults = $query
+            ->with('registration:tr04_reference_id,tr04_progress')
             ->select(
                 'tr04_reference_id',
                 DB::raw('MAX(tr07_test_date) as last_test_date'),
@@ -206,6 +210,7 @@ class TestResultController extends Controller
         } elseif (Session::get('role') === 'DEO') {
             $sampleTests = SampleTest::with([
                 'test',
+                'test.formula',
                 'test.standard',
                 'registration',
                 'registration.labSample',
@@ -216,6 +221,7 @@ class TestResultController extends Controller
         } else {
             $sampleTests = SampleTest::with([
                 'test',
+                'test.formula', // Added eager load
                 'test.standard',
                 'registration',
                 'registration.labSample',
@@ -257,11 +263,28 @@ class TestResultController extends Controller
                 // Load primary tests that are associated with this test
                 if ($test->m16_primary_test_id) {
                     $primaryTestIds = explode(',', $test->m16_primary_test_id);
-                    $primaryTests = PrimaryTest::whereIn('m16_primary_test_id', $primaryTestIds)->get();
+                    $primaryTests = PrimaryTest::with('formula')->whereIn('m16_primary_test_id', $primaryTestIds)->get();
+
+                    // Filter primary tests based on sample registration's lab sample ID
+                    if ($sampleTest->registration && $sampleTest->registration->m14_lab_sample_id) {
+                        $labSampleId = $sampleTest->registration->m14_lab_sample_id;
+                        $primaryTests = $primaryTests->filter(function ($primaryTest) use ($labSampleId) {
+                            // Debugging
+                            // Log::info("Filtering Primary Test: " . $primaryTest->m16_primary_test_id);
+                            // Log::info("Registration Lab Sample ID: " . $labSampleId . " (Type: " . gettype($labSampleId) . ")");
+                            // Log::info("Primary Test Lab Sample IDs: " . json_encode($primaryTest->m14_lab_sample_ids));
+
+                            // if (empty($primaryTest->m14_lab_sample_ids)) {
+                            //     return true; // Applicable to all if empty
+                            // }
+                            // Force loose comparison by checking if ID is in array
+                            return in_array((string)$labSampleId, array_map('strval', $primaryTest->m14_lab_sample_ids ?? []));
+                        })->values();
+                    }
 
                     // Load secondary tests for each primary test
                     foreach ($primaryTests as $primaryTest) {
-                        $secondaryTests = SecondaryTest::where('m16_primary_test_id', $primaryTest->m16_primary_test_id)->get();
+                        $secondaryTests = SecondaryTest::with('formula')->where('m16_primary_test_id', $primaryTest->m16_primary_test_id)->get();
                         $primaryTest->secondaryTests = $secondaryTests;
                     }
 
@@ -494,27 +517,86 @@ class TestResultController extends Controller
 
     public function createResult(Request $request)
     {
-        $validated = $request->validate([
+        Log::info('createResult Started. Payload:', $request->all());
+
+        $validator = Validator::make($request->all(), [
             'registration_id' => 'required|string',
             'test_date' => 'required|date',
             'performance_date' => 'required|date',
             'results' => 'nullable|array',
+            'manuscript_data' => 'nullable|array',
+            'test_data' => 'nullable|array', // Added validation for test_data
             'custom_fields' => 'nullable|array',
             'remarks' => 'nullable|string',
             'action' => 'required|string|in:DRAFT,SUBMITTED,RESULTED'
         ]);
 
+        if ($validator->fails()) {
+            Log::error('Validation Failed:', $validator->errors()->toArray());
+            return back()->withErrors($validator)->withInput();
+        }
+
+        $validated = $validator->validated();
+        Log::info('Validation Passed.');
+
         DB::beginTransaction();
         try {
             $userId = Session::get('user_id') ?? -1;
             $roId = Session::get('ro_id');
+            Log::info('User ID: ' . $userId . ', RO ID: ' . $roId);
 
-            // Handle main test results (keep your existing code)
+            // Handle manuscript data
+            if (!empty($request->manuscript_data)) {
+                Log::info('Processing Manuscript Data');
+                foreach ($request->manuscript_data as $testIndex => $manuscripts) {
+                    foreach ($manuscripts as $mIndex => $manuscript) {
+                        if (isset($manuscript['test_id']) && isset($manuscript['manuscript_id'])) {
+                            $this->saveTestResult([
+                                'registration_id' => $request->registration_id,
+                                'test_number' => $manuscript['test_id'],
+                                'manuscript_id' => $manuscript['manuscript_id'],
+                                'result_data' => $manuscript,
+                                'test_date' => $request->test_date,
+                                'performance_date' => $request->performance_date,
+                                'remarks' => $request->remarks,
+                                'action' => $request->action,
+                                'user_id' => $userId,
+                                'ro_id' => $roId
+                            ]);
+                        }
+                    }
+                }
+            }
+
+            // Handle test data (from manuscript form when no sub-manuscripts)
+            if (!empty($request->test_data)) {
+                Log::info('Processing Manuscript Test Data');
+                foreach ($request->test_data as $index => $testData) {
+                    if (isset($testData['test_id']) && isset($testData['result'])) {
+                        $this->saveTestResult([
+                            'registration_id' => $request->registration_id,
+                            'test_number' => $testData['test_id'],
+                            'result_data' => $testData,
+                            'test_date' => $request->test_date,
+                            'performance_date' => $request->performance_date,
+                            'remarks' => $request->remarks,
+                            'action' => $request->action,
+                            'user_id' => $userId,
+                            'ro_id' => $roId
+                        ]);
+                    }
+                }
+            }
+
+            // Handle main test results
             if (!empty($request->results)) {
+                Log::info('Processing Results Data');
                 foreach ($request->results as $testNumber => $resultData) {
+                    Log::info("Processing Test Number: $testNumber");
 
-                    // Handle main test result (tests without primary tests)
+                    // Handle main test result
                     if (isset($resultData['test'])) {
+                        Log::info("Found Main Test Result for $testNumber");
                         $testResult = $resultData['test'];
                         $this->saveTestResult([
                             'registration_id' => $request->registration_id,
@@ -529,12 +611,15 @@ class TestResultController extends Controller
                         ]);
                     }
 
-                    // Handle primary tests (similar to manuscript_data nested structure)
+                    // Handle primary tests
                     if (isset($resultData['primary_tests'])) {
+                        Log::info("Found Primary Tests for $testNumber");
                         foreach ($resultData['primary_tests'] as $primaryTestId => $primaryData) {
+                            Log::info("Processing Primary Test ID: $primaryTestId");
 
-                            // Primary test without secondary tests
+                            // Primary test without secondary tests (Direct result)
                             if (isset($primaryData['result'])) {
+                                Log::info("Saving Direct Result for Primary Test $primaryTestId");
                                 $this->saveTestResult([
                                     'registration_id' => $request->registration_id,
                                     'test_number' => $testNumber,
@@ -549,8 +634,9 @@ class TestResultController extends Controller
                                 ]);
                             }
 
-                            // Primary test with secondary tests (nested like manuscripts)
+                            // Primary test with secondary tests
                             if (isset($primaryData['secondary_tests'])) {
+                                Log::info("Found Secondary Tests for Primary Test $primaryTestId");
                                 foreach ($primaryData['secondary_tests'] as $secondaryTestId => $secondaryData) {
                                     $this->saveTestResult([
                                         'registration_id' => $request->registration_id,
@@ -572,11 +658,10 @@ class TestResultController extends Controller
                 }
             }
 
-            // Handle custom fields with proper hierarchy and update support
+            // Handle custom fields
             if (!empty($request->custom_fields)) {
+                Log::info('Processing Custom Fields');
                 foreach ($request->custom_fields as $testNumber => $testLevelData) {
-
-                    // Process test-level custom fields (no primary or secondary)
                     $this->processCustomFieldLevel($testLevelData, [
                         'registration_id' => $request->registration_id,
                         'test_number' => $testNumber,
@@ -589,7 +674,12 @@ class TestResultController extends Controller
                 }
             }
 
+            Log::info('Auto-completing Sample Tests');
+            $this->autoCompleteSampleTests($request->registration_id, $userId);
+
             DB::commit();
+            Log::info('Transaction Committed Successfully');
+
             $message = $request->action === 'DRAFT'
                 ? 'Test results saved as draft successfully.'
                 : 'Test results submitted successfully.';
@@ -600,6 +690,7 @@ class TestResultController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error saving test results: ' . $e->getMessage());
+            Log::error('Trace: ' . $e->getTraceAsString());
             Session::flash('type', 'error');
             Session::flash('message', 'Failed to save test results: ' . $e->getMessage());
             return back()->withInput();
@@ -702,7 +793,7 @@ class TestResultController extends Controller
                 'm12_test_number' => $data['test_number'],
                 'm16_primary_test_id' => $data['primary_test_id'] ?? null,
                 'm17_secondary_test_id' => $data['secondary_test_id'] ?? null,
-                'm22_manuscript_id' => null,
+                'm22_manuscript_id' => $data['manuscript_id'] ?? null, // Use the passed manuscript_id
                 'tr07_result' => $resultData['result'],
                 'tr07_unit' => $resultData['unit'] ?? null,
                 'tr07_test_date' => $data['test_date'],
@@ -714,6 +805,35 @@ class TestResultController extends Controller
             ]);
         }
     }
+
+    private function autoCompleteSampleTests($referenceId, $userId)
+    {
+        // Resolve the PK from Reference ID
+        $registration = SampleRegistration::where('tr04_reference_id', $referenceId)->first();
+        if (!$registration) return;
+        $registrationId = $registration->tr04_sample_registration_id;
+
+        // Find all SampleTests for this registration that are assigned to the user (or all if DEO/Manager)
+        // For simplicity and robustness, we'll target tests assigned to the user or if they are DEO
+
+        $query = SampleTest::where('tr04_sample_registration_id', $registrationId)
+            ->where('tr05_status', '!=', 'COMPLETED')
+            ->where('tr05_status', '!=', 'REPORTED');
+
+        if (Session::get('role') !== 'DEO' && Session::get('role') !== 'Manager') {
+            $query->where('m06_alloted_to', $userId);
+        }
+
+        $tests = $query->get();
+
+        foreach ($tests as $test) {
+            $test->update([
+                'tr05_status' => 'COMPLETED',
+                'tr05_completed_at' => now(),
+            ]);
+        }
+    }
+
     public function showSampleResult($id)
     {
         // Get all test results with relationships
@@ -940,7 +1060,13 @@ class TestResultController extends Controller
             }
         ])
             ->where('tr04_reference_id', $sampleId)
-            ->where('m04_ro_id', Session::get('ro_id'))
+            ->where(function ($query) {
+                $roId = Session::get('ro_id');
+                $query->where('m04_ro_id', $roId)
+                    ->orWhereHas('sampleTests', function ($q) use ($roId) {
+                        $q->where('m04_ro_id', $roId);
+                    });
+            })
             ->firstOrFail();
 
         // Get custom fields
@@ -1367,7 +1493,13 @@ class TestResultController extends Controller
             }
         ])
             ->where('tr04_reference_id', $sampleId)
-            ->where('m04_ro_id', Session::get('ro_id'))
+            ->where(function ($query) {
+                $roId = Session::get('ro_id');
+                $query->where('m04_ro_id', $roId)
+                    ->orWhereHas('sampleTests', function ($q) use ($roId) {
+                        $q->where('m04_ro_id', $roId);
+                    });
+            })
             ->firstOrFail();
 
         // Get custom fields
@@ -1515,5 +1647,83 @@ class TestResultController extends Controller
         }
 
         return view('test-results.compare_test_result', compact('testResult', 'version1', 'version2'));
+    }
+
+    public function getFormulaDetails($formulaId)
+    {
+        $formula = Formula::with('variables')->find($formulaId);
+
+        if (!$formula) {
+            return response()->json(['error' => 'Formula not found'], 404);
+        }
+
+        return response()->json([
+            'expression' => $formula->m23_expression,
+            'variables' => $formula->variables()->orderBy('m24_input_order')->get()
+        ]);
+    }
+
+    public function getRawEntry(Request $request)
+    {
+        $rawEntry = RawEntry::where('tr04_reference_id', $request->reference_id)
+            ->where('m12_test_id', $request->test_id)
+            ->where('m12_test_number', $request->test_number)
+            ->where('m16_primary_test_id', $request->primary_test_id)
+            ->where('m17_secondary_test_id', $request->secondary_test_id)
+            ->orderByDesc('created_at')
+            ->first();
+
+        if ($rawEntry) {
+            $rawEntry->variables = json_decode($rawEntry->tr12_variables);
+            return response()->json($rawEntry);
+        }
+
+        return response()->json(null);
+    }
+
+    public function saveRawEntry(Request $request)
+    {
+        try {
+            DB::beginTransaction();
+
+            $validated = $request->validate([
+                'formula_id' => 'required',
+                'reference_id' => 'required',
+                'variables' => 'required', // JSON or Array
+                'calculated_output' => 'required',
+                'unit' => 'nullable',
+                'test_id' => 'required',
+                'test_number' => 'nullable',
+                'primary_test_id' => 'nullable',
+                'secondary_test_id' => 'nullable',
+                'aggregation_type' => 'nullable|string',
+            ]);
+
+            $rawEntry = RawEntry::updateOrCreate(
+                [
+                    'tr04_reference_id' => $request->reference_id,
+                    'm12_test_id' => $request->test_id,
+                    'm12_test_number' => $request->test_number,
+                    'm16_primary_test_id' => $request->primary_test_id,
+                    'm17_secondary_test_id' => $request->secondary_test_id,
+                ],
+                [
+                    'm23_formula_id' => $request->formula_id,
+                    'tr12_variables' => json_encode($request->variables),
+                    'tr12_calculated_output' => $request->calculated_output,
+                    'tr12_unit' => $request->unit,
+                    'tr12_type' => $request->aggregation_type,
+                    'm06_entered_by' => Session::get('user_id'),
+                ]
+            );
+
+            DB::commit();
+
+            return response()->json(['success' => true, 'message' => 'Raw entry saved successfully', 'data' => $rawEntry]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error saving raw entry: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Failed to save raw entry: ' . $e->getMessage()], 500);
+        }
     }
 }

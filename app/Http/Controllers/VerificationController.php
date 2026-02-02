@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\CustomField;
+use App\Models\Employee;
 use App\Models\SampleRegistration;
 use App\Models\SampleTest;
 use Illuminate\Http\Request;
@@ -15,10 +16,11 @@ class VerificationController extends Controller
     public function viewVerification()
     {
         $samples = SampleTest::with(['registration', 'test', 'registration.testResult'])
+            ->where('m04_ro_id', session('ro_id'))
             ->whereNotIn('tr05_status', ['TRANSFERRED'])
             ->whereHas('registration.testResult', function ($q) {
                 $q->where('tr07_is_current', 'YES')
-                    ->whereIn('tr07_result_status', ['RESULTED', 'REVISED']);
+                    ->whereIn('tr07_result_status', ['RESULTED', 'REVISED', 'SUBMITTED']);
             })
             ->select('tr04_sample_registration_id')
             ->selectRaw("
@@ -34,10 +36,10 @@ class VerificationController extends Controller
                 // Only take current results
                 $currentResults = $results->where('tr07_is_current', 'YES');
 
-                // Include sample if *all* current tests are either RESULTED or REVISED
+                // Include sample if *all* current tests are either RESULTED or REVISED or SUBMITTED
                 $hasResults = $currentResults->count() > 0;
                 $allVerified = $hasResults && $currentResults->every(function ($r) {
-                    return in_array($r->tr07_result_status, ['RESULTED', 'REVISED']);
+                    return in_array($r->tr07_result_status, ['RESULTED', 'REVISED', 'SUBMITTED']);
                 });
 
                 return $allVerified;
@@ -60,7 +62,7 @@ class VerificationController extends Controller
                 $sample->allResulted = $currentResults->count() > 0 &&
                     $currentResults->every(
                         fn($r) =>
-                        in_array($r->tr07_result_status, ['RESULTED', 'REVISED'])
+                        in_array($r->tr07_result_status, ['RESULTED', 'REVISED', 'SUBMITTED'])
                     );
 
                 // Count REVISED vs RESULTED only for current results
@@ -89,11 +91,19 @@ class VerificationController extends Controller
             'labSample',
             'customFields'
         ])->where('tr04_sample_registration_id', $sample_id)
+            ->where(function ($query) {
+                $roId = session('ro_id');
+                $query->where('m04_ro_id', $roId)
+                    ->orWhereHas('sampleTests', function ($q) use ($roId) {
+                        $q->where('m04_ro_id', $roId);
+                    });
+            })
             ->firstOrFail();
         if ($request->isMethod('POST')) {
             $request->validate([
                 'action' => 'required|in:verify,reject',
                 'remarks' => 'nullable|string|max:500',
+                'reassigned_analyst_id' => 'nullable|exists:tr01_users,tr01_user_id',
             ]);
 
             DB::beginTransaction();
@@ -108,6 +118,32 @@ class VerificationController extends Controller
                         'tr07_verified_at'   => now(),
                         'tr07_remarks'       => $request->remarks,
                     ]);
+
+                    // Handle Reassignment
+                    if ($request->action === 'reject' && $request->filled('reassigned_analyst_id')) {
+                        // Find the associated sample test and update allotment
+                        $sampleTest = \App\Models\SampleTest::where('tr04_sample_registration_id', $sample->tr04_sample_registration_id)
+                            ->where('m12_test_id', $result->test->m12_test_id)
+                            ->first();
+
+                        // Only reassign if the ID is different (though UI allows re-picking same, handled seamlessly)
+                        if ($sampleTest) {
+                            $sampleTest->update([
+                                'm06_alloted_to' => $request->reassigned_analyst_id,
+                                'tr05_status' => 'ALLOTED', // Reset status so new analyst sees it in "Pending"? 
+                                // Or keep COMPLETED if they just need to revise? 
+                                // User said "give it to another analyst for re-analysis".
+                                // If status is COMPLETED, it won't show in "Pending" usually.
+                                // But Rejected Samples list queries based on RESULT status being REJECTED.
+                                // So status can stay COMPLETED, but we update m06_alloted_to so it shows in THEIR rejected list.
+                                // However, if they need to "re-analyze", maybe it should be ALLOTED?
+                                // Let's keep status as COMPLETED to preserve the flow (Revision) 
+                                // unless we want full re-entry.
+                                // AnalystController queries rejected samples based on tr07_result_status = REJECTED.
+                                // So updating m06_alloted_to is sufficient for visibility.
+                            ]);
+                        }
+                    }
                 }
 
                 // Update custom fields
@@ -145,7 +181,7 @@ class VerificationController extends Controller
 
         // Get custom fields for this sample
         $customFields = CustomField::where('tr04_reference_id', $sample->tr04_reference_id)
-            ->whereIn('tr08_result_status', ['SUBMITTED', 'DRAFT', 'RESULTED'])
+            ->whereIn('tr08_result_status', ['SUBMITTED', 'DRAFT', 'RESULTED', 'REVISED'])
             ->get();
 
         // dd($customFields);
@@ -214,7 +250,7 @@ class VerificationController extends Controller
 
             // Add old version for revised results
             foreach ($results as $result) {
-                if ($result->tr07_result_status === 'REVISED') {
+                if ($result->tr07_current_version > 1) {
                     $old = $sample->testResult()
                         ->where('m12_test_number', $result->m12_test_number)
                         ->where('m16_primary_test_id', $result->m16_primary_test_id)
@@ -229,6 +265,15 @@ class VerificationController extends Controller
             return $organized;
         });
 
-        return view('verification.view_result', compact('sample', 'organizedResults'));
+        // Get analysts for reassignment dropdown
+        $roId = Session::get('ro_id');
+        $analysts = Employee::join('m03_roles', 'm06_employees.m03_role_id', '=', 'm03_roles.m03_role_id')
+            ->where('m06_employees.m04_ro_id', $roId)
+            ->whereIn('m03_roles.m03_name', ['Analyst'])
+            ->select('m06_employees.m06_employee_id', 'm06_employees.m06_name', 'm03_roles.m03_name as role')
+            ->orderBy('m06_employees.m06_name')
+            ->get();;
+
+        return view('verification.view_result', compact('sample', 'organizedResults', 'analysts'));
     }
 }

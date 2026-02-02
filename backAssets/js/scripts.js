@@ -464,7 +464,27 @@
             $self_id.validate().settings.ignore = ":disabled";
             return $self_id.valid();
           },
-          onFinished: function (event, currentIndex) {
+          onFinished: function onFinished(event, currentIndex) {
+            // Prevent duplicate submissions
+            if ($self_id.attr('data-is-submitting') === 'true') {
+                return;
+            }
+            $self_id.attr('data-is-submitting', 'true');
+            
+            // Visual feedback
+            var $finishBtn = $self_id.find('a[href="#finish"]');
+            if($finishBtn.length) {
+                // Store original text
+                $finishBtn.data('original-text', $finishBtn.html());
+                $finishBtn.addClass('disabled processing').html('Processing...');
+                // Disable click events on the button
+                $finishBtn.on('click.lock', function(e){ 
+                    e.preventDefault(); 
+                    e.stopImmediatePropagation(); 
+                    return false; 
+                });
+            }
+
             $self_id[0].submit();
           }
         }).validate({

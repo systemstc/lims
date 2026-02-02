@@ -15,6 +15,7 @@ use App\Http\Controllers\ValidationController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\RazorpayController;
+use App\Http\Controllers\SampleTransferController;
 use App\Http\Controllers\VerificationController;
 use App\Http\Controllers\WalletController;
 use Illuminate\Support\Facades\Route;
@@ -29,14 +30,8 @@ Route::middleware(['access_control'])->group(function () {
     Route::match(['get', 'post'], 'admin/login', [AuthController::class, 'adminLogin'])->name('admin_login');
     Route::match(['get', 'post'], 'user/login', [AuthController::class, 'userLogin'])->name('user_login');
     Route::get('dashboard', [MasterController::class, 'adminDashboard'])->name('dashboard');
-    Route::get('user/logout', function () {
-        Session::flush();
-        return to_route('user_login')->with('success', 'Logged out successfully.');
-    })->name('user_logout');
-    Route::get('admin/logout', function () {
-        Session::flush();
-        return to_route('admin_login')->with('success', 'Logged out successfully.');
-    })->name('admin_logout');
+    Route::get('user/logout', [AuthController::class, 'logout'])->name('user_logout');
+    Route::get('admin/logout', [AuthController::class, 'adminLogout'])->name('admin_logout');
     Route::get('states', [MasterController::class, 'viewStates'])->name('view_states');
 
     Route::get('districts', [MasterController::class, 'viewDistricts'])->name('view_districts');
@@ -168,6 +163,7 @@ Route::middleware(['access_control'])->group(function () {
     Route::get('/samples/{id}/details', [RegistrationController::class, 'showSampleDetails'])->name('view_registration_pdf');
     Route::get('/samples/{id}/print', [RegistrationController::class, 'printSampleDetails'])->name('print_sample_acknowledgement');
     Route::post('/samples/upgrade', [RegistrationController::class, 'upgradeToTatkal'])->name('upgrade_to_tatkal');
+    Route::post('/samples/dispatch', [RegistrationController::class, 'dispatchSample'])->name('dispatch_sample');
 
     // aLLOTTMENT 
     Route::prefix('allotment')->group(function () {
@@ -193,6 +189,7 @@ Route::middleware(['access_control'])->group(function () {
 
         // Calendar Drilldown
         Route::post('get-date-samples', [AnalystController::class, 'getAnalystDateSamples'])->name('analyst_date_samples');
+        Route::post('save-remark', [AnalystController::class, 'saveRemark'])->name('save_remark');
     });
     // ACM Routes
     Route::get('acm-view', [MasterController::class, 'viewACM'])->name('view_acm');
@@ -205,8 +202,8 @@ Route::middleware(['access_control'])->group(function () {
         // Main CRUD routes
         Route::get('view-test-results', [TestResultController::class, 'reporting'])->name('test_results');
         Route::post('/create-result-test', [TestResultController::class, 'createResult'])->name('create_test_result');
-        Route::get('show-sample-result/{id}', [TestResultController::class, 'showSampleResult'])->name('show_sample_result');
-        // routes/web.php
+        Route::get('/show-result/{id}', [TestResultController::class, 'showSampleResult'])->name('show_sample_result');
+
 
         // Existing routes
         Route::get('generate-report/{id}', [TestResultController::class, 'generateReport'])->name('generate_report');
@@ -223,6 +220,11 @@ Route::middleware(['access_control'])->group(function () {
 
         // Audit Trail
         Route::get('/audit/trail', [TestResultController::class, 'audit'])->name('test_results_audit');
+
+        // Formula & Raw Entry
+        Route::get('/get-formula-details/{id}', [TestResultController::class, 'getFormulaDetails'])->name('get_formula_details');
+        Route::post('/get-raw-entry', [TestResultController::class, 'getRawEntry'])->name('get_raw_entry');
+        Route::post('/save-raw-entry', [TestResultController::class, 'saveRawEntry'])->name('save_raw_entry');
     });
     Route::get('/template', [TestResultController::class, 'getTestTemplate'])->name('create_test_template');
 
@@ -257,10 +259,14 @@ Route::middleware(['access_control'])->group(function () {
     Route::get('/get-test-by-package', [RegistrationController::class, 'getTestByPackage'])->name('get_tests_by_package');
 
 
-    // dynamic search side bar
+    // Dynamic search side bar
     Route::get('/recent-records', [SampleController::class, 'recentRecords'])->name('recent_records');
     Route::get('/today-stats', [SampleController::class, 'todayStats'])->name('today_stats');
     Route::get('/sample-details', [SampleController::class, 'getSampleDetails'])->name('get_sample_details');
+
+    // Role-based Tracking & Search
+    Route::get('/track-sample/{trackerId}', [SampleController::class, 'trackSample'])->name('track_sample');
+    Route::get('/search-tracker', [SampleController::class, 'searchTracker'])->name('search_tracker');
 
     // Validation
     Route::post('/validate-field', [ValidationController::class, 'checkField'])->name('validate_field');
@@ -276,6 +282,11 @@ Route::middleware(['access_control'])->group(function () {
     // Transfer operations
     Route::post('/transfer', [AllottmentController::class, 'transferTests'])->name('transfer_tests');
     Route::post('/accept-transfer', [AllottmentController::class, 'acceptTransferred'])->name('accept_transferred');
+
+    // New Transfer Management Routes
+    Route::get('/view-transferred-samples', [SampleTransferController::class, 'viewTransferredSamples'])->name('view_transferred_samples');
+    Route::post('/pull-result', [SampleTransferController::class, 'pullResult'])->name('pull_result');
+    Route::get('/download-remote-report/{id}', [SampleTransferController::class, 'downloadRemoteReport'])->name('download_remote_report');
 
     // Bulk allot Sample
     Route::post('bulk-allot-sample', [AllottmentController::class, 'bulkAllotSamples'])->name('bulk_allot_sample');

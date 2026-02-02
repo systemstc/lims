@@ -172,13 +172,13 @@
             }
             showLoader();
         }, true);
-        if (window.jQuery) {
-            $(document).ajaxStart(function() {
-                showLoader();
-            }).ajaxStop(function() {
-                hideLoader();
-            });
-        }
+        // if (window.jQuery) {
+        //     $(document).ajaxStart(function() {
+        //         showLoader();
+        //     }).ajaxStop(function() {
+        //         hideLoader();
+        //     });
+        // }
         window.addEventListener('load', () => hideLoader(true));
         window.addEventListener('pageshow', function(event) {
             if (event.persisted) hideLoader(true);

@@ -226,7 +226,7 @@ class CustomerController extends Controller
                     // 1. Create Customer
                     $customer = Customer::create([
                         'm09_customer_type_id' => $request->txt_customer_type_id,
-                        'm04_ro_id' => Session::get('role') === 'ADMIN' ? $request->txt_ro_id : Session::get('role_id'),
+                        'm04_ro_id' => Session::get('role') === 'ADMIN' ? $request->txt_ro_id : Session::get('ro_id'),
                         'm07_name' => $request->txt_name,
                         'm07_email' => $request->txt_email,
                         'm07_phone' => $request->txt_phone,

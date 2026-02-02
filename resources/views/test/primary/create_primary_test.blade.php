@@ -44,6 +44,26 @@
                                             </div>
                                         </div>
 
+                                        {{-- Lab Sample (Applicable Sample Types) --}}
+                                        <div class="col-md-4">
+                                            <div class="form-group">
+                                                <label class="form-label" for="txt_lab_sample_ids">Applicable Sample Types</label>
+                                                <div class="form-control-wrap">
+                                                    <select name="txt_lab_sample_ids[]" class="form-select js-select2" multiple="multiple" id="txt_lab_sample_ids" data-placeholder="Select Applicable Sample Types">
+                                                        @foreach ($labSamples as $labSample)
+                                                            <option value="{{ $labSample->m14_lab_sample_id }}"
+                                                                {{ collect(old('txt_lab_sample_ids'))->contains($labSample->m14_lab_sample_id) ? 'selected' : '' }}>
+                                                                {{ $labSample->m14_name }}
+                                                            </option>
+                                                        @endforeach
+                                                    </select>
+                                                </div>
+                                                @error('txt_lab_sample_ids')
+                                                    <span class="text-danger">{{ $message }}</span>
+                                                @enderror
+                                            </div>
+                                        </div>
+
                                         {{-- Group --}}
                                         <div class="col-md-4">
                                             <div class="form-group">

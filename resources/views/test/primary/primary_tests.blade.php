@@ -33,8 +33,8 @@
                                             {{-- <th>Test</th> --}}
                                             <th>Parameter</th>
                                             <th>Unit</th>
-                                            <th>Requirement</th>
-                                            <th>Remark</th>
+                                            {{-- <th>Requirement</th> --}}
+                                            {{-- <th>Remark</th> --}}
                                             <th>Created By</th>
                                             {{-- <th>Created At</th> --}}
                                             <th>Status</th>
@@ -50,9 +50,9 @@
                                                 {{-- <td>{{ $primary->test->m12_name ?? ''}}</td> --}}
                                                 <td>{{ $primary->m16_name }}</td>
                                                 <td>{{ $primary->m16_unit }}</td>
-                                                <td>{{ $primary->m16_requirement }}</td>
-                                                <td>{{ $primary->m16_remark }}</td>
-                                                <td>{{ $primary->tr01_created_by == -1 ? 'ADMIN' : $primary->user->tr01_name }}</td>
+                                                {{-- <td>{{ $primary->m16_requirement }}</td> --}}
+                                                {{-- <td>{{ $primary->m16_remark }}</td> --}}
+                                                <td>{{ $primary->tr01_created_by == -1 ? 'ADMIN' : $primary->employee->m06_name }}</td>
                                                 {{-- <td>{{ $primary->created_at }}</td> --}}
                                                 <td
                                                     class="text-{{ $primary->m16_status == 'ACTIVE' ? 'success' : 'danger' }}">

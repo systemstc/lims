@@ -12,6 +12,7 @@ class SecondaryTest extends Model
         'm10_sample_id',
         'm11_group_id',
         'm16_primary_test_id',
+        'm23_formula_id',
         'm17_name',
         'm17_unit',
         'tr01_created_by',
@@ -31,6 +32,11 @@ class SecondaryTest extends Model
     public function primaryTest()
     {
         return $this->belongsTo(PrimaryTest::class, 'm16_primary_test_id');
+    }
+
+    public function formula()
+    {
+        return $this->belongsTo(Formula::class, 'm23_formula_id', 'm23_formula_id');
     }
 
     public function user()

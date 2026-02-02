@@ -21,11 +21,6 @@ class Formula extends Model
         'updated_at'
     ];
 
-    public function test()
-    {
-        return $this->belongsTo(Test::class, 'm12_test_id', 'm12_test_id');
-    }
-
     public function creator()
     {
         return $this->belongsTo(Employee::class, 'm06_created_by', 'm06_employee_id');
@@ -33,5 +28,10 @@ class Formula extends Model
     public function updator()
     {
         return $this->belongsTo(Employee::class, 'm06_created_by', 'm06_employee_id');
+    }
+
+    public function variables()
+    {
+        return $this->hasMany(Formulavariable::class, 'm23_formula_id', 'm23_formula_id');
     }
 }

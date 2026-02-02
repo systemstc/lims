@@ -190,6 +190,39 @@
         </table>
 
         <table class="totals-table">
+            @php
+                $totalCgst = 0;
+                $totalSgst = 0;
+                $totalIgst = 0;
+                $subTotal = 0;
+                foreach($samples as $sample) {
+                    $totalCgst += $sample->tr04_cgst ?? 0;
+                    $totalSgst += $sample->tr04_sgst ?? 0;
+                    $totalIgst += $sample->tr04_igst ?? 0;
+                    $subTotal += ($sample->tr04_testing_charges ?? 0) + ($sample->tr04_additional_charges ?? 0);
+                }
+                
+                $cgstRate = ($subTotal > 0 && $totalCgst > 0) ? ($totalCgst / $subTotal) * 100 : 0;
+                $sgstRate = ($subTotal > 0 && $totalSgst > 0) ? ($totalSgst / $subTotal) * 100 : 0;
+                $igstRate = ($subTotal > 0 && $totalIgst > 0) ? ($totalIgst / $subTotal) * 100 : 0;
+            @endphp
+
+            @if($totalCgst > 0 || $totalSgst > 0)
+                <tr>
+                    <td>Total CGST ({{ round($cgstRate) }}%):</td>
+                    <td>₹{{ number_format($totalCgst, 2) }}</td>
+                </tr>
+                <tr>
+                    <td>Total SGST ({{ round($sgstRate) }}%):</td>
+                    <td>₹{{ number_format($totalSgst, 2) }}</td>
+                </tr>
+            @elseif($totalIgst > 0)
+                 <tr>
+                    <td>Total IGST ({{ round($igstRate) }}%):</td>
+                    <td>₹{{ number_format($totalIgst, 2) }}</td>
+                </tr>
+            @endif
+
             <tr class="total">
                 <td>Total Amount:</td>
                 <td>₹{{ number_format($totalAmount, 2) }}</td>

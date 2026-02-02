@@ -62,7 +62,71 @@
         }
     }
 
-    // SCript to teggle DashLite dark/light mode
+    // Global Form Submission Lock
+    document.addEventListener('DOMContentLoaded', function() {
+        // Handle standard form submissions
+        document.addEventListener('submit', function(e) {
+            const form = e.target;
+            
+            // Allow if explicitly marked to bypass
+            if (form.dataset.bypassLock === 'true') return;
+
+            // If already submitting, STOP EVERYTHING
+            if (form.dataset.isSubmitting === 'true') {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                e.stopPropagation();
+                return false;
+            }
+
+            // If form is valid (checkValidity is native)
+            // Note: If novalidate is present, checkValidity() might still return true or be ignored.
+            if (form.checkValidity && !form.checkValidity()) {
+                // Let the browser show validation errors
+                return;
+            }
+
+            // Lock the form
+            form.dataset.isSubmitting = 'true';
+
+            // Visual feedback - Disable all submit buttons and related anchors
+            const submitters = form.querySelectorAll('button[type="submit"], input[type="submit"], a[href="#finish"]');
+            submitters.forEach(function(btn) {
+                // Store original text/width to avoid layout jump if possible (optional)
+                if(!btn.dataset.originalText) btn.dataset.originalText = btn.innerHTML;
+                
+                btn.classList.add('disabled');
+                btn.classList.add('submitting'); 
+                // For input[type=submit] or button, set disabled
+                if(btn.tagName !== 'A') btn.disabled = true;
+                // For anchors, pointer-events usually does the trick via CSS class, but we can enforce
+                btn.style.pointerEvents = 'none';
+
+                // Optional: Change text to processing if it's not an icon-only button
+                // if (btn.innerText.trim().length > 0) {
+                //    btn.innerText = 'Processing...'; 
+                // }
+            });
+        }, true); // Use capture phase to catch it early
+
+        // Re-enable on page show (bfcache/back button)
+        window.addEventListener('pageshow', function(event) {
+            const forms = document.querySelectorAll('form[data-is-submitting="true"]');
+            forms.forEach(function(form) {
+                delete form.dataset.isSubmitting;
+                const submitters = form.querySelectorAll('.submitting');
+                submitters.forEach(function(btn) {
+                    btn.classList.remove('disabled');
+                    btn.classList.remove('submitting');
+                    if(btn.tagName !== 'A') btn.disabled = false;
+                    btn.style.pointerEvents = '';
+                    // if(btn.dataset.originalText) btn.innerHTML = btn.dataset.originalText;
+                });
+            });
+        });
+    });
+
+    // Script to teggle DashLite dark/light mode
     document.addEventListener('DOMContentLoaded', function() {
         // Load saved theme
         const savedTheme = localStorage.getItem('theme-mode') || 'light';

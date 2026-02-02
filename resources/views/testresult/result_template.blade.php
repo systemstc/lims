@@ -24,6 +24,7 @@
                         <form action="{{ route('create_test_result') }}" method="POST" enctype="multipart/form-data"
                             id="testResultForm">
                             @csrf
+                            <input type="hidden" name="action" id="formAction" value="">
 
                             @if (isset($sampleTests) && $sampleTests->isNotEmpty())
                                 <input type="hidden" name="registration_id"
@@ -47,9 +48,12 @@
                                                 <td class="fw-bold text-muted w-25">Date:</td>
                                                 <td class="w-25">
                                                     <input type="date"
-                                                        class="form-control form-control-sm bg-light border-0 shadow-none"
+                                                        class="form-control form-control-sm bg-light border-0 shadow-none @error('test_date') is-invalid @enderror"
                                                         name="test_date"
                                                         value="{{ old('test_date', $testDate ?? date('Y-m-d')) }}" required>
+                                                    @error('test_date')
+                                                        <span class="text-danger small">{{ $message }}</span>
+                                                    @enderror
                                                 </td>
                                             </tr>
                                             <tr>
@@ -66,10 +70,13 @@
                                                 <td class="fw-bold text-muted">Date of Performance of Tests:</td>
                                                 <td>
                                                     <input type="date"
-                                                        class="form-control form-control-sm bg-light border-0 shadow-none"
+                                                        class="form-control form-control-sm bg-light border-0 shadow-none @error('performance_date') is-invalid @enderror"
                                                         name="performance_date"
                                                         value="{{ old('performance_date', $performanceDate ?? '') }}"
                                                         required>
+                                                    @error('performance_date')
+                                                        <span class="text-danger small">{{ $message }}</span>
+                                                    @enderror
                                                 </td>
                                                 <td class="fw-bold text-muted">Date of Allotment of Sample:</td>
                                                 <td class="text-dark fw-semibold">
@@ -148,7 +155,7 @@
                                                                 <!-- Input field for main test when no primary tests -->
                                                                 <div class="input-group input-group-sm">
                                                                     <input type="text"
-                                                                        class="form-control form-control-sm bg-light"
+                                                                        class="form-control form-control-sm bg-light @error('results.'.$test->m12_test_number .'.test.result') is-invalid @enderror"
                                                                         name="results[{{ $test->m12_test_number }}][test][result]"
                                                                         value="{{ old('results.' . $test->m12_test_number . '.test.result', $existingMainTestResult->tr07_result ?? '') }}"
                                                                         placeholder="Enter result value" autocomplete="off">
@@ -159,12 +166,24 @@
                                                                         value="{{ old('results.' . $test->m12_test_number . '.test.unit', $existingMainTestResult->tr07_unit ?? ($test->m12_unit ?? '')) }}"
                                                                         placeholder="Unit">
                                                                     <input type="hidden"
-                                                                        name="results[{{ $test->m12_test_number }}][test][test_id]"
-                                                                        value="{{ $test->m12_test_number }}">
-                                                                    <input type="hidden"
                                                                         name="results[{{ $test->m12_test_number }}][test][result_id]"
                                                                         value="{{ $existingMainTestResult->tr07_test_result_id ?? '' }}">
+
+                                                                    @if ($test->m23_formula_id)
+                                                                        <button type="button"
+                                                                            class="btn btn-outline-info btn-icon raw-entry-btn"
+                                                                            data-formula-id="{{ $test->m23_formula_id }}"
+                                                                            data-reference-id="{{ $sampleTests->first()->registration->tr04_reference_id }}"
+                                                                            data-test-id="{{ $test->m12_test_id }}"
+                                                                            data-test-number="{{ $test->m12_test_number }}"
+                                                                            data-target-input="results[{{ $test->m12_test_number }}][test][result]">
+                                                                            <em class="icon ni ni-calc"></em>
+                                                                        </button>
+                                                                    @endif
                                                                 </div>
+                                                                 @error('results.'.$test->m12_test_number .'.test.result')
+                                                                    <span class="text-danger small">{{ $message }}</span>
+                                                                @enderror
                                                             @endif
                                                         </td>
                                                         <td>
@@ -224,7 +243,7 @@
                                                                             name="results[{{ $test->m12_test_number }}][primary_tests][{{ $primaryTest->m16_primary_test_id }}][result_id]"
                                                                             value="{{ $existingPrimaryResult->tr07_test_result_id ?? '' }}">
                                                                         <input type="text"
-                                                                            class="form-control form-control-sm border-0 bg-light"
+                                                                            class="form-control form-control-sm border-0 bg-light @error('results.'.$test->m12_test_number .'.primary_tests.'.$primaryTest->m16_primary_test_id.'.result') is-invalid @enderror"
                                                                             name="results[{{ $test->m12_test_number }}][primary_tests][{{ $primaryTest->m16_primary_test_id }}][result]"
                                                                             value="{{ old('results.' . $test->m12_test_number . '.primary_tests.' . $primaryTest->m16_primary_test_id . '.result', $existingPrimaryResult->tr07_result ?? '') }}"
                                                                             placeholder="Enter result value"
@@ -235,7 +254,23 @@
                                                                             name="results[{{ $test->m12_test_number }}][primary_tests][{{ $primaryTest->m16_primary_test_id }}][unit]"
                                                                             value="{{ old('results.' . $test->m12_test_number . '.primary_tests.' . $primaryTest->m16_primary_test_id . '.unit', $existingPrimaryResult->tr07_unit ?? ($primaryTest->m16_unit ?? '')) }}"
                                                                             placeholder="Unit">
+
+                                                                        @if ($primaryTest->m23_formula_id)
+                                                                            <button type="button"
+                                                                                class="btn btn-outline-info btn-icon raw-entry-btn"
+                                                                                data-formula-id="{{ $primaryTest->m23_formula_id }}"
+                                                                                data-reference-id="{{ $sampleTests->first()->registration->tr04_reference_id }}"
+                                                                                data-test-id="{{ $test->m12_test_id }}"
+                                                                                data-test-number="{{ $test->m12_test_number }}"
+                                                                                data-primary-test-id="{{ $primaryTest->m16_primary_test_id }}"
+                                                                                data-target-input="results[{{ $test->m12_test_number }}][primary_tests][{{ $primaryTest->m16_primary_test_id }}][result]">
+                                                                                <em class="icon ni ni-calc"></em>
+                                                                            </button>
+                                                                        @endif
                                                                     </div>
+                                                                    @error('results.'.$test->m12_test_number .'.primary_tests.'.$primaryTest->m16_primary_test_id.'.result')
+                                                                        <span class="text-danger small">{{ $message }}</span>
+                                                                    @enderror
                                                                 </td>
                                                                 <td>
                                                                     <button type="button"
@@ -249,6 +284,7 @@
                                                                         <button type="button"
                                                                             class="btn btn-outline-success btn-sm add-secondary-test"
                                                                             data-test-number="{{ $test->m12_test_number }}"
+                                                                            data-test-id="{{ $test->m12_test_id }}"
                                                                             data-primary-test-id="{{ $primaryTest->m16_primary_test_id }}"
                                                                             data-secondary-tests='{{ $primaryTest->secondaryTests->toJson() }}'>
                                                                             <em class="icon ni ni-plus"></em> Secondary
@@ -298,7 +334,7 @@
                                                                                     name="results[{{ $test->m12_test_number }}][primary_tests][{{ $primaryTest->m16_primary_test_id }}][secondary_tests][{{ $secondaryTest->m17_secondary_test_id }}][result_id]"
                                                                                     value="{{ $existingSecondaryResult->tr07_test_result_id ?? '' }}">
                                                                                 <input type="text"
-                                                                                    class="form-control form-control-sm border-0 bg-light"
+                                                                                    class="form-control form-control-sm border-0 bg-light @error('results.'.$test->m12_test_number .'.primary_tests.'.$primaryTest->m16_primary_test_id.'.secondary_tests.'.$secondaryTest->m17_secondary_test_id.'.result') is-invalid @enderror"
                                                                                     name="results[{{ $test->m12_test_number }}][primary_tests][{{ $primaryTest->m16_primary_test_id }}][secondary_tests][{{ $secondaryTest->m17_secondary_test_id }}][result]"
                                                                                     value="{{ old('results.' . $test->m12_test_number . '.primary_tests.' . $primaryTest->m16_primary_test_id . '.secondary_tests.' . $secondaryTest->m17_secondary_test_id . '.result', $existingSecondaryResult->tr07_result ?? '') }}"
                                                                                     placeholder="Enter result value"
@@ -306,10 +342,26 @@
                                                                                 <input type="text"
                                                                                     class="form-control form-control-sm border-0 bg-light"
                                                                                     style="max-width: 80px;"
-                                                                                    name="results[{{ $test->m12_test_number }}][primary_tests][{{ $primaryTest->m16_primary_test_id }}][secondary_tests][{{ $secondaryTest->m17_secondary_test_id }}][unit]"
                                                                                     value="{{ old('results.' . $test->m12_test_number . '.primary_tests.' . $primaryTest->m16_primary_test_id . '.secondary_tests.' . $secondaryTest->m17_secondary_test_id . '.unit', $existingSecondaryResult->tr07_unit ?? ($secondaryTest->m17_unit ?? '')) }}"
                                                                                     placeholder="Unit">
+
+                                                                                @if ($secondaryTest->m23_formula_id)
+                                                                                    <button type="button"
+                                                                                        class="btn btn-outline-info btn-icon raw-entry-btn"
+                                                                                        data-formula-id="{{ $secondaryTest->m23_formula_id }}"
+                                                                                        data-reference-id="{{ $sampleTests->first()->registration->tr04_reference_id }}"
+                                                                                        data-test-id="{{ $test->m12_test_id }}"
+                                                                                        data-test-number="{{ $test->m12_test_number }}"
+                                                                                        data-primary-test-id="{{ $primaryTest->m16_primary_test_id }}"
+                                                                                        data-secondary-test-id="{{ $secondaryTest->m17_secondary_test_id }}"
+                                                                                        data-target-input="results[{{ $test->m12_test_number }}][primary_tests][{{ $primaryTest->m16_primary_test_id }}][secondary_tests][{{ $secondaryTest->m17_secondary_test_id }}][result]">
+                                                                                        <em class="icon ni ni-calc"></em>
+                                                                                    </button>
+                                                                                @endif
                                                                             </div>
+                                                                            @error('results.'.$test->m12_test_number .'.primary_tests.'.$primaryTest->m16_primary_test_id.'.secondary_tests.'.$secondaryTest->m17_secondary_test_id.'.result')
+                                                                            <span class="text-danger small">{{ $message }}</span>
+                                                                            @enderror
                                                                         </td>
                                                                         <td>
                                                                             <button type="button"
@@ -357,6 +409,10 @@
                                     </div>
                                 </div>
 
+                                @error('action')
+                                    <div class="alert alert-danger">{{ $message }}</div>
+                                @enderror
+
                                 <!-- Action Buttons -->
                                 <div class="card border-0 shadow-sm">
                                     <div class="card-body d-flex justify-content-between align-items-center">
@@ -367,18 +423,18 @@
                                         @endif
                                         <div class="btn-group">
                                             @if (optional($existingResults->first())->tr07_result_status != 'SUBMITTED')
-                                                <button type="submit" name="action" value="DRAFT"
+                                                <button type="button" onclick="submitForm('DRAFT')"
                                                     class="btn btn-outline-primary">
                                                     <em class="icon ni ni-file-text"></em> Save as Draft
                                                 </button>
                                             @endif
                                             @if (Session::get('role') === 'DEO')
-                                                <button type="submit" name="action" value="RESULTED"
+                                                <button type="button" onclick="submitForm('RESULTED')"
                                                     class="btn btn-primary">
                                                     <em class="icon ni ni-check-circle"></em> Save & Complete
                                                 </button>
                                             @else
-                                                <button type="submit" name="action" value="SUBMITTED"
+                                                <button type="button" onclick="submitForm('SUBMITTED')"
                                                     class="btn btn-primary">
                                                     <em class="icon ni ni-check-circle"></em> Save & Complete
                                                 </button>
@@ -386,6 +442,12 @@
                                         </div>
                                     </div>
                                 </div>
+                                <script>
+                                    function submitForm(actionValue) {
+                                        document.getElementById('formAction').value = actionValue;
+                                        document.getElementById('testResultForm').submit();
+                                    }
+                                </script>
 
                         </form>
                     </div>
@@ -423,6 +485,83 @@
         </div>
     </div>
 
+    <!-- Raw Entry Modal -->
+    <div class="modal fade" id="rawEntryModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static"
+        data-bs-keyboard="false">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Raw Data Entry</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="rawEntyLoading" class="text-center d-none">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                    <form id="rawEntryForm">
+                        <input type="hidden" id="raw_formula_id" name="formula_id">
+                        <input type="hidden" id="raw_reference_id" name="reference_id">
+                        <input type="hidden" id="raw_test_id" name="test_id">
+                        <input type="hidden" id="raw_test_number" name="test_number">
+                        <input type="hidden" id="raw_primary_test_id" name="primary_test_id">
+                        <input type="hidden" id="raw_secondary_test_id" name="secondary_test_id">
+                        <input type="hidden" id="raw_target_input">
+
+                        <div class="alert alert-info py-2" id="formulaExpressionDisplay">
+                            <!-- Formula will be shown here -->
+                        </div>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Number of Readings</label>
+                                <input type="number" id="numberOfReadings" class="form-control" value="1"
+                                    min="1" max="10">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Aggregation Method</label>
+                                <select id="aggregationType" class="form-select">
+                                    <option value="NONE">None (Use First)</option>
+                                    <option value="AVERAGE">Average</option>
+                                    <option value="MAX">Max</option>
+                                    <option value="MIN">Min</option>
+                                    <option value="SD">Standard Deviation</option>
+                                    <option value="CV">Coefficient of Variation (%)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div id="variableInputsContainer" class="table-responsive mb-3">
+                            <!-- Table will be generated here -->
+                            <table class="table table-bordered table-sm" id="readingsTable">
+                                <thead class="table-light">
+                                    <tr id="readingsHeaderRow">
+                                        <!-- Headers generated by JS -->
+                                    </tr>
+                                </thead>
+                                <tbody id="readingsBody">
+                                    <!-- Rows generated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="mt-4 pt-3 border-top">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-0">Calculated Result: <span id="calculatedResult"
+                                            class="text-primary fw-bold fs-5">0</span></h6>
+                                    <small class="text-muted" id="aggregationLabel"></small>
+                                </div>
+                                <button type="button" class="btn btn-primary" id="saveRawEntryBtn">Save & Apply</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- PDF Modal -->
     <div class="modal fade" id="pdfModal" tabindex="-1" aria-labelledby="pdfModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-xl modal-dialog-centered">
@@ -435,7 +574,7 @@
                     @if (isset($sampleTests) && $sampleTests->first()?->registration?->tr04_manuscript)
                         @php
                             $manuscriptPath = $sampleTests->first()->registration->tr04_manuscript;
-                            $pdfUrl = asset('public/storage/test_results/'.$manuscriptPath);
+                            $pdfUrl = asset('public/storage/test_results/' . $manuscriptPath);
                         @endphp
 
                         <div class="ratio ratio-16x9">
@@ -676,6 +815,7 @@
                                     data-primary-test-id="${test.m16_primary_test_id}"
                                     data-primary-test-name="${test.m16_name}"
                                     data-primary-test-unit="${test.m16_unit || ''}"
+                                    data-formula-id="${test.m23_formula_id || ''}"
                                     data-has-secondary="${hasSecondaryTests}"
                                     data-secondary-tests='${JSON.stringify(test.secondaryTests || [])}'>
                                     Select
@@ -695,18 +835,19 @@
                     const primaryTestId = e.target.getAttribute('data-primary-test-id');
                     const primaryTestName = e.target.getAttribute('data-primary-test-name');
                     const primaryTestUnit = e.target.getAttribute('data-primary-test-unit');
+                    const formulaId = e.target.getAttribute('data-formula-id');
                     const hasSecondary = e.target.getAttribute('data-has-secondary') === 'true';
                     const secondaryTests = JSON.parse(e.target.getAttribute('data-secondary-tests') ||
                         '[]');
 
                     addPrimaryTestRow(currentTestNumber, currentTestId, primaryTestId, primaryTestName,
-                        primaryTestUnit, hasSecondary, secondaryTests);
+                        primaryTestUnit, formulaId, hasSecondary, secondaryTests);
                     $('#primaryTestModal').modal('hide');
                 }
             });
 
             function addPrimaryTestRow(testNumber, testId, primaryTestId, primaryTestName, primaryTestUnit,
-                hasSecondaryTests, secondaryTests) {
+                formulaId, hasSecondaryTests, secondaryTests) {
                 const rowId = `primary_test_${testNumber}_${primaryTestId}`;
 
                 const primaryTestHtml = `
@@ -737,6 +878,19 @@
                                 name="results[${testNumber}][primary_tests][${primaryTestId}][unit]"
                                 value="${primaryTestUnit}"
                                 placeholder="Unit">
+
+                            ${formulaId ? `
+                                                <button type="button"
+                                                    class="btn btn-outline-info btn-icon raw-entry-btn"
+                                                    data-formula-id="${formulaId}"
+                                                    data-reference-id="{{ $sampleTests->first()->registration->tr04_reference_id }}"
+                                                    data-test-id="${testId}"
+                                                    data-test-number="${testNumber}"
+                                                    data-primary-test-id="${primaryTestId}"
+                                                    data-target-input="results[${testNumber}][primary_tests][${primaryTestId}][result]">
+                                                    <em class="icon ni ni-calc"></em>
+                                                </button>
+                                                ` : ''}
                         </div>
                     </td>
                     <td>
@@ -749,11 +903,12 @@
                         </button>
                         ${hasSecondaryTests ? `
                                         <button type="button"
-                                            class="btn btn-outline-success btn-sm add-secondary-test"
-                                            data-test-number="${testNumber}"
-                                            data-primary-test-id="${primaryTestId}"
-                                            data-secondary-tests='${JSON.stringify(secondaryTests)}'>
-                                            <em class="icon ni ni-plus"></em> Secondary
+                                        class="btn btn-outline-success btn-sm add-secondary-test"
+                                        data-test-number="${testNumber}"
+                                        data-test-id="${testId}"
+                                        data-primary-test-id="${primaryTestId}"
+                                        data-secondary-tests='${JSON.stringify(secondaryTests)}'>
+                                        <em class="icon ni ni-plus"></em> Secondary
                                         </button>
                                         ` : ''}
                         <button type="button"
@@ -788,7 +943,7 @@
                 addRowEventListeners(rowId);
             }
 
-            function addSecondaryTestDropdown(testNumber, primaryTestId, secondaryTests) {
+            function addSecondaryTestDropdown(testNumber, primaryTestId, secondaryTests, testId) {
                 const primaryTestRow = document.querySelector(`[data-primary-test-id="${primaryTestId}"]`);
                 const dropdownId = `secondary_dropdown_${primaryTestId}`;
 
@@ -809,7 +964,7 @@
                                     <select class="form-select form-select-sm" id="secondary_test_select_${primaryTestId}">
                                         <option value="">Select Secondary Test</option>
                                         ${availableSecondaryTests.map(test => 
-                                            `<option value="${test.m17_secondary_test_id}" data-unit="${test.m17_unit || ''}">${test.m17_name}</option>`
+                                            `<option value="${test.m17_secondary_test_id}" data-unit="${test.m17_unit || ''}" data-formula-id="${test.m23_formula_id || ''}">${test.m17_name}</option>`
                                         ).join('')}
                                     </select>
                                 </div>
@@ -829,6 +984,7 @@
                                     <button type="button" 
                                         class="btn btn-success btn-sm add-selected-secondary"
                                         data-test-number="${testNumber}"
+                                        data-test-id="${testId}"
                                         data-primary-test-id="${primaryTestId}">
                                         Add It
                                     </button>
@@ -859,16 +1015,21 @@
                     .addEventListener('click', function() {
                         const selectedSecondaryId = document.getElementById(
                             `secondary_test_select_${primaryTestId}`).value;
-                        const resultValue = document.getElementById(`secondary_result_${primaryTestId}`).value;
                         const unitValue = document.getElementById(`secondary_unit_${primaryTestId}`).value;
+                        const formulaId = document.getElementById(`secondary_test_select_${primaryTestId}`)
+                            .options[document.getElementById(`secondary_test_select_${primaryTestId}`)
+                                .selectedIndex].getAttribute('data-formula-id');
+                        const testId = this.getAttribute('data-test-id');
 
                         if (!selectedSecondaryId) {
                             Swal.fire('Error', 'Please select a secondary test', 'error');
                             return;
                         }
 
+                        const resultValue = document.getElementById(`secondary_result_${primaryTestId}`).value;
+
                         addSecondaryTestRow(testNumber, primaryTestId, selectedSecondaryId, resultValue,
-                            unitValue, secondaryTests);
+                            unitValue, formulaId, secondaryTests, testId);
                         document.getElementById(dropdownId).remove();
                     });
 
@@ -879,7 +1040,7 @@
             }
 
             function addSecondaryTestRow(testNumber, primaryTestId, secondaryTestId, resultValue = '', unitValue =
-                '', secondaryTests) {
+                '', formulaId, secondaryTests, testId) {
                 const secondaryTest = secondaryTests.find(test => test.m17_secondary_test_id.toString() ===
                     secondaryTestId);
                 if (!secondaryTest) return;
@@ -917,6 +1078,20 @@
                                 name="results[${testNumber}][primary_tests][${primaryTestId}][secondary_tests][${secondaryTestId}][unit]"
                                 value="${unitValue}"
                                 placeholder="Unit">
+
+                            ${formulaId ? `
+                                                <button type="button"
+                                                    class="btn btn-outline-info btn-icon raw-entry-btn"
+                                                    data-formula-id="${formulaId}"
+                                                    data-reference-id="{{ $sampleTests->first()->registration->tr04_reference_id }}"
+                                                    data-test-id="${testId}"
+                                                    data-test-number="${testNumber}"
+                                                    data-primary-test-id="${primaryTestId}"
+                                                    data-secondary-test-id="${secondaryTestId}"
+                                                    data-target-input="results[${testNumber}][primary_tests][${primaryTestId}][secondary_tests][${secondaryTestId}][result]">
+                                                    <em class="icon ni ni-calc"></em>
+                                                </button>
+                                            ` : ''}
                         </div>
                     </td>
                     <td>
@@ -1172,10 +1347,11 @@
                 if (addSecondaryBtn) {
                     addSecondaryBtn.addEventListener('click', function() {
                         const testNumber = this.getAttribute('data-test-number');
+                        const testId = this.getAttribute('data-test-id');
                         const primaryTestId = this.getAttribute('data-primary-test-id');
                         const secondaryTests = JSON.parse(this.getAttribute('data-secondary-tests') ||
                             '[]');
-                        addSecondaryTestDropdown(testNumber, primaryTestId, secondaryTests);
+                        addSecondaryTestDropdown(testNumber, primaryTestId, secondaryTests, testId);
                     });
                 }
 
@@ -1267,6 +1443,356 @@
             // Initialize event listeners for existing rows
             document.querySelectorAll('.primary-test-row, .secondary-test-row').forEach(row => {
                 addRowEventListeners(row.id);
+            });
+
+
+            // --- Raw Entry Logic ---
+            const rawEntryModal = new bootstrap.Modal(document.getElementById('rawEntryModal'));
+            let currentRowResults = [];
+
+            function renderReadingsGrid(existingData = null) {
+                if (!currentFormulaData) return;
+
+                const numReadings = parseInt(document.getElementById('numberOfReadings').value) || 1;
+                const variables = currentFormulaData.variables;
+                const headerRow = document.getElementById('readingsHeaderRow');
+                const body = document.getElementById('readingsBody');
+
+                // Header
+                let headerHtml = '<th style="width: 50px;">#</th>';
+                variables.forEach(v => {
+                    headerHtml += `<th>${v.m24_label} (${v.m24_variable_key})</th>`;
+                });
+                headerHtml += '<th style="width: 100px;">Result</th>';
+                headerRow.innerHTML = headerHtml;
+
+                // Body
+                let bodyHtml = '';
+
+                // If existingData exists, it might be an object, ensure array for easier access if indices are keys
+                let dataArray = existingData;
+                if (existingData && !Array.isArray(existingData)) {
+                    dataArray = Object.values(existingData);
+                }
+
+                for (let i = 0; i < numReadings; i++) {
+                    const rowData = dataArray && dataArray[i] ? dataArray[i] : {};
+
+                    bodyHtml += `<tr data-row-index="${i}">`;
+                    bodyHtml += `<td>${i + 1}</td>`;
+                    variables.forEach(v => {
+                        const val = rowData[v.m24_variable_key] !== undefined ? rowData[v
+                            .m24_variable_key] : '';
+
+                        bodyHtml += `
+                            <td>
+                                <div class="input-group input-group-sm">
+                                    <input type="number" step="any" class="form-control formula-variable" 
+                                        data-row="${i}"
+                                        data-key="${v.m24_variable_key}" 
+                                        name="variables[${i}][${v.m24_variable_key}]"
+                                        value="${val}"
+                                        placeholder="${v.m24_unit || ''}"
+                                        ${v.m24_is_required ? 'required' : ''}>
+                                </div>
+                            </td>`;
+                    });
+                    bodyHtml += `<td class="text-end fw-bold row-result" id="row_result_${i}">-</td>`;
+                    bodyHtml += `</tr>`;
+                }
+                body.innerHTML = bodyHtml;
+
+                // Re-attach listeners or rely on delegation? Delegation is set on container below.
+                calculateResult(); // Recalculate based on newly filled inputs
+            }
+
+            // Calculation Logic
+            function calculateResult() {
+                if (!currentFormulaData) return;
+
+                const numReadings = parseInt(document.getElementById('numberOfReadings').value) || 1;
+                const expressionBase = currentFormulaData.expression;
+                currentRowResults = [];
+                let allRowsValid = true;
+
+                // Variables sorted by key length
+                const variableKeys = currentFormulaData.variables.map(v => v.m24_variable_key)
+                    .sort((a, b) => b.length - a.length);
+
+                for (let i = 0; i < numReadings; i++) {
+                    let expression = expressionBase;
+                    let rowFilled = true;
+
+                    // Replace variables
+                    variableKeys.forEach(key => {
+                        const input = document.querySelector(
+                            `.formula-variable[data-row="${i}"][data-key="${key}"]`);
+                        let value = parseFloat(input ? input.value : 0);
+                        if (isNaN(value)) {
+                            value = 0;
+                            // Check required
+                            if (input && input.hasAttribute('required') && input.value === '') rowFilled =
+                                false;
+                        }
+                        expression = expression.replaceAll(key, value);
+                    });
+
+                    let result = 0;
+                    if (rowFilled) {
+                        try {
+                            const sanitizedExpression = expression.replace(/[^0-9\.\+\-\*\/\(\)\%\s]/g, '');
+                            result = new Function('return ' + sanitizedExpression)();
+                            if (isNaN(result) || !isFinite(result)) result = 0;
+                            // Round row result
+                            result = Math.round((result + Number.EPSILON) * 10000) / 10000;
+                        } catch (e) {
+                            result = 0;
+                            rowFilled = false;
+                        }
+                    } else {
+                        allRowsValid =
+                            false; // Mark overall invalid if needed, but we might just ignore this row for aggregation? 
+                        // Actually, for stats, we usually need all inputs. Let's assume 0 for missing.
+                    }
+
+                    document.getElementById(`row_result_${i}`).innerText = rowFilled ? result : '-';
+                    if (rowFilled) currentRowResults.push(result);
+                }
+
+                computeGlobalResult();
+            }
+
+            function computeGlobalResult() {
+                const aggregation = document.getElementById('aggregationType').value;
+                const resultSpan = document.getElementById('calculatedResult');
+                const validResults = currentRowResults; // Use all valid calculated rows
+
+                if (validResults.length === 0) {
+                    resultSpan.innerText = '0';
+                    return;
+                }
+
+                let final = 0;
+                let label = '';
+
+                switch (aggregation) {
+                    case 'AVERAGE':
+                        const sum = validResults.reduce((a, b) => a + b, 0);
+                        final = sum / validResults.length;
+                        label = `Average of ${validResults.length} readings`;
+                        break;
+                    case 'MAX':
+                        final = Math.max(...validResults);
+                        label = 'Maximum value';
+                        break;
+                    case 'MIN':
+                        final = Math.min(...validResults);
+                        label = 'Minimum value';
+                        break;
+                    case 'SD':
+                        if (validResults.length > 1) {
+                            const mean = validResults.reduce((a, b) => a + b, 0) / validResults.length;
+                            const sqDiff = validResults.map(v => Math.pow(v - mean, 2));
+                            const avgSqDiff = sqDiff.reduce((a, b) => a + b, 0) / (validResults.length -
+                                1); // Sample SD
+                            final = Math.sqrt(avgSqDiff);
+                        } else {
+                            final = 0;
+                        }
+                        label = 'Standard Deviation';
+                        break;
+                    case 'CV':
+                        if (validResults.length > 1) {
+                            const meanCv = validResults.reduce((a, b) => a + b, 0) / validResults.length;
+                            const sqDiffCv = validResults.map(v => Math.pow(v - meanCv, 2));
+                            const avgSqDiffCv = sqDiffCv.reduce((a, b) => a + b, 0) / (validResults.length - 1);
+                            const sd = Math.sqrt(avgSqDiffCv);
+                            if (meanCv !== 0) final = (sd / meanCv) * 100;
+                        } else {
+                            final = 0;
+                        }
+                        label = 'Coefficient of Variation (%)';
+                        break;
+                    default: // NONE
+                        final = validResults[0] || 0;
+                        label = 'First reading value';
+                }
+
+                // Global rounding
+                final = Math.round((final + Number.EPSILON) * 1000) / 1000;
+                resultSpan.innerText = isNaN(final) ? 'Error' : final;
+                document.getElementById('aggregationLabel').innerText = label;
+            }
+
+            document.addEventListener('click', function(e) {
+                if (e.target.closest('.raw-entry-btn')) {
+                    const btn = e.target.closest('.raw-entry-btn');
+                    const formulaId = btn.getAttribute('data-formula-id');
+                    const referenceId = btn.getAttribute('data-reference-id');
+                    const testId = btn.getAttribute('data-test-id');
+                    const testNumber = btn.getAttribute('data-test-number');
+                    const primaryTestId = btn.getAttribute('data-primary-test-id');
+                    const secondaryTestId = btn.getAttribute('data-secondary-test-id');
+                    const targetInputName = btn.getAttribute('data-target-input');
+
+                    // Set hidden fields
+                    document.getElementById('raw_formula_id').value = formulaId;
+                    document.getElementById('raw_reference_id').value = referenceId;
+                    document.getElementById('raw_test_id').value = testId;
+                    document.getElementById('raw_test_number').value = testNumber;
+                    document.getElementById('raw_primary_test_id').value = primaryTestId || '';
+                    document.getElementById('raw_secondary_test_id').value = secondaryTestId || '';
+                    document.getElementById('raw_target_input').value = targetInputName;
+
+                    // Reset UI
+                    document.getElementById('formulaExpressionDisplay').innerText = 'Loading formula...';
+                    document.getElementById('readingsBody').innerHTML = ''; // Clear table
+                    document.getElementById('calculatedResult').innerText = '0';
+                    document.getElementById('aggregationLabel').innerText = '';
+                    document.getElementById('numberOfReadings').value = 1;
+                    document.getElementById('aggregationType').value = 'NONE';
+
+                    document.getElementById('rawEntyLoading').classList.remove('d-none');
+                    document.getElementById('rawEntryForm').style.opacity = '0.5';
+
+                    rawEntryModal.show();
+
+                    // Parallel Fetch: Formula details AND Existing Entry
+                    const formData = new FormData();
+                    formData.append('_token', '{{ csrf_token() }}');
+                    formData.append('reference_id', referenceId);
+                    formData.append('test_id', testId);
+                    formData.append('test_number', testNumber);
+                    formData.append('primary_test_id', primaryTestId || '');
+                    formData.append('secondary_test_id', secondaryTestId || '');
+
+                    Promise.all([
+                            fetch(`{{ url('test-results/get-formula-details') }}/${formulaId}`).then(
+                                r => r.json()),
+                            fetch(`{{ route('get_raw_entry') }}`, {
+                                method: 'POST',
+                                body: formData
+                            }).then(r => r.json())
+                        ])
+                        .then(([formulaData, rawEntryData]) => {
+                            currentFormulaData = formulaData;
+                            document.getElementById('formulaExpressionDisplay').innerText =
+                                `Formula: ${formulaData.expression}`;
+
+                            let existingVariables = null;
+
+                            if (rawEntryData) {
+                                // Populate from existing
+                                if (rawEntryData.tr12_type) {
+                                    document.getElementById('aggregationType').value = rawEntryData
+                                        .tr12_type;
+                                }
+
+                                existingVariables = rawEntryData
+                                    .variables; // Expected to be array of objects or similar structure
+
+                                // Determine number of readings based on existing data
+                                // The saved structure is likely: variables: [ {key: val, key2: val}, {key: val...} ] (array of rows)
+                                // OR array of objects where keys are variables? The save sends `variables[rowIndex][key]`
+                                // PHP `json_encode` of that will be object { "0": {key:val}, "1": {key:val} } or array if indices are sequential.
+
+                                let numReadings = 0;
+                                if (existingVariables) {
+                                    // Convert to array if object
+                                    if (!Array.isArray(existingVariables) &&
+                                        typeof existingVariables === 'object') {
+                                        existingVariables = Object.values(existingVariables);
+                                    }
+                                    numReadings = existingVariables.length;
+                                }
+
+                                if (numReadings > 0) {
+                                    document.getElementById('numberOfReadings').value = numReadings;
+                                }
+                            }
+
+                            renderReadingsGrid(existingVariables);
+
+                            document.getElementById('rawEntyLoading').classList.add('d-none');
+                            document.getElementById('rawEntryForm').style.opacity = '1';
+                        })
+                        .catch(error => {
+                            console.error('Error fetching details:', error);
+                            Swal.fire('Error', 'Failed to load details.', 'error');
+                            rawEntryModal.hide();
+                        });
+                }
+            });
+
+            // Listeners for changes
+            document.getElementById('numberOfReadings').addEventListener('change', function() {
+                if (this.value < 1) this.value = 1;
+                if (this.value > 20) this.value = 20; // Safety limit
+                renderReadingsGrid();
+            });
+
+            document.getElementById('aggregationType').addEventListener('change', function() {
+                calculateResult();
+            });
+
+            // Real-time Calculation delegation
+            document.getElementById('readingsBody').addEventListener('input', function(e) {
+                if (e.target.classList.contains('formula-variable')) {
+                    calculateResult();
+                }
+            });
+
+            // Save Raw Entry
+            document.getElementById('saveRawEntryBtn').addEventListener('click', function() {
+                const calculatedValue = document.getElementById('calculatedResult').innerText;
+
+                if (calculatedValue === 'Error' || calculatedValue === '...') {
+                    Swal.fire('Error', 'Please ensure all variables are filled correctly.', 'error');
+                    return;
+                }
+
+                const formData = new FormData(document.getElementById('rawEntryForm'));
+                // Add calculated output manually
+                formData.append('calculated_output', calculatedValue);
+                // Collect variables as JSON object manual override to ensure structure if needed, 
+                // but FormData handles array notation `variables[KEY]` well for PHP.
+                // However, our controller expects `variables` to be valid JSON if we just json_encode raw input?
+                // The controller does: 'tr12_variables' => json_encode($request->variables)
+                // If inputs are named "variables[key]", PHP receives an associative array. json_encode(array) -> JSON object. This works.
+
+                // Add CSRF token
+                formData.append('_token', '{{ csrf_token() }}');
+
+                // Add aggregation type
+                formData.append('aggregation_type', document.getElementById('aggregationType').value);
+
+                fetch('{{ route('save_raw_entry') }}', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire('Success', 'Raw entry saved successfully.', 'success');
+
+                            // Update the Main/Primary/Secondary result input
+                            const targetInputName = document.getElementById('raw_target_input').value;
+                            const targetInput = document.querySelector(
+                                `input[name="${targetInputName}"]`);
+                            if (targetInput) {
+                                targetInput.value = calculatedValue;
+                                // Also trigger change if needed
+                            }
+
+                            rawEntryModal.hide();
+                        } else {
+                            Swal.fire('Error', data.message || 'Failed to save.', 'error');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        Swal.fire('Error', 'An error occurred while saving.', 'error');
+                    });
             });
 
         });

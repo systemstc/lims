@@ -34,11 +34,12 @@
                                                     <th>Registration ID</th>
                                                     <th>Date</th>
                                                     <th>Sample Description</th>
-                                                    <th>Sample Image</th>
+                                                    {{-- <th>Sample Image</th> --}}
                                                     <th>Priority</th>
                                                     <th>Amount</th>
+                                                    <th>Payment Status</th>
                                                     <th>Status</th>
-                                                    <th>Tests</th>
+                                                    {{-- <th>Tests</th> --}}
                                                     <th>Action</th>
                                                 </tr>
                                             </thead>
@@ -67,6 +68,58 @@
                 <div class="modal-body text-center">
                     <img id="sampleImagePreview" src="" alt="Sample Image" class="img-fluid rounded">
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dispatch Modal -->
+    <div class="modal fade" id="dispatchModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Dispatch Sample</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="dispatchForm">
+                    @csrf
+                    <input type="hidden" id="dispatchSampleId" name="sample_id">
+                    <div class="modal-body">
+                        <div class="form-group mb-3">
+                            <label class="form-label">Mode of Dispatch <span class="text-danger">*</span></label>
+                            <div class="form-control-wrap">
+                                <select class="form-select" name="mode" required>
+                                    <option value="" selected disabled>Select Mode</option>
+                                    <option value="By Post">By Post</option>
+                                    <option value="By Courier">By Courier</option>
+                                    <option value="In Person">In Person</option>
+                                    <option value="By Email">By Email</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group mb-3">
+                            <label class="form-label">Person Name <small>(Optional)</small></label>
+                            <div class="form-control-wrap">
+                                <input type="text" class="form-control" name="person_name" placeholder="Enter Person Name">
+                            </div>
+                        </div>
+                        <div class="form-group mb-3">
+                            <label class="form-label">Date of Dispatch</label>
+                            <div class="form-control-wrap">
+                                <input type="date" class="form-control" name="dispatch_date" value="{{ date('Y-m-d') }}" required>
+                            </div>
+                        </div>
+                        <div class="form-group mb-3">
+                            <label class="form-label">Post/Article Number <small>(Optional)</small></label>
+                            <div class="form-control-wrap">
+                                <input type="text" class="form-control" name="post_article_no" placeholder="Enter Tracking Number">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary">Dispatch</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
@@ -115,18 +168,18 @@
                         data: 'sample_description',
                         name: 'tr04_sample_description'
                     },
-                    {
-                        data: 'sanple_image',
-                        name: 'tr04_attachment',
-                        render: function(data, type, row) {
-                            if (data) {
-                                return `<button class="btn view-image" data-image="${data}">
-                                <em class="icon ni ni-eye-fill"></em></button>`;
-                            } else {
-                                return `<span class="text-muted">No Image</span>`;
-                            }
-                        }
-                    },
+                    // {
+                    //    data: 'sanple_image',
+                    //    name: 'tr04_attachment',
+                    //    render: function(data, type, row) {
+                    //        if (data) {
+                    //            return `<button class="btn view-image" data-image="${data}">
+                    //            <em class="icon ni ni-eye-fill"></em></button>`;
+                    //        } else {
+                    //            return `<span class="text-muted">No Image</span>`;
+                    //        }
+                    //    }
+                    // },
 
                     {
                         data: 'sample_type',
@@ -137,14 +190,18 @@
                         name: 'tr04_total_charges'
                     },
                     {
+                        data: 'payment_status',
+                        name: 'tr04_payment_status'
+                    },
+                    {
                         data: 'status',
                         name: 'tr04_progress'
                     },
-                    {
-                        data: 'total_tests',
-                        name: 'total_tests',
-                        searchable: false
-                    },
+                    // {
+                    //    data: 'total_tests',
+                    //    name: 'total_tests',
+                    //    searchable: false
+                    // },
                     {
                         data: 'action',
                         name: 'action',
@@ -174,6 +231,8 @@
         });
 
         const upgradeToTatkalRoute = "{{ route('upgrade_to_tatkal') }}";
+        const dispatchRoute = "{{ route('dispatch_sample') }}";
+
         $(document).on('click', '.upgrade-to-tatkal', function(e) {
             e.preventDefault();
             let recordId = $(this).data('id');
@@ -213,6 +272,48 @@
                             Swal.fire('Error!', 'Something went wrong.', 'error');
                         }
                     });
+                }
+            });
+        });
+
+        // Open Dispatch Modal
+        $(document).on('click', '.dispatch-btn', function(e) {
+            e.preventDefault();
+            let sampleId = $(this).data('id');
+            $('#dispatchSampleId').val(sampleId);
+            $('#dispatchModal').modal('show');
+        });
+
+        // Handle Dispatch Form Submission
+        $('#dispatchForm').on('submit', function(e) {
+            e.preventDefault();
+            let formData = $(this).serialize();
+            
+            $.ajax({
+                url: dispatchRoute,
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                },
+                data: formData,
+                success: function(response) {
+                    if (response.status === 'success') {
+                        $('#dispatchModal').modal('hide');
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Sample Dispatched!',
+                            text: response.message,
+                            timer: 1500,
+                            showConfirmButton: false
+                        }).then(() => {
+                            $('#samples-table').DataTable().ajax.reload();
+                        });
+                    } else {
+                        Swal.fire('Error!', response.message, 'error');
+                    }
+                },
+                error: function(xhr) {
+                    Swal.fire('Error!', 'Failed to dispatch sample. Please try again.', 'error');
                 }
             });
         });

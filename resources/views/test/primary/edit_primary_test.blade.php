@@ -47,6 +47,26 @@
                                             </div>
                                         </div>
 
+                                        {{-- Lab Sample (Applicable Sample Types) --}}
+                                        <div class="col-md-4">
+                                            <div class="form-group">
+                                                <label class="form-label" for="txt_edit_lab_sample_ids">Applicable Sample Types</label>
+                                                <div class="form-control-wrap">
+                                                    <select name="txt_edit_lab_sample_ids[]" class="form-select js-select2" multiple="multiple" id="txt_edit_lab_sample_ids" data-placeholder="Select Applicable Sample Types">
+                                                        @foreach ($labSamples as $labSample)
+                                                            <option value="{{ $labSample->m14_lab_sample_id }}"
+                                                                {{ collect(old('txt_edit_lab_sample_ids', $primaryTest->m14_lab_sample_ids ?? []))->contains($labSample->m14_lab_sample_id) ? 'selected' : '' }}>
+                                                                {{ $labSample->m14_name }}
+                                                            </option>
+                                                        @endforeach
+                                                    </select>
+                                                </div>
+                                                @error('txt_edit_lab_sample_ids')
+                                                    <span class="text-danger">{{ $message }}</span>
+                                                @enderror
+                                            </div>
+                                        </div>
+
                                         {{-- Group --}}
                                         <div class="col-md-4">
                                             <div class="form-group">
@@ -165,7 +185,7 @@
             const groupDropdown = $('#txt_edit_group_id');
             const testDropdown = $('#txt_edit_test_id');
             const sampleId = $('#txt_edit_sample_id').val();
-            const selectedGroupId = "{{ old('txt_edit_group_id', $primaryTest->m11_group_id) }}";
+            const selectedGroupId = "{{ old('txt_edit_group_id', $primaryTest->m11_group_code) }}";
             const selectedTestId = "{{ old('txt_edit_test_id', $primaryTest->m12_test_id) }}";
 
             function loadGroups(sampleId) {

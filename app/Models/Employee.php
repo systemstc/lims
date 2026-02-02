@@ -23,22 +23,22 @@ class Employee extends Model
 
     public function user(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'tr01_user_id');
+        return $this->belongsTo(User::class, 'tr01_user_id', 'tr01_user_id');
     }
     public function ro(): BelongsTo
     {
-        return $this->belongsTo(Ro::class, 'm04_ro_id');
+        return $this->belongsTo(Ro::class, 'm04_ro_id', 'm04_ro_id');
     }
     public function role(): BelongsTo
     {
-        return $this->belongsTo(Role::class, 'm03_role_id');
+        return $this->belongsTo(Role::class, 'm03_role_id', 'm03_role_id');
     }
     public function state(): BelongsTo
     {
-        return $this->belongsTo(State::class, 'm01_state_id');
+        return $this->belongsTo(State::class, 'm01_state_id', 'm01_state_id');
     }
     public function district(): BelongsTo
     {
-        return $this->belongsTo(District::class, 'm02_district_id');
+        return $this->belongsTo(District::class, 'm02_district_id', 'm02_district_id');
     }
 }

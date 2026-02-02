@@ -11,10 +11,13 @@
                     <img class="logo-dark logo-img" src="{{ asset('backAssets/images/logo.png') }}" alt="logo">
                 </a>
             </div><!-- .nk-header-brand -->
-            {{-- <div class="nk-header-search ms-3 ms-xl-0">
+            <div class="nk-header-search ms-3 ms-xl-0">
                 <em class="icon ni ni-search"></em>
-                <input type="text" class="form-control border-transparent form-focus-none" placeholder="Search anything">
-            </div><!-- .nk-header-news --> --}}
+                <form action="{{ route('search_tracker') }}" method="GET">
+                    <input type="text" name="tracker_id" class="form-control border-transparent form-focus-none"
+                        placeholder="Search by Tracker ID">
+                </form>
+            </div><!-- .nk-header-news -->
             <div class="nk-header-tools">
                 <ul class="nk-quick-nav">
                     <li class="dropdown notification-dropdown">
@@ -34,7 +37,8 @@
                                         </div>
                                         <div class="nk-notification-content">
                                             <div class="nk-notification-text">You have requested to
-                                                <span>Widthdrawl</span></div>
+                                                <span>Widthdrawl</span>
+                                            </div>
                                             <div class="nk-notification-time">2 hrs ago</div>
                                         </div>
                                     </div>
@@ -54,7 +58,8 @@
                                         </div>
                                         <div class="nk-notification-content">
                                             <div class="nk-notification-text">You have requested to
-                                                <span>Widthdrawl</span></div>
+                                                <span>Widthdrawl</span>
+                                            </div>
                                             <div class="nk-notification-time">2 hrs ago</div>
                                         </div>
                                     </div>
@@ -74,7 +79,8 @@
                                         </div>
                                         <div class="nk-notification-content">
                                             <div class="nk-notification-text">You have requested to
-                                                <span>Widthdrawl</span></div>
+                                                <span>Widthdrawl</span>
+                                            </div>
                                             <div class="nk-notification-time">2 hrs ago</div>
                                         </div>
                                     </div>
@@ -124,7 +130,9 @@
                                     <!-- <li><a href="html/user-profile-regular.html"><em class="icon ni ni-user-alt"></em><span>View Profile</span></a></li> -->
                                     <!-- <li><a href="html/user-profile-setting.html"><em class="icon ni ni-setting-alt"></em><span>Account Setting</span></a></li> -->
                                     <!-- <li><a href="html/user-profile-activity.html"><em class="icon ni ni-activity-alt"></em><span>Login Activity</span></a></li> -->
-                                    <li><a href="#" class="dark-switch"data-bs-placement="left"><em class="icon ni ni-moon"></em><span data-text="Dark Mode">Dark Mode</span></a></li>
+                                    <li><a href="#" class="dark-switch"data-bs-placement="left"><em
+                                                class="icon ni ni-moon"></em><span data-text="Dark Mode">Dark
+                                                Mode</span></a></li>
                                 </ul>
                             </div>
                             <div class="dropdown-inner">

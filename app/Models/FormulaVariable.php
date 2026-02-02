@@ -22,6 +22,6 @@ class Formulavariable extends Model
 
     public function formula()
     {
-        return $this->belongsTo(Employee::class, 'm23_formula_id', 'm23_formula_id');
+        return $this->belongsTo(Formula::class, 'm23_formula_id', 'm23_formula_id');
     }
 }

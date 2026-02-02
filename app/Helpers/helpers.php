@@ -86,52 +86,58 @@ if (!function_exists('toggleStatus')) {
     }
 }
 
-if (!function_exists('generateCode')) {
-function generateReferenceId($sampleType, $customerType, $sampleCategory)
-{
-    return DB::transaction(function () use ($sampleType,  $customerType, $sampleCategory) {
-        $roId = str_pad(Session::get('ro_id') ?? '0', 2, '0', STR_PAD_LEFT);
-        // Generate Financial Year //
-        $currentYear = date('Y');
-        $currentMonth = date('m');
-        if ($currentMonth >= 4) {
-            // From April to December
-            $fyStart = substr($currentYear, 2, 2);          // eg. 2025 → 25
-            $fyEnd   = substr($currentYear + 1, 2, 2);      // eg. 2026 → 26
-        } else {
-            // From January to March → FY belongs to previous year
-            $fyStart = substr($currentYear - 1, 2, 2);      // eg. 2025 Jan → 24
-            $fyEnd   = substr($currentYear, 2, 2);          // eg. 2025 → 25
-        }
+if (!function_exists('generateReferenceId')) {
+    function generateReferenceId($sampleType, $commercialType, $customerType, $sampleCategory)
+    {
+        return DB::transaction(function () use ($sampleType, $commercialType, $customerType, $sampleCategory) {
+            $roId = str_pad(Session::get('ro_id') ?? '0', 2, '0', STR_PAD_LEFT);
+            // Generate Financial Year //
+            $currentYear = date('Y');
+            $currentMonth = date('m');
+            if ($currentMonth >= 4) {
+                // From April to December
+                $fyStart = substr($currentYear, 2, 2);          // eg. 2025 → 25
+                $fyEnd   = substr($currentYear + 1, 2, 2);      // eg. 2026 → 26
+            } else {
+                // From January to March → FY belongs to previous year
+                $fyStart = substr($currentYear - 1, 2, 2);      // eg. 2025 Jan → 24
+                $fyEnd   = substr($currentYear, 2, 2);          // eg. 2025 → 25
+            }
 
-        $financialYear = $fyStart . $fyEnd;  // eg. "2526"
+            $financialYear = $fyStart . $fyEnd;  // eg. "2526"
 
-        // $type = str_pad($sampleType, 2, '0', STR_PAD_LEFT);
-        $category = str_pad($sampleCategory, 2, '0', STR_PAD_LEFT);
+            // $type = str_pad($sampleType, 2, '0', STR_PAD_LEFT);
+            $category = str_pad($sampleCategory, 2, '0', STR_PAD_LEFT);
 
-        // Final prefix
-        $prefix = $roId . $sampleType . $customerType . $category . $financialYear;
+            // Final prefix
+            $prefix = $roId . $commercialType . $customerType . $sampleType . $category . $financialYear;
 
-        // Fetch last record
-        $lastRecord = SampleRegistration::lockForUpdate()
-            ->orderBy('tr04_sample_registration_id', 'desc')
-            ->first();
+            // Fetch last record
+            $lastRecord = SampleRegistration::lockForUpdate()
+                ->where('m04_ro_id', Session::get('ro_id'))
+                ->orderBy('tr04_sample_registration_id', 'desc')
+                ->first();
 
-        if ($lastRecord && !empty($lastRecord->tr04_reference_id)) {
-            preg_match('/(\d{4})$/', $lastRecord->tr04_reference_id, $matches);
-            $lastNumber = isset($matches[1]) ? intval($matches[1]) : 0;
-            $nextNumber = $lastNumber + 1;
-        } else {
-            $nextNumber = 1;
-        }
+            if ($lastRecord && !empty($lastRecord->tr04_reference_id)) {
 
-        // Format next number
-        $formattedNumber = str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
+                // Extract the sequence number (last 4 digits)
+                preg_match('/(\d{4})$/', $lastRecord->tr04_reference_id, $matches);
+                $lastNumber = isset($matches[1]) ? intval($matches[1]) : 0;
 
-        return $prefix . $formattedNumber;
-    });
-}
+                // If it's a new year or new prefix structure, you might want to reset,
+                // but usually, sequence is continuous per RO or per financial year.
+                // Assuming continuous sequence per RO as per previous logic.
+                $nextNumber = $lastNumber + 1;
+            } else {
+                $nextNumber = 1;
+            }
 
+            // Format next number
+            $formattedNumber = str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
+
+            return $prefix . $formattedNumber;
+        });
+    }
 }
 
 if (!function_exists('generateTrackerId')) {

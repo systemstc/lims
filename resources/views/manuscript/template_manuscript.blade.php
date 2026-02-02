@@ -20,8 +20,9 @@
                             </div>
                         </div>
                         <!-- Form -->
-                        <form action="{{ route('create_test_result') }}" method="POST" enctype="multipart/form-data">
+                        <form id="manuscriptForm" action="{{ route('create_test_result') }}" method="POST" enctype="multipart/form-data">
                             @csrf
+                            <input type="hidden" name="action" id="formAction" value="">
 
                             @if (isset($manuscripts) && $manuscripts->isNotEmpty())
                                 <input type="hidden" name="registration_id"
@@ -45,9 +46,12 @@
                                                 <td class="fw-bold text-muted w-25">Date:</td>
                                                 <td class="w-25">
                                                     <input type="date"
-                                                        class="form-control form-control-sm bg-light border-0 shadow-none"
+                                                        class="form-control form-control-sm bg-light border-0 shadow-none @error('test_date') is-invalid @enderror"
                                                         name="test_date"
                                                         value="{{ old('test_date', $testDate ?? date('Y-m-d')) }}" required>
+                                                    @error('test_date')
+                                                        <span class="text-danger small">{{ $message }}</span>
+                                                    @enderror
                                                 </td>
                                             </tr>
                                             <tr>
@@ -64,10 +68,13 @@
                                                 <td class="fw-bold text-muted">Date of Performance of Tests:</td>
                                                 <td>
                                                     <input type="date"
-                                                        class="form-control form-control-sm bg-light border-0 shadow-none"
+                                                        class="form-control form-control-sm bg-light border-0 shadow-none @error('performance_date') is-invalid @enderror"
                                                         name="performance_date"
                                                         value="{{ old('performance_date', $performanceDate ?? '') }}"
                                                         required>
+                                                    @error('performance_date')
+                                                        <span class="text-danger small">{{ $message }}</span>
+                                                    @enderror
                                                 </td>
                                                 <td class="fw-bold text-muted">Date of Allotment of Sample:</td>
                                                 <td class="text-dark fw-semibold">
@@ -97,7 +104,7 @@
                                         <em class="icon ni ni-layers"></em> Test Results
                                     </h6>
                                     <!-- Button to Open Modal -->
-                                    <button class="btn btn-light btn-sm text-primary" data-bs-toggle="modal"
+                                    <button type="button" class="btn btn-light btn-sm text-primary" data-bs-toggle="modal"
                                         data-bs-target="#uploadModal">
                                         <em class="icon ni ni-upload"></em> Upload Manuscript
                                     </button>
@@ -147,10 +154,13 @@
                                                                     name="manuscript_data[{{ $key }}][{{ $mKey }}][result_id]"
                                                                     value="{{ $existingResult->tr07_test_result_id ?? '' }}">
                                                                 <input type="text"
-                                                                    class="form-control form-control-sm border-0 bg-light"
+                                                                    class="form-control form-control-sm border-0 bg-light @error('manuscript_data.'.$key.'.'.$mKey.'.result') is-invalid @enderror"
                                                                     name="manuscript_data[{{ $key }}][{{ $mKey }}][result]"
                                                                     value="{{ old('manuscript_data.' . $key . '.' . $mKey . '.result', $existingResult->tr07_result ?? '') }}"
                                                                     placeholder="Enter result value" autocomplete="off">
+                                                                 @error('manuscript_data.'.$key.'.'.$mKey.'.result')
+                                                                    <span class="text-danger small">{{ $message }}</span>
+                                                                @enderror
                                                             </td>
                                                         </tr>
                                                     @endforeach
@@ -174,10 +184,13 @@
                                                                 name="test_data[{{ $key }}][result_id]"
                                                                 value="{{ $existingResult->tr07_test_result_id ?? '' }}">
                                                             <input type="text"
-                                                                class="form-control form-control-sm bg-light"
+                                                                class="form-control form-control-sm bg-light @error('test_data.'.$key.'.result') is-invalid @enderror"
                                                                 name="test_data[{{ $key }}][result]"
                                                                 value="{{ old('test_data.' . $key . '.result', $existingResult->tr07_result ?? '') }}"
                                                                 placeholder="Enter result value" autocomplete="off">
+                                                            @error('test_data.'.$key.'.result')
+                                                                <span class="text-danger small">{{ $message }}</span>
+                                                            @enderror
                                                             {{-- </div> --}}
                                                         </td>
                                                         {{-- <td>
@@ -209,7 +222,9 @@
                                     </div>
                                 </div>
                             </div>
-
+                             @error('action')
+                                <div class="alert alert-danger">{{ $message }}</div>
+                            @enderror
                             <!-- Action Buttons -->
                             <div class="card border-0 shadow-sm">
                                 <div class="card-body d-flex justify-content-between align-items-center">
@@ -218,27 +233,33 @@
                                             <em class="icon ni ni-printer"></em> Print / Save as PDF
                                         </button>
                                     @endif
-                                    {{-- <div class="btn-group">
+                                    <div class="btn-group">
                                         @if (optional($existingResults->first())->tr07_result_status != 'SUBMITTED')
-                                            <button type="submit" name="action" value="DRAFT"
+                                            <button type="button" onclick="submitForm('DRAFT')"
                                                 class="btn btn-outline-primary">
                                                 <em class="icon ni ni-file-text"></em> Save as Draft
                                             </button>
                                         @endif
                                         @if (Session::get('role') === 'DEO')
-                                            <button type="submit" name="action" value="RESULTED"
+                                            <button type="button" onclick="submitForm('RESULTED')"
                                                 class="btn btn-primary">
                                                 <em class="icon ni ni-check-circle"></em> Save & Complete
                                             </button>
                                         @else
-                                            <button type="submit" name="action" value="SUBMITTED"
+                                            <button type="button" onclick="submitForm('SUBMITTED')"
                                                 class="btn btn-primary">
                                                 <em class="icon ni ni-check-circle"></em> Save & Complete
                                             </button>
                                         @endif
-                                    </div> --}}
+                                    </div>
                                 </div>
                             </div>
+                            <script>
+                                function submitForm(actionValue) {
+                                    document.getElementById('formAction').value = actionValue;
+                                    document.getElementById('manuscriptForm').submit();
+                                }
+                            </script>
 
                         </form>
                     </div>
