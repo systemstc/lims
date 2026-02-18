@@ -284,12 +284,17 @@ class RegistrationController extends Controller
                     $request->txt_total_charges,
                     $invoiceNumber
                 );
-                $customer = Customer::find($selectedCustomerId);
-                Mail::to($customer->m07_email)->send(new SampleRegisteredMail($registration));
 
-                if (!$holdResult['success']) {
+                if ($holdResult['success']) {
+                    $registration->update([
+                        'tr03_hold_transaction_id' => $holdResult['transaction_id']
+                    ]);
+                } else {
                     throw new \Exception('Wallet Hold Failed: ' . $holdResult['message']);
                 }
+
+                $customer = Customer::find($selectedCustomerId);
+                Mail::to($customer->m07_email)->send(new SampleRegisteredMail($registration));
 
                 DB::commit();
                 Session::flash('type', 'success');
@@ -337,7 +342,7 @@ class RegistrationController extends Controller
             $transaction = WalletTransaction::create([
                 'tr03_transaction_uuid' => 'TXN-' . date('Y') . '-' . str_pad($transactionCount + 1, 4, '0', STR_PAD_LEFT),
                 'tr02_wallet_id' => $wallet->tr02_wallet_id,
-                'tr03_type' => 'hold',
+                'tr03_type' => 'HOLD',
                 'tr03_amount' => $amount,
                 'tr03_currency' => 'INR',
                 'tr03_description' => 'Hold for Sample Registration',
@@ -345,7 +350,7 @@ class RegistrationController extends Controller
                 'tr03_invoice_number' => $invoiceNumber,
                 'tr03_balance_before' => $balanceBefore,
                 'tr03_balance_after' => $wallet->tr02_balance,
-                'tr03_status' => 'pending',
+                'tr03_status' => 'PENDING',
                 'm07_created_by' => $customerId
             ]);
 

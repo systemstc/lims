@@ -247,12 +247,29 @@ class TestResultController extends Controller
                 ->whereNotIn('tr08_result_status', ['DRAFT', 'SUBMITTED'])
                 ->exists();
 
-            // If final results exist (not draft or submitted), redirect back
+            // Blocking check removed to allow partial entry
+            /*
             if ($existingFinalResults || $existingFinalCustomFields) {
                 Session::flash('type', 'warning');
                 Session::flash('message', 'Test results have already been finalized and cannot be modified.');
                 return to_route($route);
             }
+            */
+        }
+
+        // Filter out tests that are already submitted/resulted (for DEO)
+        if (Session::get('role') === 'DEO' && $registrationId) {
+            $completedTestNumbers = TestResult::where('tr04_reference_id', $registrationId)
+                ->whereIn('tr07_result_status', ['SUBMITTED', 'RESULTED', 'REPORTED', 'FINALIZED', 'VERIFIED'])
+                ->pluck('m12_test_number')
+                ->map(fn($num) => (string)$num)
+                ->toArray();
+
+            $sampleTests = $sampleTests->filter(function ($sampleTest) use ($completedTestNumbers) {
+                // Ensure sampleTest has 'test' relation loaded and check tr05_status just in case
+                if (!$sampleTest->test) return false;
+                return !in_array((string)$sampleTest->test->m12_test_number, $completedTestNumbers);
+            })->values();
         }
 
         // Prepare test data with associated primary and secondary tests
@@ -301,11 +318,11 @@ class TestResultController extends Controller
 
         if ($registrationId) {
             $existingResults = TestResult::where('tr04_reference_id', $registrationId)
-                ->whereIn('tr07_result_status', ['DRAFT', 'SUBMITTED'])
+                ->whereIn('tr07_result_status', ['DRAFT', 'SUBMITTED', 'RESULTED'])
                 ->get();
 
             $existingCustomFields = CustomField::where('tr04_reference_id', $registrationId)
-                ->whereIn('tr08_result_status', ['DRAFT', 'SUBMITTED'])
+                ->whereIn('tr08_result_status', ['DRAFT', 'SUBMITTED', 'RESULTED'])
                 ->get();
 
             // Get dates from first result if exists
@@ -366,6 +383,19 @@ class TestResultController extends Controller
                 ->get();
         }
         $registrationId = $manuscripts->first()->registration->tr04_reference_id ?? null;
+
+        // Filter out tests that are already submitted/resulted (for DEO)
+        if (Session::get('role') === 'DEO' && $registrationId) {
+            $completedTestNumbers = TestResult::where('tr04_reference_id', $registrationId)
+                ->whereIn('tr07_result_status', ['SUBMITTED', 'RESULTED', 'REPORTED', 'FINALIZED']) // Add statuses as appropriate
+                ->pluck('m12_test_number')
+                ->map(fn($num) => (string)$num)
+                ->toArray();
+
+            $manuscripts = $manuscripts->filter(function ($manuscript) use ($completedTestNumbers) {
+                return !in_array((string)$manuscript->test->m12_test_number, $completedTestNumbers);
+            })->values();
+        }
 
         // Fetch existing test results (drafts or submitted)
         $existingResults = collect();
@@ -518,6 +548,8 @@ class TestResultController extends Controller
     public function createResult(Request $request)
     {
         Log::info('createResult Started. Payload:', $request->all());
+        $processedTestIds = []; // Initialize array to track processed tests
+
 
         $validator = Validator::make($request->all(), [
             'registration_id' => 'required|string',
@@ -563,6 +595,12 @@ class TestResultController extends Controller
                                 'user_id' => $userId,
                                 'ro_id' => $roId
                             ]);
+
+                            // Track processed ID
+                            $sampleTest = SampleTest::where('tr04_sample_registration_id', function ($q) use ($request) {
+                                $q->select('tr04_sample_registration_id')->from('tr04_sample_registrations')->where('tr04_reference_id', $request->registration_id);
+                            })->where('m12_test_number', $manuscript['test_id'])->first();
+                            if ($sampleTest) $processedTestIds[] = $sampleTest->m12_test_id;
                         }
                     }
                 }
@@ -584,6 +622,12 @@ class TestResultController extends Controller
                             'user_id' => $userId,
                             'ro_id' => $roId
                         ]);
+
+                        // Track processed ID
+                        $sampleTest = SampleTest::where('tr04_sample_registration_id', function ($q) use ($request) {
+                            $q->select('tr04_sample_registration_id')->from('tr04_sample_registrations')->where('tr04_reference_id', $request->registration_id);
+                        })->where('m12_test_number', $testData['test_id'])->first();
+                        if ($sampleTest) $processedTestIds[] = $sampleTest->m12_test_id;
                     }
                 }
             }
@@ -655,6 +699,12 @@ class TestResultController extends Controller
                             }
                         }
                     }
+
+                    // Track processed ID for Results Loop
+                    $sampleTest = SampleTest::where('tr04_sample_registration_id', function ($q) use ($request) {
+                        $q->select('tr04_sample_registration_id')->from('tr04_sample_registrations')->where('tr04_reference_id', $request->registration_id);
+                    })->where('m12_test_number', $testNumber)->first();
+                    if ($sampleTest) $processedTestIds[] = $sampleTest->m12_test_id;
                 }
             }
 
@@ -674,8 +724,8 @@ class TestResultController extends Controller
                 }
             }
 
-            Log::info('Auto-completing Sample Tests');
-            $this->autoCompleteSampleTests($request->registration_id, $userId);
+            Log::info('Auto-completing Sample Tests for IDs: ' . implode(',', $processedTestIds));
+            $this->autoCompleteSampleTests($request->registration_id, $userId, $processedTestIds);
 
             DB::commit();
             Log::info('Transaction Committed Successfully');
@@ -806,7 +856,7 @@ class TestResultController extends Controller
         }
     }
 
-    private function autoCompleteSampleTests($referenceId, $userId)
+    private function autoCompleteSampleTests($referenceId, $userId, $completedTestIds = [])
     {
         // Resolve the PK from Reference ID
         $registration = SampleRegistration::where('tr04_reference_id', $referenceId)->first();
@@ -819,6 +869,11 @@ class TestResultController extends Controller
         $query = SampleTest::where('tr04_sample_registration_id', $registrationId)
             ->where('tr05_status', '!=', 'COMPLETED')
             ->where('tr05_status', '!=', 'REPORTED');
+
+        // Filter by the specific tests that were processed
+        if (!empty($completedTestIds)) {
+            $query->whereIn('m12_test_id', $completedTestIds);
+        }
 
         if (Session::get('role') !== 'DEO' && Session::get('role') !== 'Manager') {
             $query->where('m06_alloted_to', $userId);
@@ -892,12 +947,12 @@ class TestResultController extends Controller
 
     public function viewCompletedTests()
     {
-        $samples = SampleTest::with(['registration', 'test', 'registration.testResult'])
+        $samples = SampleTest::with(['registration', 'test', 'registration.testResult', 'registration.sampleTests'])
             ->whereNotIn('tr05_status', ['TRANSFERRED'])
             ->when(Session::get('role') !== 'ADMIN', function ($query) {
                 $query->where('m04_ro_id', Session::get('ro_id'));
             })
-            ->whereDoesntHave('registration.testResult') // fetch only those without test results
+            // ->whereDoesntHave('registration.testResult') // fetch only those without test results -- COMMENTED OUT FOR PARTIAL ENTRY
             ->select('tr04_sample_registration_id')
             ->selectRaw("
             COUNT(*) as total_tests,
@@ -915,7 +970,34 @@ class TestResultController extends Controller
                 $sample->delay_days = $registration
                     ? round(abs(now()->floatDiffInDays($registration->created_at)), 2)
                     : null;
+
+                // Calculate actionable tests count (Completed but not yet Resulted/Submitted/Verified)
+                if ($registration) {
+                    $resultedTestNumbers = $registration->testResult
+                        ->whereIn('tr07_result_status', ['SUBMITTED', 'RESULTED', 'REPORTED', 'FINALIZED', 'VERIFIED'])
+                        ->pluck('m12_test_number')
+                        ->map(fn($n) => (string)$n)
+                        ->toArray();
+
+                    // Get completed sample tests from the relation
+                    $actionableTests = $registration->sampleTests
+                        ->where('tr05_status', 'COMPLETED')
+                        ->filter(function ($st) use ($resultedTestNumbers) {
+                            // Assuming test relation is loaded on sampleTests via SampleRegistration->sampleTests definition?
+                            // SampleRegistration might NOT accept .sampleTests.test in `with` above if relationship is not complex.
+                            // But we added registration.sampleTests. We might need registration.sampleTests.test?
+                            return !in_array((string)($st->m12_test_number ?? $st->test?->m12_test_number), $resultedTestNumbers);
+                        });
+
+                    $sample->actionable_tests_count = $actionableTests->count();
+                } else {
+                    $sample->actionable_tests_count = 0;
+                }
+
                 return $sample;
+            })
+            ->filter(function ($sample) {
+                return $sample->actionable_tests_count > 0;
             })
             ->sortByDesc(function ($s) {
                 return [
@@ -1055,7 +1137,7 @@ class TestResultController extends Controller
             'labSample',
             'testResult' => function ($q) {
                 $q->where('tr07_is_current', 'YES')
-                    ->where('tr07_result_status', 'VERIFIED')
+                    ->whereIn('tr07_result_status', ['VERIFIED', 'REPORTED'])
                     ->with(['test', 'primaryTest', 'secondaryTest']);
             }
         ])
@@ -1086,29 +1168,38 @@ class TestResultController extends Controller
         $orderKey = 'report_order_' . $sampleId;
         $orderedItems = Session::get($orderKey, []);
 
-        // If no order in session, create default order
         if (empty($orderedItems)) {
             $orderedItems = [];
-            foreach ($groupedResults as $testNumber => $results) {
+        }
+
+        // Always check for missing items (e.g. newly verified tests in a combined report)
+        $existingTestNumbers = collect($orderedItems)->pluck('test_number')->map(fn($n) => (string)$n)->toArray();
+
+        foreach ($groupedResults as $testNumber => $results) {
+            if (!in_array((string)$testNumber, $existingTestNumbers)) {
                 $orderedItems[] = [
                     'type' => 'test',
                     'test_number' => $testNumber,
                     'sort_order' => count($orderedItems)
                 ];
+                $existingTestNumbers[] = (string)$testNumber;
             }
-
-            // Add custom fields that don't have main test results
-            foreach ($groupedCustomFields as $testNumber => $fields) {
-                if (!isset($groupedResults[$testNumber])) {
-                    $orderedItems[] = [
-                        'type' => 'custom',
-                        'test_number' => $testNumber,
-                        'sort_order' => count($orderedItems)
-                    ];
-                }
-            }
-            Session::put($orderKey, $orderedItems);
         }
+
+        // Add custom fields that don't have main test results
+        foreach ($groupedCustomFields as $testNumber => $fields) {
+            if (!isset($groupedResults[$testNumber]) && !in_array((string)$testNumber, $existingTestNumbers)) {
+                $orderedItems[] = [
+                    'type' => 'custom',
+                    'test_number' => $testNumber,
+                    'sort_order' => count($orderedItems)
+                ];
+                $existingTestNumbers[] = (string)$testNumber;
+            }
+        }
+
+        // Update session with potentially new items
+        Session::put($orderKey, $orderedItems);
 
         $meta = [
             'customer_name'     => $sample->parties['customer']['name'],
@@ -1126,11 +1217,15 @@ class TestResultController extends Controller
 
         // Check if we're generating PDF
         if (request()->has('generate_pdf')) {
-            $update = TestResult::where('tr04_reference_id', $sampleId)
-                ->where('m04_ro_id', Session::get('ro_id'))
-                ->where('tr07_is_current', 'YES')
-                ->update(['tr07_result_status' => 'REPORTED']);
-            return $this->generatePdfReport($sample, $groupedResults, $groupedCustomFields, $orderedItems, $meta);
+            $isPartial = request()->has('generate_partial');
+
+            if (!$isPartial) {
+                $update = TestResult::where('tr04_reference_id', $sampleId)
+                    ->where('m04_ro_id', Session::get('ro_id'))
+                    ->where('tr07_is_current', 'YES')
+                    ->update(['tr07_result_status' => 'REPORTED']);
+            }
+            return $this->generatePdfReport($sample, $groupedResults, $groupedCustomFields, $orderedItems, $meta, $isPartial);
         }
 
         // Show reorder view
@@ -1143,9 +1238,9 @@ class TestResultController extends Controller
         ));
     }
 
-    private function generatePdfReport($sample, $groupedResults, $groupedCustomFields, $orderedItems, $meta)
+    private function generatePdfReport($sample, $groupedResults, $groupedCustomFields, $orderedItems, $meta, $isPartial = false)
     {
-        Log::info("=== Generating PDF Report for Sample: {$sample->tr04_reference_id} ===");
+        Log::info("=== Generating PDF Report for Sample: {$sample->tr04_reference_id}, Is Partial: " . ($isPartial ? 'YES' : 'NO') . " ===");
 
         $paymentBy = strtolower($sample->tr04_payment_by);
         $selectedCustomerId = null;
@@ -1169,25 +1264,54 @@ class TestResultController extends Controller
                 break;
         }
 
-        // Step 1: Check existing report
-        $report = TestReport::where('tr04_reference_id', $sample->tr04_reference_id)
-            ->where('tr09_is_current', 'YES')
-            ->first();
+        // Step 1: Check existing report (only if not partial - or maybe partials are separate?)
+        // Let's assume partials are always regenerated or we check for latest partial?
+        // For simplicity, partials generate a new report record with status PARTIAL.
+        // If we are doing a FINAL report, we look for existing FINAL ones.
+
+        $reportQuery = TestReport::where('tr04_reference_id', $sample->tr04_reference_id)
+            ->where('tr09_is_current', 'YES');
+
+        if ($isPartial) {
+            // For partial, we might want to just always create new, or check if we already have one?
+            // Usually partials are ad-hoc. Let's not strictly check for existing partial to avoid confusion with final.
+            // But actually, looking for existing matching report avoids duplicates.
+            $reportQuery->where('tr09_status', 'PARTIAL');
+        } else {
+            $reportQuery->where('tr09_status', 'FINAL');
+        }
+
+        $report = $reportQuery->first();
 
         if ($report) {
             Log::info("Existing report found", [
                 'id' => $report->id ?? null,
                 'file_path' => $report->tr09_report_file_path,
                 'version' => $report->tr09_version_number,
+                'status' => $report->tr09_status
             ]);
         } else {
             Log::info("No existing report found — creating a new one.");
         }
 
         // Step 2: Proceed only if new or file path missing
+        // For partials, we might want to force regeneration if data changed? 
+        // For now keep standard logic: if report record exists and file exists, download it.
+        // User can regenerate if they delete or if we add a "Regenerate" button later.
+
         if (!$report || empty($report->tr09_report_file_path)) {
             Log::info("Proceeding to create report record and generate PDF...");
-            $this->releaseHoldAndDebit($selectedCustomerId, $sample);
+
+            // wallet deduction ONLY for final reports
+            if (!$isPartial) {
+                if (!$this->releaseHoldAndDebit($selectedCustomerId, $sample)) {
+                    Log::error("Failed to release hold and debit for sample {$sample->tr04_reference_id}");
+                    abort(500, 'Failed to process wallet transaction. Please contact support.');
+                }
+            } else {
+                Log::info("Partial Report: Skipping wallet transaction.");
+            }
+
             $testsData = [];
 
             foreach ($orderedItems as $item) {
@@ -1289,7 +1413,7 @@ class TestResultController extends Controller
                 'tr09_report_file_path' => '',
                 'm06_generated_by' => Session::get('user_id'),
                 'tr09_generated_at' => now(),
-                'tr09_status' => 'FINAL',
+                'tr09_status' => $isPartial ? 'PARTIAL' : 'FINAL',
                 'tr09_is_current' => 'YES',
             ]);
 
@@ -1303,11 +1427,12 @@ class TestResultController extends Controller
                 'groupedCustomFields',
                 'orderedItems',
                 'meta',
-                'report'
+                'report',
+                'isPartial'
             ))->setPaper('A4', 'portrait');
 
             $pdf->setOptions(['isPhpEnabled' => true]);
-            $fileName = 'report_' . $sample->tr04_reference_id . '_' . now()->timestamp . '.pdf';
+            $fileName = ($isPartial ? 'partial_' : '') . 'report_' . $sample->tr04_reference_id . '_' . now()->timestamp . '.pdf';
             $pdfPath = 'reports/' . $fileName;
             $fullPath = storage_path('app/public/' . $pdfPath);
 

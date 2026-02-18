@@ -32,7 +32,7 @@
                                     </thead>
                                     <tbody>
                                         @foreach ($samples as $key => $sample)
-                                            @if (optional($sample->registration->testResult->first())->tr07_result_status != 'RESULTED')
+                                            <!-- Removed flawed check for RESULTED status to allow partial entry -->
                                                 <tr>
                                                     <td>{{ $key + 1 }}</td>
                                                     <td>{{ $sample->reference_id }}</td>
@@ -71,7 +71,7 @@
                                                         @endif
                                                     </td>
                                                     <td>
-                                                        @if ($sample->pending_tests == 0)
+                                                        @if ($sample->completed_tests > 0)
                                                             <a href="{{ route('template_manuscript', $sample->sample_id) }}"
                                                                 class="btn btn-sm btn-outline-primary">
                                                                 Result Entry
@@ -79,7 +79,6 @@
                                                         @endif
                                                     </td>
                                                 </tr>
-                                            @endif
                                         @endforeach
                                     </tbody>
                                 </table>

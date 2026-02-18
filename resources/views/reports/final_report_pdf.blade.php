@@ -175,7 +175,7 @@
     <div class="first-page">
         {{-- ===== FIRST PAGE DESCRIPTIVE HEADER ===== --}}
         <div class="first-page-header">
-            <h3>TEST REPORT</h3>
+            <h3>{{ isset($isPartial) && $isPartial ? 'PARTIAL TEST REPORT' : 'TEST REPORT' }}</h3>
             <table>
                 <tbody>
                     <tr>

@@ -51,7 +51,7 @@ class WalletTransaction extends Model
      */
     public function wallet()
     {
-        return $this->belongsTo(Wallet::class, 'tr03_wallet_id');
+        return $this->belongsTo(Wallet::class, 'tr03_wallet_id', 'tr03_wallet_id');
     }
 
     /**
@@ -59,7 +59,7 @@ class WalletTransaction extends Model
      */
     public function createdBy()
     {
-        return $this->belongsTo(User::class, 'm07_created_by');
+        return $this->belongsTo(User::class, 'm07_created_by', 'm06_employee_id');
     }
 
     /**

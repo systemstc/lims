@@ -36,13 +36,12 @@ class VerificationController extends Controller
                 // Only take current results
                 $currentResults = $results->where('tr07_is_current', 'YES');
 
-                // Include sample if *all* current tests are either RESULTED or REVISED or SUBMITTED
-                $hasResults = $currentResults->count() > 0;
-                $allVerified = $hasResults && $currentResults->every(function ($r) {
+                // Allow partial verification: Include sample if at least one current test is RESULTED, REVISED, or SUBMITTED
+                $hasResults = $currentResults->isNotEmpty() && $currentResults->contains(function ($r) {
                     return in_array($r->tr07_result_status, ['RESULTED', 'REVISED', 'SUBMITTED']);
                 });
 
-                return $allVerified;
+                return $hasResults;
             })
             ->map(function ($sample) {
                 $registration = $sample->registration;
@@ -62,7 +61,7 @@ class VerificationController extends Controller
                 $sample->allResulted = $currentResults->count() > 0 &&
                     $currentResults->every(
                         fn($r) =>
-                        in_array($r->tr07_result_status, ['RESULTED', 'REVISED', 'SUBMITTED'])
+                        in_array($r->tr07_result_status, ['RESULTED', 'REVISED', 'SUBMITTED', 'VERIFIED', 'REPORTED', 'FINALIZED'])
                     );
 
                 // Count REVISED vs RESULTED only for current results

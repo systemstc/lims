@@ -857,7 +857,7 @@
             samples.forEach(sample => {
                 const statusClass = getStatusClass(sample.tr04_progress);
                 const expectedDate = sample.tr04_expected_date ? new Date(sample.tr04_expected_date) : null;
-                const isReported = sample.tr04_progress === 'REPORTED';
+                const isReported = sample.tr04_progress === 'REPORTED' || sample.tr04_progress === 'DISPATCHED';
                 const daysRemaining = expectedDate ? calculateDaysRemaining(expectedDate) : 'N/A';
                 const daysRemainingClass = getDaysRemainingClass(daysRemaining);
 

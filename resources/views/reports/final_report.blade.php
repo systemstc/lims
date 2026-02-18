@@ -291,6 +291,10 @@
                                         class="btn btn-info me-2" target="_blank">
                                         <em class="icon ni ni-eye"></em> Preview PDF
                                     </a>
+                                    <a href="{{ route('generate_report', ['id' => $sample->tr04_reference_id, 'generate_pdf' => true, 'generate_partial' => true]) }}"
+                                        class="btn btn-warning me-2">
+                                        <em class="icon ni ni-file-docs"></em> Partial Report
+                                    </a>
                                     <a href="{{ route('generate_report', ['id' => $sample->tr04_reference_id, 'generate_pdf' => true]) }}"
                                         class="btn btn-primary">
                                         <em class="icon ni ni-file-docs"></em> Generate PDF Report

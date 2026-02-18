@@ -107,7 +107,7 @@
                                                     <th>Remarks</th>
                                                     {{-- <th>Secondary Test</th> --}}
                                                     <th>Status</th>
-                                                    {{-- <th>Action</th> --}}
+                                                    <th>Action</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -153,7 +153,7 @@
                                                                 {{ ucfirst(strtolower(str_replace('_', ' ', $sampleTest->tr05_status ?? 'N/A'))) }}
                                                             </strong>
                                                         </td>
-                                                        {{-- <td>
+                                                        <td>
                                                             @if ($sampleTest->tr05_status == 'ALLOTED')
                                                                 <a href="{{ route('update_analysis', $sampleTest->tr05_sample_test_id) }}"
                                                                     class="btn btn-success btn-xs confirm-status"
@@ -168,7 +168,7 @@
                                                                     Complete
                                                                 </a>
                                                             @endif
-                                                        </td> --}}
+                                                        </td>
                                                     </tr>
                                                 @empty
                                                     <tr>

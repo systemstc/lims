@@ -500,21 +500,27 @@ class MasterController extends Controller
     private function calculateDayStatus($samples, $day, $month, $year, $currentDate)
     {
         $sampleDate = Carbon::create($year, $month, $day);
+
+        // Define reported-like statuses in one place
+        $reportedStatuses = ['REPORTED', 'DISPATCHED'];
+
         $allReported = true;
         $anyOverdue = false;
         $anyNearDeadline = false;
+
         $totalSamples = count($samples);
         $reportedCount = 0;
 
         foreach ($samples as $sample) {
-            // Check if sample is reported
-            if ($sample->tr04_progress === 'REPORTED') {
+
+            // Check if sample is reported or dispatched
+            if (in_array($sample->tr04_progress, $reportedStatuses, true)) {
                 $reportedCount++;
             } else {
                 $allReported = false;
 
                 // Check if sample has expected date
-                if ($sample->tr04_expected_date) {
+                if (!empty($sample->tr04_expected_date)) {
                     $expectedDate = Carbon::parse($sample->tr04_expected_date);
                     $daysUntilDeadline = $currentDate->diffInDays($expectedDate, false);
 
@@ -527,28 +533,34 @@ class MasterController extends Controller
             }
         }
 
+        $formattedDate = sprintf(
+            "%02d %s",
+            $day,
+            DateTime::createFromFormat('!m', $month)->format('M')
+        );
+
         // Determine status
         if ($allReported) {
             return [
-                'class' => 'reported',
-                'tooltip' => sprintf("%02d %s: All %d samples reported", $day, DateTime::createFromFormat('!m', $month)->format('M'), $totalSamples)
+                'class'   => 'reported',
+                'tooltip' => "{$formattedDate}: All {$totalSamples} samples reported",
             ];
         } elseif ($anyOverdue) {
             return [
-                'class' => 'overdue',
-                'tooltip' => sprintf("%02d %s: %d samples (%d reported) - Some overdue", $day, DateTime::createFromFormat('!m', $month)->format('M'), $totalSamples, $reportedCount)
+                'class'   => 'overdue',
+                'tooltip' => "{$formattedDate}: {$totalSamples} samples ({$reportedCount} reported) - Some overdue",
             ];
         } elseif ($anyNearDeadline) {
             return [
-                'class' => 'near-deadline',
-                'tooltip' => sprintf("%02d %s: %d samples (%d reported) - Deadline approaching", $day, DateTime::createFromFormat('!m', $month)->format('M'), $totalSamples, $reportedCount)
-            ];
-        } else {
-            return [
-                'class' => 'on-time',
-                'tooltip' => sprintf("%02d %s: %d samples (%d reported) - On track", $day, DateTime::createFromFormat('!m', $month)->format('M'), $totalSamples, $reportedCount)
+                'class'   => 'near-deadline',
+                'tooltip' => "{$formattedDate}: {$totalSamples} samples ({$reportedCount} reported) - Deadline approaching",
             ];
         }
+
+        return [
+            'class'   => 'on-time',
+            'tooltip' => "{$formattedDate}: {$totalSamples} samples ({$reportedCount} reported) - On track",
+        ];
     }
 
 

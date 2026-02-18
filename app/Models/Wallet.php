@@ -42,7 +42,7 @@ class Wallet extends Model
      */
     public function transactions()
     {
-        return $this->hasMany(WalletTransaction::class, 'tr03_wallet_id');
+        return $this->hasMany(WalletTransaction::class, 'tr03_wallet_id', 'tr02_wallet_id');
     }
 
     /**
