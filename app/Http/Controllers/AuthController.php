@@ -55,6 +55,20 @@ class AuthController extends Controller
                 ->withInput();
         }
 
+        // Check for 2FA
+        if ($user->tr01_two_factor_method && $user->tr01_two_factor_confirmed_at && !$user->tr01_is_2fa_blocked) {
+            Session::put('2fa_login_user_id', $user->tr01_user_id);
+            return redirect()->route('auth.2fa.challenge');
+        }
+
+        return $this->completeLogin($user, $request);
+    }
+
+    /**
+     * Complete the login process and set session variables.
+     */
+    public function completeLogin(User $user, Request $request)
+    {
         // Set session data based on user type
         $this->setUserSession($user);
 
@@ -70,6 +84,9 @@ class AuthController extends Controller
 
         Session::flash('type', 'success');
         Session::flash('message', 'Logged In Successfully!');
+
+        // Remove 2FA session flag if it was set
+        Session::forget('2fa_login_user_id');
 
         return $this->redirectToDashboard($user);
     }

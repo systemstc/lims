@@ -18,6 +18,11 @@ class User extends Authenticatable
         'tr01_email',
         'tr01_name',
         'tr01_password',
-        'tr01_type'
+        'tr01_type',
+        'tr01_two_factor_method',
+        'tr01_two_factor_secret',
+        'tr01_two_factor_recovery_codes',
+        'tr01_two_factor_confirmed_at',
+        'tr01_is_2fa_blocked'
     ];
 }

@@ -286,15 +286,9 @@ class TestResultController extends Controller
                     if ($sampleTest->registration && $sampleTest->registration->m14_lab_sample_id) {
                         $labSampleId = $sampleTest->registration->m14_lab_sample_id;
                         $primaryTests = $primaryTests->filter(function ($primaryTest) use ($labSampleId) {
-                            // Debugging
-                            // Log::info("Filtering Primary Test: " . $primaryTest->m16_primary_test_id);
-                            // Log::info("Registration Lab Sample ID: " . $labSampleId . " (Type: " . gettype($labSampleId) . ")");
-                            // Log::info("Primary Test Lab Sample IDs: " . json_encode($primaryTest->m14_lab_sample_ids));
-
-                            // if (empty($primaryTest->m14_lab_sample_ids)) {
-                            //     return true; // Applicable to all if empty
-                            // }
-                            // Force loose comparison by checking if ID is in array
+                            if (empty($primaryTest->m14_lab_sample_ids)) {
+                                return true; // Applicable to all if empty
+                            }
                             return in_array((string)$labSampleId, array_map('strval', $primaryTest->m14_lab_sample_ids ?? []));
                         })->values();
                     }
@@ -302,10 +296,10 @@ class TestResultController extends Controller
                     // Load secondary tests for each primary test
                     foreach ($primaryTests as $primaryTest) {
                         $secondaryTests = SecondaryTest::with('formula')->where('m16_primary_test_id', $primaryTest->m16_primary_test_id)->get();
-                        $primaryTest->secondaryTests = $secondaryTests;
+                        $primaryTest->setRelation('secondaryTests', $secondaryTests);
                     }
 
-                    $test->primaryTests = $primaryTests;
+                    $test->setRelation('primaryTests', $primaryTests);
                 }
             }
         }
@@ -397,8 +391,47 @@ class TestResultController extends Controller
             })->values();
         }
 
-        // Fetch existing test results (drafts or submitted)
-        $existingResults = collect();
+        // Attach corresponding manuscript template content based on standard ID
+        foreach ($manuscripts as $manuscript) {
+            $applicableTemplate = \App\Models\Manuscript::where('m12_test_number', $manuscript->m12_test_number)
+                ->where('m22_status', 'ACTIVE')
+                ->get()
+                ->first(function ($t) use ($manuscript) {
+                    if (!$t->m15_standard_ids) return true; // generic template for all standards
+                    $standardIdsArray = explode(',', $t->m15_standard_ids);
+                    return in_array((string)$manuscript->m15_standard_id, $standardIdsArray);
+                });
+
+            $manuscript->m22_content = $applicableTemplate ? $applicableTemplate->m22_content : '';
+
+            // Load primary and secondary tests for results entry (same logic as result template)
+            if ($manuscript->test) {
+                $test = $manuscript->test;
+                if ($test->m16_primary_test_id) {
+                    $primaryTestIds = explode(',', $test->m16_primary_test_id);
+                    $primaryTests = PrimaryTest::with('formula')->whereIn('m16_primary_test_id', $primaryTestIds)->get();
+
+                    // Filter primary tests based on sample registration's lab sample ID
+                    if ($manuscript->registration && $manuscript->registration->m14_lab_sample_id) {
+                        $labSampleId = $manuscript->registration->m14_lab_sample_id;
+                        $primaryTests = $primaryTests->filter(function ($primaryTest) use ($labSampleId) {
+                            if (empty($primaryTest->m14_lab_sample_ids)) {
+                                return true; // Applicable to all if empty
+                            }
+                            return in_array((string)$labSampleId, array_map('strval', $primaryTest->m14_lab_sample_ids ?? []));
+                        })->values();
+                    }
+
+                    // Load secondary tests for each primary test
+                    foreach ($primaryTests as $primaryTest) {
+                        $secondaryTests = SecondaryTest::with('formula')->where('m16_primary_test_id', $primaryTest->m16_primary_test_id)->get();
+                        $primaryTest->setRelation('secondaryTests', $secondaryTests);
+                    }
+                    $test->setRelation('primaryTests', $primaryTests);
+                }
+            }
+        }
+
         $testDate = null;
         $performanceDate = null;
 
@@ -413,10 +446,19 @@ class TestResultController extends Controller
                 $testDate = $firstResult->tr07_test_date ?? null;
                 $performanceDate = $firstResult->tr07_performance_date ?? null;
             }
+
+            // Fetch existing custom fields
+            $customFields = \App\Models\CustomField::where('tr04_reference_id', $registrationId)
+                ->whereIn('tr08_result_status', ['DRAFT', 'SUBMITTED'])
+                ->get();
+        } else {
+            $existingResults = collect();
+            $customFields = collect();
         }
         return view('manuscript.template_manuscript', compact(
             'manuscripts',
             'existingResults',
+            'customFields',
             'testDate',
             'performanceDate'
         ));
@@ -583,11 +625,13 @@ class TestResultController extends Controller
                 foreach ($request->manuscript_data as $testIndex => $manuscripts) {
                     foreach ($manuscripts as $mIndex => $manuscript) {
                         if (isset($manuscript['test_id']) && isset($manuscript['manuscript_id'])) {
+                            $manuscriptContent = $request->test_calculation[$manuscript['test_id']] ?? null;
                             $this->saveTestResult([
                                 'registration_id' => $request->registration_id,
                                 'test_number' => $manuscript['test_id'],
                                 'manuscript_id' => $manuscript['manuscript_id'],
                                 'result_data' => $manuscript,
+                                'manuscript_content' => $manuscriptContent,
                                 'test_date' => $request->test_date,
                                 'performance_date' => $request->performance_date,
                                 'remarks' => $request->remarks,
@@ -611,10 +655,12 @@ class TestResultController extends Controller
                 Log::info('Processing Manuscript Test Data');
                 foreach ($request->test_data as $index => $testData) {
                     if (isset($testData['test_id']) && isset($testData['result'])) {
+                        $manuscriptContent = $request->test_calculation[$testData['test_id']] ?? null;
                         $this->saveTestResult([
                             'registration_id' => $request->registration_id,
                             'test_number' => $testData['test_id'],
                             'result_data' => $testData,
+                            'manuscript_content' => $manuscriptContent,
                             'test_date' => $request->test_date,
                             'performance_date' => $request->performance_date,
                             'remarks' => $request->remarks,
@@ -642,10 +688,12 @@ class TestResultController extends Controller
                     if (isset($resultData['test'])) {
                         Log::info("Found Main Test Result for $testNumber");
                         $testResult = $resultData['test'];
+                        $manuscriptContent = $request->test_calculation[$testNumber] ?? null;
                         $this->saveTestResult([
                             'registration_id' => $request->registration_id,
                             'test_number' => $testNumber,
                             'result_data' => $testResult,
+                            'manuscript_content' => $manuscriptContent,
                             'test_date' => $request->test_date,
                             'performance_date' => $request->performance_date,
                             'remarks' => $request->remarks,
@@ -664,11 +712,13 @@ class TestResultController extends Controller
                             // Primary test without secondary tests (Direct result)
                             if (isset($primaryData['result'])) {
                                 Log::info("Saving Direct Result for Primary Test $primaryTestId");
+                                $manuscriptContent = $request->test_calculation[$testNumber]['primary_' . $primaryTestId] ?? null;
                                 $this->saveTestResult([
                                     'registration_id' => $request->registration_id,
                                     'test_number' => $testNumber,
                                     'primary_test_id' => $primaryTestId,
                                     'result_data' => $primaryData,
+                                    'manuscript_content' => $manuscriptContent,
                                     'test_date' => $request->test_date,
                                     'performance_date' => $request->performance_date,
                                     'remarks' => $request->remarks,
@@ -682,12 +732,14 @@ class TestResultController extends Controller
                             if (isset($primaryData['secondary_tests'])) {
                                 Log::info("Found Secondary Tests for Primary Test $primaryTestId");
                                 foreach ($primaryData['secondary_tests'] as $secondaryTestId => $secondaryData) {
+                                    $manuscriptContent = $request->test_calculation[$testNumber]['primary_' . $primaryTestId]['secondary_' . $secondaryTestId] ?? null;
                                     $this->saveTestResult([
                                         'registration_id' => $request->registration_id,
                                         'test_number' => $testNumber,
                                         'primary_test_id' => $primaryTestId,
                                         'secondary_test_id' => $secondaryTestId,
                                         'result_data' => $secondaryData,
+                                        'manuscript_content' => $manuscriptContent,
                                         'test_date' => $request->test_date,
                                         'performance_date' => $request->performance_date,
                                         'remarks' => $request->remarks,
@@ -825,16 +877,22 @@ class TestResultController extends Controller
 
         // Check if result_id exists (updating) - similar to manuscript handling
         if (!empty($resultData['result_id'])) {
+            $updateData = [
+                'tr07_result' => $resultData['result'],
+                'tr07_unit' => $resultData['unit'] ?? null,
+                'tr07_result_status' => $data['action'],
+                'tr07_test_date' => $data['test_date'],
+                'tr07_performance_date' => $data['performance_date'],
+                'tr07_remarks' => $data['remarks'],
+                'm06_updated_by' => $data['user_id'],
+            ];
+
+            if (isset($data['manuscript_content'])) {
+                $updateData['tr07_manuscript_content'] = $data['manuscript_content'];
+            }
+
             TestResult::where('tr07_test_result_id', $resultData['result_id'])
-                ->update([
-                    'tr07_result' => $resultData['result'],
-                    'tr07_unit' => $resultData['unit'] ?? null,
-                    'tr07_result_status' => $data['action'],
-                    'tr07_test_date' => $data['test_date'],
-                    'tr07_performance_date' => $data['performance_date'],
-                    'tr07_remarks' => $data['remarks'],
-                    'm06_updated_by' => $data['user_id'],
-                ]);
+                ->update($updateData);
         } else {
             // Creating new result - similar to manuscript creation
             TestResult::create([
@@ -846,6 +904,7 @@ class TestResultController extends Controller
                 'm22_manuscript_id' => $data['manuscript_id'] ?? null, // Use the passed manuscript_id
                 'tr07_result' => $resultData['result'],
                 'tr07_unit' => $resultData['unit'] ?? null,
+                'tr07_manuscript_content' => $data['manuscript_content'] ?? null,
                 'tr07_test_date' => $data['test_date'],
                 'tr07_performance_date' => $data['performance_date'],
                 'tr07_remarks' => $data['remarks'],

@@ -18,6 +18,7 @@ use App\Http\Controllers\RazorpayController;
 use App\Http\Controllers\SampleTransferController;
 use App\Http\Controllers\VerificationController;
 use App\Http\Controllers\WalletController;
+use App\Http\Controllers\TwoFactorController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Session;
 
@@ -25,6 +26,11 @@ Route::get('/', function () {
     return view('welcome');
 });
 Route::post('contact-us', [FrontController::class, 'contactSupport'])->name('contact_support');
+
+// 2FA Challenge Routes - these must be accessible after password verify but before role assignment
+Route::get('auth/2fa/challenge', [TwoFactorController::class, 'showChallenge'])->name('auth.2fa.challenge');
+Route::post('auth/2fa/challenge', [TwoFactorController::class, 'verifyChallenge'])->name('auth.2fa.verify');
+
 
 Route::middleware(['access_control'])->group(function () {
     Route::match(['get', 'post'], 'admin/login', [AuthController::class, 'adminLogin'])->name('admin_login');
@@ -45,6 +51,9 @@ Route::middleware(['access_control'])->group(function () {
 
     Route::get('employees', [EmployeeController::class, 'viewEmployee'])->name('view_employees');
     Route::match(['get', 'post'], 'create-employee', [EmployeeController::class, 'createEmployee'])->name('create_employee');
+
+    // User 2FA Control
+    Route::post('user/{user}/toggle-2fa', [MasterController::class, 'toggleTwoFactorAccess'])->name('toggle_2fa_access');
 
 
     Route::get('sample-registration', [SampleController::class, 'registerSample'])->name('sample_registration');
@@ -309,8 +318,11 @@ Route::middleware(['access_control'])->group(function () {
     Route::get('/manuscripts', [MasterController::class, 'viewManuscript'])->name('view_manuscripts');
     Route::post('/manuscripts/import', [MasterController::class, 'manuscriptImport'])->name('manuscripts_import');
     Route::get('/get-manuscripts', [MasterController::class, 'getManuscripts'])->name('get_manuscripts');
+    Route::get('/get-test-standards', [MasterController::class, 'getTestStandards'])->name('get_test_standards');
     Route::match(['get', 'post'], 'create/manuscripts', [MasterController::class, 'createManuscript'])->name('create_manuscript');
-    // Manuscript Template
+    Route::get('/manuscripts/{id}/view', [MasterController::class, 'showManuscript'])->name('show_manuscript');
+    Route::get('/manuscripts/{id}/edit', [MasterController::class, 'editManuscript'])->name('edit_manuscript');
+    Route::post('/manuscripts/{id}/update', [MasterController::class, 'updateManuscript'])->name('update_manuscript');
     Route::get('manuscript-template/{id}', [TestResultController::class, 'templateTestResult'])->name('template_manuscript');
     Route::get('manuscript-dd-template/{id}', [TestResultController::class, 'templateManuscript'])->name('manuscript_template');
     Route::get('completed-tests', [TestResultController::class, 'viewCompletedTests'])->name('view_completed_camples');
@@ -330,6 +342,17 @@ Route::middleware(['access_control'])->group(function () {
     // Route::post('/verify-payment', [RazorpayController::class, 'verifyPayment'])->name('razorpay.verifyPayment');
 
     Route::get('view-support', [FrontController::class, 'viewSupport'])->name('view_support');
+
+    // Two-Factor Authentication (Profile)
+    Route::prefix('profile/2fa')->name('profile.2fa.')->group(function () {
+        Route::get('/', [TwoFactorController::class, 'index'])->name('index');
+        Route::get('/setup-google', [TwoFactorController::class, 'setupGoogle'])->name('setup_google');
+        Route::post('/setup-google', [TwoFactorController::class, 'confirmGoogle'])->name('confirm_google');
+        Route::get('/setup-email', [TwoFactorController::class, 'setupEmail'])->name('setup_email');
+        Route::post('/send-email-code', [TwoFactorController::class, 'sendEmailCode'])->name('send_email_code');
+        Route::post('/setup-email', [TwoFactorController::class, 'confirmEmail'])->name('confirm_email');
+        Route::post('/disable', [TwoFactorController::class, 'disable'])->name('disable');
+    });
 });
 Route::get('customer-wallet/{id}', [WalletController::class, 'viewWallet'])->name('view_wallet');
 

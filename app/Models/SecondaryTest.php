@@ -11,6 +11,7 @@ class SecondaryTest extends Model
     protected $fillable = [
         'm10_sample_id',
         'm11_group_id',
+        'm11_group_code',
         'm16_primary_test_id',
         'm23_formula_id',
         'm17_name',

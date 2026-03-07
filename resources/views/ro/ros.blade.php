@@ -3,7 +3,7 @@
     <div class="container-fluid">
         <div class="nk-content-inner">
             <div class="nk-content-body">
-                <div class="components-preview wide-xl mx-auto">
+                <div class="components-preview wide-xxl mx-auto">
                     <div class="nk-block nk-block-lg">
                         <div class="nk-block-head">
                             <div class="nk-block-head-content">
@@ -56,6 +56,22 @@
                                                                                 data-bs-target="#updateRo"><em
                                                                                     class="icon ni ni-edit"></em><span>Edit
                                                                                 </span></a></li>
+                                                                        @if ($ro->user)
+                                                                            <li>
+                                                                                <a href="#" class="btn"
+                                                                                    onclick="event.preventDefault(); document.getElementById('toggle-2fa-{{ $ro->user->tr01_user_id }}').submit();">
+                                                                                    <em
+                                                                                        class="icon ni ni-{{ $ro->user->tr01_is_2fa_blocked ? 'unlock' : 'lock-alt' }}"></em>
+                                                                                    <span>{{ $ro->user->tr01_is_2fa_blocked ? 'Unblock 2FA' : 'Block 2FA' }}</span>
+                                                                                </a>
+                                                                                <form
+                                                                                    id="toggle-2fa-{{ $ro->user->tr01_user_id }}"
+                                                                                    action="{{ route('toggle_2fa_access', $ro->user->tr01_user_id) }}"
+                                                                                    method="POST" class="d-none">
+                                                                                    @csrf
+                                                                                </form>
+                                                                            </li>
+                                                                        @endif
                                                                         <li><a class="btn eg-swal-av3"
                                                                                 data-id="{{ $ro->m04_ro_id }}"
                                                                                 data-status="{{ $ro->m04_status }}"><em
@@ -95,19 +111,22 @@
                         <div class="form-group col-md-6">
                             <label class="form-label" for="txt_name">Name</label>
                             <div class="form-control-wrap">
-                                <input type="text" class="form-control" name="txt_name" id="txt_name" autocomplete="off" required>
+                                <input type="text" class="form-control" name="txt_name" id="txt_name" autocomplete="off"
+                                    required>
                             </div>
                         </div>
                         <div class="form-group col-md-6">
                             <label class="form-label" for="txt_email">Email</label>
                             <div class="form-control-wrap">
-                                <input type="text" class="form-control" name="txt_email" id="txt_email" autocomplete="off" required>
+                                <input type="text" class="form-control" name="txt_email" id="txt_email"
+                                    autocomplete="off" required>
                             </div>
                         </div>
                         <div class="form-group col-md-6">
                             <label class="form-label" for="txt_phone">Phone Number</label>
                             <div class="form-control-wrap">
-                                <input type="text" class="form-control" name="txt_phone" id="txt_phone" autocomplete="off" required>
+                                <input type="text" class="form-control" name="txt_phone" id="txt_phone"
+                                    autocomplete="off" required>
                             </div>
                         </div>
                     </div>
@@ -145,14 +164,14 @@
                             <label class="form-label" for="txt_edit_email">Email</label>
                             <div class="form-control-wrap">
                                 <input type="text" class="form-control" name="txt_edit_email" id="txt_edit_email"
-                                   autocomplete="off" required>
+                                    autocomplete="off" required>
                             </div>
                         </div>
                         <div class="form-group col-md-6">
                             <label class="form-label" for="txt_edit_phone">Phone number</label>
                             <div class="form-control-wrap">
                                 <input type="text" class="form-control" name="txt_edit_phone" id="txt_edit_phone"
-                                   autocomplete="off" required>
+                                    autocomplete="off" required>
                             </div>
                         </div>
                     </div>

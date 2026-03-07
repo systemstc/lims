@@ -285,7 +285,7 @@ class CustomerController extends Controller
         }
         $states = State::get(['m01_state_id', 'm01_name']);
         $ros = Ro::get(['m04_ro_id', 'm04_name']);
-        $customerTypes = CustomerType::get(['m09_customer_type_id', 'm09_name']);
+        $customerTypes = CustomerType::where('m09_status', 'ACTIVE')->get(['m09_customer_type_id', 'm09_name']);
         return view('create_customer', compact('states', 'ros', 'customerTypes'));
     }
 

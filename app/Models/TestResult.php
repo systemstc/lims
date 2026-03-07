@@ -23,6 +23,7 @@ class TestResult extends Model
         'm22_manuscript_id',
         'tr07_result',
         'tr07_unit',
+        'tr07_manuscript_content',
         'tr07_current_version',
         'tr07_is_current',
         'tr07_result_status',

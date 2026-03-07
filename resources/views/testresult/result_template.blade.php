@@ -4,7 +4,7 @@
     <div class="container-fluid">
         <div class="nk-content-inner">
             <div class="nk-content-body">
-                <div class="components-preview wide-xl mx-auto">
+                <div class="components-preview wide-xxl mx-auto">
                     <div class="nk-block nk-block-lg">
 
                         <!-- Header Section -->
@@ -155,7 +155,7 @@
                                                                 <!-- Input field for main test when no primary tests -->
                                                                 <div class="input-group input-group-sm">
                                                                     <input type="text"
-                                                                        class="form-control form-control-sm bg-light @error('results.'.$test->m12_test_number .'.test.result') is-invalid @enderror"
+                                                                        class="form-control form-control-sm bg-light @error('results.' . $test->m12_test_number . '.test.result') is-invalid @enderror"
                                                                         name="results[{{ $test->m12_test_number }}][test][result]"
                                                                         value="{{ old('results.' . $test->m12_test_number . '.test.result', $existingMainTestResult->tr07_result ?? '') }}"
                                                                         placeholder="Enter result value" autocomplete="off">
@@ -181,7 +181,7 @@
                                                                         </button>
                                                                     @endif
                                                                 </div>
-                                                                 @error('results.'.$test->m12_test_number .'.test.result')
+                                                                @error('results.' . $test->m12_test_number . '.test.result')
                                                                     <span class="text-danger small">{{ $message }}</span>
                                                                 @enderror
                                                             @endif
@@ -243,7 +243,7 @@
                                                                             name="results[{{ $test->m12_test_number }}][primary_tests][{{ $primaryTest->m16_primary_test_id }}][result_id]"
                                                                             value="{{ $existingPrimaryResult->tr07_test_result_id ?? '' }}">
                                                                         <input type="text"
-                                                                            class="form-control form-control-sm border-0 bg-light @error('results.'.$test->m12_test_number .'.primary_tests.'.$primaryTest->m16_primary_test_id.'.result') is-invalid @enderror"
+                                                                            class="form-control form-control-sm border-0 bg-light @error('results.' . $test->m12_test_number . '.primary_tests.' . $primaryTest->m16_primary_test_id . '.result') is-invalid @enderror"
                                                                             name="results[{{ $test->m12_test_number }}][primary_tests][{{ $primaryTest->m16_primary_test_id }}][result]"
                                                                             value="{{ old('results.' . $test->m12_test_number . '.primary_tests.' . $primaryTest->m16_primary_test_id . '.result', $existingPrimaryResult->tr07_result ?? '') }}"
                                                                             placeholder="Enter result value"
@@ -268,8 +268,11 @@
                                                                             </button>
                                                                         @endif
                                                                     </div>
-                                                                    @error('results.'.$test->m12_test_number .'.primary_tests.'.$primaryTest->m16_primary_test_id.'.result')
-                                                                        <span class="text-danger small">{{ $message }}</span>
+                                                                    @error('results.' . $test->m12_test_number .
+                                                                        '.primary_tests.' . $primaryTest->m16_primary_test_id .
+                                                                        '.result')
+                                                                        <span
+                                                                            class="text-danger small">{{ $message }}</span>
                                                                     @enderror
                                                                 </td>
                                                                 <td>
@@ -334,7 +337,7 @@
                                                                                     name="results[{{ $test->m12_test_number }}][primary_tests][{{ $primaryTest->m16_primary_test_id }}][secondary_tests][{{ $secondaryTest->m17_secondary_test_id }}][result_id]"
                                                                                     value="{{ $existingSecondaryResult->tr07_test_result_id ?? '' }}">
                                                                                 <input type="text"
-                                                                                    class="form-control form-control-sm border-0 bg-light @error('results.'.$test->m12_test_number .'.primary_tests.'.$primaryTest->m16_primary_test_id.'.secondary_tests.'.$secondaryTest->m17_secondary_test_id.'.result') is-invalid @enderror"
+                                                                                    class="form-control form-control-sm border-0 bg-light @error('results.' . $test->m12_test_number . '.primary_tests.' . $primaryTest->m16_primary_test_id . '.secondary_tests.' . $secondaryTest->m17_secondary_test_id . '.result') is-invalid @enderror"
                                                                                     name="results[{{ $test->m12_test_number }}][primary_tests][{{ $primaryTest->m16_primary_test_id }}][secondary_tests][{{ $secondaryTest->m17_secondary_test_id }}][result]"
                                                                                     value="{{ old('results.' . $test->m12_test_number . '.primary_tests.' . $primaryTest->m16_primary_test_id . '.secondary_tests.' . $secondaryTest->m17_secondary_test_id . '.result', $existingSecondaryResult->tr07_result ?? '') }}"
                                                                                     placeholder="Enter result value"
@@ -359,8 +362,14 @@
                                                                                     </button>
                                                                                 @endif
                                                                             </div>
-                                                                            @error('results.'.$test->m12_test_number .'.primary_tests.'.$primaryTest->m16_primary_test_id.'.secondary_tests.'.$secondaryTest->m17_secondary_test_id.'.result')
-                                                                            <span class="text-danger small">{{ $message }}</span>
+                                                                            @error('results.' . $test->m12_test_number .
+                                                                                '.primary_tests.' .
+                                                                                $primaryTest->m16_primary_test_id .
+                                                                                '.secondary_tests.' .
+                                                                                $secondaryTest->m17_secondary_test_id .
+                                                                                '.result')
+                                                                                <span
+                                                                                    class="text-danger small">{{ $message }}</span>
                                                                             @enderror
                                                                         </td>
                                                                         <td>
@@ -792,7 +801,7 @@
                     `;
                 } else {
                     availablePrimaryTests.forEach(test => {
-                        const hasSecondaryTests = test.secondaryTests && test.secondaryTests.length > 0;
+                        const hasSecondaryTests = test.secondary_tests && test.secondary_tests.length > 0;
                         const row = document.createElement('tr');
                         row.innerHTML = `
                             <td>
@@ -817,7 +826,7 @@
                                     data-primary-test-unit="${test.m16_unit || ''}"
                                     data-formula-id="${test.m23_formula_id || ''}"
                                     data-has-secondary="${hasSecondaryTests}"
-                                    data-secondary-tests='${JSON.stringify(test.secondaryTests || [])}'>
+                                    data-secondary-tests='${JSON.stringify(test.secondary_tests || [])}'>
                                     Select
                                 </button>
                             </td>
@@ -880,17 +889,17 @@
                                 placeholder="Unit">
 
                             ${formulaId ? `
-                                                <button type="button"
-                                                    class="btn btn-outline-info btn-icon raw-entry-btn"
-                                                    data-formula-id="${formulaId}"
-                                                    data-reference-id="{{ $sampleTests->first()->registration->tr04_reference_id }}"
-                                                    data-test-id="${testId}"
-                                                    data-test-number="${testNumber}"
-                                                    data-primary-test-id="${primaryTestId}"
-                                                    data-target-input="results[${testNumber}][primary_tests][${primaryTestId}][result]">
-                                                    <em class="icon ni ni-calc"></em>
-                                                </button>
-                                                ` : ''}
+                                                    <button type="button"
+                                                        class="btn btn-outline-info btn-icon raw-entry-btn"
+                                                        data-formula-id="${formulaId}"
+                                                        data-reference-id="{{ $sampleTests->first()->registration->tr04_reference_id }}"
+                                                        data-test-id="${testId}"
+                                                        data-test-number="${testNumber}"
+                                                        data-primary-test-id="${primaryTestId}"
+                                                        data-target-input="results[${testNumber}][primary_tests][${primaryTestId}][result]">
+                                                        <em class="icon ni ni-calc"></em>
+                                                    </button>
+                                                    ` : ''}
                         </div>
                     </td>
                     <td>
@@ -902,15 +911,15 @@
                             <em class="icon ni ni-trash"></em>
                         </button>
                         ${hasSecondaryTests ? `
-                                        <button type="button"
-                                        class="btn btn-outline-success btn-sm add-secondary-test"
-                                        data-test-number="${testNumber}"
-                                        data-test-id="${testId}"
-                                        data-primary-test-id="${primaryTestId}"
-                                        data-secondary-tests='${JSON.stringify(secondaryTests)}'>
-                                        <em class="icon ni ni-plus"></em> Secondary
-                                        </button>
-                                        ` : ''}
+                                            <button type="button"
+                                            class="btn btn-outline-success btn-sm add-secondary-test"
+                                            data-test-number="${testNumber}"
+                                            data-test-id="${testId}"
+                                            data-primary-test-id="${primaryTestId}"
+                                            data-secondary-tests='${JSON.stringify(secondaryTests)}'>
+                                            <em class="icon ni ni-plus"></em> Secondary
+                                            </button>
+                                            ` : ''}
                         <button type="button"
                             class="btn btn-outline-warning btn-sm add-custom-field"
                             data-test-id="${testId}"
@@ -1080,18 +1089,18 @@
                                 placeholder="Unit">
 
                             ${formulaId ? `
-                                                <button type="button"
-                                                    class="btn btn-outline-info btn-icon raw-entry-btn"
-                                                    data-formula-id="${formulaId}"
-                                                    data-reference-id="{{ $sampleTests->first()->registration->tr04_reference_id }}"
-                                                    data-test-id="${testId}"
-                                                    data-test-number="${testNumber}"
-                                                    data-primary-test-id="${primaryTestId}"
-                                                    data-secondary-test-id="${secondaryTestId}"
-                                                    data-target-input="results[${testNumber}][primary_tests][${primaryTestId}][secondary_tests][${secondaryTestId}][result]">
-                                                    <em class="icon ni ni-calc"></em>
-                                                </button>
-                                            ` : ''}
+                                                    <button type="button"
+                                                        class="btn btn-outline-info btn-icon raw-entry-btn"
+                                                        data-formula-id="${formulaId}"
+                                                        data-reference-id="{{ $sampleTests->first()->registration->tr04_reference_id }}"
+                                                        data-test-id="${testId}"
+                                                        data-test-number="${testNumber}"
+                                                        data-primary-test-id="${primaryTestId}"
+                                                        data-secondary-test-id="${secondaryTestId}"
+                                                        data-target-input="results[${testNumber}][primary_tests][${primaryTestId}][secondary_tests][${secondaryTestId}][result]">
+                                                        <em class="icon ni ni-calc"></em>
+                                                    </button>
+                                                ` : ''}
                         </div>
                     </td>
                     <td>

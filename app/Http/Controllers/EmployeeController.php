@@ -17,7 +17,7 @@ class EmployeeController extends Controller
 {
     public function viewEmployee()
     {
-        $employees = Employee::get();
+        $employees = Employee::with('user')->get();
         return view('employees.employees', compact('employees'));
     }
 

@@ -1,5 +1,8 @@
 <script src="{{ asset('backAssets/js/bundle.js') }}"></script>
 <script src="{{ asset('backAssets/js/scripts.js') }}"></script>
+<link rel="stylesheet" href="{{ asset('backAssets/css/editors/summernote.css') }}">
+<script src="{{ asset('backAssets/js/libs/editors/summernote.js') }}"></script>
+<script src="{{ asset('backAssets/js/editors.js') }}"></script>
 <script src="{{ asset('backAssets/js/libs/datatable-btns.js') }}"></script>
 <script src="{{ asset('backAssets/js/example-toastr.js') }}"></script>
 <script src="{{ asset('backAssets/js/example-sweetalert.js') }}"></script>
@@ -67,7 +70,7 @@
         // Handle standard form submissions
         document.addEventListener('submit', function(e) {
             const form = e.target;
-            
+
             // Allow if explicitly marked to bypass
             if (form.dataset.bypassLock === 'true') return;
 
@@ -90,15 +93,16 @@
             form.dataset.isSubmitting = 'true';
 
             // Visual feedback - Disable all submit buttons and related anchors
-            const submitters = form.querySelectorAll('button[type="submit"], input[type="submit"], a[href="#finish"]');
+            const submitters = form.querySelectorAll(
+                'button[type="submit"], input[type="submit"], a[href="#finish"]');
             submitters.forEach(function(btn) {
                 // Store original text/width to avoid layout jump if possible (optional)
-                if(!btn.dataset.originalText) btn.dataset.originalText = btn.innerHTML;
-                
+                if (!btn.dataset.originalText) btn.dataset.originalText = btn.innerHTML;
+
                 btn.classList.add('disabled');
-                btn.classList.add('submitting'); 
+                btn.classList.add('submitting');
                 // For input[type=submit] or button, set disabled
-                if(btn.tagName !== 'A') btn.disabled = true;
+                if (btn.tagName !== 'A') btn.disabled = true;
                 // For anchors, pointer-events usually does the trick via CSS class, but we can enforce
                 btn.style.pointerEvents = 'none';
 
@@ -118,7 +122,7 @@
                 submitters.forEach(function(btn) {
                     btn.classList.remove('disabled');
                     btn.classList.remove('submitting');
-                    if(btn.tagName !== 'A') btn.disabled = false;
+                    if (btn.tagName !== 'A') btn.disabled = false;
                     btn.style.pointerEvents = '';
                     // if(btn.dataset.originalText) btn.innerHTML = btn.dataset.originalText;
                 });

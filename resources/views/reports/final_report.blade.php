@@ -148,14 +148,30 @@
                                                                         @endphp
 
                                                                         @if ($hasSecondary)
+                                                                            {{-- Primary Test Header (No result shown here) --}}
+                                                                            <div
+                                                                                class="d-flex justify-content-between border-bottom pb-1 mb-1 bg-light px-2 rounded">
+                                                                                <span
+                                                                                    class="fst-italic">{{ $primaryTest->m16_name ?? 'Primary Parameter' }}
+                                                                                    @if (!empty($primaryResults->first()->tr07_unit))
+                                                                                        <strong>({{ $primaryResults->first()->tr07_unit }})</strong>
+                                                                                    @endif
+                                                                                    :
+                                                                                </span>
+                                                                                <strong></strong>
+                                                                            </div>
+
+                                                                            {{-- Secondary Tests --}}
                                                                             @foreach ($primaryResults->whereNotNull('m17_secondary_test_id') as $secondary)
                                                                                 <div
-                                                                                    class="d-flex justify-content-between border-bottom pb-1 mb-1">
+                                                                                    class="d-flex justify-content-between border-bottom pb-1 mb-1 ms-3">
                                                                                     <span
                                                                                         class="fst-italic">{{ $secondary->secondaryTest->m17_name ?? 'Secondary Parameter' }}
-                                                                                        <strong>(
-                                                                                            {{ $secondary->tr07_unit ?? '' }}
-                                                                                            )</strong> :</span>
+                                                                                        @if (!empty($secondary->tr07_unit))
+                                                                                            <strong>({{ $secondary->tr07_unit }})</strong>
+                                                                                        @endif
+                                                                                        :
+                                                                                    </span>
                                                                                     <strong>{{ $secondary->tr07_result ?? '-' }}</strong>
                                                                                 </div>
                                                                             @endforeach
@@ -388,16 +404,16 @@
                         .then(data => {
                             if (data.success) {
                                 NioApp.Toast('Order reset successfully. Page will reload...',
-                                'success', {
-                                    position: 'top-right',
-                                    icon: 'ni ni-check-circle',
-                                    time: 2000,
-                                    onShown: function() {
-                                        setTimeout(() => {
-                                            location.reload();
-                                        }, 1500);
-                                    }
-                                });
+                                    'success', {
+                                        position: 'top-right',
+                                        icon: 'ni ni-check-circle',
+                                        time: 2000,
+                                        onShown: function() {
+                                            setTimeout(() => {
+                                                location.reload();
+                                            }, 1500);
+                                        }
+                                    });
                             } else {
                                 NioApp.Toast(data.message || 'Error resetting test order', 'error', {
                                     position: 'top-right',

@@ -20,6 +20,7 @@ class Test extends Model
         'm15_standard_id',
         'm16_primary_test_id',
         'm17_secondary_test_id',
+        'm17_secondary_test_associations',
         'm14_lab_sample_id',
         'm12_result',
         'm12_category',

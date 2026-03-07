@@ -3,13 +3,13 @@
     <div class="container-fluid">
         <div class="nk-content-inner">
             <div class="nk-content-body">
-                <div class="components-preview wide-xl mx-auto">
+                <div class="components-preview wide-xxl mx-auto">
                     <div class="nk-block nk-block-lg">
                         <div class="nk-block-head">
                             <div class="nk-block-head-content">
                                 <h4 class="nk-block-title">Employee List</h4>
                                 <div class="nk-block-des d-flex justify-content-end">
-                                        <a href="{{ route('create_employee') }}" class="btn btn-primary"><em
+                                    <a href="{{ route('create_employee') }}" class="btn btn-primary"><em
                                             class="icon ni ni-plus"></em> &nbsp; Create Employee</a>
                                 </div>
                             </div>
@@ -57,6 +57,22 @@
                                                                         <li><a href="#"><em
                                                                                     class="icon ni ni-eye"></em><span>View
                                                                                 </span></a></li>
+                                                                        @if ($employee->user)
+                                                                            <li>
+                                                                                <a href="#"
+                                                                                    onclick="event.preventDefault(); document.getElementById('toggle-2fa-{{ $employee->user->tr01_user_id }}').submit();">
+                                                                                    <em
+                                                                                        class="icon ni ni-{{ $employee->user->tr01_is_2fa_blocked ? 'unlock' : 'lock-alt' }}"></em>
+                                                                                    <span>{{ $employee->user->tr01_is_2fa_blocked ? 'Unblock 2FA' : 'Block 2FA' }}</span>
+                                                                                </a>
+                                                                                <form
+                                                                                    id="toggle-2fa-{{ $employee->user->tr01_user_id }}"
+                                                                                    action="{{ route('toggle_2fa_access', $employee->user->tr01_user_id) }}"
+                                                                                    method="POST" class="d-none">
+                                                                                    @csrf
+                                                                                </form>
+                                                                            </li>
+                                                                        @endif
                                                                         <li><a href="#"><em
                                                                                     class="icon ni ni-trash"></em><span>Delete
                                                                                 </span></a></li>

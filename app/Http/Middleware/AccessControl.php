@@ -107,6 +107,14 @@ class AccessControl
             'search_tracker',
             'create_test_result',
             'dispatch_sample',
+            // 2FA Routes
+            'profile.2fa.index',
+            'profile.2fa.setup_google',
+            'profile.2fa.confirm_google',
+            'profile.2fa.setup_email',
+            'profile.2fa.send_email_code',
+            'profile.2fa.confirm_email',
+            'profile.2fa.disable',
         ];
 
         if (in_array($routeName, $skipPermissionRoutes)) {

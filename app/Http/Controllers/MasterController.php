@@ -21,6 +21,7 @@ use App\Models\SecondaryTest;
 use App\Models\Standard;
 use App\Models\State;
 use App\Models\Test;
+use App\Models\User;
 use Carbon\Carbon;
 use DateTime;
 use Illuminate\Http\Request;
@@ -1509,7 +1510,7 @@ class MasterController extends Controller
         }
 
         $primaryTests = PrimaryTest::where('m16_status', 'ACTIVE')
-            ->where('m11_group_id', $request->selectedGroupId)
+            // ->where('m11_group_code', $request->selectedGroupId)
             ->where('m16_name', 'LIKE', "%{$query}%")
             ->select('m16_primary_test_id as id', 'm16_name as name')
             ->limit(10)
@@ -1655,7 +1656,7 @@ class MasterController extends Controller
                 'name' => 'required|string|max:255',
                 'primary_test_id' => 'required|integer|exists:m16_primary_tests,m16_primary_test_id',
                 'sampleId' => 'required|integer|exists:m10_samples,m10_sample_id',
-                'groupId' => 'required|integer|exists:m11_groups,m11_group_id'
+                'groupId' => 'required|integer|exists:m11_groups,m11_group_code'
             ]);
 
             if ($validator->fails()) {
@@ -1681,7 +1682,7 @@ class MasterController extends Controller
                 'm17_name' => $request->name,
                 'm16_primary_test_id' => $request->primary_test_id,
                 'm10_sample_id' => $request->sampleId,
-                'm11_group_id' => $request->groupId,
+                'm11_group_code' => $request->groupId,
                 'm17_status' => 'ACTIVE',
                 'tr01_created_by' => Session::get('user_id') ?? -1,
             ]);
@@ -1993,7 +1994,7 @@ class MasterController extends Controller
     {
         $groupId = $request->group_id;
 
-        $tests = Test::where('m11_group_id', $groupId)
+        $tests = Test::where('m11_group_code', $groupId)
             ->where('m12_status', 'ACTIVE')
             ->orderBy('m12_name')
             ->get(['m12_test_id', 'm12_test_number', 'm12_name']);
@@ -2946,7 +2947,7 @@ class MasterController extends Controller
     // Manuscript
     public function viewManuscript()
     {
-        $manuscripts = Manuscript::orderBy('m22_manuscript_id', 'desc')->get();
+        $manuscripts = Manuscript::with('sample', 'group', 'test')->orderBy('m22_manuscript_id', 'desc')->get();
         return view('manuscript.view_manuscript', compact('manuscripts'));
     }
 
@@ -2979,45 +2980,256 @@ class MasterController extends Controller
 
     public function createManuscript(Request $request)
     {
+        if ($request->isMethod('POST')) {
+            Log::info('--- Manuscript Create Attempt ---', $request->all());
+            try {
+                $validated = $request->validate(
+                    [
+                        'txt_sample_id' => 'required|exists:m10_samples,m10_sample_id',
+                        'txt_group_id'  => 'required|exists:m11_groups,m11_group_code',
+                        'txt_test_id'   => 'required|exists:m12_tests,m12_test_number',
+                        'txt_name'      => 'required|string|max:255',
+                        'standard_ids'  => 'nullable|array',
+                        'standard_ids.*' => 'exists:m15_standards,m15_standard_id',
+                        'm22_content'   => 'nullable|string',
+                        'primary_test_ids' => 'nullable|array',
+                        'primary_test_ids.*' => 'exists:m16_primary_tests,m16_primary_test_id',
+                        'secondary_test_ids' => 'nullable|array',
+                        'secondary_test_ids.*' => 'exists:m17_secondary_tests,m17_secondary_test_id',
+                        'secondary_test_primary_ids' => 'nullable|array',
+                        'secondary_test_primary_ids.*' => 'exists:m16_primary_tests,m16_primary_test_id',
+                    ],
+                    [
+                        'txt_sample_id.required' => 'Please select a sample.',
+                        'txt_sample_id.exists'   => 'The selected sample does not exist.',
+                        'txt_group_id.required'  => 'Please select a group.',
+                        'txt_group_id.exists'    => 'The selected group does not exist.',
+                        'txt_test_id.required'   => 'Please select a test.',
+                        'txt_test_id.exists'     => 'The selected test does not exist.',
+                        'txt_name.required'      => 'Please enter a manuscript name.',
+                        'txt_name.max'           => 'The manuscript name should not exceed 255 characters.',
+                        'standard_ids.*.exists'  => 'One or more selected standards are invalid.',
+                    ]
+                );
+
+                DB::beginTransaction();
+
+                $data = [
+                    'm10_sample_id' => $request->txt_sample_id,
+                    'm11_group_code' => $request->txt_group_id,
+                    'm12_test_number' => $request->txt_test_id,
+                    'm22_name' => $request->txt_name,
+                    'm15_standard_ids' => $request->has('standard_ids') ? implode(',', $request->standard_ids) : null,
+                    'm22_content' => $request->m22_content ?? null,
+                    'tr01_created_by' => Session::get('role') === 'ADMIN' ? -1 : Session::get('user_id'),
+                ];
+
+                $create = Manuscript::create($data);
+
+                if ($create) {
+                    // Update Test with Primary/Secondary Tests
+                    if ($request->has('primary_test_ids') || $request->has('secondary_test_ids')) {
+                        $test = Test::where('m12_test_number', $request->txt_test_id)->first();
+
+                        if ($test) {
+                            $existingPrimary = $test->m16_primary_test_id ? explode(',', $test->m16_primary_test_id) : [];
+                            $newPrimary = $request->primary_test_ids ?? [];
+                            $mergedPrimary = array_unique(array_merge($existingPrimary, $newPrimary));
+
+                            $existingSecondary = $test->m17_secondary_test_id ? explode(',', $test->m17_secondary_test_id) : [];
+                            $newSecondary = $request->secondary_test_ids ?? [];
+                            $mergedSecondary = array_unique(array_merge($existingSecondary, $newSecondary));
+
+                            $test->m16_primary_test_id = implode(',', $mergedPrimary);
+                            $test->m17_secondary_test_id = implode(',', $mergedSecondary);
+
+                            // Handling associations
+                            if ($request->has('secondary_test_ids') && $request->has('secondary_test_primary_ids')) {
+                                $existingAssoc = $test->m17_secondary_test_associations ? json_decode($test->m17_secondary_test_associations, true) : [];
+
+                                $secondaryIds = $request->secondary_test_ids;
+                                $primaryIds = $request->secondary_test_primary_ids;
+
+                                for ($i = 0; $i < count($secondaryIds); $i++) {
+                                    if (isset($primaryIds[$i])) {
+                                        // Check if already exists
+                                        $exists = false;
+                                        foreach ($existingAssoc as $assoc) {
+                                            if ($assoc['secondary_test_id'] == $secondaryIds[$i] && $assoc['primary_test_id'] == $primaryIds[$i]) {
+                                                $exists = true;
+                                                break;
+                                            }
+                                        }
+                                        if (!$exists) {
+                                            $existingAssoc[] = [
+                                                'secondary_test_id' => $secondaryIds[$i],
+                                                'primary_test_id' => $primaryIds[$i]
+                                            ];
+                                        }
+                                    }
+                                }
+                                $test->m17_secondary_test_associations = json_encode($existingAssoc);
+                            }
+
+                            $test->save();
+                        }
+                    }
+
+                    DB::commit();
+                    Session::flash('type', 'success');
+                    Session::flash('message', '🎉 Manuscript created successfully!');
+                    return to_route('view_manuscripts');
+                }
+            } catch (\Illuminate\Validation\ValidationException $e) {
+                DB::rollBack();
+                Log::error('Validation failed during manuscript creation: ', $e->errors());
+                throw $e; // Re-throw so Laravel redirects back with errors
+            } catch (\Exception $e) {
+                DB::rollBack();
+                Log::error('Error creating manuscript: ' . $e->getMessage());
+                Session::flash('type', 'error');
+                Session::flash('message', 'Failed to create manuscript. Please try again.');
+                return back()->withInput();
+            }
+        }
+
         $samples = Sample::select('m10_sample_id', 'm10_name')->get();
         return view('manuscript.create_manuscript', compact('samples'));
     }
 
-    public function getManuscripts(Request $request)
+    public function showManuscript($id)
     {
+        $manuscript = Manuscript::with(['sample', 'group', 'test'])->findOrFail($id);
+
+        // Fetch test to correctly render primary and secondary test relationships
+        $test = $manuscript->test;
+
+        // Fetch associated standards
+        $standards = collect();
+        if ($manuscript->m15_standard_ids) {
+            $standardIds = array_filter(explode(',', $manuscript->m15_standard_ids));
+            if (!empty($standardIds)) {
+                $standards = Standard::whereIn('m15_standard_id', $standardIds)->get();
+            }
+        }
+
+        return view('manuscript.show_manuscript', compact('manuscript', 'test', 'standards'));
+    }
+
+    public function editManuscript($id)
+    {
+        $manuscript = Manuscript::findOrFail($id);
+
+        // Fetch test to correctly preload primary and secondary test relationships
+        $test = $manuscript->test;
+
+        // Needed for dropdowns
+        $samples = Sample::all();
+
+        return view('manuscript.edit_manuscript', compact('manuscript', 'samples', 'test'));
+    }
+
+    public function updateManuscript(Request $request, $id)
+    {
+        $manuscript = Manuscript::findOrFail($id);
+
         if ($request->isMethod('POST')) {
-            $validated = $request->validate(
-                [
+            Log::info('--- Manuscript Update Attempt ---', $request->all());
+            try {
+                $validated = $request->validate([
                     'txt_sample_id' => 'required|exists:m10_samples,m10_sample_id',
                     'txt_group_id'  => 'required|exists:m11_groups,m11_group_code',
                     'txt_test_id'   => 'required|exists:m12_tests,m12_test_number',
                     'txt_name'      => 'required|string|max:255',
-                ],
-                [
-                    'txt_sample_id.required' => 'Please select a sample.',
-                    'txt_sample_id.exists'   => 'The selected sample does not exist.',
-                    'txt_group_id.required'  => 'Please select a group.',
-                    'txt_group_id.exists'    => 'The selected group does not exist.',
-                    'txt_test_id.required'   => 'Please select a test.',
-                    'txt_test_id.exists'     => 'The selected test does not exist.',
-                    'txt_name.required'      => 'Please enter a manuscript name.',
-                    'txt_name.max'           => 'The manuscript name should not exceed 255 characters.',
-                ]
-            );
-            $data = [
-                'm10_sample_id' => $request->txt_sample_id,
-                'm11_group_code' => $request->txt_group_id,
-                'm12_test_number' => $request->txt_test_id,
-                'm22_name' => $request->txt_name,
-                'tr01_created_by' => Session::get('user_id'),
-            ];
-            $create = Manuscript::create($data);
-            if ($create) {
+                    'standard_ids'  => 'nullable|array',
+                    'standard_ids.*' => 'exists:m15_standards,m15_standard_id',
+                    'm22_content'   => 'nullable|string',
+                    'primary_test_ids' => 'nullable|array',
+                    'primary_test_ids.*' => 'exists:m16_primary_tests,m16_primary_test_id',
+                    'secondary_test_ids' => 'nullable|array',
+                    'secondary_test_ids.*' => 'exists:m17_secondary_tests,m17_secondary_test_id',
+                    'secondary_test_primary_ids' => 'nullable|array',
+                    'secondary_test_primary_ids.*' => 'exists:m16_primary_tests,m16_primary_test_id',
+                ]);
+
+                DB::beginTransaction();
+
+                $manuscript->update([
+                    'm10_sample_id' => $request->txt_sample_id,
+                    'm11_group_code' => $request->txt_group_id,
+                    'm12_test_number' => $request->txt_test_id,
+                    'm22_name' => $request->txt_name,
+                    'm15_standard_ids' => $request->has('standard_ids') ? implode(',', $request->standard_ids) : null,
+                    'm22_content' => $request->m22_content ?? null,
+                ]);
+
+                // Update Test with Primary/Secondary Tests
+                if ($request->has('primary_test_ids') || $request->has('secondary_test_ids')) {
+                    $test = Test::where('m12_test_number', $request->txt_test_id)->first();
+
+                    if ($test) {
+                        $existingPrimary = $test->m16_primary_test_id ? explode(',', $test->m16_primary_test_id) : [];
+                        $newPrimary = $request->primary_test_ids ?? [];
+                        $mergedPrimary = array_unique(array_merge($existingPrimary, $newPrimary));
+
+                        $existingSecondary = $test->m17_secondary_test_id ? explode(',', $test->m17_secondary_test_id) : [];
+                        $newSecondary = $request->secondary_test_ids ?? [];
+                        $mergedSecondary = array_unique(array_merge($existingSecondary, $newSecondary));
+
+                        $test->m16_primary_test_id = implode(',', $mergedPrimary);
+                        $test->m17_secondary_test_id = implode(',', $mergedSecondary);
+
+                        // Handling associations
+                        if ($request->has('secondary_test_ids') && $request->has('secondary_test_primary_ids')) {
+                            $existingAssoc = $test->m17_secondary_test_associations ? json_decode($test->m17_secondary_test_associations, true) : [];
+
+                            $secondaryIds = $request->secondary_test_ids;
+                            $primaryIds = $request->secondary_test_primary_ids;
+
+                            for ($i = 0; $i < count($secondaryIds); $i++) {
+                                if (isset($primaryIds[$i])) {
+                                    $exists = false;
+                                    foreach ($existingAssoc as $assoc) {
+                                        if ($assoc['secondary_test_id'] == $secondaryIds[$i] && $assoc['primary_test_id'] == $primaryIds[$i]) {
+                                            $exists = true;
+                                            break;
+                                        }
+                                    }
+                                    if (!$exists) {
+                                        $existingAssoc[] = [
+                                            'secondary_test_id' => $secondaryIds[$i],
+                                            'primary_test_id' => $primaryIds[$i]
+                                        ];
+                                    }
+                                }
+                            }
+                            $test->m17_secondary_test_associations = json_encode($existingAssoc);
+                        }
+
+                        $test->save();
+                    }
+                }
+
+                DB::commit();
                 Session::flash('type', 'success');
-                Session::flash('message', '🎉 Manuscript created successfully!');
+                Session::flash('message', '🎉 Manuscript updated successfully!');
                 return to_route('view_manuscripts');
+            } catch (\Illuminate\Validation\ValidationException $e) {
+                DB::rollBack();
+                Log::error('Validation failed during manuscript update: ', $e->errors());
+                throw $e;
+            } catch (\Exception $e) {
+                DB::rollBack();
+                Log::error('Error updating manuscript: ' . $e->getMessage());
+                Session::flash('type', 'error');
+                Session::flash('message', 'Failed to update manuscript. Please try again.');
+                return back()->withInput();
             }
         }
+    }
+
+    public function getManuscripts(Request $request)
+    {
         $testId = $request->test_id;
         if (!$testId) {
             return response()->json(['error' => 'Test ID is required.'], 400);
@@ -3027,5 +3239,36 @@ class MasterController extends Controller
             ->orderBy('m22_name')
             ->get(['m22_manuscript_id', 'm22_name', 'created_at']);
         return response()->json($manuscripts);
+    }
+
+    public function getTestStandards(Request $request)
+    {
+        $testId = $request->test_id;
+        if (!$testId) {
+            return response()->json(['error' => 'Test ID is required.'], 400);
+        }
+
+        $test = Test::where('m12_test_number', $testId)->first();
+        if (!$test) {
+            return response()->json([]);
+        }
+
+        return response()->json($test->standardsList);
+    }
+
+    /**
+     * Admin action to block or unblock a user's 2FA.
+     */
+    public function toggleTwoFactorAccess($userId)
+    {
+        $user = User::findOrFail($userId);
+        $user->tr01_is_2fa_blocked = !$user->tr01_is_2fa_blocked;
+        $user->save();
+
+        $action = $user->tr01_is_2fa_blocked ? 'blocked' : 'unblocked';
+        Session::flash('type', 'success');
+        Session::flash('message', "Two-Factor Authentication access has been {$action} for {$user->tr01_name}.");
+
+        return redirect()->back();
     }
 }

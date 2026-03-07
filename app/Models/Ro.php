@@ -10,9 +10,9 @@ class Ro extends Model
     protected $primaryKey = 'm04_ro_id';
     protected $fillable = [
         'tr01_user_id',
-        'm04_name', 
-        'm04_email', 
-        'm04_phone', 
+        'm04_name',
+        'm04_email',
+        'm04_phone',
         'm03_role_id',
         'm04_status',
         'cgst',
@@ -29,5 +29,10 @@ class Ro extends Model
     public function role()
     {
         return $this->belongsTo(Role::class, 'm03_role_id', 'm03_role_id');
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'tr01_user_id', 'tr01_user_id');
     }
 }

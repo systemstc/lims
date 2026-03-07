@@ -4,7 +4,7 @@
     <div class="container-fluid">
         <div class="nk-content-inner">
             <div class="nk-content-body">
-                <div class="components-preview wide-xl mx-auto">
+                <div class="components-preview wide-xxl mx-auto">
                     <!-- INVOICE WRAPPER -->
                     <div class="card shadow-sm bg-white p-4" style="page-break-inside: avoid;">
                         <!-- HEADER -->

@@ -15,6 +15,8 @@ class Manuscript extends Model
         'm22_name',
         'tr01_created_by',
         'm22_status',
+        'm15_standard_ids',
+        'm22_content',
         'created_at',
         'updated_at'
     ];
@@ -26,16 +28,25 @@ class Manuscript extends Model
 
     public function group()
     {
-        return $this->belongsTo(Group::class, 'm11_group_id', 'm11_group_id');
+        return $this->belongsTo(Group::class, 'm11_group_code', 'm11_group_code');
     }
 
     public function test()
     {
-        return $this->belongsTo(Test::class, 'm12_test_id', 'm12_test_id');
+        return $this->belongsTo(Test::class, 'm12_test_number', 'm12_test_number');
     }
 
     public function user()
     {
-        return $this->belongsTo('tr01_created_at', 'tr01_user_id');
+        return $this->belongsTo(User::class, 'tr01_created_by', 'tr01_user_id');
+    }
+
+    public function getStandardsListAttribute()
+    {
+        $ids = $this->m15_standard_ids
+            ? explode(',', $this->m15_standard_ids)
+            : [];
+
+        return Standard::whereIn('m15_standard_id', $ids)->get();
     }
 }

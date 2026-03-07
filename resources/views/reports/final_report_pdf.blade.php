@@ -3,16 +3,16 @@
 
 <head>
     <meta charset="utf-8">
-    <link rel="stylesheet" href="{{ asset('backAssets/css/dashlite.css') }}">
+    <link rel="stylesheet" href="{{ public_path('backAssets/css/dashlite.css') }}">
     <title>Report {{ $meta['report_no'] }} - v{{ $report->tr09_version_number }}</title>
 
     <style>
         @page {
-            margin: 120px 30px 100px 30px;
+            margin: 270px 70px 250px 70px;
         }
 
         @page :first {
-            margin-top: 50px;
+            margin-top: 270px;
         }
 
         body {
@@ -175,7 +175,7 @@
     <div class="first-page">
         {{-- ===== FIRST PAGE DESCRIPTIVE HEADER ===== --}}
         <div class="first-page-header">
-            <h3>{{ isset($isPartial) && $isPartial ? 'PARTIAL TEST REPORT' : 'TEST REPORT' }}</h3>
+            {{-- <h3>{{ isset($isPartial) && $isPartial ? 'PARTIAL TEST REPORT' : 'TEST REPORT' }}</h3> --}}
             <table>
                 <tbody>
                     <tr>
@@ -387,9 +387,8 @@
                                                     ->isNotEmpty();
                                             @endphp
                                             @if (!$hasPrimary)
-                                                {{ $parent->tr07_result ?? '-' }}
+                                                {{ $parent->tr07_result ?? '' }}
                                             @else
-                                                -
                                             @endif
                                         </td>
                                     </tr>
@@ -407,14 +406,33 @@
                                             @endphp
 
                                             @if ($hasSecondary)
-                                                {{-- Secondary Tests (skip primary label) --}}
+                                                {{-- Primary Test Header (No result on this row as per request) --}}
+                                                <tr class="table-secondary">
+                                                    <td class="text-center">
+                                                        {{ $counter }}.{{ $subCounter++ }}</td>
+                                                    <td class="text-end">
+                                                        <em>
+                                                            {{ $primaryTest->m16_name ?? 'Primary Parameter' }}
+                                                            @if (!empty($primaryResults->first()->tr07_unit))
+                                                                <i>({{ $primaryResults->first()->tr07_unit }})</i>
+                                                            @endif
+                                                        </em>
+                                                    </td>
+                                                    <td class="text-center"></td>
+                                                </tr>
+
+                                                {{-- Secondary Tests --}}
                                                 @foreach ($primaryResults->whereNotNull('m17_secondary_test_id') as $secondary)
                                                     <tr>
                                                         <td class="text-center">
                                                             {{ $counter }}.{{ $subCounter++ }}</td>
-                                                        <td class="ps-4">
-                                                            <em>{{ $secondary->secondaryTest->m17_name ?? 'Secondary Parameter' }}
-                                                                <strong>({{ $secondary->tr07_unit ?? '-' }})</strong></em>
+                                                        <td class="text-end">
+                                                            <em>
+                                                                {{ $secondary->secondaryTest->m17_name ?? 'Secondary Parameter' }}
+                                                                @if (!empty($secondary->tr07_unit))
+                                                                    <i>({{ $secondary->tr07_unit }})</i>
+                                                                @endif
+                                                            </em>
                                                         </td>
                                                         <td class="text-center">{{ $secondary->tr07_result ?? '-' }}
                                                         </td>
@@ -425,9 +443,13 @@
                                                 <tr class="table-secondary">
                                                     <td class="text-center">{{ $counter }}.{{ $subCounter++ }}
                                                     </td>
-                                                    <td class="ps-4">
-                                                        <em>{{ $primaryTest->m16_name ?? 'Primary Parameter' }}
-                                                            <strong>({{ $primaryResults->first()->tr07_unit ?? '-' }})</strong></em>
+                                                    <td class="text-end">
+                                                        <em>
+                                                            {{ $primaryTest->m16_name ?? 'Primary Parameter' }}
+                                                            @if (!empty($primaryResults->first()->tr07_unit))
+                                                                <i>({{ $primaryResults->first()->tr07_unit }})</i>
+                                                            @endif
+                                                        </em>
                                                     </td>
                                                     <td class="text-center">
                                                         {{ $primaryResults->first()->tr07_result ?? '-' }}
@@ -446,11 +468,14 @@
                                         @foreach ($customFields as $custom)
                                             <tr class="table-secondary">
                                                 <td class="text-center">{{ $counter }}.{{ $subCounter++ }}</td>
-                                                <td class="ps-4">{{ $custom->tr08_field_name }} <strong>
-                                                        @if ($custom->tr08_field_unit)
-                                                            ({{ $custom->tr08_field_unit }})
+                                                <td class="text-end">
+                                                    <em>
+                                                        {{ $custom->tr08_field_name }}
+                                                        @if (!empty($custom->tr08_field_unit))
+                                                            <i>({{ $custom->tr08_field_unit }})</i>
                                                         @endif
-                                                    </strong></td>
+                                                    </em>
+                                                </td>
                                                 <td class="text-center">
                                                     {{ $custom->tr08_field_value }}
 
@@ -486,26 +511,27 @@
 
                 // --- Show header only on pages > 1 ---
                 if ($PAGE_NUM > 1) {
-                    // Header content - properly aligned
-                    
-                    $pdf->text(30, 50, "Report No: {{ $meta["report_no"] }}", $font, 9, [0,0,0]);
-                    $pdf->text(400, 50, "Date: {{ $meta["date"] }}", $font, 9, [0,0,0]);
-                    
-                    $pdf->text(30, 65, "Customer: {{ $meta["customer_name"] }}", $font, 9, [0,0,0]);
-                    
-                    // Draw header border
-                    $pdf->line(25, 90, $pageWidth - 25, 90, [0,0,0], 1);
+
+                    $pdf->text(55, 160, "Report No: {{ $meta["report_no"] }}", $font, 9, [0,0,0]);
+
+                    $dateText = "Date: {{ $meta["date"] }}";
+                    $textWidth = $fontMetrics->get_text_width($dateText, $font, 9);
+                    $pdf->text($pageWidth - 55 - $textWidth, 160, $dateText, $font, 9);
+
+                    $pdf->text(55, 175, "Customer: {{ $meta["customer_name"] }}", $font, 9, [0,0,0]);
                 }
 
                 // --- Footer for all pages ---
                 $pageText = "Page " . $PAGE_NUM . " of " . $PAGE_COUNT;
                 $textWidth = $fontMetrics->get_text_width($pageText, $font, $size);
-                $pdf->text(($pageWidth - $textWidth) / 2, $pageHeight - 40, $pageText, $font, $size, [0,0,0]);
+
+                $pdf->text(($pageWidth - $textWidth) / 2, $pageHeight - 160, $pageText, $font, $size, [0,0,0]);
 
                 // Add signatory on ALL pages including first
-                $pdf->text($pageWidth - 150, $pageHeight - 55, "Authorized Signatory", $font, 9, [0.3,0.3,0.3]);
-                $signerName = "{{ addslashes($report->generator->m06_name ?? "Lab Manager JNPT") }}";
-                $pdf->text($pageWidth - 150, $pageHeight - 70, $signerName, $bold, 10, [0,0,0]);
+                $pdf->text($pageWidth - 170, $pageHeight - 165, "Authorized Signatory", $font, 9, [0.3,0.3,0.3]);
+
+                $signerName = "{{ addslashes($report->generator->m06_name ?? 'Lab Manager JNPT') }}";
+                $pdf->text($pageWidth - 170, $pageHeight - 180, $signerName, $bold, 10, [0,0,0]);
             ');
         }
     </script>

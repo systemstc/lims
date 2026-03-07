@@ -15,7 +15,7 @@ class RoController extends Controller
 {
     public function ros()
     {
-        $ros = Ro::all();
+        $ros = Ro::with('user')->get();
         return view('ro.ros', compact('ros'));
     }
 

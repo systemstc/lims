@@ -3,7 +3,7 @@
     <div class="container-fluid">
         <div class="nk-content-inner">
             <div class="nk-content-body">
-                <div class="components-preview wide-xl mx-auto">
+                <div class="components-preview wide-xxl mx-auto">
                     <div class="nk-block nk-block-lg">
                         <div class="nk-block-head">
                             <div class="nk-block-head-content d-flex justify-content-between align-items-center">
@@ -53,21 +53,29 @@
                                             <th>Created By</th>
                                             {{-- <th>Created At</th> --}}
                                             <th>Status</th>
+                                            <th>Action</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         @foreach ($manuscripts as $key => $m)
                                             <tr>
                                                 <td>{{ $m->m22_manuscript_id }}</td>
-                                                <td>{{ $m->m10_sample_id }}</td>
-                                                <td>{{ $m->m11_group_code }}</td>
-                                                <td>{{ $m->m12_test_number }}</td>
+                                                <td>{{ $m->sample->m10_name }}</td>
+                                                <td>{{ $m->group->m11_name }}</td>
+                                                <td>{{ $m->test->m12_name }}</td>
                                                 <td>{{ $m->m22_name }}</td>
                                                 <td>{{ $m->tr01_created_by == -1 ? 'ADMIN' : $m->user->tr01_created_by }}
                                                 </td>
                                                 {{-- <td>{{ $m->created_at }}</td> --}}
                                                 <td class="text-{{ $m->m22_status == 'ACTIVE' ? 'success' : 'danger' }}">
                                                     <strong>{{ $m->m22_status }}</strong>
+                                                </td>
+                                                <td>
+                                                    <a href="{{ route('show_manuscript', $m->m22_manuscript_id) }}"
+                                                        class="btn btn-sm btn-info text-white"><em
+                                                            class="icon ni ni-eye"></em></a>
+                                                    <a href="{{ route('edit_manuscript', $m->m22_manuscript_id) }}"
+                                                        class="btn btn-sm btn-primary"><em class="icon ni ni-edit"></em></a>
                                                 </td>
                                             </tr>
                                         @endforeach

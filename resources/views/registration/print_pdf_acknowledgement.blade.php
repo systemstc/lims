@@ -161,7 +161,7 @@
         <div class="container-fluid">
             <div class="nk-content-inner">
                 <div class="nk-content-body">
-                    <div class="components-preview wide-xl mx-auto">
+                    <div class="components-preview wide-xxl mx-auto">
                         <!-- Logo Section -->
                         <div class="invoice-brand text-center mb-4">
                             <img src="{{ asset('backAssets/images/logo.png') }}" alt="Logo"

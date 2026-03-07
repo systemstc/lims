@@ -3,7 +3,7 @@
     <div class="container-fluid">
         <div class="nk-content-inner">
             <div class="nk-content-body">
-                <div class="components-preview wide-xl mx-auto">
+                <div class="components-preview wide-xxl mx-auto">
                     <div class="nk-block nk-block-lg">
                         <div class="nk-block-head">
                             <div class="nk-block-head-content">
@@ -42,7 +42,7 @@
                                                 <td>{{ $customerType->m09_name }}</td>
                                                 <td>{{ $customerType->m09_amount_percent }}</td>
                                                 <td><b>{{ $customerType->m09_type }}</b></td>
-                                                <td>{{ $customerType->m09_remark }}</td>
+                                                <td>{{ Str::limit($customerType->m09_remark, 20, '...') }}</td>
                                                 <td>{{ $customerType->tr01_created_by }}</td>
                                                 <td>{{ $customerType->created_at }}</td>
                                                 <td

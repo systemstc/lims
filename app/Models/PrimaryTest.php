@@ -49,4 +49,9 @@ class PrimaryTest extends Model
     {
         return $this->belongsTo(Employee::class, 'tr01_created_by', 'm06_employee_id');
     }
+
+    public function secondaryTests()
+    {
+        return $this->hasMany(SecondaryTest::class, 'm16_primary_test_id', 'm16_primary_test_id');
+    }
 }
