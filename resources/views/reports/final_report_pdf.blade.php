@@ -409,7 +409,8 @@
                                                 {{-- Primary Test Header (No result on this row as per request) --}}
                                                 <tr class="table-secondary">
                                                     <td class="text-center">
-                                                        {{ $counter }}.{{ $subCounter++ }}</td>
+                                                        {{-- {{ $counter }}.{{ $subCounter++ }} --}}
+                                                    </td>
                                                     <td class="text-end">
                                                         <em>
                                                             {{ $primaryTest->m16_name ?? 'Primary Parameter' }}
@@ -425,7 +426,8 @@
                                                 @foreach ($primaryResults->whereNotNull('m17_secondary_test_id') as $secondary)
                                                     <tr>
                                                         <td class="text-center">
-                                                            {{ $counter }}.{{ $subCounter++ }}</td>
+                                                            {{-- {{ $counter }}.{{ $subCounter++ }} --}}
+                                                        </td>
                                                         <td class="text-end">
                                                             <em>
                                                                 {{ $secondary->secondaryTest->m17_name ?? 'Secondary Parameter' }}
@@ -441,7 +443,8 @@
                                             @else
                                                 {{-- Primary Tests (no secondary) --}}
                                                 <tr class="table-secondary">
-                                                    <td class="text-center">{{ $counter }}.{{ $subCounter++ }}
+                                                    <td class="text-center">
+                                                        {{-- {{ $counter }}.{{ $subCounter++ }} --}}
                                                     </td>
                                                     <td class="text-end">
                                                         <em>
@@ -467,7 +470,9 @@
                                     @if ($customFields->isNotEmpty())
                                         @foreach ($customFields as $custom)
                                             <tr class="table-secondary">
-                                                <td class="text-center">{{ $counter }}.{{ $subCounter++ }}</td>
+                                                <td class="text-center">
+                                                    {{-- {{ $counter }}.{{ $subCounter++ }} --}}
+                                                </td>
                                                 <td class="text-end">
                                                     <em>
                                                         {{ $custom->tr08_field_name }}

@@ -27,7 +27,7 @@ class CustomField extends Model
         'tr08_performance_date',
         'tr08_remarks',
         'm06_created_by',
-        'm06_updated_by',
+        'm06_updated_by'
     ];
 
     public function registration()

@@ -1831,7 +1831,7 @@ class MasterController extends Controller
             }
             $standards = Standard::whereIn('m15_standard_id', $ids)
                 ->where('m15_status', 'ACTIVE')
-                ->get(['m15_standard_id as id', 'm15_method as name']);
+                ->get(['m15_standard_id as id', 'm15_method as name', 'm15_accredited as accredited']);
             return response()->json($standards);
         } catch (\Exception $e) {
             return response()->json([], 500);
@@ -1999,6 +1999,13 @@ class MasterController extends Controller
             ->orderBy('m12_name')
             ->get(['m12_test_id', 'm12_test_number', 'm12_name']);
 
+        // Check if manuscripts exist for each test
+        foreach ($tests as $test) {
+            $test->has_manuscript = Manuscript::where('m12_test_number', $test->m12_test_number)
+                ->where('m22_status', 'ACTIVE')
+                ->exists();
+        }
+
         return response()->json($tests);
     }
 
@@ -2013,7 +2020,7 @@ class MasterController extends Controller
         if ($request->isMethod('POST')) {
             $validator = Validator::make($request->all(), [
                 "txt_sample_id" => "required|integer|exists:m10_samples,m10_sample_id",
-                "txt_group_id" => "required|integer|exists:m11_groups,m11_group_id",
+                "txt_group_id" => "required|integer|exists:m11_groups,m11_group_code",
                 "txt_method" => "required|string|max:255",
                 "txt_description" => "nullable|string",
                 "txt_unit" => "nullable|string",

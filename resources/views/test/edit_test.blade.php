@@ -567,8 +567,8 @@
     <script>
         $(document).ready(function() {
             // Initialize variables
-            let selectedSampleId = {{ old('txt_sample_id', $test->m10_sample_id) }};
-            let selectedGroupId = {{ old('txt_group_id', $test->m11_group_id) }};
+            let selectedSampleId = "{{ old('txt_sample_id', $test->m10_sample_id) }}";
+            let selectedGroupId = "{{ old('txt_group_id', $test->m11_group_code) }}";
             let selectedStandards = [];
             let selectedPrimaryTests = [];
             let selectedSecondaryTests = [];
@@ -1268,11 +1268,11 @@
                         <div class="primary-test-title">${group.primaryName}</div>
                         <div class="secondary-tests">
                             ${group.tests.map(test => `
-                                                                    <span class="selected-item secondary-test" data-id="${test.id}" data-type="secondary_tests" data-primary-id="${test.primary_test_id}">
-                                                                        ${test.name}
-                                                                        <span class="remove-item" data-id="${test.id}" data-type="secondary_tests" data-primary-id="${test.primary_test_id}">×</span>
-                                                                    </span>
-                                                                `).join('')}
+                                                                        <span class="selected-item secondary-test" data-id="${test.id}" data-type="secondary_tests" data-primary-id="${test.primary_test_id}">
+                                                                            ${test.name}
+                                                                            <span class="remove-item" data-id="${test.id}" data-type="secondary_tests" data-primary-id="${test.primary_test_id}">×</span>
+                                                                        </span>
+                                                                    `).join('')}
                         </div>
                     </div>
                 `;

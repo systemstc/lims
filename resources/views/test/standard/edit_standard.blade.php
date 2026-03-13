@@ -4,7 +4,7 @@
     <div class="container-fluid">
         <div class="nk-content-inner">
             <div class="nk-content-body">
-                <div class="components-preview wide-xl mx-auto">
+                <div class="components-preview wide-xxl mx-auto">
                     <div class="nk-block-head">
                         <div class="nk-block-head-content d-flex justify-content-between align-items-center">
                             <h4 class="nk-block-title mb-0">Edit Standard</h4>
@@ -145,7 +145,8 @@
                     success: function(data) {
                         groupDropdown.empty().append('<option value="">-- Select Group --</option>');
                         $.each(data, function(_, group) {
-                            let selected = group.m11_group_code == selectedGroupId ? 'selected' :
+                            let selected = group.m11_group_code == selectedGroupId ?
+                                'selected' :
                                 '';
                             groupDropdown.append(
                                 `<option value="${group.m11_group_code}" ${selected}>${group.m11_name}</option>`

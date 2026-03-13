@@ -609,7 +609,8 @@
                 month: 'long',
                 day: 'numeric'
             };
-            document.getElementById('modalDateTitle').textContent = date.toLocaleDateString(undefined, options);
+            var elDateTitle = document.getElementById('modalDateTitle');
+            if (elDateTitle) elDateTitle.textContent = date.toLocaleDateString(undefined, options);
 
             // Show modal & loading state
             const tbody = document.getElementById('modalSamplesTable');

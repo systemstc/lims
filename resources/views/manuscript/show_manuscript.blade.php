@@ -143,3 +143,15 @@
         </div>
     </div>
 @endsection
+
+@section('scripts')
+    <script>
+        $(document).ready(function() {
+            // Calculate any formulas in the manuscript content on page load
+            const container = document.querySelector('.card.bg-lighter.border');
+            if (container) {
+                SummernoteTableFormulaEngine.calculate(container);
+            }
+        });
+    </script>
+@endsection

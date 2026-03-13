@@ -178,7 +178,7 @@
                                         </div>
 
                                         {{-- Submit --}}
-                                        <div class="col-md-4 text-end mt-5">
+                                        <div class="col-md-12 text-end mt-2">
                                             <button type="submit" class="btn btn-primary">
                                                 <em class="icon ni ni-save"></em>
                                                 <span>Update</span>
@@ -199,6 +199,17 @@
     </div>
 
     {{-- JS Section --}}
+    <script>
+        $(document).ready(function() {
+            // Final calculation before submit
+            $('#editManuscriptForm').on('submit', function() {
+                const editable = $('.note-editable')[0];
+                if (editable && window.SummernoteTableFormulaEngine) {
+                    window.SummernoteTableFormulaEngine.calculate(editable);
+                }
+            });
+        });
+    </script>
     <script>
         const sampleSelect = document.getElementById('sample_id');
         const groupSelect = document.getElementById('group_id');
@@ -237,8 +248,11 @@
                 .then(res => res.json())
                 .then(tests => {
                     tests.forEach(t => {
+                        const style = t.has_manuscript ?
+                            ' style="font-weight:bold; color:var(--bs-primary);"' : '';
+                        const label = t.has_manuscript ? `${t.m12_name} (Has Manuscript)` : t.m12_name;
                         testSelect.innerHTML +=
-                            `<option value="${t.m12_test_number}">${t.m12_name}</option>`;
+                            `<option value="${t.m12_test_number}"${style}>${label}</option>`;
                     });
                 })
                 .catch(err => console.error('Error loading tests:', err));
@@ -586,10 +600,10 @@
                             <div class="primary-test-title">${group.primaryName}</div>
                             <div class="secondary-tests">
                                 ${group.tests.map(test => `
-                                                        <span class="selected-item secondary-test" data-id="${test.id}" data-type="secondary_tests" data-primary-id="${test.primary_test_id}">
-                                                            ${test.name} <span class="remove-item" data-id="${test.id}" data-type="secondary_tests" data-primary-id="${test.primary_test_id}">×</span>
-                                                        </span>
-                                                    `).join('')}
+                                                                                <span class="selected-item secondary-test" data-id="${test.id}" data-type="secondary_tests" data-primary-id="${test.primary_test_id}">
+                                                                                    ${test.name} <span class="remove-item" data-id="${test.id}" data-type="secondary_tests" data-primary-id="${test.primary_test_id}">×</span>
+                                                                                </span>
+                                                                            `).join('')}
                             </div>
                         </div>
                     `);
@@ -735,8 +749,13 @@
                                     tests.forEach(t => {
                                         const selected = t.m12_test_number == manuscriptTestNumber ?
                                             'selected' : '';
+                                        const style = t.has_manuscript ?
+                                            ' style="font-weight:bold; color:var(--bs-primary);"' :
+                                            '';
+                                        const label = t.has_manuscript ?
+                                            `${t.m12_name} (Has Manuscript)` : t.m12_name;
                                         testSelect.innerHTML +=
-                                            `<option value="${t.m12_test_number}" ${selected}>${t.m12_name}</option>`;
+                                            `<option value="${t.m12_test_number}" ${selected}${style}>${label}</option>`;
                                     });
 
                                     // Fetch standards
@@ -744,7 +763,7 @@
                                         const standardSelect = document.getElementById('standard_ids');
                                         fetch(
                                                 `{{ route('get_test_standards') }}?test_id=${manuscriptTestNumber}`
-                                                )
+                                            )
                                             .then(res => res.json())
                                             .then(standards => {
                                                 let optionsHTML = '';

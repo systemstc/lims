@@ -956,8 +956,37 @@
 
     <script>
         function submitForm(actionValue) {
+            const form = document.getElementById('manuscriptForm');
+            const resultInputs = form.querySelectorAll('input[name$="[result]"], input[name$="[value]"]');
+            
+            let isValid = true;
+            let firstInvalid = null;
+            
+            resultInputs.forEach(input => {
+                if (input.closest('.d-none')) return;
+                
+                // Handle dynamically added but hidden inputs, only validate visible ones
+                if (input.type !== 'hidden' && !input.value.trim()) {
+                    isValid = false;
+                    input.classList.add('is-invalid');
+                    if (!firstInvalid) firstInvalid = input;
+                } else {
+                    input.classList.remove('is-invalid');
+                }
+            });
+            
+            if (!isValid) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Validation Error',
+                    text: 'Please fill in all selected test result values and custom fields before saving.'
+                });
+                if (firstInvalid) firstInvalid.focus();
+                return;
+            }
+
             document.getElementById('formAction').value = actionValue;
-            document.getElementById('manuscriptForm').submit();
+            form.submit();
         }
 
         $(document).ready(function() {
@@ -966,7 +995,10 @@
             var dd = String(today.getDate()).padStart(2, '0');
             var mm = String(today.getMonth() + 1).padStart(2, '0');
             var yyyy = today.getFullYear();
-            document.getElementById('print_today_date').textContent = dd + '/' + mm + '/' + yyyy;
+            var printToday = document.getElementById('print_today_date');
+            if (printToday) {
+                printToday.textContent = dd + '/' + mm + '/' + yyyy;
+            }
 
             // Page numbering estimation
             const printTable = document.querySelector('.print-main-table');
@@ -1107,7 +1139,7 @@
                                                 <td class="serial-col"></td>
                                                 <td class="fw-bold text-muted align-middle ps-3">${pt.m16_name}</td>
                                                 <td>
-                                                    <div class="result-input-group input-group input-group-sm ${pt.secondary_tests && pt.secondary_tests.length > 0 ? 'd-none' : ''}">
+                                                    <div class="input-group input-group-sm ${pt.secondary_tests && pt.secondary_tests.length > 0 ? 'd-none' : ''}">
                                                         <input type="hidden" name="results[${testNumber}][primary_tests][${pt.m16_primary_test_id}][test_id]" value="${testNumber}">
                                                         <input type="hidden" name="results[${testNumber}][primary_tests][${pt.m16_primary_test_id}][primary_test_id]" value="${pt.m16_primary_test_id}">
                                                         <input type="text" class="form-control form-control-sm border-0 bg-light web-sync-val" name="results[${testNumber}][primary_tests][${pt.m16_primary_test_id}][result]" placeholder="Enter result value">
@@ -1121,12 +1153,12 @@
                                                             <em class="icon ni ni-trash"></em>
                                                         </button>
                                                         ${pt.secondary_tests && pt.secondary_tests.length > 0 ? `
-                                                                                                                                        <button type="button" class="btn btn-outline-success btn-sm add-secondary-test" 
-                                                                                                                                            data-test-number="${testNumber}" 
-                                                                                                                                            data-primary-test-id="${pt.m16_primary_test_id}" 
-                                                                                                                                            data-secondary-tests='${JSON.stringify(pt.secondary_tests)}'>
-                                                                                                                                            <em class="icon ni ni-plus"></em> Sec
-                                                                                                                                        </button>` : ''}
+                                                                                                                                            <button type="button" class="btn btn-outline-success btn-sm add-secondary-test" 
+                                                                                                                                                data-test-number="${testNumber}" 
+                                                                                                                                                data-primary-test-id="${pt.m16_primary_test_id}" 
+                                                                                                                                                data-secondary-tests='${JSON.stringify(pt.secondary_tests)}'>
+                                                                                                                                                <em class="icon ni ni-plus"></em> Sec
+                                                                                                                                            </button>` : ''}
                                                         <button type="button" class="btn btn-outline-primary btn-sm add-custom-field" 
                                                             data-test-number="${testNumber}" 
                                                             data-primary-test-id="${pt.m16_primary_test_id}" 
@@ -1285,6 +1317,13 @@
                         }
                         if (type === 'secondary') {
                             $(`#print_tr_s_${id}`).remove();
+                            
+                            // If this was the last secondary test for the primary test, unhide the primary test's input
+                            const pId = row.data('primary-test-id');
+                            const tbody = row.closest('tbody');
+                            if (tbody.find(`.secondary-test-row[data-primary-test-id="${pId}"]`).length === 0) {
+                                tbody.find(`.primary-test-row[data-primary-test-id="${pId}"] .input-group`).removeClass('d-none');
+                            }
                         }
                         updateSerialNumbers(testNumber);
                     }
@@ -1449,6 +1488,14 @@
                 });
                 lastRow.after(rowHtml);
 
+                // Hide primary test input group since it now has secondary tests
+                const primaryInputGroup = tableBody.find(`.primary-test-row[data-primary-test-id="${pId}"] .input-group`);
+                if (primaryInputGroup.length) {
+                    primaryInputGroup.addClass('d-none');
+                    const primaryInput = primaryInputGroup.find('input[name$="[result]"]');
+                    if (primaryInput.length) primaryInput.removeClass('is-invalid');
+                }
+
                 // Print view removal - we don't need to add to print view anymore
 
                 // We keep modal open to allow multiple selections
@@ -1538,6 +1585,42 @@
                 $('#rawEntryModal').modal('hide');
             }
         });
+        // Display Laravel Validation Errors for both static and dynamically restored fields
+        @if($errors->any())
+            const validationErrors = @json($errors->toArray());
+            setTimeout(() => {
+                Object.keys(validationErrors).forEach(field => {
+                    // Convert laravel dot notation to html array notation
+                    let inputName = field;
+                    if (field.includes('.')) {
+                        const parts = field.split('.');
+                        inputName = parts[0];
+                        for (let i = 1; i < parts.length; i++) {
+                            inputName += `[${parts[i]}]`;
+                        }
+                    }
+                    
+                    const inputElements = document.querySelectorAll(`[name="${inputName}"]`);
+                    inputElements.forEach(inputElement => {
+                        inputElement.classList.add('is-invalid');
+                        
+                        let container = inputElement.closest('td') || inputElement.parentElement;
+                        if (container && !container.innerHTML.includes(validationErrors[field][0])) {
+                            const errorSpan = document.createElement('span');
+                            errorSpan.className = 'text-danger small d-block mt-1 validation-error-msg';
+                            errorSpan.innerText = validationErrors[field][0];
+                            
+                            const inputGroup = inputElement.closest('.result-input-group') || inputElement.closest('.input-group');
+                            if (inputGroup && inputGroup.parentElement) {
+                                inputGroup.parentElement.appendChild(errorSpan);
+                            } else {
+                                container.appendChild(errorSpan);
+                            }
+                        }
+                    });
+                });
+            }, 500); 
+        @endif
     </script>
 
     </form>

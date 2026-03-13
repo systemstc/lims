@@ -252,7 +252,8 @@
                                         <div class="nk-tb-col tb-col-sm"><span>Customer</span></div>
                                         <div class="nk-tb-col tb-col-md"><span>Date</span></div>
                                         <div class="nk-tb-col"><span>Amount</span></div>
-                                        <div class="nk-tb-col"><span class="d-none d-sm-inline">Payment Status</span></div>
+                                        <div class="nk-tb-col"><span class="d-none d-sm-inline">Payment Status</span>
+                                        </div>
                                     </div>
                                     @foreach ($dashboardData['recent_samples'] as $sample)
                                         <div class="nk-tb-item">
@@ -558,7 +559,10 @@
                                                 @php
                                                     $heatmapData = $dashboardData['heatmap_data'] ?? [];
                                                     $daysInMonth = count($heatmapData);
-                                                    $weeks = ceil($daysInMonth / 7);
+                                                    $startOfMonth = \Carbon\Carbon::create($year, $month, 1);
+                                                    $offset = $startOfMonth->dayOfWeekIso - 1; // 0 for Mon, 6 for Sun
+                                                    $totalCells = $daysInMonth + $offset;
+                                                    $weeks = ceil($totalCells / 7);
                                                 @endphp
 
                                                 <!-- Day headers -->
@@ -579,8 +583,12 @@
                                                         </div>
                                                         @for ($day = 0; $day < 7; $day++)
                                                             @php
-                                                                $dayIndex = $week * 7 + $day;
-                                                                $dayData = $heatmapData[$dayIndex] ?? null;
+                                                                $cellIndex = $week * 7 + $day;
+                                                                $dayIndex = $cellIndex - $offset;
+                                                                $dayData =
+                                                                    $dayIndex >= 0
+                                                                        ? $heatmapData[$dayIndex] ?? null
+                                                                        : null;
                                                             @endphp
                                                             @if ($dayData && $dayData['day'] <= $daysInMonth)
                                                                 <div class="heatmap-cell day-cell {{ $dayData['status_class'] }}"
@@ -788,7 +796,8 @@
 
             // Set modal title
             const dateStr = `${day.toString().padStart(2, '0')} ${getMonthName(month)} ${year}`;
-            document.getElementById('modalDateTitle').textContent = dateStr;
+            var elDateTitle = document.getElementById('modalDateTitle');
+            if (elDateTitle) elDateTitle.textContent = dateStr;
 
             // Show modal
             const modal = new bootstrap.Modal(document.getElementById('dateDetailsModal'));

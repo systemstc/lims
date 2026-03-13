@@ -593,17 +593,46 @@ class TestResultController extends Controller
         $processedTestIds = []; // Initialize array to track processed tests
 
 
-        $validator = Validator::make($request->all(), [
+        $rules = [
             'registration_id' => 'required|string',
             'test_date' => 'required|date',
             'performance_date' => 'required|date',
             'results' => 'nullable|array',
             'manuscript_data' => 'nullable|array',
-            'test_data' => 'nullable|array', // Added validation for test_data
+            'test_data' => 'nullable|array',
             'custom_fields' => 'nullable|array',
             'remarks' => 'nullable|string',
-            'action' => 'required|string|in:DRAFT,SUBMITTED,RESULTED'
-        ]);
+            'action' => 'required|string|in:DRAFT,SUBMITTED,RESULTED',
+            
+            // Nested validation to enforce required result values if the row is submitted
+            'results.*.test.result' => 'required_with:results.*.test',
+            'results.*.primary_tests.*.result' => 'required_without:results.*.primary_tests.*.secondary_tests',
+            'results.*.primary_tests.*.secondary_tests.*.result' => 'required_with:results.*.primary_tests.*.secondary_tests.*.secondary_test_id',
+            
+            // Nested validation for custom fields
+            'results.*.custom_fields.*.value' => 'required_with:results.*.custom_fields.*.label',
+            'results.*.primary_tests.*.custom_fields.*.value' => 'required_with:results.*.primary_tests.*.custom_fields.*.label',
+            'results.*.primary_tests.*.secondary_tests.*.custom_fields.*.value' => 'required_with:results.*.primary_tests.*.secondary_tests.*.custom_fields.*.label',
+            
+            // For template_manuscript test_data and manuscript_data
+            'test_data.*.result' => 'required_with:test_data.*.test_id',
+            'manuscript_data.*.*.result' => 'required_with:manuscript_data.*.*.test_id',
+        ];
+
+        $messages = [
+            'results.*.test.result.required_with' => 'Main test result value cannot be empty.',
+            'results.*.primary_tests.*.result.required_with' => 'Primary test result value cannot be empty.',
+            'results.*.primary_tests.*.secondary_tests.*.result.required_with' => 'Secondary test result value cannot be empty.',
+            
+            'results.*.custom_fields.*.value.required_with' => 'Custom field value cannot be empty.',
+            'results.*.primary_tests.*.custom_fields.*.value.required_with' => 'Custom field value cannot be empty.',
+            'results.*.primary_tests.*.secondary_tests.*.custom_fields.*.value.required_with' => 'Custom field value cannot be empty.',
+            
+            'test_data.*.result.required_with' => 'Test result value cannot be empty.',
+            'manuscript_data.*.*.result.required_with' => 'Test result value cannot be empty.',
+        ];
+
+        $validator = Validator::make($request->all(), $rules, $messages);
 
         if ($validator->fails()) {
             Log::error('Validation Failed:', $validator->errors()->toArray());
@@ -618,6 +647,36 @@ class TestResultController extends Controller
             $userId = Session::get('user_id') ?? -1;
             $roId = Session::get('ro_id');
             Log::info('User ID: ' . $userId . ', RO ID: ' . $roId);
+
+            // Pre-process custom fields if they are nested in results
+            $customFields = $request->custom_fields ?? [];
+            if (empty($customFields) && !empty($request->results)) {
+                foreach ($request->results as $testNumber => $resultData) {
+                    if (isset($resultData['custom_fields'])) {
+                        foreach ($resultData['custom_fields'] as $cfKey => $cfData) {
+                            $customFields[$testNumber][$cfKey] = $cfData;
+                        }
+                    }
+                    if (isset($resultData['primary_tests'])) {
+                        foreach ($resultData['primary_tests'] as $pId => $pData) {
+                            if (isset($pData['custom_fields'])) {
+                                foreach ($pData['custom_fields'] as $cfKey => $cfData) {
+                                    $customFields[$testNumber]['primary_' . $pId][$cfKey] = $cfData;
+                                }
+                            }
+                            if (isset($pData['secondary_tests'])) {
+                                foreach ($pData['secondary_tests'] as $sId => $sData) {
+                                    if (isset($sData['custom_fields'])) {
+                                        foreach ($sData['custom_fields'] as $cfKey => $cfData) {
+                                            $customFields[$testNumber]['primary_' . $pId]['secondary_' . $sId][$cfKey] = $cfData;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
 
             // Handle manuscript data
             if (!empty($request->manuscript_data)) {
@@ -712,7 +771,10 @@ class TestResultController extends Controller
                             // Primary test without secondary tests (Direct result)
                             if (isset($primaryData['result'])) {
                                 Log::info("Saving Direct Result for Primary Test $primaryTestId");
-                                $manuscriptContent = $request->test_calculation[$testNumber]['primary_' . $primaryTestId] ?? null;
+                                // Sub-manuscripts use the main test calculation if not specified specifically
+                                $manuscriptContent = $request->test_calculation[$testNumber]['primary_' . $primaryTestId]
+                                    ?? ($request->test_calculation[$testNumber] ?? null);
+
                                 $this->saveTestResult([
                                     'registration_id' => $request->registration_id,
                                     'test_number' => $testNumber,
@@ -732,7 +794,9 @@ class TestResultController extends Controller
                             if (isset($primaryData['secondary_tests'])) {
                                 Log::info("Found Secondary Tests for Primary Test $primaryTestId");
                                 foreach ($primaryData['secondary_tests'] as $secondaryTestId => $secondaryData) {
-                                    $manuscriptContent = $request->test_calculation[$testNumber]['primary_' . $primaryTestId]['secondary_' . $secondaryTestId] ?? null;
+                                    $manuscriptContent = $request->test_calculation[$testNumber]['primary_' . $primaryTestId]['secondary_' . $secondaryTestId]
+                                        ?? ($request->test_calculation[$testNumber] ?? null);
+
                                     $this->saveTestResult([
                                         'registration_id' => $request->registration_id,
                                         'test_number' => $testNumber,
@@ -761,9 +825,9 @@ class TestResultController extends Controller
             }
 
             // Handle custom fields
-            if (!empty($request->custom_fields)) {
-                Log::info('Processing Custom Fields');
-                foreach ($request->custom_fields as $testNumber => $testLevelData) {
+            if (!empty($customFields)) {
+                Log::info('Processing Custom Fields', ['count' => count($customFields)]);
+                foreach ($customFields as $testNumber => $testLevelData) {
                     $this->processCustomFieldLevel($testLevelData, [
                         'registration_id' => $request->registration_id,
                         'test_number' => $testNumber,
@@ -815,7 +879,7 @@ class TestResultController extends Controller
                 $this->processCustomFieldLevel($data, $baseData, $primaryTestId, $currentSecondaryTestId);
             } else {
                 // This is an actual custom field data
-                if (isset($data['name']) && isset($data['value'])) {
+                if ((isset($data['name']) || isset($data['label'])) && isset($data['value'])) {
                     $this->saveCustomField([
                         'registration_id' => $baseData['registration_id'],
                         'test_number' => $baseData['test_number'],
@@ -845,7 +909,7 @@ class TestResultController extends Controller
             'm12_test_number' => $data['test_number'],
             'm16_primary_test_id' => $data['primary_test_id'],
             'm17_secondary_test_id' => $data['secondary_test_id'],
-            'tr08_field_name' => $fieldData['name'],
+            'tr08_field_name' => $fieldData['name'] ?? $fieldData['label'] ?? null,
             'tr08_field_value' => $fieldData['value'],
             'tr08_field_unit' => $fieldData['unit'] ?? null,
             'tr08_result_status' => $data['action'],

@@ -643,15 +643,27 @@
                     const type = this.getAttribute('data-type');
                     const parent = this.getAttribute('data-parent') || 'N/A';
 
-                    document.getElementById('detail-test-name').textContent = testName;
-                    document.getElementById('detail-type').textContent = type;
-                    document.getElementById('detail-parent').textContent = parent;
-                    document.getElementById('detail-result').textContent = unit ?
-                        `${result} ${unit}` : result;
-                    document.getElementById('detail-status').innerHTML =
+                    var elTestName = document.getElementById('detail-test-name');
+                    if (elTestName) elTestName.textContent = testName;
+
+                    var elType = document.getElementById('detail-type');
+                    if (elType) elType.textContent = type;
+
+                    var elParent = document.getElementById('detail-parent');
+                    if (elParent) elParent.textContent = parent;
+
+                    var elResult = document.getElementById('detail-result');
+                    if (elResult) elResult.textContent = unit ? `${result} ${unit}` : result;
+
+                    var elStatus = document.getElementById('detail-status');
+                    if (elStatus) elStatus.innerHTML =
                         `<span class="badge bg-${status === 'RESULTED' ? 'success' : (status === 'REVISED' ? 'warning' : 'info')}">${status}</span>`;
-                    document.getElementById('detail-date').textContent = date;
-                    document.getElementById('detail-method').textContent = method;
+
+                    var elDate = document.getElementById('detail-date');
+                    if (elDate) elDate.textContent = date;
+
+                    var elMethod = document.getElementById('detail-method');
+                    if (elMethod) elMethod.textContent = method;
 
                     resultDetailsModal.show();
                 });
