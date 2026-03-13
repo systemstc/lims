@@ -741,11 +741,11 @@
                             <em class="icon ni ni-signin me-2"></em>Access System
                         </a>
                     </li>
-                    <li class="nav-item ms-lg-3 mt-2 mt-lg-0">
+                    {{-- <li class="nav-item ms-lg-3 mt-2 mt-lg-0">
                         <a href="{{ route('admin_login') }}" class="btn btn-outline-light">
                             <em class="icon ni ni-signin me-2"></em>Admin Login
                         </a>
-                    </li>
+                    </li> --}}
                 </ul>
             </div>
         </div>
