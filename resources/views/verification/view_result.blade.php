@@ -204,12 +204,12 @@
                                                                     <span class="badge bg-warning ms-2">Revised</span>
                                                                 @endif --}}
                                                                 </div>
-                                                                @if ($primaryTest->m16_requirement)
+                                                                @if ($primaryTest?->m16_requirement)
                                                                     <small class="text-info d-block">Required:
-                                                                        {{ $primaryTest->m16_requirement }}</small>
+                                                                        {{ $primaryTest?->m16_requirement }}</small>
                                                                 @endif
                                                                 <small class="text-muted d-block">Parent:
-                                                                    {{ $test->m12_name }}</small>
+                                                                    {{ $test?->m12_name }}</small>
                                                             </td>
                                                             <td>
                                                                 <span class="badge bg-info">Primary Test</span>

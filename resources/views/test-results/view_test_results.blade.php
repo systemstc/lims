@@ -88,7 +88,7 @@
                                             <div class="form-group">
                                                 <label class="form-label" for="search">Search</label>
                                                 <div class="form-control-wrap">
-                                                    <input type="text" class="form-control" id="search" name="search"
+                                                    <input type="number" class="form-control" id="search" name="search"
                                                         placeholder="Registration Number..."
                                                         value="{{ request('search') }}">
                                                 </div>
@@ -188,11 +188,10 @@
                                 </div>
                                 <h5>No Test Results Found</h5>
                                 <p class="text-soft mb-3">
-                                    No grouped results match your filters. Try adjusting your search or create a new
-                                    result.
+                                    No grouped results match your filters. Try adjusting your search.
                                 </p>
-                                <a href="{{ route('create_test_result') }}" class="btn btn-primary">Add Test
-                                    Result</a>
+                                <!-- <a href="{{ route('create_test_result') }}" class="btn btn-primary">Add Test
+                                    Result</a> -->
                             </div>
                         @endif
                     </div>

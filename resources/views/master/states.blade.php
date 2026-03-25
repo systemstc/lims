@@ -22,7 +22,7 @@
                                             <th>ID</th>
                                             <th>Name</th>
                                             <th>Status</th>
-                                            <th>Action</th>
+                                            <!-- <th>Action</th> -->
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -34,7 +34,7 @@
                                                     class="text-{{ $state->m01_status == 'ACTIVE' ? 'success' : 'danger' }}">
                                                     <strong>{{ $state->m01_status }}</strong>
                                                 </td>
-                                                <td class="nk-tb-col nk-tb-col-tools">
+                                                <!-- <td class="nk-tb-col nk-tb-col-tools">
                                                     <ul class="nk-tb-actions gx-1 my-n1">
                                                         <li class="me-n1">
                                                             <div class="dropdown">
@@ -48,9 +48,6 @@
                                                                                     class="icon ni ni-edit"></em><span>Edit
                                                                                 </span></a></li>
                                                                         <li><a href="#"><em
-                                                                                    class="icon ni ni-eye"></em><span>View
-                                                                                </span></a></li>
-                                                                        <li><a href="#"><em
                                                                                     class="icon ni ni-trash"></em><span>Delete
                                                                                 </span></a></li>
                                                                     </ul>
@@ -58,7 +55,7 @@
                                                             </div>
                                                         </li>
                                                     </ul>
-                                                </td>
+                                                </td> -->
                                             </tr>
                                         @endforeach
                                     </tbody>

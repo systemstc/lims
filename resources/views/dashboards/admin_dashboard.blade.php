@@ -74,9 +74,9 @@
                                             <div class="card-title">
                                                 <h6 class="title">Total Revenue</h6>
                                             </div>
-                                            <div class="card-tools">
+                                            {{-- <div class="card-tools">
                                                 <a href="#" class="link">View Report</a>
-                                            </div>
+                                            </div> --}}
                                         </div>
                                         <div class="data">
                                             <div class="amount">
@@ -124,7 +124,7 @@
                                                 <h6 class="title">Average Revenue</h6>
                                             </div>
                                             <div class="card-tools me-n1">
-                                                <div class="dropdown">
+                                                {{-- <div class="dropdown">
                                                     <a href="#" class="dropdown-toggle btn btn-icon btn-trigger"
                                                         data-bs-toggle="dropdown">
                                                         <em class="icon ni ni-more-h"></em>
@@ -137,7 +137,7 @@
                                                             <li><a href="#"><span>3 Months</span></a></li>
                                                         </ul>
                                                     </div>
-                                                </div>
+                                                </div> --}}
                                             </div>
                                         </div>
                                         <div class="data">
@@ -308,7 +308,7 @@
                                             <h6 class="title">Top Customers</h6>
                                         </div>
                                         <div class="card-tools">
-                                            <div class="dropdown">
+                                            {{-- <div class="dropdown">
                                                 <a href="#"
                                                     class="dropdown-toggle link link-light link-sm dropdown-indicator"
                                                     data-bs-toggle="dropdown">Weekly</a>
@@ -319,7 +319,7 @@
                                                         <li><a href="#"><span>Monthly</span></a></li>
                                                     </ul>
                                                 </div>
-                                            </div>
+                                            </div> --}}
                                         </div>
                                     </div>
                                     <ul class="nk-top-products">

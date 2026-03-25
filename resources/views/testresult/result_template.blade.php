@@ -232,10 +232,7 @@
                                                                     @endif
                                                                 </td>
                                                                 <td>
-                                                                    @php
-                                                                        $hasSecondary = $primaryTest->secondaryTests && $primaryTest->secondaryTests->isNotEmpty();
-                                                                    @endphp
-                                                                    <div class="input-group input-group-sm {{ $hasSecondary ? 'd-none' : '' }}">
+                                                                    <div class="input-group input-group-sm">
                                                                         <input type="hidden"
                                                                             name="results[{{ $test->m12_test_number }}][primary_tests][{{ $primaryTest->m16_primary_test_id }}][test_id]"
                                                                             value="{{ $test->m12_test_number }}">
@@ -458,13 +455,13 @@
                                     function submitForm(actionValue) {
                                         const form = document.getElementById('testResultForm');
                                         const resultInputs = form.querySelectorAll('input[name$="[result]"], input[name$="[value]"]');
-                                        
+
                                         let isValid = true;
                                         let firstInvalid = null;
-                                        
+
                                         resultInputs.forEach(input => {
                                             if (input.closest('.d-none')) return;
-                                            
+
                                             // Handle dynamically added but hidden inputs, only validate visible ones
                                             if (input.type !== 'hidden' && !input.value.trim()) {
                                                 isValid = false;
@@ -474,7 +471,7 @@
                                                 input.classList.remove('is-invalid');
                                             }
                                         });
-                                        
+
                                         if (!isValid) {
                                             Swal.fire({
                                                 icon: 'error',
@@ -921,17 +918,17 @@
                                 placeholder="Unit">
 
                             ${formulaId ? `
-                                                    <button type="button"
-                                                        class="btn btn-outline-info btn-icon raw-entry-btn"
-                                                        data-formula-id="${formulaId}"
-                                                        data-reference-id="{{ $sampleTests->first()->registration->tr04_reference_id }}"
-                                                        data-test-id="${testId}"
-                                                        data-test-number="${testNumber}"
-                                                        data-primary-test-id="${primaryTestId}"
-                                                        data-target-input="results[${testNumber}][primary_tests][${primaryTestId}][result]">
-                                                        <em class="icon ni ni-calc"></em>
-                                                    </button>
-                                                    ` : ''}
+                                                                                    <button type="button"
+                                                                                        class="btn btn-outline-info btn-icon raw-entry-btn"
+                                                                                        data-formula-id="${formulaId}"
+                                                                                        data-reference-id="{{ $sampleTests->first()->registration->tr04_reference_id }}"
+                                                                                        data-test-id="${testId}"
+                                                                                        data-test-number="${testNumber}"
+                                                                                        data-primary-test-id="${primaryTestId}"
+                                                                                        data-target-input="results[${testNumber}][primary_tests][${primaryTestId}][result]">
+                                                                                        <em class="icon ni ni-calc"></em>
+                                                                                    </button>
+                                                                                    ` : ''}
                         </div>
                     </td>
                     <td>
@@ -943,15 +940,15 @@
                             <em class="icon ni ni-trash"></em>
                         </button>
                         ${hasSecondaryTests ? `
-                                            <button type="button"
-                                            class="btn btn-outline-success btn-sm add-secondary-test"
-                                            data-test-number="${testNumber}"
-                                            data-test-id="${testId}"
-                                            data-primary-test-id="${primaryTestId}"
-                                            data-secondary-tests='${JSON.stringify(secondaryTests)}'>
-                                            <em class="icon ni ni-plus"></em> Secondary
-                                            </button>
-                                            ` : ''}
+                                                                            <button type="button"
+                                                                            class="btn btn-outline-success btn-sm add-secondary-test"
+                                                                            data-test-number="${testNumber}"
+                                                                            data-test-id="${testId}"
+                                                                            data-primary-test-id="${primaryTestId}"
+                                                                            data-secondary-tests='${JSON.stringify(secondaryTests)}'>
+                                                                            <em class="icon ni ni-plus"></em> Secondary
+                                                                            </button>
+                                                                            ` : ''}
                         <button type="button"
                             class="btn btn-outline-warning btn-sm add-custom-field"
                             data-test-id="${testId}"
@@ -1121,18 +1118,18 @@
                                 placeholder="Unit">
 
                             ${formulaId ? `
-                                                    <button type="button"
-                                                        class="btn btn-outline-info btn-icon raw-entry-btn"
-                                                        data-formula-id="${formulaId}"
-                                                        data-reference-id="{{ $sampleTests->first()->registration->tr04_reference_id }}"
-                                                        data-test-id="${testId}"
-                                                        data-test-number="${testNumber}"
-                                                        data-primary-test-id="${primaryTestId}"
-                                                        data-secondary-test-id="${secondaryTestId}"
-                                                        data-target-input="results[${testNumber}][primary_tests][${primaryTestId}][secondary_tests][${secondaryTestId}][result]">
-                                                        <em class="icon ni ni-calc"></em>
-                                                    </button>
-                                                ` : ''}
+                                                                                    <button type="button"
+                                                                                        class="btn btn-outline-info btn-icon raw-entry-btn"
+                                                                                        data-formula-id="${formulaId}"
+                                                                                        data-reference-id="{{ $sampleTests->first()->registration->tr04_reference_id }}"
+                                                                                        data-test-id="${testId}"
+                                                                                        data-test-number="${testNumber}"
+                                                                                        data-primary-test-id="${primaryTestId}"
+                                                                                        data-secondary-test-id="${secondaryTestId}"
+                                                                                        data-target-input="results[${testNumber}][primary_tests][${primaryTestId}][secondary_tests][${secondaryTestId}][result]">
+                                                                                        <em class="icon ni ni-calc"></em>
+                                                                                    </button>
+                                                                                ` : ''}
                         </div>
                     </td>
                     <td>
@@ -1165,15 +1162,6 @@
                     usedSecondaryTests.set(primaryTestId, new Set());
                 }
                 usedSecondaryTests.get(primaryTestId).add(secondaryTestId);
-
-                // Hide primary test input group since it now has secondary tests
-                const primaryInputGroup = primaryTestRow.querySelector('.input-group');
-                if (primaryInputGroup) {
-                    primaryInputGroup.classList.add('d-none');
-                    // Remove any existing validation errors when hidden
-                    const primaryInput = primaryInputGroup.querySelector('input[name$="[result]"]');
-                    if (primaryInput) primaryInput.classList.remove('is-invalid');
-                }
 
                 // Add event listeners
                 addRowEventListeners(secondaryRowId);
@@ -1442,17 +1430,6 @@
                                     // Remove from used secondary tests
                                     if (usedSecondaryTests.has(primaryTestId)) {
                                         usedSecondaryTests.get(primaryTestId).delete(id);
-                                        
-                                        // If no more secondary tests exist for this primary test, show its input group
-                                        if (usedSecondaryTests.get(primaryTestId).size === 0) {
-                                            const primaryTestRow = document.querySelector(`[data-primary-test-id="${primaryTestId}"]`);
-                                            if (primaryTestRow) {
-                                                const primaryInputGroup = primaryTestRow.querySelector('.input-group');
-                                                if (primaryInputGroup) {
-                                                    primaryInputGroup.classList.remove('d-none');
-                                                }
-                                            }
-                                        }
                                     }
                                 }
                                 Swal.fire('Removed!', 'The test has been deleted.', 'success');
@@ -1856,171 +1833,260 @@
                     });
             });
 
-        // ==========================================================
-        // VALIDATION FAILURE PERSISTENCE LOGIC
-        // ==========================================================
-        
-        // Restore dynamically added rows from validation errors
-        @if(old('results'))
-            const oldResults = @json(old('results'));
-            if (oldResults) {
-                Object.keys(oldResults).forEach(testNum => {
-                    const testData = oldResults[testNum];
-                    if (testData.primary_tests) {
-                        Object.keys(testData.primary_tests).forEach(primaryTestId => {
-                            const ptData = testData.primary_tests[primaryTestId];
-                            
-                            // Check if row already exists
-                            if (!document.querySelector(`.primary-test-row[data-test-number="${testNum}"][data-primary-test-id="${primaryTestId}"]`)) {
-                                // Find details
-                                const btn = document.querySelector(`.add-primary-test[data-test-number="${testNum}"]`);
-                                if (btn) {
-                                    try {
-                                        const ptList = JSON.parse(btn.getAttribute('data-primary-tests') || '[]');
-                                        const ptDetails = ptList.find(pt => pt.m16_primary_test_id.toString() === primaryTestId.toString());
-                                        if (ptDetails) {
-                                            const hasSec = ptDetails.secondary_tests && ptDetails.secondary_tests.length > 0;
-                                            const testId = ptData.test_id || btn.getAttribute('data-test-id');
-                                            addPrimaryTestRow(testNum, testId, primaryTestId, ptDetails.m16_name, ptDetails.m16_unit || '', ptDetails.m23_formula_id || '', hasSec, ptDetails.secondary_tests || []);
-                                        }
-                                    } catch(e) {}
-                                }
-                            }
+            // ==========================================================
+            // VALIDATION FAILURE PERSISTENCE LOGIC
+            // ==========================================================
 
-                            // Set values securely after a tiny timeout to ensure DOM is ready
-                            setTimeout(() => {
-                                const resInput = document.querySelector(`input[name="results[${testNum}][primary_tests][${primaryTestId}][result]"]`);
-                                if (resInput) resInput.value = ptData.result || '';
-                                const unitInput = document.querySelector(`input[name="results[${testNum}][primary_tests][${primaryTestId}][unit]"]`);
-                                if (unitInput) unitInput.value = ptData.unit || '';
-                            }, 50);
+            // Restore dynamically added rows from validation errors
+            @if (old('results'))
+                const oldResults = @json(old('results'));
+                if (oldResults) {
+                    Object.keys(oldResults).forEach(testNum => {
+                        const testData = oldResults[testNum];
+                        if (testData.primary_tests) {
+                            Object.keys(testData.primary_tests).forEach(primaryTestId => {
+                                const ptData = testData.primary_tests[primaryTestId];
 
-                            // Secondary tests
-                            if (ptData.secondary_tests) {
-                                Object.keys(ptData.secondary_tests).forEach(secId => {
-                                    const stData = ptData.secondary_tests[secId];
-                                    if (!document.querySelector(`.secondary-test-row[data-test-number="${testNum}"][data-primary-test-id="${primaryTestId}"][data-secondary-test-id="${secId}"]`)) {
-                                        const btn = document.querySelector(`.add-primary-test[data-test-number="${testNum}"]`);
-                                        if (btn) {
-                                            try {
-                                                const ptList = JSON.parse(btn.getAttribute('data-primary-tests') || '[]');
-                                                const ptDetails = ptList.find(pt => pt.m16_primary_test_id.toString() === primaryTestId.toString());
-                                                if (ptDetails && ptDetails.secondary_tests) {
-                                                    const stDetails = ptDetails.secondary_tests.find(st => st.m17_secondary_test_id.toString() === secId.toString());
-                                                    if (stDetails) {
-                                                        const testId = stData.test_id || btn.getAttribute('data-test-id');
-                                                        addSecondaryTestRow(testNum, primaryTestId, secId, stData.result || '', stData.unit || stDetails.m17_unit || '', stDetails.m23_formula_id || '', ptDetails.secondary_tests || [], testId);
-                                                    }
-                                                }
-                                            } catch(e) {}
-                                        }
-                                    } else {
-                                        // Row exists normally, just repopulate
-                                        setTimeout(() => {
-                                            const resInput = document.querySelector(`input[name="results[${testNum}][primary_tests][${primaryTestId}][secondary_tests][${secId}][result]"]`);
-                                            if (resInput) resInput.value = stData.result || '';
-                                            const unitInput = document.querySelector(`input[name="results[${testNum}][primary_tests][${primaryTestId}][secondary_tests][${secId}][unit]"]`);
-                                            if (unitInput) unitInput.value = stData.unit || '';
-                                        }, 50);
-                                    }
-                                });
-                            }
-                        });
-                    }
-                });
-            }
-        @endif
-
-        // Restore dynamically added custom fields from validation errors
-        @if(old('custom_fields'))
-            const oldCustomFields = @json(old('custom_fields'));
-            if (oldCustomFields) {
-                Object.keys(oldCustomFields).forEach(testNum => {
-                    const level1 = oldCustomFields[testNum];
-                    if (typeof level1 === 'object') {
-                        Object.keys(level1).forEach(key1 => {
-                            if (key1.startsWith('custom_field_') || key1.startsWith('new_')) {
-                                const cfData = level1[key1];
-                                if (!document.getElementById(key1)) {
-                                    addExistingCustomField(key1, testNum, '', '', 'test', cfData.name || cfData.label || '', cfData.value || '', cfData.unit || '', cfData.custom_field_id || '');
-                                }
-                            } else if (key1.startsWith('primary_')) {
-                                const pId = key1.replace('primary_', '');
-                                const level2 = level1[key1];
-                                if (typeof level2 === 'object') {
-                                    Object.keys(level2).forEach(key2 => {
-                                        if (key2.startsWith('custom_field_') || key2.startsWith('new_')) {
-                                            const cfData = level2[key2];
-                                            if (!document.getElementById(key2)) {
-                                                setTimeout(() => {
-                                                    addExistingCustomField(key2, testNum, pId, '', 'primary', cfData.name || cfData.label || '', cfData.value || '', cfData.unit || '', cfData.custom_field_id || '');
-                                                }, 100);
+                                // Check if row already exists
+                                if (!document.querySelector(
+                                        `.primary-test-row[data-test-number="${testNum}"][data-primary-test-id="${primaryTestId}"]`
+                                    )) {
+                                    // Find details
+                                    const btn = document.querySelector(
+                                        `.add-primary-test[data-test-number="${testNum}"]`);
+                                    if (btn) {
+                                        try {
+                                            const ptList = JSON.parse(btn.getAttribute(
+                                                'data-primary-tests') || '[]');
+                                            const ptDetails = ptList.find(pt => pt
+                                                .m16_primary_test_id.toString() ===
+                                                primaryTestId.toString());
+                                            if (ptDetails) {
+                                                const hasSec = ptDetails.secondary_tests &&
+                                                    ptDetails.secondary_tests.length > 0;
+                                                const testId = ptData.test_id || btn.getAttribute(
+                                                    'data-test-id');
+                                                addPrimaryTestRow(testNum, testId, primaryTestId,
+                                                    ptDetails.m16_name, ptDetails.m16_unit ||
+                                                    '', ptDetails.m23_formula_id || '', hasSec,
+                                                    ptDetails.secondary_tests || []);
                                             }
-                                        } else if (key2.startsWith('secondary_')) {
-                                            const sId = key2.replace('secondary_', '');
-                                            const level3 = level2[key2];
-                                            if (typeof level3 === 'object') {
-                                                Object.keys(level3).forEach(key3 => {
-                                                    if (key3.startsWith('custom_field_') || key3.startsWith('new_')) {
-                                                        const cfData = level3[key3];
-                                                        if (!document.getElementById(key3)) {
-                                                            setTimeout(() => {
-                                                                addExistingCustomField(key3, testNum, pId, sId, 'secondary', cfData.name || cfData.label || '', cfData.value || '', cfData.unit || '', cfData.custom_field_id || '');
-                                                            }, 150);
+                                        } catch (e) {}
+                                    }
+                                }
+
+                                // Set values securely after a tiny timeout to ensure DOM is ready
+                                setTimeout(() => {
+                                    const resInput = document.querySelector(
+                                        `input[name="results[${testNum}][primary_tests][${primaryTestId}][result]"]`
+                                    );
+                                    if (resInput) resInput.value = ptData.result || '';
+                                    const unitInput = document.querySelector(
+                                        `input[name="results[${testNum}][primary_tests][${primaryTestId}][unit]"]`
+                                    );
+                                    if (unitInput) unitInput.value = ptData.unit || '';
+                                }, 50);
+
+                                // Secondary tests
+                                if (ptData.secondary_tests) {
+                                    Object.keys(ptData.secondary_tests).forEach(secId => {
+                                        const stData = ptData.secondary_tests[secId];
+                                        if (!document.querySelector(
+                                                `.secondary-test-row[data-test-number="${testNum}"][data-primary-test-id="${primaryTestId}"][data-secondary-test-id="${secId}"]`
+                                            )) {
+                                            const btn = document.querySelector(
+                                                `.add-primary-test[data-test-number="${testNum}"]`
+                                            );
+                                            if (btn) {
+                                                try {
+                                                    const ptList = JSON.parse(btn
+                                                        .getAttribute(
+                                                            'data-primary-tests') ||
+                                                        '[]');
+                                                    const ptDetails = ptList.find(pt => pt
+                                                        .m16_primary_test_id
+                                                        .toString() === primaryTestId
+                                                        .toString());
+                                                    if (ptDetails && ptDetails
+                                                        .secondary_tests) {
+                                                        const stDetails = ptDetails
+                                                            .secondary_tests.find(st => st
+                                                                .m17_secondary_test_id
+                                                                .toString() === secId
+                                                                .toString());
+                                                        if (stDetails) {
+                                                            const testId = stData.test_id ||
+                                                                btn.getAttribute(
+                                                                    'data-test-id');
+                                                            addSecondaryTestRow(testNum,
+                                                                primaryTestId, secId,
+                                                                stData.result || '',
+                                                                stData.unit || stDetails
+                                                                .m17_unit || '',
+                                                                stDetails
+                                                                .m23_formula_id || '',
+                                                                ptDetails
+                                                                .secondary_tests || [],
+                                                                testId);
                                                         }
                                                     }
-                                                });
+                                                } catch (e) {}
                                             }
+                                        } else {
+                                            // Row exists normally, just repopulate
+                                            setTimeout(() => {
+                                                const resInput = document
+                                                    .querySelector(
+                                                        `input[name="results[${testNum}][primary_tests][${primaryTestId}][secondary_tests][${secId}][result]"]`
+                                                    );
+                                                if (resInput) resInput.value =
+                                                    stData.result || '';
+                                                const unitInput = document
+                                                    .querySelector(
+                                                        `input[name="results[${testNum}][primary_tests][${primaryTestId}][secondary_tests][${secId}][unit]"]`
+                                                    );
+                                                if (unitInput) unitInput.value =
+                                                    stData.unit || '';
+                                            }, 50);
                                         }
                                     });
                                 }
-                            }
-                        });
-                    }
-                });
-            }
-        @endif
-        // Display Laravel Validation Errors for both static and dynamically restored fields
-        @if($errors->any())
-            const validationErrors = @json($errors->toArray());
-            setTimeout(() => {
-                Object.keys(validationErrors).forEach(field => {
-                    // Convert laravel dot notation to html array notation
-                    // e.g., results.1039.test.result -> results[1039][test][result]
-                    let inputName = field;
-                    if (field.includes('.')) {
-                        const parts = field.split('.');
-                        inputName = parts[0];
-                        for (let i = 1; i < parts.length; i++) {
-                            inputName += `[${parts[i]}]`;
-                        }
-                    }
-                    
-                    const inputElements = document.querySelectorAll(`[name="${inputName}"]`);
-                    inputElements.forEach(inputElement => {
-                        inputElement.classList.add('is-invalid');
-                        
-                        // Find a good place to append the error message
-                        let container = inputElement.closest('td') || inputElement.parentElement;
-                        // Avoid adding multiple spans if Blade already rendered one
-                        if (container && !container.innerHTML.includes(validationErrors[field][0])) {
-                            const errorSpan = document.createElement('span');
-                            errorSpan.className = 'text-danger small d-block mt-1 validation-error-msg';
-                            errorSpan.innerText = validationErrors[field][0];
-                            
-                            // If it's an input group, append after the group to keep layout clean
-                            const inputGroup = inputElement.closest('.input-group');
-                            if (inputGroup && inputGroup.parentElement) {
-                                inputGroup.parentElement.appendChild(errorSpan);
-                            } else {
-                                container.appendChild(errorSpan);
-                            }
+                            });
                         }
                     });
-                });
-            }, 500); // short delay to ensure dynamic rows are fully rendered
-        @endif
-        
+                }
+            @endif
+
+            // Restore dynamically added custom fields from validation errors
+            @if (old('custom_fields'))
+                const oldCustomFields = @json(old('custom_fields'));
+                if (oldCustomFields) {
+                    Object.keys(oldCustomFields).forEach(testNum => {
+                        const level1 = oldCustomFields[testNum];
+                        if (typeof level1 === 'object') {
+                            Object.keys(level1).forEach(key1 => {
+                                if (key1.startsWith('custom_field_') || key1.startsWith('new_')) {
+                                    const cfData = level1[key1];
+                                    if (!document.getElementById(key1)) {
+                                        addExistingCustomField(key1, testNum, '', '', 'test', cfData
+                                            .name || cfData.label || '', cfData.value || '',
+                                            cfData.unit || '', cfData.custom_field_id || '');
+                                    }
+                                } else if (key1.startsWith('primary_')) {
+                                    const pId = key1.replace('primary_', '');
+                                    const level2 = level1[key1];
+                                    if (typeof level2 === 'object') {
+                                        Object.keys(level2).forEach(key2 => {
+                                            if (key2.startsWith('custom_field_') || key2
+                                                .startsWith('new_')) {
+                                                const cfData = level2[key2];
+                                                if (!document.getElementById(key2)) {
+                                                    setTimeout(() => {
+                                                        addExistingCustomField(key2,
+                                                            testNum, pId, '',
+                                                            'primary', cfData
+                                                            .name || cfData
+                                                            .label || '', cfData
+                                                            .value || '', cfData
+                                                            .unit || '', cfData
+                                                            .custom_field_id ||
+                                                            '');
+                                                    }, 100);
+                                                }
+                                            } else if (key2.startsWith('secondary_')) {
+                                                const sId = key2.replace('secondary_', '');
+                                                const level3 = level2[key2];
+                                                if (typeof level3 === 'object') {
+                                                    Object.keys(level3).forEach(key3 => {
+                                                        if (key3.startsWith(
+                                                                'custom_field_') ||
+                                                            key3.startsWith('new_')
+                                                        ) {
+                                                            const cfData = level3[
+                                                                key3];
+                                                            if (!document
+                                                                .getElementById(
+                                                                    key3)) {
+                                                                setTimeout(() => {
+                                                                    addExistingCustomField
+                                                                        (key3,
+                                                                            testNum,
+                                                                            pId,
+                                                                            sId,
+                                                                            'secondary',
+                                                                            cfData
+                                                                            .name ||
+                                                                            cfData
+                                                                            .label ||
+                                                                            '',
+                                                                            cfData
+                                                                            .value ||
+                                                                            '',
+                                                                            cfData
+                                                                            .unit ||
+                                                                            '',
+                                                                            cfData
+                                                                            .custom_field_id ||
+                                                                            ''
+                                                                        );
+                                                                }, 150);
+                                                            }
+                                                        }
+                                                    });
+                                                }
+                                            }
+                                        });
+                                    }
+                                }
+                            });
+                        }
+                    });
+                }
+            @endif
+            // Display Laravel Validation Errors for both static and dynamically restored fields
+            @if ($errors->any())
+                const validationErrors = @json($errors->toArray());
+                setTimeout(() => {
+                    Object.keys(validationErrors).forEach(field => {
+                        // Convert laravel dot notation to html array notation
+                        // e.g., results.1039.test.result -> results[1039][test][result]
+                        let inputName = field;
+                        if (field.includes('.')) {
+                            const parts = field.split('.');
+                            inputName = parts[0];
+                            for (let i = 1; i < parts.length; i++) {
+                                inputName += `[${parts[i]}]`;
+                            }
+                        }
+
+                        const inputElements = document.querySelectorAll(`[name="${inputName}"]`);
+                        inputElements.forEach(inputElement => {
+                            inputElement.classList.add('is-invalid');
+
+                            // Find a good place to append the error message
+                            let container = inputElement.closest('td') || inputElement
+                                .parentElement;
+                            // Avoid adding multiple spans if Blade already rendered one
+                            if (container && !container.innerHTML.includes(validationErrors[
+                                    field][0])) {
+                                const errorSpan = document.createElement('span');
+                                errorSpan.className =
+                                    'text-danger small d-block mt-1 validation-error-msg';
+                                errorSpan.innerText = validationErrors[field][0];
+
+                                // If it's an input group, append after the group to keep layout clean
+                                const inputGroup = inputElement.closest('.input-group');
+                                if (inputGroup && inputGroup.parentElement) {
+                                    inputGroup.parentElement.appendChild(errorSpan);
+                                } else {
+                                    container.appendChild(errorSpan);
+                                }
+                            }
+                        });
+                    });
+                }, 500); // short delay to ensure dynamic rows are fully rendered
+            @endif
+
         });
     </script>
 @endsection

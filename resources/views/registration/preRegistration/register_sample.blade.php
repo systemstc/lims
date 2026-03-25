@@ -346,9 +346,9 @@
                                     <div class="col-md-6">
                                         <div class="form-group">
                                             <label class="form-label" for="txt_reference">Reference
-                                            No</label>
+                                            No <span class="text-danger">*</span></label>
                                             <div class="form-control-wrap">
-                                                <input type="text" class="form-control"
+                                                <input type="text" class="form-control required"
                                                 id="txt_reference" name="txt_reference"
                                                 autocomplete="off">
                                             </div>
@@ -370,11 +370,11 @@
                                         <div class="preview-block">
                                             <span
                                             class="preview-title overline-title mt-1 d-block">Received
-                                        Through</span>
+                                        Through <span class="text-danger">*</span></span>
                                         <div class="row">
                                             <div class="col-md-4 mb-2">
                                                 <div class="custom-control custom-radio">
-                                                    <input type="radio" class="custom-control-input"
+                                                    <input type="radio" class="custom-control-input required"
                                                     id="byCourier" name="txt_received_via"
                                                     value="by_courier">
                                                     <label class="custom-control-label"
@@ -383,7 +383,7 @@
                                             </div>
                                             <div class="col-md-4 mb-2">
                                                 <div class="custom-control custom-radio">
-                                                    <input type="radio" class="custom-control-input"
+                                                    <input type="radio" class="custom-control-input required"
                                                     id="byPost" name="txt_received_via"
                                                     value="by_post">
                                                     <label class="custom-control-label"
@@ -392,7 +392,7 @@
                                             </div>
                                             <div class="col-md-4 mb-2">
                                                 <div class="custom-control custom-radio">
-                                                    <input type="radio" class="custom-control-input"
+                                                    <input type="radio" class="custom-control-input required"
                                                     id="byHand" name="txt_received_via"
                                                     value="by_hand">
                                                     <label class="custom-control-label"
