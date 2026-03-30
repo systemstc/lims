@@ -8,7 +8,7 @@
 
     <style>
         @page {
-            margin: 250px 70px 260px 70px;
+            margin: 250px 30px 240px 30px;
         }
 
         @page :first {
@@ -82,113 +82,95 @@
             left: 0;
             right: 0;
             height: 235px;
-            background: white;
+            background: transparent;
         }
 
         /* Two logo placeholders */
         .logo-left {
             position: absolute;
-            top: 10px;
-            left: 70px;
-            width: 85px;
-            height: 85px;
-            border: 1px dashed #aaa;
-            /* placeholder border - remove if real image */
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 8px;
-            color: #aaa;
-            background: #f9f9f9;
+            top: 5px;
+            left: 5px;
+            width: 80px;
         }
 
         .logo-right {
             position: absolute;
-            top: 10px;
-            right: 70px;
-            width: 85px;
-            height: 85px;
-            border: 1px dashed #aaa;
-            /* placeholder border - remove if real image */
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 8px;
-            color: #aaa;
-            background: #f9f9f9;
+            top: 5px;
+            right: 5px;
+            width: 80px;
         }
 
         /* Actual <img> tags inside logo placeholders */
         .logo-left img,
         .logo-right img {
             width: 100%;
-            height: 100%;
-            object-fit: contain;
-            display: block;
-            border: none;
+            height: auto;
         }
 
         /* Center header text block */
         .header-center {
             position: absolute;
-            top: 8px;
-            left: 170px;
-            right: 170px;
+            top: 0px;
+            left: 55px;
+            right: 55px;
             text-align: center;
+            line-height: 1.2;
         }
 
         .header-eng-title {
-            font-size: 10px;
+            font-size: 11px;
+            font-weight: bold;
             color: #000;
             letter-spacing: 1px;
-            margin-bottom: 1px;
+            margin-bottom: 2px;
         }
 
         .header-eng-big {
-            font-size: 16px;
+            font-size: 18px;
             font-weight: bold;
-            color: #cc0000;
-            letter-spacing: 2px;
+            color: #c00000;
+            letter-spacing: 1px;
             margin-bottom: 2px;
         }
 
         .header-eng-ministry {
-            font-size: 9px;
-            color: #333;
-            margin-bottom: 1px;
+            font-size: 11px;
+            color: #000;
+            margin-bottom: 2px;
         }
 
         .header-eng-lab {
-            font-size: 9.5px;
+            font-size: 11px;
             font-weight: bold;
-            color: #333;
-            margin-bottom: 1px;
+            color: #008000;
+            margin-bottom: 2px;
         }
 
         .header-address {
-            font-size: 8.5px;
-            color: #333;
-            margin-bottom: 1px;
+            font-size: 10px;
+            color: #000;
+            margin-bottom: 2px;
         }
 
         .header-contact {
-            font-size: 8.5px;
-            color: #333;
-            margin-bottom: 1px;
+            font-size: 10px;
+            color: #000;
+            margin-bottom: 2px;
         }
 
         .header-email {
-            font-size: 8px;
-            color: #333;
+            font-size: 10px;
+            color: #c00000;
         }
 
         /* Format No aligned right */
         .header-format-no {
             position: absolute;
-            top: 160px;
-            right: 70px;
-            font-size: 9px;
-            color: #333;
+            top: 155px;
+            right: 5px;
+            font-size: 10px;
+            font-weight: bold;
+            color: #000;
         }
 
         /* TEST REPORT title row */
@@ -198,28 +180,40 @@
             left: 0;
             right: 0;
             text-align: center;
-            font-size: 14px;
+            font-size: 15px;
             font-weight: bold;
             text-decoration: underline;
-            color: #000;
+            color: #1c276b;
         }
 
         /* Continued ... aligned right */
         .header-continued {
             position: absolute;
-            top: 195px;
-            right: 70px;
-            font-size: 10px;
-            color: #333;
+            top: 205px;
+            right: 5px;
+            font-size: 11px;
+            font-weight: bold;
+            color: #000;
             font-style: italic;
         }
 
         .header-divider {
             position: absolute;
-            bottom: 38px;
-            left: 70px;
-            right: 70px;
-            border-bottom: 2px solid #000;
+            top: 145px;
+            left: 0;
+            right: 0;
+            border-bottom: 1.5px solid #1c276b;
+        }
+
+        /* Outer page border */
+        .outer-border {
+            position: fixed;
+            top: -240px;
+            bottom: -235px;
+            left: 0;
+            right: 0;
+            border: 1.5px solid #1c276b;
+            z-index: -100;
         }
 
         /* Aryl Section Styles */
@@ -277,90 +271,95 @@
         /* ===== FOOTER ===== */
         .footer-content {
             position: fixed;
-            bottom: -250px;
+            bottom: -228px;
             left: 0;
             right: 0;
-            height: 240px;
-            background: white;
+            height: 100px;
+            background: transparent;
         }
 
         .footer-iso {
             position: absolute;
-            top: 10px;
+            top: 5px;
             left: 0;
             right: 0;
             text-align: center;
-            font-size: 10px;
+            font-size: 11px;
             font-weight: bold;
+            color: #000;
         }
 
         .footer-note {
             position: absolute;
-            top: 30px;
-            left: 70px;
-            right: 70px;
+            top: 25px;
+            left: 0;
+            right: 0;
             text-align: center;
-            font-size: 8.5px;
+            font-size: 9px;
+            font-weight: bold;
             color: #333;
         }
 
         .footer-disclaimer {
             position: absolute;
-            top: 44px;
-            left: 70px;
-            right: 70px;
+            top: 38px;
+            left: 0;
+            right: 0;
             text-align: center;
-            font-size: 8.5px;
+            font-size: 9px;
+            font-weight: bold;
             color: #333;
         }
 
         .footer-quote {
             position: absolute;
-            top: 58px;
-            left: 70px;
-            right: 70px;
+            top: 51px;
+            left: 0;
+            right: 0;
             text-align: center;
-            font-size: 8.5px;
-            color: #cc0000;
+            font-size: 9px;
+            font-weight: bold;
+            color: #c00000;
         }
 
         .footer-complaints {
             position: absolute;
-            top: 72px;
-            left: 70px;
-            right: 70px;
+            top: 64px;
+            left: 0;
+            right: 0;
             text-align: center;
-            font-size: 8.5px;
+            font-size: 9px;
+            font-weight: bold;
             color: #333;
         }
 
         .footer-service {
             position: absolute;
-            top: 90px;
-            left: 70px;
-            right: 70px;
+            top: 78px;
+            left: 0;
+            right: 0;
             text-align: center;
-            font-size: 9px;
+            font-size: 10px;
             font-weight: bold;
             color: #000;
         }
 
         .footer-social {
             position: absolute;
-            top: 106px;
-            left: 70px;
-            right: 70px;
+            top: 92px;
+            left: 0;
+            right: 0;
             text-align: center;
-            font-size: 8.5px;
+            font-size: 9px;
             color: #333;
         }
 
         .footer-divider {
             position: absolute;
             top: 0;
-            left: 70px;
-            right: 70px;
-            border-top: 2px solid #000;
+            left: 0;
+            right: 0;
+            border-top: 1.5px solid #1c276b;
         }
 
         /* Signatory section */
@@ -427,19 +426,31 @@
 
 <body>
 
+    <div class="outer-border"></div>
+
     {{-- ===== LETTERHEAD HEADER (fixed, repeats every page) ===== --}}
     <div class="header-content">
 
         {{-- LEFT LOGO PLACEHOLDER --}}
         <div class="logo-left">
-            <img src="{{ public_path('backAssets/images/logo-left.png') }}" alt="Government of India Logo"
-                onerror="this.parentNode.innerHTML='Logo';">
+            @php
+                $leftLogoPath = base_path('backAssets/images/logo.png');
+                $leftLogoSrc = file_exists($leftLogoPath)
+                    ? 'data:image/png;base64,' . base64_encode(file_get_contents($leftLogoPath))
+                    : 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+            @endphp
+            <img src="{{ $leftLogoSrc }}" alt="Textiles Committee of India">
         </div>
 
         {{-- RIGHT LOGO PLACEHOLDER --}}
         <div class="logo-right">
-            <img src="{{ public_path('backAssets/images/logo-right.png') }}" alt="3TS / Textiles Committee Logo"
-                onerror="this.parentNode.innerHTML='Logo';">
+            @php
+                $rightLogoPath = base_path('backAssets/images/accrediation.png');
+                $rightLogoSrc = file_exists($rightLogoPath)
+                    ? 'data:image/png;base64,' . base64_encode(file_get_contents($rightLogoPath))
+                    : 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+            @endphp
+            <img src="{{ $rightLogoSrc }}" alt="Accreditation Logo">
         </div>
 
         {{-- CENTER ENGLISH-ONLY HEADER --}}
@@ -450,10 +461,7 @@
             <div class="header-eng-lab">Textile Laboratory &amp; Research Centre</div>
             <div class="header-address">P. Balu Road, Prabhadevi Chowk, Prabhadevi, Mumbai-400 025.</div>
             <div class="header-contact">Tel.: +91-22-6652 7541 / 545 / 550 / 607</div>
-            <div class="header-email">* E-mail : <a href="/cdn-cgi/l/email-protection" class="__cf_email__"
-                    data-cfemail="fc98909d9ed2889fbc92959fd29592">[email&#160;protected]</a> / <a
-                    href="/cdn-cgi/l/email-protection" class="__cf_email__"
-                    data-cfemail="4632252a272e2b332b24272f06212b272f2a6825292b">[email&#160;protected]</a> * Website:
+            <div class="header-email">* E-mail : dlab.tc@nic.in / tclabmumbai@gmail.com * Website :
                 www.textilescommittee.nic.in</div>
         </div>
 
@@ -798,7 +806,7 @@
 
     {{-- ===== Page Number ===== --}}
     <div class="page-number">Page <span class="page-count"></span></div>
-    
+
     {{-- ===== Footer Page Script (dompdf) ===== --}}
     @php
         $jsReportNo = addslashes($meta['report_no'] ?? '');

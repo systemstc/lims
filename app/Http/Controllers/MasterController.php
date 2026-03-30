@@ -2011,7 +2011,7 @@ class MasterController extends Controller
 
     public function viewStandards()
     {
-        $standards = Standard::with('sample', 'group', 'user')->get();
+        $standards = Standard::with('sample', 'user')->get();
         return view('test.standard.standards', compact('standards'));
     }
 

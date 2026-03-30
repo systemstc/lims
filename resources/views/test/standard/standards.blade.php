@@ -41,7 +41,7 @@
                                         <tr>
                                             <th>ID</th>
                                             <th>Sample</th>
-                                            <th>Group</th>
+                                            {{-- <th>Group</th> --}}
                                             <th>Standard</th>
                                             {{-- <th>Description</th> --}}
                                             {{-- <th>Alias</th>
@@ -62,7 +62,7 @@
                                             <tr>
                                                 <td>{{ $key + 1 }}</td>
                                                 <td>{{ $standard->sample->m10_name ?? '' }}</td>
-                                                <td>{{ $standard->group->m11_name ?? '' }}</td>
+                                                {{-- <td>{{ $standard->group->m11_name ?? '' }}</td> --}}
                                                 <td>{{ $standard->m15_method }}</td>
                                                 {{-- <td>{{ $standard->m12_description }}</td> --}}
                                                 {{-- <td>{{ $standard->m12_alias }}</td>
