@@ -8,11 +8,11 @@
 
     <style>
         @page {
-            margin: 250px 30px 240px 30px;
+            margin: 270px 30px 260px 30px;
         }
 
         @page :first {
-            margin-top: 250px;
+            margin-top: 270px;
         }
 
         body {
@@ -176,7 +176,7 @@
         /* TEST REPORT title row */
         .header-report-title {
             position: absolute;
-            top: 175px;
+            top: 145px;
             left: 0;
             right: 0;
             text-align: center;
@@ -199,7 +199,7 @@
 
         .header-divider {
             position: absolute;
-            top: 145px;
+            top: 140px;
             left: 0;
             right: 0;
             border-bottom: 1.5px solid #1c276b;
@@ -265,7 +265,9 @@
 
         /* First page specific styles */
         .first-page-header {
-            margin-bottom: 10px;
+            margin-top: -55px;
+            /* Pulls the table up to reduce empty space from header */
+            margin-bottom: 15px;
         }
 
         /* ===== FOOTER ===== */
@@ -274,7 +276,7 @@
             bottom: -228px;
             left: 0;
             right: 0;
-            height: 100px;
+            height: 110px;
             background: transparent;
         }
 
@@ -350,7 +352,7 @@
             left: 0;
             right: 0;
             text-align: center;
-            font-size: 9px;
+            font-size: 10px;
             color: #333;
         }
 
@@ -466,13 +468,12 @@
         </div>
 
         {{-- Format No. top-right --}}
-        <div class="header-format-no">Format No. 04/26/23</div>
+        {{-- <div class="header-format-no">Format No. 04/26/23</div> --}}
 
         {{-- TEST REPORT title --}}
         <div class="header-report-title">TEST REPORT</div>
 
-        {{-- Continued (shown on pages > 1 via dompdf script) --}}
-        <div class="header-continued">Continued .............</div>
+        {{-- Continued text is rendered on pages > 1 via dompdf script below --}}
 
         {{-- Bottom divider line --}}
         <div class="header-divider"></div>
@@ -491,10 +492,32 @@
                     </tr>
                     <tr>
                         <th rowspan="2">Name &amp; Address of Customer</th>
-                        <td colspan="2">{{ $meta['customer_name'] }}</td>
+                        <td>{{ $meta['customer_name'] }}</td>
+                        <td rowspan="2" class="text-center"
+                            style="vertical-align: middle; width: 80px; padding: 2px;">
+                            @php
+                                $swatchHtml = 'Sample <br> Swatch';
+                                if (!empty($sample->tr04_attachment)) {
+                                    $swatchPath = storage_path('app/public/' . $sample->tr04_attachment);
+                                    if (file_exists($swatchPath)) {
+                                        $ext = pathinfo($swatchPath, PATHINFO_EXTENSION);
+                                        $swatchSrc =
+                                            'data:image/' .
+                                            ($ext === 'jpg' ? 'jpeg' : $ext) .
+                                            ';base64,' .
+                                            base64_encode(file_get_contents($swatchPath));
+                                        $swatchHtml =
+                                            '<img src="' .
+                                            $swatchSrc .
+                                            '" style="max-width: 70px; max-height: 48px; border: 1px solid #ccc;" alt="Swatch">';
+                                    }
+                                }
+                            @endphp
+                            {!! $swatchHtml !!}
+                        </td>
                     </tr>
                     <tr>
-                        <td colspan="2">{{ $meta['customer_address'] }}</td>
+                        <td>{{ $meta['customer_address'] }}</td>
                     </tr>
                     <tr>
                         <th>Sample forwarding letter No. &amp; date</th>
@@ -805,14 +828,14 @@
     </div>
 
     {{-- ===== Page Number ===== --}}
-    <div class="page-number">Page <span class="page-count"></span></div>
+    {{-- <div class="page-number">Page <span class="page-count"></span></div> --}}
 
     {{-- ===== Footer Page Script (dompdf) ===== --}}
     @php
         $jsReportNo = addslashes($meta['report_no'] ?? '');
         $jsReportDate = addslashes($meta['date'] ?? '');
         $jsCustomer = addslashes($meta['customer_name'] ?? '');
-        $jsSigner = addslashes($report->generator->m06_name ?? 'Lab Manager JNPT');
+        $jsSigner = addslashes($report->generator->m06_name ?? 'Manager');
     @endphp
     <script type="text/php">
         if (isset($pdf)) {
@@ -824,19 +847,24 @@
                 $pageHeight = $pdf->get_height();
 
                 if ($PAGE_NUM > 1) {
-                    $pdf->text(55, 140, "Report No: {!! $jsReportNo !!}", $font, 9, [0,0,0]);
+                    $pdf->text(50, 160, "Report No: {!! $jsReportNo !!}", $font, 9, [0,0,0]);
                     $dateText  = "Date: {!! $jsReportDate !!}";
                     $textWidth = $fontMetrics->get_text_width($dateText, $font, 9);
-                    $pdf->text($pageWidth - 55 - $textWidth, 140, $dateText, $font, 9);
-                    $pdf->text(55, 155, "Customer: {!! $jsCustomer !!}", $font, 9, [0,0,0]);
+                    $pdf->text($pageWidth - 55 - $textWidth, 160, $dateText, $font, 9);
+                    $pdf->text(50, 175, "Customer: {!! $jsCustomer !!}", $font, 9, [0,0,0]);
+
+                    $contText = "Continued ...........";
+                    $contWidth = $fontMetrics->get_text_width($contText, $bold, 10);
+                    // Right-aligned around X=$pageWidth - 35, Y=20.
+                    $pdf->text($pageWidth - 50 - $contWidth, 145, $contText, $bold, 10, [0,0,0]);
                 }
 
                 $pageText  = "Page " . $PAGE_NUM . " of " . $PAGE_COUNT;
                 $textWidth = $fontMetrics->get_text_width($pageText, $font, $size);
                 $pdf->text(($pageWidth - $textWidth) / 2, $pageHeight - 130, $pageText, $font, $size, [0,0,0]);
 
-                $pdf->text($pageWidth - 175, $pageHeight - 135, "Authorized Signatory", $font, 9, [0.3,0.3,0.3]);
-                $pdf->text($pageWidth - 175, $pageHeight - 150, "{!! $jsSigner !!}", $bold, 10, [0,0,0]);
+                $pdf->text($pageWidth - 155, $pageHeight - 155, "Authorized Signatory", $font, 9, [0.3,0.3,0.3]);
+                $pdf->text($pageWidth - 155, $pageHeight - 170, "{!! $jsSigner !!}", $bold, 10, [0,0,0]);
             ');
         }
     </script>

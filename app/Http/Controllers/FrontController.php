@@ -48,6 +48,9 @@ class FrontController extends Controller
             'txt_message.max' => 'Message cannot exceed 1000 characters',
         ]);
         if ($validator->fails()) {
+            if ($request->expectsJson()) {
+                return response()->json(['errors' => $validator->errors()], 422);
+            }
             return redirect()->back()->withErrors($validator)->withInput();
         }
 
@@ -64,17 +67,21 @@ class FrontController extends Controller
         try {
             $support = Support::create($data);
             if ($support) {
-                Session::flash('type', 'success');
-                Session::flash('message', 'Thank you for contacting us, we will get back to you soon!');
+                if ($request->expectsJson()) {
+                    return response()->json(['success' => 'Thank you for contacting us, we will get back to you soon!'], 200);
+                }
             } else {
-                Session::flash('type', 'error');
-                Session::flash('message', 'Something went wrong. Please try again later.');
+                if ($request->expectsJson()) {
+                    return response()->json(['error' => 'Something went wrong. Please try again later.'], 500);
+                }
             }
         } catch (\Exception $e) {
             Log::error('Support Form Error: ' . $e->getMessage(), ['data' => $data]);
-            Session::flash('type', 'error');
-            Session::flash('message', 'An unexpected error occurred. Please try again later.');
+            if ($request->expectsJson()) {
+                return response()->json(['error' => 'An unexpected error occurred. Please try again later.'], 500);
+            }
         }
+
         return redirect()->back();
     }
 
