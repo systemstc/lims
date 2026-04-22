@@ -9,7 +9,9 @@
                             <div class="nk-block-head-content">
                                 <h4 class="nk-block-title">State List</h4>
                                 <div class="nk-block-des d-flex justify-content-end">
-                                    <a href="javaScript:back()" class="btn btn-primary"><em class="icon ni ni-chevron-left"></em> &nbsp; Back</a>
+                                    <a href="#" onclick="history.back(); return false;" class="btn btn-primary">
+                                        <em class="icon ni ni-chevron-left"></em> &nbsp; Back
+                                    </a>
                                 </div>
                             </div>
                         </div>

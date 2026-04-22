@@ -39,6 +39,7 @@ Route::middleware(['access_control'])->group(function () {
     Route::get('user/logout', [AuthController::class, 'logout'])->name('user_logout');
     Route::get('admin/logout', [AuthController::class, 'adminLogout'])->name('admin_logout');
     Route::get('states', [MasterController::class, 'viewStates'])->name('view_states');
+    Route::get('login-logs', [MasterController::class, 'viewLoginLogs'])->name('view_login_logs');
 
     Route::get('districts', [MasterController::class, 'viewDistricts'])->name('view_districts');
     Route::post('update-district', [MasterController::class, 'updateDistrict'])->name('update_district');

@@ -72,242 +72,214 @@ class RegistrationController extends Controller
             }
             DB::beginTransaction();
             try {
-                $refId =  generateReferenceId($request->dd_department, $request->commercial_type, $request->dd_customer_type, $request->dd_sample_type);
-                $tracId = generateTrackerId($refId);
-                $data = [
-                    'm04_ro_id' => Session::get('ro_id') ?? -1,
-                    'tr04_reference_id' => $refId,
-                    'tr04_tracker_id' => $tracId,
-                    'm09_customer_type_id' => $request->dd_customer_type,
-                    'm07_customer_id' => $request->selected_customer_id,
-                    'm08_customer_location_id' => $request->selected_customer_address_id == 'default' ? 0 : $request->selected_customer_address_id,
-                    'm07_buyer_id' => $request->selected_buyer_id,
-                    'm08_buyer_location_id' => $request->selected_buyer_address_id == 'default' ? 0 : $request->selected_buyer_address_id,
-                    'm07_third_party_id' => $request->selected_third_party_id,
-                    'm08_third_party_location_id' => $request->selected_third_party_address_id == 'default' ? 0 : $request->selected_third_party_address_id,
-                    'm07_cha_id' => $request->selected_cha_id,
-                    'm08_cha_location_id' => $request->selected_cha_address_id == 'default' ? 0 : $request->selected_cha_address_id,
-                    'tr04_payment_by' => $request->txt_payment_by,
-                    'tr04_report_to' => json_encode($request->txt_report_to),
-                    'tr04_reference_no' => $request->txt_reference,
-                    'tr04_reference_date' => $request->txt_ref_date,
-                    'tr04_received_via' => $request->txt_received_via,
-                    'tr04_details' => $request->txt_details,
-                    'm13_department_id' => $request->dd_department,
-                    'm14_lab_sample_id' => $request->dd_sample_type,
-                    'tr04_sample_type' => $request->dd_priority_type,
-                    'tr04_number_of_samples' => $request->txt_number_of_samples != '' ? $request->txt_number_of_samples : $request->txt_unknown_sample,
-                    'tr04_sample_description' => $request->txt_description,
-                    'tr04_be_no' => $request->txt_be_no,
-                    'm19_package_id' => $request->dd_contracts,
-                    'tr04_charge_type' => $request->dd_charge_type,
-                    'm12_test_ids' => json_encode($request->tests),
-                    'tr04_testing_charges' => $request->txt_testing_charges,
-                    'tr04_additional_charges' => $request->txt_aditional_charges,
-                    'tr04_total_charges' => $request->txt_total_charges,
-                    'tr04_expected_date' => $request->txt_due_date,
-                    'tr04_test_type' => $request->dd_test_type,
-                    'tr04_progress' => 'REGISTERED',
-                    'tr04_created_by' => Session::get('user_id') ?? -1,
-                ];
+                $numSamples = $request->txt_number_of_samples != '' ? (int)$request->txt_number_of_samples : 1;
+                $totalCharges = (float)$request->txt_total_charges;
+                $isNonCommercial = $request->commercial_type == 2;
 
-                // === GST Calculation Logic ===
+                // 1. Identify which customer is paying to check wallet balance upfront
                 $paymentBy = strtolower($request->txt_payment_by);
-                $roGstNo = Session::get('ro_gst_no', ''); // Ensure this is available in session or fetch via RO ID
-                if (!$roGstNo) {
-                    $ro = Ro::find($data['m04_ro_id']);
-                    $roGstNo = $ro ? $ro->gst_no : '';
+                $payingCustomerId = null;
+                switch ($paymentBy) {
+                    case 'first_party':
+                        $payingCustomerId = $request->selected_customer_id;
+                        break;
+                    case 'second_party':
+                        $payingCustomerId = $request->selected_buyer_id;
+                        break;
+                    case 'third_party':
+                        $payingCustomerId = $request->selected_third_party_id;
+                        break;
+                    case 'cha':
+                        $payingCustomerId = $request->selected_cha_id;
+                        break;
                 }
 
-                $customerGstNo = '';
-                // Determine Customer GST based on payment_by
-                if ($paymentBy == 'first_party') {
-                    $customer = Customer::find($request->selected_customer_id);
-                    $customerGstNo = $customer ? $customer->m07_gst : '';
-                } else if ($paymentBy == 'second_party') {
-                    $customer = Customer::find($request->selected_buyer_id);
-                    $customerGstNo = $customer ? $customer->m07_gst : '';
-                } else if ($paymentBy == 'third_party') {
-                    $customer = Customer::find($request->selected_third_party_id);
-                    $customerGstNo = $customer ? $customer->m07_gst : '';
-                } else if ($paymentBy == 'cha') {
-                    $customer = Customer::find($request->selected_cha_id);
-                    $customerGstNo = $customer ? $customer->m07_gst : '';
+                if (!$payingCustomerId) {
+                    throw new \Exception('Paying customer not selected');
                 }
 
-                $roStateCode = substr($roGstNo, 0, 2);
-                $custStateCode = substr($customerGstNo, 0, 2);
-
-                $taxAmount = 0;
-                $cgstAmount = 0;
-                $sgstAmount = 0;
-                $igstAmount = 0;
-
-                $ro = Ro::find($data['m04_ro_id']); // Re-fetch to be sure for rates
-
-                $subTotal = floatval($request->txt_testing_charges) + floatval($request->txt_aditional_charges);
-
-                if ($roStateCode && $custStateCode && $roStateCode === $custStateCode) {
-                    // Intra-state: CGST + SGST
-                    $cgstRate = $ro->cgst ?? 9;
-                    $sgstRate = $ro->sgst ?? 9;
-
-                    $cgstAmount = ($subTotal * $cgstRate) / 100;
-                    $sgstAmount = ($subTotal * $sgstRate) / 100;
-                    $taxAmount = $cgstAmount + $sgstAmount;
-                } else {
-                    // Inter-state: IGST
-                    $igstRate = $ro->igst ?? 18; // Fallback to 18 if not set? Or use combined?
-                    if ($igstRate == 0 && ($ro->cgst > 0 || $ro->sgst > 0)) {
-                        $igstRate = ($ro->cgst + $ro->sgst);
-                    }
-                    $igstAmount = ($subTotal * $igstRate) / 100;
-                    $taxAmount = $igstAmount;
+                // 2. Upfront Wallet Balance Check
+                $wallet = Wallet::where('m07_customer_id', $payingCustomerId)->lockForUpdate()->first();
+                if (!$wallet) {
+                    throw new \Exception('Wallet not found for the selected paying customer.');
                 }
 
-                $data['tr04_cgst'] = $cgstAmount;
-                $data['tr04_sgst'] = $sgstAmount;
-                $data['tr04_igst'] = $igstAmount;
-                // tr04_total_charges comes from frontend, but we should validate or recalculate? 
-                // Creating based on request for now, but ensure it matches logic.
-                // $data['tr04_total_charges'] = $subTotal + $taxAmount; (Frontend sends this)
-
-                // dd($data);
-                $base64Image = $request->input('txt_sample_image');
-                if (preg_match('/^data:image\/(\w+);base64,/', $base64Image, $type)) {
-                    $imageData = substr($base64Image, strpos($base64Image, ',') + 1);
-                    $type = strtolower($type[1]);
-
-                    if (!in_array($type, ['jpg', 'jpeg', 'png'])) {
-                        return back()->withErrors(['txt_sample_image' => 'Invalid image type']);
-                    }
-
-                    $imageData = base64_decode($imageData);
-                    if ($imageData === false) {
-                        return back()->withErrors(['txt_sample_image' => 'Base64 decode failed']);
-                    }
-
-                    $fileName = 'sample_' . time() . '.' . $type;
-                    Storage::disk('public')->put("samples/{$fileName}", $imageData);
-
-                    $data['tr04_attachment'] = "samples/{$fileName}";
-                }
-                //  else {
-                // dd("uerfg");
-                // return back()->withErrors(['txt_sample_image' => 'Invalid image data']);
+                $availableBalance = $wallet->tr02_balance - $wallet->tr02_hold_amount;
+                // if (!$isNonCommercial && $availableBalance < $totalCharges) {
+                //     throw new \Exception('Insufficient wallet balance. Available: ' . number_format($availableBalance, 2) . ', Required: ' . number_format($totalCharges, 2));
                 // }
 
-                $registration = SampleRegistration::create($data);
-                // dd($registration);
+                $registrations = [];
+                // 3. Loop to register each sample
+                for ($i = 0; $i < $numSamples; $i++) {
+                    $refId = generateReferenceId($request->dd_department, $request->commercial_type, $request->dd_customer_type, $request->dd_sample_type);
+                    $tracId = generateTrackerId($refId);
+                    
+                    $data = [
+                        'm04_ro_id' => Session::get('ro_id') ?? -1,
+                        'tr04_reference_id' => $refId,
+                        'tr04_tracker_id' => $tracId,
+                        'm09_customer_type_id' => $request->dd_customer_type,
+                        'tr04_commercial_type' => $request->commercial_type,
+                        'm07_customer_id' => $request->selected_customer_id,
+                        'm08_customer_location_id' => $request->selected_customer_address_id == 'default' ? 0 : $request->selected_customer_address_id,
+                        'm07_buyer_id' => $request->selected_buyer_id,
+                        'm08_buyer_location_id' => $request->selected_buyer_address_id == 'default' ? 0 : $request->selected_buyer_address_id,
+                        'm07_third_party_id' => $request->selected_third_party_id,
+                        'm08_third_party_location_id' => $request->selected_third_party_address_id == 'default' ? 0 : $request->selected_third_party_address_id,
+                        'm07_cha_id' => $request->selected_cha_id,
+                        'm08_cha_location_id' => $request->selected_cha_address_id == 'default' ? 0 : $request->selected_cha_address_id,
+                        'tr04_payment_by' => $request->txt_payment_by,
+                        'tr04_report_to' => json_encode($request->txt_report_to),
+                        'tr04_reference_no' => $request->txt_reference,
+                        'tr04_reference_date' => $request->txt_ref_date,
+                        'tr04_received_via' => $request->txt_received_via,
+                        'tr04_details' => $request->txt_details,
+                        'm13_department_id' => $request->dd_department,
+                        'm14_lab_sample_id' => $request->dd_sample_type,
+                        'tr04_sample_type' => $request->dd_priority_type,
+                        'tr04_number_of_samples' => 1, // Store 1 for internal record as it's a separate entry
+                        'tr04_sample_description' => $request->txt_description,
+                        'tr04_be_no' => $request->txt_be_no,
+                        'm19_package_id' => $request->dd_contracts,
+                        'tr04_charge_type' => $request->dd_charge_type,
+                        'm12_test_ids' => json_encode($request->tests),
+                        'tr04_testing_charges' => $request->txt_testing_charges,
+                        'tr04_additional_charges' => $request->txt_aditional_charges,
+                        'tr04_total_charges' => $isNonCommercial ? 0 : ($totalCharges / $numSamples),
+                        'tr04_expected_date' => $request->txt_due_date,
+                        'tr04_test_type' => $request->dd_test_type,
+                        'tr04_progress' => 'REGISTERED',
+                        'tr04_created_by' => Session::get('user_id') ?? -1,
+                    ];
 
-                // === Insert Additional Items & Charges ===
-                if ($request->has('additional_items') && is_array($request->additional_items)) {
-                    $totalAdditional = 0;
-                    $insertData = [];
-
-                    foreach ($request->additional_items as $item) {
-                        $price = isset($item['charge']) ? (float)$item['charge'] : 0;
-                        $totalAdditional += $price;
-
-                        $insertData[] = [
-                            'sample_id'   => $registration->tr04_sample_registration_id,
-                            'item'        => $item['item'] ?? null,
-                            'price'       => $price,
-                            'full_amount' => 0,
-                        ];
+                    // === GST Calculation Logic (Unit basis) ===
+                    $roGstNo = Session::get('ro_gst_no', '');
+                    if (!$roGstNo) {
+                        $ro = Ro::find($data['m04_ro_id']);
+                        $roGstNo = $ro ? $ro->gst_no : '';
                     }
 
-                    if (!empty($insertData)) {
-                        DB::table('tr04_sample_additional_charges')->insert($insertData);
+                    $customerGstNo = '';
+                    $payingCustomer = Customer::find($payingCustomerId);
+                    $customerGstNo = $payingCustomer ? $payingCustomer->m07_gst : '';
 
-                        DB::table('tr04_sample_additional_charges')
-                            ->where('sample_id', $registration->tr04_sample_registration_id)
-                            ->update(['full_amount' => $totalAdditional]);
-                    }
-                }
+                    $roStateCode = substr($roGstNo, 0, 2);
+                    $custStateCode = substr($customerGstNo, 0, 2);
 
-                foreach ($request->tests as $test) {
-                    $testId = $test['test_id'] ?? null;
-                    $testNumber = $test['test_number'] ?? null;
-                    $primaryIds = null;
-                    $secondaryIds = null;
+                    $taxAmount = 0; $cgstAmount = 0; $sgstAmount = 0; $igstAmount = 0;
+                    $ro = Ro::find($data['m04_ro_id']);
+                    $unitSubTotal = (floatval($request->txt_testing_charges) + floatval($request->txt_aditional_charges));
 
-                    if ($testId) {
-                        $testRow = Test::find($testId);
-                        if ($testRow) {
-                            $primaryIds = $testRow->m16_primary_test_id ?? null;
-                            $secondaryIds = $testRow->m17_secondary_test_id ?? null;
+                    if (!$isNonCommercial) {
+                        if ($roStateCode && $custStateCode && $roStateCode === $custStateCode) {
+                            $cgstRate = $ro->cgst ?? 9;
+                            $sgstRate = $ro->sgst ?? 9;
+                            $cgstAmount = ($unitSubTotal * $cgstRate) / 100;
+                            $sgstAmount = ($unitSubTotal * $sgstRate) / 100;
+                            $taxAmount = $cgstAmount + $sgstAmount;
+                        } else {
+                            $igstRate = $ro->igst ?? 18;
+                            if ($igstRate == 0 && ($ro->cgst > 0 || $ro->sgst > 0)) {
+                                $igstRate = ($ro->cgst + $ro->sgst);
+                            }
+                            $igstAmount = ($unitSubTotal * $igstRate) / 100;
+                            $taxAmount = $igstAmount;
                         }
                     }
 
-                    SampleTest::create([
-                        'tr04_sample_registration_id' => $registration->tr04_sample_registration_id,
-                        'm12_test_id' => $testId,
-                        'm12_test_number' => $testNumber,
-                        'm04_ro_id' => Session::get('ro_id') ?? -1,
-                        'm16_primary_test_id' => $primaryIds,
-                        'm17_secondary_test_id' => $secondaryIds,
-                        'm15_standard_id' => $test['standard_id'] ?? null,
-                        'tr01_allotted_to' => null,
-                        'tr05_status' => 'PENDING',
-                        'tr05_remark' => null,
-                    ]);
+                    $data['tr04_cgst'] = $cgstAmount;
+                    $data['tr04_sgst'] = $sgstAmount;
+                    $data['tr04_igst'] = $igstAmount;
+
+                    // Image handling (can reuse same image for all)
+                    $base64Image = $request->input('txt_sample_image');
+                    if ($i == 0 && preg_match('/^data:image\/(\w+);base64,/', $base64Image, $type)) {
+                        $imageData = substr($base64Image, strpos($base64Image, ',') + 1);
+                        $type = strtolower($type[1]);
+                        $imageData = base64_decode($imageData);
+                        $fileName = 'sample_' . time() . '.' . $type;
+                        Storage::disk('public')->put("samples/{$fileName}", $imageData);
+                        Session::put('last_sample_image', "samples/{$fileName}");
+                    }
+                    $data['tr04_attachment'] = Session::get('last_sample_image');
+
+                    $registration = SampleRegistration::create($data);
+
+                    // Additional Items
+                    if ($request->has('additional_items') && is_array($request->additional_items)) {
+                        $totalAdditional = 0;
+                        $insertData = [];
+                        foreach ($request->additional_items as $item) {
+                            $price = isset($item['charge']) ? (float)$item['charge'] : 0;
+                            $totalAdditional += $price;
+                            $insertData[] = [
+                                'sample_id'   => $registration->tr04_sample_registration_id,
+                                'item'        => $item['item'] ?? null,
+                                'price'       => $price,
+                                'full_amount' => 0,
+                            ];
+                        }
+                        if (!empty($insertData)) {
+                            DB::table('tr04_sample_additional_charges')->insert($insertData);
+                            DB::table('tr04_sample_additional_charges')
+                                ->where('sample_id', $registration->tr04_sample_registration_id)
+                                ->update(['full_amount' => $totalAdditional]);
+                        }
+                    }
+
+                    // Tests
+                    foreach ($request->tests as $test) {
+                        $testId = $test['test_id'] ?? null;
+                        $testRow = Test::find($testId);
+                        SampleTest::create([
+                            'tr04_sample_registration_id' => $registration->tr04_sample_registration_id,
+                            'm12_test_id' => $testId,
+                            'm12_test_number' => $test['test_number'] ?? null,
+                            'm04_ro_id' => Session::get('ro_id') ?? -1,
+                            'm16_primary_test_id' => $testRow->m16_primary_test_id ?? null,
+                            'm17_secondary_test_id' => $testRow->m17_secondary_test_id ?? null,
+                            'm15_standard_id' => $test['standard_id'] ?? null,
+                            'tr05_status' => 'PENDING',
+                        ]);
+                    }
+
+                    // Wallet Hold Transaction (Unit basis)
+                    if (!$isNonCommercial) {
+                        $unitTotal = $totalCharges / $numSamples;
+                        $invoiceNumber = 'INV-' . $registration->tr04_reference_id;
+                        $holdResult = $this->createHoldTransaction($payingCustomerId, $registration->tr04_reference_id, $registration->tr04_sample_registration_id, $unitTotal, $invoiceNumber);
+                        if ($holdResult['success']) {
+                            $registration->update(['tr03_hold_transaction_id' => $holdResult['transaction_id']]);
+                        } else {
+                            throw new \Exception('Wallet Hold Failed for sample ' . ($i+1) . ': ' . $holdResult['message']);
+                        }
+                    }
+
+                    $registrations[] = $registration;
                 }
 
-                $paymentBy = strtolower($request->txt_payment_by);
-                $selectedCustomerId = null;
-
-                // Identify which customer to use based on "Payment By"
-                switch ($paymentBy) {
-                    case 'first_party':
-                        $selectedCustomerId = $registration->m07_customer_id;
-                        break;
-                    case 'second_party':
-                        $selectedCustomerId = $registration->m07_buyer_id;
-                        break;
-                    case 'third_party':
-                        $selectedCustomerId = $registration->m07_third_party_id;
-                        break;
-                    case 'cha':
-                        $selectedCustomerId = $registration->m07_cha_id;
-                        break;
-                    default:
-                        $selectedCustomerId = null;
-                        break;
+                // Send mail for the first one manually or all? Usually one per registration.
+                $customer = Customer::find($payingCustomerId);
+                foreach($registrations as $reg) {
+                    try {
+                        Mail::to($customer->m07_email)->send(new SampleRegisteredMail($reg));
+                    } catch(\Exception $e) {
+                        Log::error("Mail fail for reg: " . $reg->tr04_reference_id);
+                    }
                 }
-
-                $invoiceNumber = 'INV-' . $registration->tr04_reference_id;
-                $holdResult = $this->createHoldTransaction(
-                    $selectedCustomerId,
-                    $registration->tr04_reference_id,
-                    $registration->tr04_sample_registration_id,
-                    $request->txt_total_charges,
-                    $invoiceNumber
-                );
-
-                if ($holdResult['success']) {
-                    $registration->update([
-                        'tr03_hold_transaction_id' => $holdResult['transaction_id']
-                    ]);
-                } else {
-                    throw new \Exception('Wallet Hold Failed: ' . $holdResult['message']);
-                }
-
-                $customer = Customer::find($selectedCustomerId);
-                Mail::to($customer->m07_email)->send(new SampleRegisteredMail($registration));
 
                 DB::commit();
+                Session::forget('last_sample_image');
                 Session::flash('type', 'success');
-                Session::flash('message', 'Sample Registered Successfully!');
-                Session::flash('registration_id', $registration->tr04_reference_id);
+                Session::flash('message', 'Sample(s) Registered Successfully!');
+                Session::flash('registration_id', $registrations[0]->tr04_reference_id);
                 return redirect()->back();
             } catch (\Exception $e) {
                 DB::rollBack();
-                Log::error('Sample Registration Error: ' . $e->getMessage(), [
-                    'trace' => $e->getTraceAsString()
-                ]);
+                Log::error('Sample Registration Error: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
                 Session::flash('type', 'error');
-                Session::flash('message', 'Sample Registration Failed! Please try again.');
+                Session::flash('message', 'Sample Registration Failed: ' . $e->getMessage());
                 return redirect()->back()->withInput();
             }
         }
@@ -386,10 +358,8 @@ class RegistrationController extends Controller
             if ($query) {
                 $customers = Customer::with(['locations', 'state', 'district'])
                     ->where('m04_ro_id', $roId)
-                    ->when($type, function ($q) use ($type) {
-                        $q->where('m09_customer_type_id', $type);
-                    })
                     ->where('m07_name', 'like', "%{$query}%")
+                    ->take(10)
                     ->take(10)
                     ->get()
                     ->map(function ($customer) {
@@ -505,11 +475,19 @@ class RegistrationController extends Controller
         if ($request->third_party_id) $customerIds[] = $request->third_party_id;
         if ($request->cha_id) $customerIds[] = $request->cha_id;
 
+        $roId = Session::get('ro_id');
+        $role = Session::get('role');
+
         switch ($type) {
             case 'CONTRACT':
                 $query = Package::where('m19_status', 'ACTIVE')
                     ->whereDate('m19_exp_date', '>=', Carbon::today())
-                    ->where('m19_type', 'CONTRACT');
+                    ->where('m19_type', 'CONTRACT')
+                    ->when($role !== 'ADMIN', function($q) use ($roId) {
+                        return $q->where(function($sub) use ($roId) {
+                            $sub->where('m04_ro_id', $roId)->orWhere('m04_ro_id', -1)->orWhereNull('m04_ro_id');
+                        });
+                    });
 
                 // Filter by customer contracts if customer IDs provided
                 if (!empty($customerIds)) {
@@ -522,7 +500,12 @@ class RegistrationController extends Controller
             case 'CUSTOM':
                 $query = Package::where('m19_status', 'ACTIVE')
                     ->whereDate('m19_exp_date', '>=', Carbon::today())
-                    ->where('m19_type', 'CUSTOM');
+                    ->where('m19_type', 'CUSTOM')
+                    ->when($role !== 'ADMIN', function($q) use ($roId) {
+                        return $q->where(function($sub) use ($roId) {
+                            $sub->where('m04_ro_id', $roId)->orWhere('m04_ro_id', -1)->orWhereNull('m04_ro_id');
+                        });
+                    });
 
                 // Filter by customer contracts if customer IDs provided
                 if (!empty($customerIds)) {
@@ -535,12 +518,22 @@ class RegistrationController extends Controller
             case 'PACKAGE':
                 $data = Package::where('m19_status', 'ACTIVE')
                     ->where('m19_type', 'PACKAGE')
+                    ->when($role !== 'ADMIN', function($q) use ($roId) {
+                        return $q->where(function($sub) use ($roId) {
+                            $sub->where('m04_ro_id', $roId)->orWhere('m04_ro_id', -1)->orWhereNull('m04_ro_id');
+                        });
+                    })
                     ->get(['m19_package_id as id', 'm19_name as name']);
                 break;
 
             case 'SPECIFICATION':
                 $data = Package::where('m19_status', 'ACTIVE')
                     ->where('m19_type', 'SPECIFICATION')
+                    ->when($role !== 'ADMIN', function($q) use ($roId) {
+                        return $q->where(function($sub) use ($roId) {
+                            $sub->where('m04_ro_id', $roId)->orWhere('m04_ro_id', -1)->orWhereNull('m04_ro_id');
+                        });
+                    })
                     ->get(['m19_package_id as id', 'm19_name as name']);
                 break;
         }
@@ -549,7 +542,15 @@ class RegistrationController extends Controller
     }
     public function getTestByPackage(Request $request)
     {
+        $roId = Session::get('ro_id');
+        $role = Session::get('role');
+
         $package = Package::where('m19_package_id', $request->contract_id)
+            ->when($role !== 'ADMIN', function ($q) use ($roId) {
+                return $q->where(function ($sub) use ($roId) {
+                    $sub->where('m04_ro_id', $roId)->orWhere('m04_ro_id', -1)->orWhereNull('m04_ro_id');
+                });
+            })
             ->with('packageTests.test', 'packageTests.standard')
             ->firstOrFail();
         $tests = [

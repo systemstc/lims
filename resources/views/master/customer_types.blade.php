@@ -91,13 +91,13 @@
         </div>
     </div>
 
-    {{-- Create Model --}}
+    {{-- Create Modal --}}
     <div class="modal fade zoom" tabindex="-1" id="createCustomerType">
         <div class="modal-dialog modal-lg" role="document">
             <div class="modal-content">
                 <form method="POST" action="{{ route('create_customer_type') }}" class="form-validate is-alter">
                     @csrf
-                    <input type="hidden" name="txt_customer_type_id" id="txt_customer_type_id">
+                    <input type="hidden" name="_form" value="create">
                     <div class="modal-header">
                         <h5 class="modal-title">Create Customer Type</h5>
                         <a href="#" class="close" data-bs-dismiss="modal" aria-label="Close">
@@ -110,7 +110,13 @@
                                 <div class="form-group">
                                     <label class="form-label" for="txt_name">Customer Type</label>
                                     <div class="form-control-wrap">
-                                        <input type="text" class="form-control" name="txt_name" id="txt_name" required>
+                                        <input type="text"
+                                            class="form-control @error('txt_name') is-invalid @enderror"
+                                            name="txt_name" id="txt_name"
+                                            value="{{ old('txt_name') }}" required>
+                                        @error('txt_name')
+                                            <span class="invalid-feedback d-block">{{ $message }}</span>
+                                        @enderror
                                     </div>
                                 </div>
                             </div>
@@ -118,8 +124,13 @@
                                 <div class="form-group">
                                     <label class="form-label" for="txt_invoice_amount">Invoice Amount</label>
                                     <div class="form-control-wrap">
-                                        <input type="number" class="form-control" name="txt_invoice_amount"
-                                            id="txt_invoice_amount" required>
+                                        <input type="number"
+                                            class="form-control @error('txt_invoice_amount') is-invalid @enderror"
+                                            name="txt_invoice_amount" id="txt_invoice_amount"
+                                            value="{{ old('txt_invoice_amount') }}" required>
+                                        @error('txt_invoice_amount')
+                                            <span class="invalid-feedback d-block">{{ $message }}</span>
+                                        @enderror
                                     </div>
                                 </div>
                             </div>
@@ -127,12 +138,15 @@
                                 <div class="form-group">
                                     <label class="form-label" for="txt_categoery_type">Category Type</label>
                                     <div class="form-control-wrap">
-                                        <select class="form-control" name="txt_categoery_type" id="txt_categoery_type"
-                                            required>
-                                            <option value="" disabled selected>Select Type</option>
-                                            <option value="INTERNAL">INTERNAL</option>
-                                            <option value="EXTERNAL">EXTERNAL</option>
+                                        <select class="form-control @error('txt_categoery_type') is-invalid @enderror"
+                                            name="txt_categoery_type" id="txt_categoery_type" required>
+                                            <option value="" disabled {{ old('txt_categoery_type') ? '' : 'selected' }}>Select Type</option>
+                                            <option value="INTERNAL" {{ old('txt_categoery_type') == 'INTERNAL' ? 'selected' : '' }}>INTERNAL</option>
+                                            <option value="EXTERNAL" {{ old('txt_categoery_type') == 'EXTERNAL' ? 'selected' : '' }}>EXTERNAL</option>
                                         </select>
+                                        @error('txt_categoery_type')
+                                            <span class="invalid-feedback d-block">{{ $message }}</span>
+                                        @enderror
                                     </div>
                                 </div>
                             </div>
@@ -140,7 +154,13 @@
                                 <div class="form-group">
                                     <label class="form-label" for="txt_remark">Remark</label>
                                     <div class="form-control-wrap">
-                                        <input type="text" class="form-control" name="txt_remark" id="txt_remark">
+                                        <input type="text"
+                                            class="form-control @error('txt_remark') is-invalid @enderror"
+                                            name="txt_remark" id="txt_remark"
+                                            value="{{ old('txt_remark') }}">
+                                        @error('txt_remark')
+                                            <span class="invalid-feedback d-block">{{ $message }}</span>
+                                        @enderror
                                     </div>
                                 </div>
                             </div>
@@ -156,14 +176,16 @@
     </div>
 
 
-    {{-- Edit & Update Model --}}
+    {{-- Edit & Update Modal --}}
     <div class="modal fade zoom" tabindex="-1" id="editCustomerType">
         <div class="modal-dialog modal-lg" role="document">
             <div class="modal-content">
                 <form id="customerTypeForm" action="{{ route('update_customer_type') }}" method="POST"
                     class="form-validate is-alter">
                     @csrf
-                    <input type="hidden" name="txt_edit_customer_type_id" id="txt_edit_customer_type_id">
+                    <input type="hidden" name="_form" value="edit">
+                    <input type="hidden" name="txt_edit_customer_type_id" id="txt_edit_customer_type_id"
+                        value="{{ old('txt_edit_customer_type_id') }}">
                     <div class="modal-header">
                         <h5 class="modal-title" id="formModalTitle">Edit Customer Type</h5>
                         <a href="#" class="close" data-bs-dismiss="modal" aria-label="Close">
@@ -176,8 +198,13 @@
                                 <div class="form-group">
                                     <label class="form-label" for="txt_edit_name">Customer Type</label>
                                     <div class="form-control-wrap">
-                                        <input type="text" class="form-control" name="txt_edit_name"
-                                            id="txt_edit_name" required>
+                                        <input type="text"
+                                            class="form-control @error('txt_edit_name') is-invalid @enderror"
+                                            name="txt_edit_name" id="txt_edit_name"
+                                            value="{{ old('txt_edit_name') }}" required>
+                                        @error('txt_edit_name')
+                                            <span class="invalid-feedback d-block">{{ $message }}</span>
+                                        @enderror
                                     </div>
                                 </div>
                             </div>
@@ -185,8 +212,13 @@
                                 <div class="form-group">
                                     <label class="form-label" for="txt_edit_invoice_amount">Invoice Amount</label>
                                     <div class="form-control-wrap">
-                                        <input type="number" class="form-control" name="txt_edit_invoice_amount"
-                                            id="txt_edit_invoice_amount" required>
+                                        <input type="number"
+                                            class="form-control @error('txt_edit_invoice_amount') is-invalid @enderror"
+                                            name="txt_edit_invoice_amount" id="txt_edit_invoice_amount"
+                                            value="{{ old('txt_edit_invoice_amount') }}" required>
+                                        @error('txt_edit_invoice_amount')
+                                            <span class="invalid-feedback d-block">{{ $message }}</span>
+                                        @enderror
                                     </div>
                                 </div>
                             </div>
@@ -194,12 +226,15 @@
                                 <div class="form-group">
                                     <label class="form-label" for="txt_edit_categoery_type">Category Type</label>
                                     <div class="form-control-wrap">
-                                        <select class="form-control" name="txt_edit_categoery_type"
-                                            id="txt_edit_categoery_type" required>
-                                            <option value="" disabled selected>Select Type</option>
-                                            <option value="INTERNAL">INTERNAL</option>
-                                            <option value="EXTERNAL">EXTERNAL</option>
+                                        <select class="form-control @error('txt_edit_categoery_type') is-invalid @enderror"
+                                            name="txt_edit_categoery_type" id="txt_edit_categoery_type" required>
+                                            <option value="" disabled {{ old('txt_edit_categoery_type') ? '' : 'selected' }}>Select Type</option>
+                                            <option value="INTERNAL" {{ old('txt_edit_categoery_type') == 'INTERNAL' ? 'selected' : '' }}>INTERNAL</option>
+                                            <option value="EXTERNAL" {{ old('txt_edit_categoery_type') == 'EXTERNAL' ? 'selected' : '' }}>EXTERNAL</option>
                                         </select>
+                                        @error('txt_edit_categoery_type')
+                                            <span class="invalid-feedback d-block">{{ $message }}</span>
+                                        @enderror
                                     </div>
                                 </div>
                             </div>
@@ -207,8 +242,13 @@
                                 <div class="form-group">
                                     <label class="form-label" for="txt_edit_remark">Remark</label>
                                     <div class="form-control-wrap">
-                                        <input type="text" class="form-control" name="txt_edit_remark"
-                                            id="txt_edit_remark">
+                                        <input type="text"
+                                            class="form-control @error('txt_edit_remark') is-invalid @enderror"
+                                            name="txt_edit_remark" id="txt_edit_remark"
+                                            value="{{ old('txt_edit_remark') }}">
+                                        @error('txt_edit_remark')
+                                            <span class="invalid-feedback d-block">{{ $message }}</span>
+                                        @enderror
                                     </div>
                                 </div>
                             </div>
@@ -233,7 +273,20 @@
                 $('#txt_edit_categoery_type').val($(this).data('category'));
                 $('#txt_edit_remark').val($(this).data('remark'));
             });
-            // To change the status 
+
+            // Auto-reopen the correct modal if there are validation errors
+            @if ($errors->any())
+                @php $activeForm = old('_form') @endphp
+                @if ($activeForm === 'create')
+                    var createModal = new bootstrap.Modal(document.getElementById('createCustomerType'));
+                    createModal.show();
+                @elseif ($activeForm === 'edit')
+                    var editModal = new bootstrap.Modal(document.getElementById('editCustomerType'));
+                    editModal.show();
+                @endif
+            @endif
+
+            // To change the status
             bindToggleStatus('.eg-swal-av3', "{{ route('delete_customer_type') }}");
         });
     </script>

@@ -21,7 +21,14 @@ class ValidationController extends Controller
             return response()->json(['exists' => false, 'error' => 'Invalid model']);
         }
         $modelClass = $allowedModels[$model];
-        $exists = $modelClass::where($field, $value)->exists();
+        $query = $modelClass::where($field, $value);
+
+        // Filter by RO ID for Customers
+        if ($model === 'Customer' && $request->has('m04_ro_id')) {
+            $query->where('m04_ro_id', $request->m04_ro_id);
+        }
+
+        $exists = $query->exists();
         return response()->json([
             'exists' => $exists
         ]);

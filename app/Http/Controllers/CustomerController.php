@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class CustomerController extends Controller
 {
@@ -30,7 +31,7 @@ class CustomerController extends Controller
 
             $validator = Validator::make($request->all(), [
                 'txt_name' => 'required|string|max:255',
-                'txt_invoice_amount' => 'required|integer',
+                'txt_invoice_amount' => 'required|integer|max:100',
                 'txt_categoery_type' => 'required|in:EXTERNAL,INTERNAL',
                 'txt_remark' => 'nullable|string|max:500',
             ], [
@@ -38,6 +39,7 @@ class CustomerController extends Controller
                 'txt_name.string' => 'The customer type name must be a string.',
                 'txt_invoice_amount.required' => 'The invoice amount is required.',
                 'txt_invoice_amount.integer' => 'The invoice amount must be an integer.',
+                'txt_invoice_amount.max' => 'The invoice amount cannot be more than 100.',
                 'txt_categoery_type.required' => 'The category type is required.',
                 'txt_categoery_type.in' => 'The category type must be either EXTERNAL or INTERNAL.',
             ]);
@@ -86,7 +88,6 @@ class CustomerController extends Controller
                 "txt_edit_categoery_type.in" => "Category type must be either EXTERNAL or INTERNAL.",
                 "txt_edit_remark.string" => "Remark must be a string."
             ]);
-
             if ($validator->fails()) {
                 return redirect()->back()->withErrors($validator)->withInput();
             }
@@ -136,14 +137,38 @@ class CustomerController extends Controller
                 "txt_customer_type_id" => "required|integer|exists:m09_customer_types,m09_customer_type_id",
                 "txt_ro_id" => "nullable|integer",
                 "txt_name" => "required|string|max:255",
-                "txt_email" => "required|email|max:255|unique:m07_customers,m07_email",
-                "txt_phone" => "required|digits:10|unique:m07_customers,m07_phone",
+                "txt_email" => [
+                    "required",
+                    "email",
+                    "max:255",
+                    Rule::unique('m07_customers', 'm07_email')->where(function ($query) use ($request) {
+                        $roId = Session::get('role') === 'ADMIN' ? $request->txt_ro_id : Session::get('ro_id');
+                        return $query->where('m04_ro_id', $roId ?? -1);
+                    })
+                ],
+                "txt_phone" => [
+                    "required",
+                    "digits:10",
+                    Rule::unique('m07_customers', 'm07_phone')->where(function ($query) use ($request) {
+                        $roId = Session::get('role') === 'ADMIN' ? $request->txt_ro_id : Session::get('ro_id');
+                        return $query->where('m04_ro_id', $roId ?? -1);
+                    })
+                ],
                 "txt_contact_person" => "required|string|max:255",
                 "txt_address" => "required|string|max:500",
                 "txt_state_id" => "required|integer|exists:m01_states,m01_state_id",
                 "txt_district_id" => "required|integer|exists:m02_districts,m02_district_id",
                 "txt_pincode" => "required|digits:6",
-                "txt_gst" => "nullable|string|max:15|unique:m07_customers,m07_gst|regex:/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/",
+                "txt_gst" => [
+                    "nullable",
+                    "string",
+                    "max:15",
+                    Rule::unique('m07_customers', 'm07_gst')->where(function ($query) use ($request) {
+                        $roId = Session::get('role') === 'ADMIN' ? $request->txt_ro_id : Session::get('ro_id');
+                        return $query->where('m04_ro_id', $roId ?? -1);
+                    }),
+                    "regex:/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/"
+                ],
                 "txt_iec" => "nullable|string|max:10|regex:/^[A-Z0-9]{10}$/",
                 // "txt_be" => "required|string|max:20",
                 // contact and loactions                 
@@ -274,7 +299,7 @@ class CustomerController extends Controller
                     // Normal customer creation
                     Session::flash('type', 'success');
                     Session::flash('message', 'Customer and locations added successfully!');
-                    return redirect()->back();
+                    return to_route('customers');
                 }
             } catch (\Exception $e) {
                 Session::flash('type', 'danger');

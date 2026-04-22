@@ -21,6 +21,7 @@ class Package extends Model
         'm19_order_by',
         'm19_status',
         'tr01_created_by',
+        'm04_ro_id',
     ];
 
     public function user()

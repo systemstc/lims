@@ -31,6 +31,9 @@ class AuthController extends Controller
         ]);
 
         if ($validator->fails()) {
+            if ($request->ajax()) {
+                return response()->json(['errors' => $validator->errors()], 422);
+            }
             return redirect()->back()
                 ->withErrors($validator)
                 ->withInput();
@@ -50,6 +53,10 @@ class AuthController extends Controller
                 'tr00_failure_reason' => $user ? 'Incorrect password' : 'User not found'
             ]);
 
+            if ($request->ajax()) {
+                return response()->json(['errors' => ['txt_password' => ['Incorrect password.']]], 422);
+            }
+
             return redirect()->back()
                 ->withErrors(['txt_password' => 'Incorrect password.'])
                 ->withInput();
@@ -58,6 +65,9 @@ class AuthController extends Controller
         // Check for 2FA
         if ($user->tr01_two_factor_method && $user->tr01_two_factor_confirmed_at && !$user->tr01_is_2fa_blocked) {
             Session::put('2fa_login_user_id', $user->tr01_user_id);
+            if ($request->ajax()) {
+                return response()->json(['redirect' => route('auth.2fa.challenge')]);
+            }
             return redirect()->route('auth.2fa.challenge');
         }
 
@@ -87,6 +97,13 @@ class AuthController extends Controller
 
         // Remove 2FA session flag if it was set
         Session::forget('2fa_login_user_id');
+
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => 'Logged In Successfully!',
+                'redirect' => $this->getDashboardUrl($user)
+            ]);
+        }
 
         return $this->redirectToDashboard($user);
     }
@@ -232,6 +249,14 @@ class AuthController extends Controller
      */
     private function redirectToDashboard(User $user): RedirectResponse
     {
+        return redirect($this->getDashboardUrl($user));
+    }
+
+    /**
+     * Get dashboard URL based on user role
+     */
+    private function getDashboardUrl(User $user): string
+    {
         $roleRoutes = [
             'Manager' => 'dashboard',
             'DEO' => 'view_completed_camples',
@@ -240,11 +265,9 @@ class AuthController extends Controller
             'Registrar' => 'register_sample'
         ];
 
-        // $userType = $user->tr01_type == 'EMPLOYEE' ? 'EMPLOYEE' : 'RO';
         $role = session('role');
+        $route = isset($roleRoutes[$role]) ? $roleRoutes[$role] : 'dashboard';
 
-        return isset($roleRoutes[$role])
-            ? to_route($roleRoutes[$role])
-            : to_route('dashboard');
+        return route($route);
     }
 }

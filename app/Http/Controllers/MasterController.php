@@ -22,6 +22,7 @@ use App\Models\Standard;
 use App\Models\State;
 use App\Models\Test;
 use App\Models\User;
+use App\Models\LoginLog;
 use Carbon\Carbon;
 use DateTime;
 use Illuminate\Http\Request;
@@ -634,7 +635,46 @@ class MasterController extends Controller
     public function viewStates()
     {
         $states = State::get();
-        return view("Master.states", compact('states'));
+        return view("master.states", compact('states'));
+    }
+
+    public function viewLoginLogs(Request $request)
+    {
+        // Admin only check
+        if (Session::get('role') !== 'ADMIN') {
+            return redirect()->route('dashboard')->with('error', 'Access denied. Administrator privileges required.');
+        }
+
+        if ($request->ajax()) {
+            $data = LoginLog::latest('tr00_login_at')->get();
+            return DataTables::of($data)
+                ->addIndexColumn()
+                ->addColumn('user_info', function ($row) {
+                    return $row->tr00_email;
+                })
+                ->addColumn('ip_address', function ($row) {
+                    return $row->tr00_ip_address;
+                })
+                ->addColumn('login_at', function ($row) {
+                    return $row->tr00_login_at ? $row->tr00_login_at->format('d-m-Y H:i:s') : 'N/A';
+                })
+                ->addColumn('logout_at', function ($row) {
+                    return $row->tr00_logout_at ? $row->tr00_logout_at->format('d-m-Y H:i:s') : '<span class="badge bg-outline-primary">Active</span>';
+                })
+                ->addColumn('status', function ($row) {
+                    if ($row->tr00_successful) {
+                        return '<span class="badge bg-success">Success</span>';
+                    }
+                    return '<span class="badge bg-danger">Failed</span><br><small class="text-muted">' . $row->tr00_failure_reason . '</small>';
+                })
+                ->addColumn('browser', function ($row) {
+                    return '<span title="' . $row->tr00_user_agent . '">' . substr($row->tr00_user_agent, 0, 40) . '...</span>';
+                })
+                ->rawColumns(['status', 'browser', 'logout_at'])
+                ->make(true);
+        }
+
+        return view('master.login_logs');
     }
 
     public function viewDistricts(Request $request)
@@ -2371,7 +2411,17 @@ class MasterController extends Controller
 
     public function viewPackage()
     {
-        $packages = Package::where('m19_type', 'PACKAGE')->with(['packageTests.test', 'packageTests.standard'])->get();
+        $roId = Session::get('ro_id');
+        $role = Session::get('role');
+        
+        $packages = Package::where('m19_type', 'PACKAGE')
+            ->when($role !== 'ADMIN', function($query) use ($roId) {
+                return $query->where(function($q) use ($roId) {
+                    $q->where('m04_ro_id', $roId)->orWhere('m04_ro_id', -1)->orWhereNull('m04_ro_id');
+                });
+            })
+            ->with(['packageTests.test', 'packageTests.standard'])->get();
+            
         return view('master.package.packages', compact('packages'));
     }
 
@@ -2406,6 +2456,7 @@ class MasterController extends Controller
                     'm19_name' => $request->txt_name,
                     'm19_charges' => $request->txt_charges,
                     'tr01_created_by' => Session::get('user_id') ?? -1,
+                    'm04_ro_id' => Session::get('role') === 'ADMIN' ? -1 : Session::get('ro_id'),
                 ]);
                 foreach ($request->tests as $testRow) {
                     PackageTest::create([
@@ -2490,7 +2541,17 @@ class MasterController extends Controller
     }
     public function viewContract()
     {
-        $packages = Package::where('m19_type', 'CONTRACT')->with(['packageTests.test', 'packageTests.standard', 'customer'])->get();
+        $roId = Session::get('ro_id');
+        $role = Session::get('role');
+        
+        $packages = Package::where('m19_type', 'CONTRACT')
+            ->when($role !== 'ADMIN', function($query) use ($roId) {
+                return $query->where(function($q) use ($roId) {
+                    $q->where('m04_ro_id', $roId)->orWhere('m04_ro_id', -1)->orWhereNull('m04_ro_id');
+                });
+            })
+            ->with(['packageTests.test', 'packageTests.standard', 'customer'])->get();
+            
         return view('master.contract.contracts', compact('packages'));
     }
 
@@ -2528,6 +2589,7 @@ class MasterController extends Controller
                     'm07_contract_with' => $request->txt_customer_id,
                     'tr01_created_by' => Session::get('user_id'),
                     'm19_type' => 'CONTRACT',
+                    'm04_ro_id' => Session::get('role') === 'ADMIN' ? -1 : Session::get('ro_id'),
                 ]);
                 foreach ($request->tests as $testRow) {
                     PackageTest::create([
@@ -2614,7 +2676,18 @@ class MasterController extends Controller
 
     public function viewSpecification()
     {
-        $specifications = Package::where('m19_type', 'SPECIFICATION')->with('packageTests.test', 'packageTests.standard')->get(['m19_name', 'm19_charges', 'm19_status', 'm19_package_id',]);
+        $roId = Session::get('ro_id');
+        $role = Session::get('role');
+        
+        $specifications = Package::where('m19_type', 'SPECIFICATION')
+            ->when($role !== 'ADMIN', function($query) use ($roId) {
+                return $query->where(function($q) use ($roId) {
+                    $q->where('m04_ro_id', $roId)->orWhere('m04_ro_id', -1)->orWhereNull('m04_ro_id');
+                });
+            })
+            ->with('packageTests.test', 'packageTests.standard')
+            ->get(['m19_name', 'm19_charges', 'm19_status', 'm19_package_id', 'm04_ro_id']);
+            
         return view('master.specification.specifications', compact('specifications'));
     }
 
@@ -2769,6 +2842,7 @@ class MasterController extends Controller
                     'm07_contract_with' => $request->txt_customer_id,
                     'tr01_created_by' => Session::get('user_id'),
                     'm19_type' => 'CUSTOM',
+                    'm04_ro_id' => Session::get('role') === 'ADMIN' ? -1 : Session::get('ro_id'),
                 ]);
                 foreach ($request->tests as $testRow) {
                     PackageTest::create([

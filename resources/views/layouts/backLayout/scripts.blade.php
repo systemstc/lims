@@ -9,7 +9,7 @@
 <script src="{{ asset('backAssets/js/charts/custom-charts.js') }}"></script>
 <script>
     // Validation
-    function validateField(field, value, inputId, model) {
+    function validateField(field, value, inputId, model, roId = null) {
         if (value.length === 0) {
             $("#" + inputId + "-msg").text("");
             return;
@@ -22,12 +22,13 @@
                 field: field,
                 value: value,
                 model: model,
+                m04_ro_id: roId,
             },
             success: function(res) {
                 if (res.exists) {
                     $("#" + inputId + "-msg").text(
                         "This " + inputId.replace("txt_", "").charAt(0).toUpperCase() +
-                        inputId.replace("txt_", "").slice(1) + " already exists!"
+                        inputId.replace("txt_", "").slice(1) + " already exists in this RO!"
                     );
                 } else {
                     $("#" + inputId + "-msg").text("");

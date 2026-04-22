@@ -1452,22 +1452,28 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-4">
-                    <form method="POST" action="{{ route('user_login') }}">
+                    <form id="loginForm" method="POST" action="{{ route('user_login') }}">
                         @csrf
                         <div class="mb-3">
                             <label for="login_email" class="form-label">Official Email</label>
-                            <input type="email" class="form-control" id="login_email" name="txt_email" required>
+                            <input type="email" class="form-control" id="login_email" name="txt_email" value="{{ old('txt_email') }}" required>
+                            @error('txt_email')
+                                <span class="text-danger small">{{ $message }}</span>
+                            @enderror
                         </div>
                         <div class="mb-3">
                             <label for="login_password" class="form-label">Password</label>
                             <input type="password" class="form-control" id="login_password" name="txt_password"
                                 required>
+                            @error('txt_password')
+                                <span class="text-danger small">{{ $message }}</span>
+                            @enderror
                         </div>
                         <div class="mb-3 form-check">
                             <input type="checkbox" class="form-check-input" id="rememberMe" name="remember">
                             <label class="form-check-label" for="rememberMe">Remember me</label>
                         </div>
-                        <button type="submit" class="btn btn-primary w-100 mb-3">
+                        <button type="submit" class="btn btn-primary w-100 mb-3" id="loginSubmitBtn">
                             <em class="icon ni ni-send me-2"></em>Access System
                         </button>
                         <div class="text-center">
@@ -1567,7 +1573,8 @@
         }
 
         typeWriterEffect("typewriter", [{
-                text: "LIMS for"
+                text: "LIMS for",
+                class: "text-light"
             },
             {
                 text: " Textile Testing",
@@ -1839,6 +1846,90 @@
                         });
                 });
             }
+
+            // ========== LOGIN FORM WITH SWEETALERT ==========
+            const loginForm = document.getElementById('loginForm');
+            if (loginForm) {
+                loginForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+
+                    const submitBtn = document.getElementById('loginSubmitBtn');
+                    const originalText = submitBtn.innerHTML;
+
+                    // Show loading state
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML =
+                        '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Accessing...';
+
+                    const formData = new FormData(loginForm);
+
+                    fetch(loginForm.action, {
+                            method: 'POST',
+                            body: formData,
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'Accept': 'application/json',
+                            }
+                        })
+                        .then(response => {
+                            if (!response.ok) {
+                                return response.json().then(err => Promise.reject(err));
+                            }
+                            return response.json();
+                        })
+                        .then(data => {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Access Granted!',
+                                text: data.success || 'Welcome back to LIMS.',
+                                confirmButtonColor: '#c41e3a',
+                                showConfirmButton: false,
+                                timer: 1500,
+                                timerProgressBar: true,
+                                didClose: () => {
+                                    window.location.href = data.redirect;
+                                }
+                            });
+                        })
+                        .catch(errors => {
+                            submitBtn.disabled = false;
+                            submitBtn.innerHTML = originalText;
+
+                            if (errors && errors.errors) {
+                                const messages = Object.values(errors.errors).flat().join('<br>');
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Access Denied',
+                                    html: messages,
+                                    confirmButtonColor: '#c41e3a',
+                                    customClass: {
+                                        confirmButton: 'btn btn-primary px-4'
+                                    },
+                                    buttonsStyling: false,
+                                });
+                            } else {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Something went wrong',
+                                    text: 'Please try again or contact IT support directly.',
+                                    confirmButtonColor: '#c41e3a',
+                                    customClass: {
+                                        confirmButton: 'btn btn-primary px-4'
+                                    },
+                                    buttonsStyling: false,
+                                });
+                            }
+                        });
+                });
+            }
+
+            // Auto-reopen login modal if validation errors exist
+            @if($errors->has('txt_email') || $errors->has('txt_password'))
+                if (typeof bootstrap !== 'undefined') {
+                    const loginModal = new bootstrap.Modal(document.getElementById('loginModal'));
+                    loginModal.show();
+                }
+            @endif
         });
     </script>
 </body>

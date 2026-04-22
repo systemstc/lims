@@ -68,10 +68,10 @@
                                                     class="btn btn-sm btn-outline-primary">
                                                     <em class="icon ni ni-edit"></em> Enter Results
                                                 </a>
-                                                <a href="{{ route('manuscript_template', $sample->tr04_sample_registration_id) }}"
+                                                {{-- <a href="{{ route('manuscript_template', $sample->tr04_sample_registration_id) }}"
                                                     class="btn btn-sm btn-outline-secondary">
                                                     <em class="icon ni ni-file-text"></em> Manuscript
-                                                </a>
+                                                </a> --}}
                                             @else
                                                 <button type="button"
                                                     class="btn btn-sm btn-outline-secondary disabled-btn">

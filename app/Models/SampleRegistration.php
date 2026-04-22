@@ -13,6 +13,7 @@ class SampleRegistration extends Model
         'tr04_reference_id',
         'tr04_tracker_id',
         'm09_customer_type_id',
+        'tr04_commercial_type',
         'm07_customer_id',
         'm08_customer_location_id',
         'm07_buyer_id',

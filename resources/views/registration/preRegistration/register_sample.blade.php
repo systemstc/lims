@@ -495,10 +495,9 @@
                         </div>
 
 
-                        <div class="col-md-5">
+                        <div class="col-md-4">
                             <div class="form-group">
-                                <label class="form-label">Sample Image <b
-                                    class="text-danger">*</b></label><br>
+                                <label class="form-label">Sample Image</label>
                                     <button type="button" class="btn btn-primary"
                                     data-bs-toggle="modal" data-bs-target="#cameraModal">
                                     📷 Take Sample Image
@@ -508,7 +507,7 @@
                         </div>
 
 
-                        <div class="col-md-5">
+                        <div class="col-md-6">
                             <div class="form-group">
                                 <label class="form-label" for="txt_description">Sample
                                     Description<b class="text-danger">*</b></label>
@@ -1023,9 +1022,119 @@ aria-hidden="true">
 </style>
 
 <script>
-  
+    /** =========================
+     *  GLOBAL SHARED CONSTANTS & HELPERS
+     ========================= **/
+    window.CUSTOMER_MAPPING = {
+        '#txt_customer_name': {
+            type: 'customer',
+            address: '#party-address',
+            contact: '#party-contact-person',
+            phone: '#party-phone',
+            email: '#party-email',
+            hiddenCustomer: '#selected_customer_id',
+            hiddenAddress: '#selected_customer_address_id',
+        },
+        '#txt_buyer_name': {
+            type: 'buyer',
+            address: '#buyer-address',
+            contact: '#buyer-contact-person',
+            phone: '#buyer-phone',
+            email: '#buyer-email',
+            hiddenCustomer: '#selected_buyer_id',
+            hiddenAddress: '#selected_buyer_address_id',
+        },
+        '#txt_third_party': {
+            type: 'third',
+            address: '#third-address',
+            contact: '#third-contact-person',
+            phone: '#third-phone',
+            email: '#third-email',
+            hiddenCustomer: '#selected_third_party_id',
+            hiddenAddress: '#selected_third_party_address_id',
+        },
+        '#txt_cha': {
+            type: 'cha',
+            address: '#cha-address',
+            contact: '#cha-contact-person',
+            phone: '#cha-phone',
+            email: '#cha-email',
+            hiddenCustomer: '#selected_cha_id',
+            hiddenAddress: '#selected_cha_address_id',
+        }
+    };
 
- 
+    window.fillPartyDetails = function(mapping, customer, type) {
+        const $addressSelect = $(mapping.address); // existing <select>
+        const $addBtn = $(`.add-address-btn[data-type="${type}"]`); // correct "+ Add" button
+
+        // reset UI
+        $addressSelect.empty().append('<option value="">Loading addresses...</option>');
+        $addBtn.prop('disabled', true).removeData('customerId');
+
+        // build address list
+        let allAddresses = [];
+        if (customer.default_address) {
+            allAddresses.push({
+                ...customer.default_address,
+                id: 'default',
+                isDefault: true
+            });
+        }
+        if (customer.other_addresses?.length) {
+            allAddresses = allAddresses.concat(
+                customer.other_addresses.map(addr => ({
+                    ...addr,
+                    isDefault: false
+                }))
+            );
+        }
+
+        // populate select
+        $addressSelect.empty();
+        if (allAddresses.length > 0) {
+            allAddresses.forEach(addr => {
+                $('<option>')
+                    .val(addr.id)
+                    .text(addr.address || 'No address')
+                    .data('contact_person', addr.contact_person)
+                    .data('phone', addr.phone)
+                    .data('email', addr.email)
+                    .data('gst', addr.gst)
+                    .appendTo($addressSelect);
+            });
+            // trigger default (first) selection details
+            updateContactDetails($addressSelect.find('option:selected'), mapping, customer.id);
+        } else {
+            $addressSelect.append('<option value="">No addresses found</option>');
+            updateContactDetails($('<option>'), mapping, customer.id);
+        }
+
+        // enable "+ Add" button for THIS party and store the selected customerId on it
+        if (customer.id) {
+            $addBtn.prop('disabled', false).data('customerId', customer.id);
+        }
+
+        // on change, update details + hidden IDs
+        $addressSelect.off('change.party').on('change.party', function() {
+            updateContactDetails($(this).find('option:selected'), mapping, customer.id);
+        });
+
+        // also set hidden customer id immediately
+        $(mapping.hiddenCustomer).val(customer.id);
+    }
+
+    window.updateContactDetails = function($option, mapping, customerId) {
+        $(mapping.contact).text($option.data('contact_person') || 'N/A');
+        $(mapping.phone).text($option.data('phone') || 'N/A');
+        $(mapping.email).text($option.data('email') || 'N/A');
+
+        // store selected address id
+        $(mapping.hiddenAddress).val($option.val() || '');
+        // customer id is already set in fillPartyDetails, but we can ensure:
+        $(mapping.hiddenCustomer).val(customerId || '');
+    }
+
     $(document).ready(function() {
         // SweetAlert for Registration Success
         @if(Session::has('registration_id'))
@@ -1064,13 +1173,10 @@ aria-hidden="true">
         });
 
 
-            /** =========================
-             *  GLOBAL VARIABLES
-             ========================= **/
-        let selectedTestIds = [];
-        let searchTimeout;
-        let customerActiveInput = null;
-        let currentStandardCell = null;
+    window.selectedTestIds = [];
+    window.searchTimeout = null;
+    window.customerActiveInput = null;
+    window.currentStandardCell = null;
 
             /** =========================
              *  IMMEDIATE INITIALIZATION
@@ -1145,7 +1251,109 @@ aria-hidden="true">
             /** =========================
              *  TEST TYPE & CONTRACT EVENTS
              ========================= **/
-        function initializeTestTypeEvents() {
+    window.loadContractsByType = function(type, onSuccess) {
+        console.log('Loading contracts for type:', type);
+        const customerIds = {
+            customer_id: $('#selected_customer_id').val(),
+            buyer_id: $('#selected_buyer_id').val(),
+            third_party_id: $('#selected_third_party_id').val(),
+            cha_id: $('#selected_cha_id').val()
+        };
+        const ajaxUrl = "{{ route('get_packages') }}";
+        $.ajax({
+            url: ajaxUrl,
+            type: "GET",
+            data: { type: type, ...customerIds },
+            dataType: 'json',
+            timeout: 10000,
+            beforeSend: function() {
+                $('#dd_contracts').html('<option value="">Loading...</option>');
+            },
+            success: function(response) {
+                let options = '<option value="">Select ' + type.toLowerCase() + '</option>';
+                let contracts = response.data || response.contracts || response || [];
+                if (Array.isArray(contracts) && contracts.length > 0) {
+                    $.each(contracts, function(i, contract) {
+                        options += `<option value="${contract.id}">${contract.name}</option>`;
+                    });
+                } else {
+                    options += '<option value="">No ' + type.toLowerCase() + 's found</option>';
+                }
+                $('#dd_contracts').html(options);
+                if (typeof onSuccess === 'function') onSuccess();
+            },
+            error: function(xhr) {
+                $('#dd_contracts').html('<option value="">Error loading</option>');
+                if (typeof onSuccess === 'function') onSuccess();
+            }
+        });
+    }
+
+    window.loadTestsByContract = function(contractId, testType) {
+        console.log('Loading tests for contract:', contractId, 'type:', testType);
+        $('.table.table-tranx tbody').empty();
+        window.selectedTestIds = [];
+        const ajaxUrl = "{{ route('get_tests_by_package') }}";
+        $.ajax({
+            url: ajaxUrl,
+            type: "GET",
+            data: { contract_id: contractId, package_id: contractId, type: testType },
+            dataType: 'json',
+            timeout: 10000,
+            beforeSend: function() {
+                $('.table.table-tranx tbody').html('<tr><td colspan="6" class="text-center">Loading tests...</td></tr>');
+            },
+            success: function(response) {
+                $('.table.table-tranx tbody').empty();
+                let packageData = Array.isArray(response) ? response[0] : response;
+                let tests = packageData.tests || [];
+                if (Array.isArray(tests) && tests.length > 0) {
+                    let packageId = packageData.id;
+                    let packageCharge = packageData.charge;
+                    if (!$(`#package-${packageId}`).length) {
+                        $('.table.table-tranx tbody').append(`
+                            <tr class="package-charge-row" id="package-${packageId}">
+                                <td colspan="4"><strong>Package: ${packageData.name}</strong></td>
+                                <td></td>
+                                <td class="package-charge" data-charge="${packageCharge}">${packageCharge}</td>
+                            </tr>
+                        `);
+                    }
+                    tests.forEach(testItem => {
+                        let test = testItem.test;
+                        let standard = testItem.standard;
+                        if (test && !window.selectedTestIds.includes(test.id)) {
+                            window.selectedTestIds.push(test.id);
+                            $(`#package-${packageId}`).after(`
+                                <tr class="test-row" data-package="${packageId}" data-id="${test.id}">
+                                    <td>${test.id}</td>
+                                    <td>${test.name}</td>
+                                    <td>
+                                        <a href="#" class="choose-standard" data-test-id="${test.id}">${standard ? standard.method : 'Click to choose'}</a>
+                                        <input type="hidden" name="tests[${test.id}][test_id]" value="${test.id}">
+                                        <input type="hidden" name="tests[${test.id}][test_number]" value="${test.test_number}">
+                                        <input type="hidden" name="tests[${test.id}][standard_id]" class="standard-id" value="${standard ? standard.id : ''}">
+                                        <input type="hidden" name="tests[${test.id}][package_id]" value="${packageId}">
+                                    </td>
+                                    <td>-</td>
+                                    <td><input type="text" name="tests[${test.id}][remark]" class="form-control form-control-sm" placeholder="Enter remark"></td>
+                                    <td><a href="#" class="delete-test text-danger"><em class="icon ni ni-trash"></em></a></td>
+                                </tr>
+                            `);
+                        }
+                    });
+                    calculateCharges();
+                } else {
+                    $('.table.table-tranx tbody').html('<tr><td colspan="6" class="text-center text-muted">No tests found</td></tr>');
+                }
+            },
+            error: function() {
+                $('.table.table-tranx tbody').html('<tr><td colspan="6" class="text-center text-danger">Error loading</td></tr>');
+            }
+        });
+    }
+
+    function initializeTestTypeEvents() {
             console.log('Initializing test type events...');
 
                 // Ensure elements exist before binding
@@ -1211,93 +1419,7 @@ aria-hidden="true">
             console.log('Test type events bound successfully');
         }
 
-        function loadContractsByType(type) {
-            console.log('Loading contracts for type:', type);
 
-                // Get selected customer IDs
-            const customerIds = {
-                customer_id: $('#selected_customer_id').val(),
-                buyer_id: $('#selected_buyer_id').val(),
-                third_party_id: $('#selected_third_party_id').val(),
-                cha_id: $('#selected_cha_id').val()
-            };
-
-            const ajaxUrl = "{{ route('get_packages') }}";
-
-            $.ajax({
-                url: ajaxUrl,
-                type: "GET",
-                data: {
-                    type: type,
-                        ...customerIds // Pass customer IDs
-                    },
-                    dataType: 'json',
-                    timeout: 10000, // 10 second timeout
-                    beforeSend: function() {
-                        console.log('Sending AJAX request for contracts...');
-                        $('#dd_contracts').html('<option value="">Loading contracts...</option>');
-                    },
-                    success: function(response) {
-                        console.log('Contracts response received:', response);
-
-                        let options = '<option value="">Select ' + type.toLowerCase() + '</option>';
-
-                        // Handle different response formats
-                        let contracts = response.data || response.contracts || response || [];
-
-                        if (Array.isArray(contracts) && contracts.length > 0) {
-                            $.each(contracts, function(i, contract) {
-                                // Handle different object structures
-                                const id = contract.id;
-                                const name = contract.name;
-
-                                if (id && name) {
-                                    options += `<option value="${id}">${name}</option>`;
-                                }
-                            });
-                            console.log('Added', contracts.length, 'contract options');
-                        } else {
-                            options += '<option value="">No ' + type.toLowerCase() + 's found</option>';
-                            console.log('No contracts found in response');
-                        }
-
-                        $('#dd_contracts').html(options);
-                    },
-                    error: function(xhr, status, error) {
-                        console.error('AJAX Error loading contracts:', {
-                            status: status,
-                            error: error,
-                            responseText: xhr.responseText,
-                            url: ajaxUrl,
-                            readyState: xhr.readyState,
-                            statusText: xhr.statusText
-                        });
-
-                        $('#dd_contracts').html('<option value="">Error loading contracts</option>');
-
-                        // Show detailed error to user
-                        let errorMsg = 'Error loading contracts: ';
-                        if (xhr.status === 404) {
-                            errorMsg += 'Route not found (404). Please check if the route exists.';
-                        } else if (xhr.status === 500) {
-                            errorMsg += 'Server error (500). Please check server logs.';
-                        } else if (status === 'timeout') {
-                            errorMsg += 'Request timed out. Please try again.';
-                        } else {
-                            errorMsg += `${status} - ${error}`;
-                        }
-
-                        alert(errorMsg);
-
-                        // Try alternative: populate with static data for testing
-                        $('#dd_contracts').html(`
-                            <option value="">Select ${type.toLowerCase()}</option>
-                            <option value="1">Test ${type} 1</option>
-                            <option value="2">Test ${type} 2</option>
-                            `);
-                    }
-                });
-        }
 
         function loadTestsByContract(contractId, testType) {
             console.log('Loading tests for contract:', contractId, 'type:', testType);
@@ -1428,50 +1550,13 @@ $(document).off('change.azo', '#dd_charge_type').on('change.azo', '#dd_charge_ty
             /** =========================
              *  CUSTOMER SEARCH EVENTS (EXISTING - WORKING)
              ========================= **/
+
+
+
 function initializeCustomerEvents() {
     const CUSTOMER_INPUTS = ['#txt_customer_name', '#txt_buyer_name', '#txt_third_party', '#txt_cha'];
     const CUSTOMER_URL = '{{ route('search_customer') }}';
     let $customerDropdown = createDropdown('customer-dropdown');
-
-                // Map each input to both DOM targets and a logical "type"
-    const CUSTOMER_MAPPING = {
-        '#txt_customer_name': {
-            type: 'customer',
-            address: '#party-address',
-            contact: '#party-contact-person',
-            phone: '#party-phone',
-            email: '#party-email',
-            hiddenCustomer: '#selected_customer_id',
-            hiddenAddress: '#selected_customer_address_id',
-        },
-        '#txt_buyer_name': {
-            type: 'buyer',
-            address: '#buyer-address',
-            contact: '#buyer-contact-person',
-            phone: '#buyer-phone',
-            email: '#buyer-email',
-            hiddenCustomer: '#selected_buyer_id',
-            hiddenAddress: '#selected_buyer_address_id',
-        },
-        '#txt_third_party': {
-            type: 'third',
-            address: '#third-address',
-            contact: '#third-contact-person',
-            phone: '#third-phone',
-            email: '#third-email',
-            hiddenCustomer: '#selected_third_party_id',
-            hiddenAddress: '#selected_third_party_address_id',
-        },
-        '#txt_cha': {
-            type: 'cha',
-            address: '#cha-address',
-            contact: '#cha-contact-person',
-            phone: '#cha-phone',
-            email: '#cha-email',
-            hiddenCustomer: '#selected_cha_id',
-            hiddenAddress: '#selected_cha_address_id',
-        }
-    };
 
                 // --- Delegated click for ALL "+ Add" buttons (single handler) ---
     $(document).off('click.addAddress').on('click.addAddress', '.add-address-btn', function() {
@@ -1495,10 +1580,8 @@ function initializeCustomerEvents() {
         searchTimeout = setTimeout(() => {
             positionDropdown(customerActiveInput, $customerDropdown);
             $customerDropdown.html('<div class="dropdown-message">Searching...</div>');
-            const customerType = $('#dd_customer_type').val();
             $.getJSON(CUSTOMER_URL, {
-                query,
-                type: customerType
+                query
             }, function(customers) {
                 $customerDropdown.empty();
                 if (customers.length) {
@@ -1531,77 +1614,6 @@ function initializeCustomerEvents() {
 
             $customerDropdown.hide().empty();
         });
-
-    function fillPartyDetails(mapping, customer, type) {
-                    const $addressSelect = $(mapping.address); // existing <select>
-                    const $addBtn = $(`.add-address-btn[data-type="${type}"]`); // correct "+ Add" button
-
-                    // reset UI
-                    $addressSelect.empty().append('<option value="">Loading addresses...</option>');
-                    $addBtn.prop('disabled', true).removeData('customerId');
-
-                    // build address list
-                    let allAddresses = [];
-                    if (customer.default_address) {
-                        allAddresses.push({
-                            ...customer.default_address,
-                            id: 'default',
-                            isDefault: true
-                        });
-                    }
-                    if (customer.other_addresses?.length) {
-                        allAddresses = allAddresses.concat(
-                            customer.other_addresses.map(addr => ({
-                                ...addr,
-                                isDefault: false
-                            }))
-                            );
-                    }
-
-                    // populate select
-                    $addressSelect.empty();
-                    if (allAddresses.length > 0) {
-                        allAddresses.forEach(addr => {
-                            $('<option>')
-                            .val(addr.id)
-                            .text(addr.address || 'No address')
-                            .data('contact_person', addr.contact_person)
-                            .data('phone', addr.phone)
-                            .data('email', addr.email)
-                            .data('gst', addr.gst)
-                            .appendTo($addressSelect);
-                        });
-                        // trigger default (first) selection details
-                        updateContactDetails($addressSelect.find('option:selected'), mapping, customer.id);
-                    } else {
-                        $addressSelect.append('<option value="">No addresses found</option>');
-                        updateContactDetails($('<option>'), mapping, customer.id);
-                    }
-
-                    // enable "+ Add" button for THIS party and store the selected customerId on it
-                    if (customer.id) {
-                        $addBtn.prop('disabled', false).data('customerId', customer.id);
-                    }
-
-                    // on change, update details + hidden IDs
-                    $addressSelect.off('change.party').on('change.party', function() {
-                        updateContactDetails($(this).find('option:selected'), mapping, customer.id);
-                    });
-
-                    // also set hidden customer id immediately
-                    $(mapping.hiddenCustomer).val(customer.id);
-                }
-
-                function updateContactDetails($option, mapping, customerId) {
-                    $(mapping.contact).text($option.data('contact_person') || 'N/A');
-                    $(mapping.phone).text($option.data('phone') || 'N/A');
-                    $(mapping.email).text($option.data('email') || 'N/A');
-
-                    // store selected address id
-                    $(mapping.hiddenAddress).val($option.val() || '');
-                    // customer id is already set in fillPartyDetails, but we can ensure:
-                    $(mapping.hiddenCustomer).val(customerId || '');
-                }
 
                 // Example stub for modal call (replace with your modal logic)
                 function openAddAddressModal(customerId, type) {
@@ -1735,42 +1747,42 @@ function initializeCustomerEvents() {
             /** =========================
              *  TABLE & CALCULATION FUNCTIONS
              ========================= **/
-            function addTestToTable(test) {
-                const row = `
-                <tr data-id="${test.id}">
-                <td>${test.test_number}</td>
-                <td>${test.test_name || test.name}</td>
-                <td>
-                <a href="#" class="choose-standard" data-test-id="${test.id}">
-                ${test.standard?.name || 'Click to choose'}
-                </a>
-                <input type="hidden" name="tests[${test.id}][test_id]" value="${test.id}">
-                <input type="hidden" name="tests[${test.id}][test_number]" value="${test.test_number}">
-                <input type="hidden" name="tests[${test.id}][standard_id]" class="standard-id" value="${test.standard?.standard_id || ''}">
-                </td>
-                <td class="test-charge" data-charge="${test.charge || 0}" 
-                data-base-charge="${test.charge || 0}">${test.charge || 0}</td>
-                <td>
-                <div class="d-flex align-items-center">
-                <button type="button" class="btn btn-sm btn-light decrement-qty" data-id="${test.id}">-</button>
-                <span class="mx-2 test-qty" data-qty="1">1</span>
-                <button type="button" class="btn btn-sm btn-light increment-qty" data-id="${test.id}">+</button>
-                </div>
-                <input type="hidden" name="tests[${test.id}][quantity]" class="test-qty-input" value="1">
-                </td>
-                <td>
-                <input type="text" name="tests[${test.id}][remark]" class="form-control form-control-sm" placeholder="Enter remark" value="${test.remark || ''}">
-                </td>
-                <td>
-                <a href="#" class="delete-test text-danger" title="Delete">
-                <em class="icon ni ni-trash"></em>
-                </a>
-                </td>
-                </tr>
-                `;
-                $(".table.table-tranx tbody").append(row);
-                calculateCharges();
-            }
+    window.addTestToTable = function(test) {
+        const row = `
+        <tr data-id="${test.id}">
+        <td>${test.test_number}</td>
+        <td>${test.test_name || test.name}</td>
+        <td>
+        <a href="#" class="choose-standard" data-test-id="${test.id}">
+        ${test.standard?.name || 'Click to choose'}
+        </a>
+        <input type="hidden" name="tests[${test.id}][test_id]" value="${test.id}">
+        <input type="hidden" name="tests[${test.id}][test_number]" value="${test.test_number}">
+        <input type="hidden" name="tests[${test.id}][standard_id]" class="standard-id" value="${test.standard?.standard_id || ''}">
+        </td>
+        <td class="test-charge" data-charge="${test.charge || 0}" 
+        data-base-charge="${test.charge || 0}">${test.charge || 0}</td>
+        <td>
+        <div class="d-flex align-items-center">
+        <button type="button" class="btn btn-sm btn-light decrement-qty" data-id="${test.id}">-</button>
+        <span class="mx-2 test-qty" data-qty="1">1</span>
+        <button type="button" class="btn btn-sm btn-light increment-qty" data-id="${test.id}">+</button>
+        </div>
+        <input type="hidden" name="tests[${test.id}][quantity]" class="test-qty-input" value="1">
+        </td>
+        <td>
+        <input type="text" name="tests[${test.id}][remark]" class="form-control form-control-sm" placeholder="Enter remark" value="${test.remark || ''}">
+        </td>
+        <td>
+        <a href="#" class="delete-test text-danger" title="Delete">
+        <em class="icon ni ni-trash"></em>
+        </a>
+        </td>
+        </tr>
+        `;
+        $(".table.table-tranx tbody").append(row);
+        calculateCharges();
+    }
 
             // increment quantity
             $(document).on("click", ".increment-qty", function() {
@@ -1853,7 +1865,7 @@ function initializeCustomerEvents() {
             //     }
             //     $("#txt_total_charges").val(finalTotal.toFixed(2));
             // }
-            function calculateCharges() {
+            window.calculateCharges = function() {
                 let total = 0;
 
     // === Step 1: Get Priority Type ===
@@ -1875,9 +1887,18 @@ function initializeCustomerEvents() {
 
     // === Step 4: Add additional manual charges ===
                 let additional = parseFloat($('#txt_aditional_charges').val()) || 0;
-                let finalTotal = total + additional;
+                let numSamples = parseInt($('#txt_number_of_samples').val()) || 1;
+                
+                let finalTotal = (total + additional) * numSamples;
+                
                 if (priority === 'Tatkal') {
-                    finalTotal += (total * 0.50);
+                    finalTotal += (total * 0.50 * numSamples);
+                }
+
+                // Commercial Category Logic: Non-Commercial (value 2) means total is 0
+                let commercialType = $('input[name="commercial_type"]:checked').val();
+                if (commercialType == "2") {
+                    finalTotal = 0;
                 }
 
     // === Step 6: Display subtotal (before GST) ===
@@ -1971,9 +1992,11 @@ function initializeCustomerEvents() {
 
             $(document).off('change.priority').on('change.priority', '#dd_priority_type', calculateCharges);
             $(document).off('input.additional').on('input.additional', '#txt_aditional_charges', calculateCharges);
+            $(document).off('input.num_samples').on('input.num_samples', '#txt_number_of_samples', calculateCharges);
+            $(document).off('change.commercial').on('change.commercial', 'input[name="commercial_type"]', calculateCharges);
 
 
-            function updateAdditionalCharges() {
+            window.updateAdditionalCharges = function() {
                 let totalAdditional = 0;
                 $('#additionalItemsContainer .additional-item-row').each(function () {
                     let charge = parseFloat($(this).find('input[name*="[charge]"]').val()) || 0;
@@ -2230,16 +2253,46 @@ function initializeCustomerEvents() {
                 },
                 success: function(sampleData) {
                     clearFormData();
-                    // Populate customer information
-                    if (sampleData.customer) {
-                        $('#dd_customer_type').val(sampleData.customer_type);
-                        $('#txt_customer_name').val(sampleData.customer.name || '');
-                        $('#selected_customer_id').val(sampleData.customer.id || '');
+                    // Populate commercial type
+                    if (sampleData.commercial_type) {
+                        $('input[name="commercial_type"][value="' + sampleData.commercial_type + '"]').prop('checked', true).trigger('change');
                     }
-                    $('input[name="txt_payment_by"][value="' + (sampleData.payment_by || '') + '"]').prop(
-                        'checked', true);
-                    // $('input[name="txt_report_to"][value="' + (sampleData.report_to || '') + '"]').prop(
-                    //     'checked', true);
+                    
+                    // Populate customer information
+                    if (sampleData.customer_type) {
+                        $('#dd_customer_type').val(sampleData.customer_type);
+                    }
+                    
+                    if (sampleData.customer) {
+                        $('#txt_customer_name').val(sampleData.customer.name || '');
+                        fillPartyDetails(CUSTOMER_MAPPING['#txt_customer_name'], sampleData.customer, 'customer');
+                        if (sampleData.customer_address_id) {
+                            setTimeout(() => { $('#party-address').val(sampleData.customer_address_id).trigger('change.party'); }, 200);
+                        }
+                    }
+                    if (sampleData.buyer) {
+                        $('#txt_buyer_name').val(sampleData.buyer.name || '');
+                        fillPartyDetails(CUSTOMER_MAPPING['#txt_buyer_name'], sampleData.buyer, 'buyer');
+                        if (sampleData.buyer_address_id) {
+                            setTimeout(() => { $('#buyer-address').val(sampleData.buyer_address_id).trigger('change.party'); }, 200);
+                        }
+                    }
+                    if (sampleData.third_party) {
+                        $('#txt_third_party').val(sampleData.third_party.name || '');
+                        fillPartyDetails(CUSTOMER_MAPPING['#txt_third_party'], sampleData.third_party, 'third');
+                        if (sampleData.third_party_address_id) {
+                            setTimeout(() => { $('#third-address').val(sampleData.third_party_address_id).trigger('change.party'); }, 200);
+                        }
+                    }
+                    if (sampleData.cha) {
+                        $('#txt_cha').val(sampleData.cha.name || '');
+                        fillPartyDetails(CUSTOMER_MAPPING['#txt_cha'], sampleData.cha, 'cha');
+                        if (sampleData.cha_address_id) {
+                            setTimeout(() => { $('#cha-address').val(sampleData.cha_address_id).trigger('change.party'); }, 200);
+                        }
+                    }
+
+                    $('input[name="txt_payment_by"][value="' + (sampleData.payment_by || '') + '"]').prop('checked', true);
 
                     // Handle Report To (multiple checkboxes)
                     if (sampleData.report_to) {
@@ -2260,13 +2313,27 @@ function initializeCustomerEvents() {
                         });
                     }
 
-                    $('input[name="txt_received_via"][value="' + (sampleData.received_via || '') + '"]').prop(
-                        'checked', true);
-                    $('#txt_details').val(sampleData.details || ''),
-                        // Populate sample details
+                    $('input[name="txt_received_via"][value="' + (sampleData.received_via || '') + '"]').prop('checked', true);
+                    $('#txt_details').val(sampleData.details || '');
+                    
+                    // Populate sample details
                     $('#txt_reference').val(sampleData.reference_no || '');
                     $('#txt_ref_date').val(sampleData.reference_date || '');
                     $('#txt_description').val(sampleData.description || '');
+                    
+                    if (sampleData.due_date) {
+                        $('#txt_due_date').val(sampleData.due_date || '');
+                    }
+                    if (sampleData.be_no) {
+                        $('#txt_be_no').val(sampleData.be_no || '');
+                    }
+                    if (sampleData.charge_type) {
+                        $('#dd_charge_type').val(sampleData.charge_type);
+                    }
+                    if (sampleData.group_code) {
+                        $('#dd_group').val(sampleData.group_code).trigger('change');
+                    }
+
                     // Populate dropdowns
                     if (sampleData.sample_type_id) {
                         $('#dd_sample_type').val(sampleData.sample_type_id).trigger('change');
@@ -2274,29 +2341,60 @@ function initializeCustomerEvents() {
                     if (sampleData.priority) {
                         $('#dd_priority_type').val(sampleData.priority).trigger('change');
                     }
-                    if (sampleData.test_type) {
-                        $('#dd_test_type').val(sampleData.test_type).trigger('change');
-                    }
                     if (sampleData.department) {
                         $('#dd_department').val(sampleData.department).trigger('change');
                     }
                     if (sampleData.sample_numbers === 'Unknown') {
-                        $('#txt_unknown_sample').prop('checked', sampleData.sample_numbers === 'Unknown');
+                        $('#txt_unknown_sample').prop('checked', true);
                         $('#txt_number_of_samples').val('').prop('disabled', true);
                     } else {
+                        $('#txt_unknown_sample').prop('checked', false);
                         $('#txt_number_of_samples').prop('disabled', false);
                         $('#txt_number_of_samples').val(sampleData.sample_numbers || '');
                     }
                     $('#txt_testing_charges').val(sampleData.testing_charges || 0.00);
                     $('#txt_aditional_charges').val(sampleData.additional_charges || 0.00);
                     $('#txt_total_charges').val(sampleData.total_charges || 0.00);
+                    
+                    if (sampleData.test_type) {
+                        $('#dd_test_type').val(sampleData.test_type);
+                        loadContractsByType(sampleData.test_type, function() {
+                            if (sampleData.package_id) {
+                                $('#dd_contracts').val(sampleData.package_id).trigger('change');
+                            }
+                        });
+                    }
+
+                    // Reconstruct Additional Items
+                    $('#additionalItemsContainer').empty();
+                    if (sampleData.additional_items && sampleData.additional_items.length > 0) {
+                        sampleData.additional_items.forEach((item, index) => {
+                            let newRow = `
+                            <div class="row mb-2 additional-item-row">
+                                <div class="col-md-6">
+                                    <input type="text" class="form-control" name="additional_items[${index}][item]" placeholder="Additional Item" autocomplete="off" value="${item.item || ''}">
+                                </div>
+                                <div class="col-md-4">
+                                    <input type="number" step="0.01" class="form-control" name="additional_items[${index}][charge]" placeholder="Charge" value="${item.charge || 0}">
+                                </div>
+                                <div class="col-md-2 d-flex align-items-center">
+                                    <button type="button" class="btn btn-outline-danger btn-sm removeItem">
+                                        <i class="icon ni ni-minus"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            `;
+                            $('#additionalItemsContainer').append(newRow);
+                        });
+                        updateAdditionalCharges();
+                    }
+
                     // Add tests to table if they exist
                     if (sampleData.tests && sampleData.tests.length > 0) {
                         setTimeout(() => {
                             sampleData.tests.forEach(test => {
                                 // Check if test is not already in the selected list
-                                if (typeof selectedTestIds !== 'undefined' && !selectedTestIds
-                                    .includes(test.id)) {
+                                if (typeof selectedTestIds !== 'undefined' && !selectedTestIds.includes(test.id)) {
                                     addTestToTable({
                                         id: test.id,
                                         test_number: test.test_number,
@@ -2309,9 +2407,9 @@ function initializeCustomerEvents() {
                                             name: test.standard_method || ''
                                         }
                                     });
-                                selectedTestIds.push(test.id);
-                            }
-                        });
+                                    selectedTestIds.push(test.id);
+                                }
+                            });
 
                             // Recalculate charges if function exists
                             if (typeof calculateCharges === 'function') {
@@ -2339,23 +2437,16 @@ function initializeCustomerEvents() {
         // --------------------
         // UTILITY FUNCTIONS
         // --------------------
-function clearFormData() {
-            // Clear text inputs
+window.clearFormData = function() {
     $('#txt_customer_name, #txt_reference, #txt_ref_date, #txt_description').val('');
-            // Clear hidden fields
     $('#selected_customer_id').val('');
-            // Reset dropdowns to default
     $('#dd_sample_type, #dd_priority_type, #dd_test_type').val('').trigger('change');
-            // Clear test table if it exists
     if ($('.table.table-tranx tbody').length) {
         $('.table.table-tranx tbody').empty();
     }
-            // Clear selected test IDs array if it exists
     if (typeof selectedTestIds !== 'undefined') {
         selectedTestIds.length = 0;
     }
-
-            // Clear customer address sections
     $('#party-address, #buyer-address, #third-address, #cha-address').empty();
     $('#party-contact-person, #party-phone, #party-email').empty();
     $('#buyer-contact-person, #buyer-phone, #buyer-email').empty();
@@ -2363,8 +2454,7 @@ function clearFormData() {
     $('#cha-contact-person, #cha-phone, #cha-email').empty();
 }
 
-function showNotification(message, type = 'info') {
-            // Clear any existing toasts first
+window.showNotification = function(message, type = 'info') {
     if (typeof toastr !== 'undefined') {
         toastr.clear();
     }
@@ -2391,13 +2481,7 @@ function showNotification(message, type = 'info') {
         // --------------------
         // HELPER FUNCTIONS FOR FORM INTEGRATION
         // --------------------
-function addTestToTable(testData) {
-    if (typeof window.addTestToTable === 'function') {
-        window.addTestToTable(testData);
-    } else {
-        console.warn('addTestToTable function not found. Please ensure it exists in your main form.');
-    }
-}
+
 </script>
 <script>
     $(document).ready(function() {

@@ -8,7 +8,7 @@
                     <div class="nk-block-head">
                         <div class="nk-block-head-content d-flex justify-content-between align-items-center">
                             <h4 class="nk-block-title mb-0">Add Customer</h4>
-                            <a href="{{ url()->previous() }}" class="btn btn-primary">
+                            <a href="#" onclick="history.back(); return false;" class="btn btn-primary">
                                 <em class="icon ni ni-back-alt-fill"></em> &nbsp; Goto Sample Reg.
                             </a>
                         </div>
@@ -528,23 +528,50 @@
             initializeAllDistricts();
 
 
-            // Check for Existance  of the inputs 
+            // Utility to get current RO ID
+            function getCurrentRoId() {
+                @if (Session::get('role') === 'ADMIN')
+                    return $('#txt_ro_id').val();
+                @else
+                    return "{{ Session::get('ro_id') }}";
+                @endif
+            }
+
+            // Function to trigger all validations (useful when RO changes)
+            function validateAllFields() {
+                const roId = getCurrentRoId();
+                if ($("#txt_email").val()) validateField("m07_email", $("#txt_email").val(), "txt_email", 'Customer', roId);
+                if ($("#txt_phone").val()) validateField("m07_phone", $("#txt_phone").val(), "txt_phone", 'Customer', roId);
+                if ($("#txt_gst").val()) validateField("m07_gst", $("#txt_gst").val(), "txt_gst", 'Customer', roId);
+            }
+
+            // Check for Existence of the inputs 
             $("#txt_email").on("input", function() {
-                validateField("m07_email", $(this).val(), "txt_email", 'Customer');
+                validateField("m07_email", $(this).val(), "txt_email", 'Customer', getCurrentRoId());
             });
 
             $("#txt_phone").on("input", function() {
-                validateField("m07_phone", $(this).val(), "txt_phone", 'Customer');
+                validateField("m07_phone", $(this).val(), "txt_phone", 'Customer', getCurrentRoId());
             });
+
             $("#txt_name").on("input", function() {
-                validateField("m07_name", $(this).val(), "txt_name", 'Customer');
+                validateField("m07_name", $(this).val(), "txt_name", 'Customer', getCurrentRoId());
             });
+
             $("#txt_gst").on("input", function() {
-                validateField("m07_gst", $(this).val(), "txt_gst", 'Customer');
+                validateField("m07_gst", $(this).val(), "txt_gst", 'Customer', getCurrentRoId());
             });
+
             $("#txt_contact_person").on("input", function() {
-                validateField("m07_contact_person", $(this).val(), "txt_contact_person", 'Customer');
+                validateField("m07_contact_person", $(this).val(), "txt_contact_person", 'Customer', getCurrentRoId());
             });
+
+            // Re-validate if ADMIN changes the RO
+            @if (Session::get('role') === 'ADMIN')
+                $("#txt_ro_id").on("change", function() {
+                    validateAllFields();
+                });
+            @endif
 
 
         });

@@ -72,7 +72,7 @@
                                                     </td>
                                                     <td>
                                                         @if ($sample->completed_tests > 0)
-                                                            <a href="{{ route('template_manuscript', $sample->sample_id) }}"
+                                                            <a href="{{ route('manuscript_template', $sample->sample_id) }}"
                                                                 class="btn btn-sm btn-outline-primary">
                                                                 Result Entry
                                                             </a>

@@ -6,6 +6,7 @@ use App\Models\Customer;
 use App\Models\Ro;
 use App\Models\SampleRegistration;
 use App\Models\SampleTest;
+use App\Models\Standard;
 use App\Models\Test;
 use App\Models\TestTransfer;
 use Illuminate\Http\Request;
@@ -85,8 +86,12 @@ class SampleController extends Controller
 
         // Using Eloquent with relationships - eager loading to prevent N+1 queries
         $sample = SampleRegistration::with([
-            'customer:m07_customer_id,m07_name',
-            'labSample:m14_lab_sample_id,m14_name'
+            'customer.locations.state', 'customer.locations.district', 'customer.state', 'customer.district',
+            'buyer.locations.state', 'buyer.locations.district', 'buyer.state', 'buyer.district',
+            'thirdParty.locations.state', 'thirdParty.locations.district', 'thirdParty.state', 'thirdParty.district',
+            'cha.locations.state', 'cha.locations.district', 'cha.state', 'cha.district',
+            'labSample:m14_lab_sample_id,m14_name',
+            'additional'
         ])->find($sampleId);
 
         if (!$sample) {
@@ -107,22 +112,77 @@ class SampleController extends Controller
                     ->get()
                     ->keyBy('m12_test_id');
 
-                $tests = collect($testDetails)->map(function ($detail, $testId) use ($testsData) {
+                // Get specific standards saved in the registration
+                $standardIds = array_filter(array_column($testDetails, 'standard_id'));
+                $specialStandards = collect();
+                if (!empty($standardIds)) {
+                    $specialStandards = Standard::whereIn('m15_standard_id', $standardIds)
+                        ->get(['m15_standard_id', 'm15_method'])
+                        ->keyBy('m15_standard_id');
+                }
+
+                $tests = collect($testDetails)->map(function ($detail, $testId) use ($testsData, $specialStandards) {
                     $test = $testsData->get($testId);
+                    $selectedStdId = $detail['standard_id'] ?? null;
+                    
+                    // Use the specific standard name if found, otherwise use test's default standard name
+                    $standardMethod = null;
+                    if ($selectedStdId && $specialStandards->has($selectedStdId)) {
+                        $standardMethod = $specialStandards->get($selectedStdId)->m15_method;
+                    } else {
+                        $standardMethod = $test?->standard?->m15_method ?? null;
+                    }
 
                     return [
                         'id' => $testId,
+                        'test_number' => $test?->m12_test_number ?? '',
                         'name' => $test?->m12_name ?? 'Unknown Test',
                         'charge' => $test?->m12_charge ?? 0,
                         'remark' => $detail['remark'] ?? '',
-                        'standard_id' => $detail['standard_id'] ?? null,
+                        'standard_id' => $selectedStdId,
                         'package_id' => $detail['package_id'] ?? null,
-                        'standard_method' => $test?->standard?->m15_method ?? null,
+                        'standard_method' => $standardMethod,
                         'test_status' => $test?->m12_status ?? 'pending'
                     ];
                 });
             }
         }
+
+        $formatParty = function($customer) {
+            if (!$customer) return null;
+            return [
+                'id' => $customer->m07_customer_id,
+                'name' => $customer->m07_name,
+                'default_address' => [
+                    'id' => 'default',
+                    'customer_id' => $customer->m07_customer_id,
+                    'address' => $customer->m07_address,
+                    'state' => $customer->state?->m01_state_name ?? $customer->state?->m01_name,
+                    'district' => $customer->district?->m02_district_name ?? $customer->district?->m02_name,
+                    'pincode' => $customer->m07_pincode,
+                    'contact_person' => $customer->m07_contact_person,
+                    'email' => $customer->m07_email,
+                    'phone' => $customer->m07_phone,
+                    'gst' => $customer->m07_gst,
+                    'is_default' => true
+                ],
+                'other_addresses' => $customer->locations ? $customer->locations->map(function ($loc) use ($customer) {
+                    return [
+                        'id' => $loc->m08_customer_location_id,
+                        'customer_id' => $customer->m07_customer_id,
+                        'address' => $loc->m08_address,
+                        'state' => $loc->state?->m01_state_name ?? $loc->state?->m01_name,
+                        'district' => $loc->district?->m02_district_name ?? $loc->district?->m02_name,
+                        'pincode' => $loc->m08_pincode,
+                        'contact_person' => $loc->m08_contact_person,
+                        'email' => $loc->m08_email,
+                        'phone' => $loc->m08_phone,
+                        'gst' => $loc->m08_gst,
+                        'is_default' => false
+                    ];
+                })->values() : []
+            ];
+        };
 
         $sampleData = [
             'id' => $sample->tr04_sample_registration_id,
@@ -133,16 +193,20 @@ class SampleController extends Controller
             'sample_type_name' => $sample->labSample?->m14_name,
             'priority' => $sample->tr04_sample_type,
             'test_type' => $sample->tr04_test_type,
+            'commercial_type' => $sample->tr04_commercial_type,
+            'be_no' => $sample->tr04_be_no,
+            'package_id' => $sample->m19_package_id,
+            'charge_type' => $sample->tr04_charge_type,
             'status' => $sample->tr04_status,
-            'customer_type' => $sample->customerType->m09_customer_type_id,
-            'customer' => [
-                'id' => $sample->customer?->m07_customer_id,
-                'name' => $sample->customer?->m07_name
-            ],
-            'buyer' => [
-                'id' => $sample->buyer?->m07_customer_id,
-                'name' => $sample->buyer?->m07_name
-            ],
+            'customer_type' => $sample->m09_customer_type_id,
+            'customer' => $formatParty($sample->customer),
+            'customer_address_id' => $sample->m08_customer_location_id,
+            'buyer' => $formatParty($sample->buyer),
+            'buyer_address_id' => $sample->m08_buyer_location_id,
+            'third_party' => $formatParty($sample->thirdParty),
+            'third_party_address_id' => $sample->m08_third_party_location_id,
+            'cha' => $formatParty($sample->cha),
+            'cha_address_id' => $sample->m08_cha_location_id,
             'payment_by' => $sample->tr04_payment_by,
             'report_to' => $sample->tr04_report_to,
             'received_via' => $sample->tr04_received_via,
@@ -153,6 +217,14 @@ class SampleController extends Controller
             'testing_charges' => $sample->tr04_testing_charges,
             'additional_charges' => $sample->tr04_additional_charges,
             'total_charges' => $sample->tr04_total_charges,
+            'additional_items' => $sample->additional ? $sample->additional->map(function($add) {
+                return [
+                    'item' => $add->item,
+                    'charge' => $add->price
+                ];
+            })->toArray() : [],
+            'due_date' => $sample->tr04_expected_date,
+            'group_code' => isset($testsData) && $testsData->isNotEmpty() ? $testsData->first()->m11_group_code : null,
         ];
 
         return response()->json($sampleData);
@@ -232,6 +304,7 @@ class SampleController extends Controller
                 // Use standard ID generation
                 $newRefId = generateReferenceId(
                     $originalReg->m13_department_id,
+                    $originalReg->tr04_commercial_type,
                     $customerIdx->m09_customer_type_id ?? $originalReg->m09_customer_type_id,
                     $originalReg->m14_lab_sample_id
                 );
@@ -244,6 +317,7 @@ class SampleController extends Controller
 
                     'm07_customer_id' => $customerIdx->m07_customer_id, // The customer is the SENDER RO
                     'm09_customer_type_id' => $customerIdx->m09_customer_type_id ?? $originalReg->m09_customer_type_id,
+                    'tr04_commercial_type' => $originalReg->tr04_commercial_type,
 
                     'tr04_payment_status' => 'NOT_APPLICABLE', // Non-commercial
                     'tr04_progress' => 'REGISTERED',
