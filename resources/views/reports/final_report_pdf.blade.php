@@ -47,12 +47,23 @@
             page-break-inside: avoid;
         }
 
-        thead {
-            display: table-header-group;
+        tbody {
+            page-break-inside: avoid;
+            display: table-row-group;
         }
 
-        tbody {
-            display: table-row-group;
+        tbody.test-block {
+            page-break-inside: avoid;
+            page-break-after: auto;
+        }
+
+        .table-primary,
+        .table-secondary {
+            page-break-inside: avoid;
+        }
+
+        thead {
+            display: table-header-group;
         }
 
         th,
@@ -444,34 +455,43 @@
             <img src="{{ $leftLogoSrc }}" alt="Textiles Committee of India">
         </div>
 
-        {{-- RIGHT LOGO PLACEHOLDER --}}
-        <div class="logo-right">
+        {{-- RIGHT LOGO PLACEHOLDER (NABL) --}}
+        @if(isset($hasAccreditedTests) && $hasAccreditedTests)
+        <div class="logo-right" style="text-align: center;">
             @php
                 $rightLogoPath = base_path('backAssets/images/accrediation.png');
                 $rightLogoSrc = file_exists($rightLogoPath)
                     ? 'data:image/png;base64,' . base64_encode(file_get_contents($rightLogoPath))
                     : 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
             @endphp
-            <img src="{{ $rightLogoSrc }}" alt="Accreditation Logo">
+            <img src="{{ $rightLogoSrc }}" alt="Accreditation Logo" style="width: 70px;">
+            @if($sample->ro && $sample->ro->certificate_no)
+            <div style="font-size: 9px; font-weight: bold; margin-top: 2px;">{{ $sample->ro->certificate_no }}</div>
+            @endif
         </div>
+        @endif
 
-        {{-- CENTER ENGLISH-ONLY HEADER --}}
+        {{-- CENTER HEADER --}}
         <div class="header-center">
-            <div class="header-eng-title">LABORATORY</div>
-            <div class="header-eng-big">TEXTILES COMMITTEE</div>
-            <div class="header-eng-ministry">Government of India, Ministry of Textiles</div>
-            <div class="header-eng-lab">Textile Laboratory &amp; Research Centre</div>
-            <div class="header-address">P. Balu Road, Prabhadevi Chowk, Prabhadevi, Mumbai-400 025.</div>
-            <div class="header-contact">Tel.: +91-22-6652 7541 / 545 / 550 / 607</div>
-            <div class="header-email">* E-mail : dlab.tc@nic.in / tclabmumbai@gmail.com * Website :
-                www.textilescommittee.nic.in</div>
+            <div class="header-eng-title">LABORATORIES</div>
+            <div class="header-eng-big">{{ $sample->ro->lab_name_en ?? 'TEXTILES COMMITTEE' }}</div>
+            <div class="header-eng-ministry">{{ $sample->ro->ministry_en ?? 'Government of India, Ministry of Textiles' }}</div>
+            <div class="header-address">{{ $sample->ro->lab_address ?? 'P. Balu Road, Prabhadevi Chowk, Prabhadevi, Mumbai-400 025.' }}</div>
+            <div class="header-contact">{{ $sample->ro->lab_contact ?? 'Tel.: +91-22-6652 7541 / 545 / 550 / 607' }}</div>
+            <div class="header-email">{{ $sample->ro->lab_email ?? '* E-mail : dlab.tc@nic.in / tclabmumbai@gmail.com * Website : www.textilescommittee.nic.in' }}</div>
         </div>
 
         {{-- Format No. top-right --}}
         {{-- <div class="header-format-no">Format No. 04/26/23</div> --}}
-
+  
         {{-- TEST REPORT title --}}
         <div class="header-report-title">TEST REPORT</div>
+
+        @if(isset($hasAccreditedTests) && $hasAccreditedTests && $sample->tr04_ulr_no)
+        <div style="position: absolute; top: 165px; left: 0; right: 0; text-align: center; font-size: 11px; font-weight: bold;">
+            ULR Number : {{ $sample->tr04_ulr_no }}
+        </div>
+        @endif
 
         {{-- Continued text is rendered on pages > 1 via dompdf script below --}}
 
@@ -483,18 +503,24 @@
     <div class="first-page">
 
         {{-- ===== FIRST PAGE DESCRIPTIVE HEADER ===== --}}
+        @php
+            $isCustom = ($sample->m09_customer_type_id == 4) || ($sample->customerType && str_contains(strtolower($sample->customerType->m09_name), 'custom'));
+        @endphp
+
+        {{-- ===== FIRST PAGE DESCRIPTIVE HEADER ===== --}}
         <div class="first-page-header">
             <table>
                 <tbody>
                     <tr>
-                        <th colspan="2">Test Report No : {{ $meta['report_no'] }}</th>
-                        <th class="text-end">Date : {{ $meta['date'] }}</th>
-                    </tr>
-                    <tr>
-                        <th rowspan="2">Name &amp; Address of Customer</th>
-                        <td>{{ $meta['customer_name'] }}</td>
-                        <td rowspan="2" class="text-center"
-                            style="vertical-align: middle; width: 80px; padding: 2px;">
+                        <th colspan="2" style="width: 80%;">
+                            Test Report No : {{ $meta['report_no'] }}
+                            <span style="float: right;">
+                                Date : {{ $meta['date'] }}
+                            </span>
+                        </th>
+                        @if(!$isCustom)
+                        <th rowspan="3" class="text-center"
+                            style="vertical-align: middle; width: 20%; padding: 2px;">
                             @php
                                 $swatchHtml = 'Sample <br> Swatch';
                                 if (!empty($sample->tr04_attachment)) {
@@ -514,28 +540,75 @@
                                 }
                             @endphp
                             {!! $swatchHtml !!}
-                        </td>
+                        </th>
+                        @endif
                     </tr>
-                    <tr>
-                        <td>{{ $meta['customer_address'] }}</td>
-                    </tr>
-                    <tr>
-                        <th>Sample forwarding letter No. &amp; date</th>
-                        <td colspan="2">Test Memo No. {{ $meta['reference'] }} dated {{ $meta['reference_date'] }}
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>Buyers Name &amp; address (Optional)</th>
-                        <td colspan="2">{{ $meta['buyer'] }}</td>
-                    </tr>
-                    <tr>
-                        <th>Customer Sample No.</th>
-                        <th colspan="2" class="text-center">Sample Description</th>
-                    </tr>
-                    <tr>
-                        <td>BE No. {{ $meta['be_no'] }} dtd. {{ $meta['date'] }}</td>
-                        <td colspan="2" class="text-center">{{ $meta['sample_description'] }}</td>
-                    </tr>
+                    @if($isCustom)
+                        <tr>
+                            <th style="width: 30%;">Name &amp; Address of Customer :</th>
+                            <td colspan="2" style="width: 70%;">{{ $meta['customer_name'] }}<br>{{ $meta['customer_address'] }}</td>
+                        </tr>
+                        <tr>
+                            <th>Sample forwarding letter No. &amp; date :</th>
+                            <td colspan="2">Test Memo No. {{ $meta['reference'] }} dated {{ \Carbon\Carbon::parse($sample->tr04_reference_date)->format('d/m/Y') }}</td>
+                        </tr>
+                        <tr>
+                            <th>Date of receipt of sample :</th>
+                            <td colspan="2">{{ Carbon\Carbon::parse($sample->created_at)->format('d M Y') }}</td>
+                        </tr>
+                        <tr>
+                            <th>Buyers Name &amp; address (Optional) :</th>
+                            <td colspan="2">{{ $meta['buyer'] }}</td>
+                        </tr>
+                        <tr>
+                            <th>Customer Sample No. :</th>
+                            <td>BE No. {{ $meta['be_no'] }}</td>
+                            <th class="text-center" style="width: 20%;">Lab. Sample No.</th>
+                        </tr>
+                        <tr>
+                            <th>Sample Description :</th>
+                            <td>{{ $meta['sample_description'] }}</td>
+                            <td class="text-center">{{ $meta['report_no'] }}</td>
+                        </tr>
+                    @else
+                        <tr>
+                            <th rowspan="2" style="width: 30%;">Name &amp; Address of Customer</th>
+                            <td style="width: 50%;">{{ $meta['customer_name'] }}</td>
+                        </tr>
+                        <tr>
+                            <td>{{ $meta['customer_address'] }}</td>
+                        </tr>
+                        <tr>
+                            <th>Sample forwarding letter No. &amp; date</th>
+                            <td colspan="2">{{ $meta['reference'] }} dtd. {{ \Carbon\Carbon::parse($sample->tr04_reference_date)->format('d.m.Y') }}</td>
+                        </tr>
+                        <tr>
+                            <th>Date of receipt of sample</th>
+                            <td>{{ Carbon\Carbon::parse($sample->created_at)->format('d M Y') }}</td>
+                            <th rowspan="2" class="text-center" style="vertical-align: middle; width: 20%;">Lab. Sample No.</th>
+                        </tr>
+                        <tr>
+                            <th>Customer Sample No :</th>
+                            <td>{{ $meta['be_no'] }}</td>
+                        </tr>
+                        <tr>
+                            <th>Sample Description:</th>
+                            <td>{{ $meta['sample_description'] }}</td>
+                            <td rowspan="3" class="text-center" style="vertical-align: middle;">{{ $meta['report_no'] }}</td>
+                        </tr>
+                        <tr>
+                            <th>Sample Characteristics:</th>
+                            <td>{{ $meta['sample_characteristics'] }}</td>
+                        </tr>
+                        <tr>
+                            <th>Date of Performance of Tests:</th>
+                            <td>
+                                {{ \Carbon\Carbon::parse($sample->created_at)->format('d.m.Y') }}
+                                to
+                                {{ $sample->testResult->first() && $sample->testResult->first()->tr07_performance_date ? \Carbon\Carbon::parse($sample->testResult->first()->tr07_performance_date)->format('d.m.Y') : \Carbon\Carbon::parse($sample->created_at)->format('d.m.Y') }}
+                            </td>
+                        </tr>
+                    @endif
                 </tbody>
             </table>
         </div>
@@ -544,6 +617,7 @@
         <div class="container">
             <h4>TEST RESULTS</h4>
 
+            @if($isCustom)
             {{-- Sample Description Section --}}
             <table>
                 <tbody>
@@ -553,7 +627,7 @@
                     </tr>
                     <tr>
                         <th>Date of Performance of Test(s)</th>
-                        <td>{{ $meta['date'] }} to {{ $meta['test_performance_date'] }}</td>
+                        <td>{{ \Carbon\Carbon::parse($sample->created_at)->format('d.m.Y') }} to {{ $sample->testResult->first() && $sample->testResult->first()->tr07_performance_date ? \Carbon\Carbon::parse($sample->testResult->first()->tr07_performance_date)->format('d.m.Y') : \Carbon\Carbon::parse($sample->created_at)->format('d.m.Y') }}</td>
                     </tr>
                     <tr>
                         <th>Laboratory Sample No.</th>
@@ -561,6 +635,22 @@
                     </tr>
                 </tbody>
             </table>
+            @else
+            <table>
+                <tbody>
+                    @if(isset($hasAccreditedTests) && $hasAccreditedTests && $sample->tr04_ulr_no)
+                    <tr>
+                        <th style="width:30%">ULR No.</th>
+                        <td>{{ $sample->tr04_ulr_no }}</td>
+                    </tr>
+                    @endif
+                    <tr>
+                        <th style="width:30%">Laboratory Sample No.</th>
+                        <td>{{ $meta['report_no'] }}</td>
+                    </tr>
+                </tbody>
+            </table>
+            @endif
 
             {{-- ==== Aryl Amines Section (FIRST PAGE ONLY) ==== --}}
             @php
@@ -571,7 +661,7 @@
                         $parent = $results->first();
                         if ($parent) {
                             $testName = $parent->test->m12_name ?? '';
-                            if (strpos(strtolower($testName), 'aryl amine') !== false) {
+                            if (strpos(strtolower($testName), 'Banned amines') !== false) {
                                 $arylAminesTest = ['parent' => $parent, 'results' => $results];
                                 break;
                             }
@@ -676,30 +766,33 @@
                         <th style="width:28%;">Result</th>
                     </tr>
                 </thead>
-                <tbody>
-                    @php $counter = 1; @endphp
 
-                    @foreach ($orderedItems as $item)
-                        @if ($item['type'] === 'test')
+                @php $counter = 1; @endphp
+                @foreach ($orderedItems as $item)
+                    @if ($item['type'] === 'test')
+                        @php
+                            $results = $groupedResults[$item['test_number']] ?? collect();
+                            $parent = $results->first();
+                        @endphp
+
+                        @if ($parent)
                             @php
-                                $results = $groupedResults[$item['test_number']] ?? collect();
-                                $parent = $results->first();
+                                $testName = $parent->test->m12_name ?? '';
+                                $isArylAminesTest = strpos(strtolower($testName), 'aryl amine') !== false;
                             @endphp
 
-                            @if ($parent)
-                                @php
-                                    $testName = $parent->test->m12_name ?? '';
-                                    $isArylAminesTest = strpos(strtolower($testName), 'aryl amine') !== false;
-                                @endphp
-
-                                @if (!$isArylAminesTest)
-                                    {{-- === Main Test Header === --}}
+                            @if (!$isArylAminesTest)
+                                <tbody class="test-block">
                                     <tr class="table-primary">
                                         <td class="text-center">{{ $counter }}</td>
                                         <td>
                                             <strong>{{ $testName ?: 'Test #' . $item['test_number'] }}</strong>&nbsp;-&nbsp;
-                                            @if ($parent->test->standard->m15_method ?? false)
-                                                <small>({{ $parent->test->standard->m15_method }})</small>
+                                            @php
+                                                $sampleTest = $sample->sampleTests->firstWhere('m12_test_number', $item['test_number']);
+                                                $standardMethod = optional($sampleTest->standard)->m15_method ?? optional($parent->test->standard)->m15_method ?? null;
+                                            @endphp
+                                            @if ($standardMethod)
+                                                <small>({{ $standardMethod }})</small>
                                             @endif
                                             {{ $parent->tr07_unit }}
                                         </td>
@@ -717,7 +810,6 @@
 
                                     @php $subCounter = 1; @endphp
 
-                                    {{-- === Primary / Secondary Handling === --}}
                                     @if ($hasPrimary)
                                         @foreach ($results->groupBy('m16_primary_test_id') as $primaryId => $primaryResults)
                                             @php
@@ -774,7 +866,6 @@
                                         @endforeach
                                     @endif
 
-                                    {{-- === Custom Fields === --}}
                                     @php
                                         $customFields = $groupedCustomFields[$item['test_number']] ?? collect();
                                     @endphp
@@ -795,15 +886,14 @@
                                             </tr>
                                         @endforeach
                                     @endif
-
-                                    @php $counter++; @endphp
-                                @else
-                                    @php $counter++; @endphp
-                                @endif
+                                </tbody>
+                                @php $counter++; @endphp
+                            @else
+                                @php $counter++; @endphp
                             @endif
                         @endif
-                    @endforeach
-                </tbody>
+                    @endif
+                @endforeach
             </table>
 
             {{-- ===== END OF REPORT (after last table row on every/last page) ===== --}}
@@ -815,7 +905,7 @@
     {{-- ===== FOOTER (fixed, repeats every page) ===== --}}
     <div class="footer-content">
         <div class="footer-divider"></div>
-        <div class="footer-iso">** ISO: 17025 Accredited Testing Laboratory **</div>
+        <!-- <div class="footer-iso">** ISO: 17025 Accredited Testing Laboratory **</div> -->
         <div class="footer-note">Sample not drawn by Textiles Committee, Results relate only to the sample tested.</div>
         <div class="footer-disclaimer">This test report shall not be published in any form without the explicit written
             consent of the Textiles Committee.</div>

@@ -173,9 +173,9 @@ class CustomerController extends Controller
                 // "txt_be" => "required|string|max:20",
                 // contact and loactions                 
                 'contacts' => 'nullable|array',
-                'contacts.*.name' => 'required|string|max:255',
-                'contacts.*.email' => 'required|email|max:255',
-                'contacts.*.phone' => 'required|string|max:15',
+                'contacts.*.name' => 'nullable|string|max:255',
+                'contacts.*.email' => 'nullable|email|max:255',
+                'contacts.*.phone' => 'nullable|string|max:15',
                 'contacts.*.state_id' => 'required|integer|exists:m01_states,m01_state_id',
                 'contacts.*.district_id' => 'required|integer|exists:m02_districts,m02_district_id',
                 'contacts.*.pincode' => 'required|string|max:10',
@@ -233,9 +233,7 @@ class CustomerController extends Controller
                 // 'txt_be.string' => 'Branch/Business Entity must be a string.',
                 // 'txt_be.max' => 'Branch/Business Entity must not exceed 20 characters.',
 
-                'contacts.*.name.required' => 'The contact person name is required for all locations.',
-                'contacts.*.email.required' => 'The email is required for all locations.',
-                'contacts.*.phone.required' => 'The phone number is required for all locations.',
+
                 'contacts.*.state_id.required' => 'The state is required for all locations.',
                 'contacts.*.district_id.required' => 'The district is required for all locations.',
                 'contacts.*.pincode.required' => 'The pincode is required for all locations.',
@@ -277,9 +275,9 @@ class CustomerController extends Controller
                         foreach ($request->contacts as $contactData) {
                             CustomerLocation::create([
                                 'm07_customer_id' => $customer->m07_customer_id,
-                                'm08_contact_person' => $contactData['name'],
-                                'm08_email' => $contactData['email'],
-                                'm08_phone' => $contactData['phone'],
+                                'm08_contact_person' => $contactData['name'] ?? null,
+                                'm08_email' => $contactData['email'] ?? null,
+                                'm08_phone' => $contactData['phone'] ?? null,
                                 'm01_state_id' => $contactData['state_id'],
                                 'm02_district_id' => $contactData['district_id'],
                                 'm08_pincode' => $contactData['pincode'],
@@ -344,9 +342,9 @@ class CustomerController extends Controller
 
                 'locations'                 => 'nullable|array',
                 'locations.*.id'            => 'nullable|integer|exists:m08_customer_locations,m08_customer_location_id',
-                'locations.*.contact_person' => 'required|string|max:255',
-                'locations.*.email'         => 'required|email|max:255',
-                'locations.*.phone'         => 'required|string|max:15',
+                'locations.*.contact_person' => 'nullable|string|max:255',
+                'locations.*.email'         => 'nullable|email|max:255',
+                'locations.*.phone'         => 'nullable|string|max:15',
                 'locations.*.gst'           => 'nullable|string|max:15',
                 'locations.*.state_id'      => 'required|integer|exists:m01_states,m01_state_id',
                 'locations.*.district_id'   => 'required|integer|exists:m02_districts,m02_district_id',
@@ -400,15 +398,12 @@ class CustomerController extends Controller
                 'locations.*.id.integer' => 'A location ID must be an integer.',
                 'locations.*.id.exists' => 'The selected location ID is invalid.',
 
-                'locations.*.contact_person.required' => 'The location contact person is required.',
                 'locations.*.contact_person.string' => 'A location contact person must be a string.',
                 'locations.*.contact_person.max' => 'A location contact person may not be greater than :max characters.',
 
-                'locations.*.email.required' => 'The location email field is required.',
                 'locations.*.email.email' => 'Please enter a valid email address for the location.',
                 'locations.*.email.max' => 'A location email may not be greater than :max characters.',
 
-                'locations.*.phone.required' => 'The location phone field is required.',
                 'locations.*.phone.string' => 'A location phone must be a string.',
                 'locations.*.phone.max' => 'A location phone may not be greater than :max characters.',
 
@@ -464,10 +459,10 @@ class CustomerController extends Controller
                     }
 
                     $dataToUpdateOrCreate = [
-                        'm08_contact_person' => $locationData['contact_person'],
-                        'm08_email'          => $locationData['email'],
-                        'm08_phone'          => $locationData['phone'],
-                        'm08_gst'            => $locationData['gst'],
+                        'm08_contact_person' => $locationData['contact_person'] ?? null,
+                        'm08_email'          => $locationData['email'] ?? null,
+                        'm08_phone'          => $locationData['phone'] ?? null,
+                        'm08_gst'            => $locationData['gst'] ?? null,
                         'm01_state_id'       => $locationData['state_id'],
                         'm02_district_id'    => $locationData['district_id'],
                         'm08_pincode'        => $locationData['pincode'],
@@ -509,7 +504,7 @@ class CustomerController extends Controller
 
         $validated = $request->validate([
             'txt_loc_customer_id' => 'required|exists:m07_customers,m07_customer_id',
-            'txt_loc_contact_person' => 'required|string|max:255',
+            'txt_loc_contact_person' => 'nullable|string|max:255',
             'txt_loc_email' => 'nullable|email',
             'txt_loc_phone' => 'nullable|string|max:20',
             'txt_loc_state_id' => 'required|exists:m01_states,m01_state_id',
@@ -519,9 +514,9 @@ class CustomerController extends Controller
         ]);
         $data = [
             'm07_customer_id' => $request->txt_loc_customer_id,
-            'm08_contact_person' => $request->txt_loc_contact_person,
-            'm08_email' => $request->txt_loc_email,
-            'm08_phone' => $request->txt_loc_phone,
+            'm08_contact_person' => $request->txt_loc_contact_person ?? null,
+            'm08_email' => $request->txt_loc_email ?? null,
+            'm08_phone' => $request->txt_loc_phone ?? null,
             'm01_state_id' => $request->txt_loc_state_id,
             'm02_district_id' => $request->txt_loc_district_id,
             'm08_pincode' => $request->txt_loc_pincode,

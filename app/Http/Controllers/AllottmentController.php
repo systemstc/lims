@@ -412,6 +412,15 @@ class AllottmentController extends Controller
             ->orderBy('tr05_sample_test_id')
             ->get();
 
+        $referenceId = $registration->tr04_reference_id;
+        $testNumbersWithResults = TestResult::where('tr04_reference_id', $referenceId)
+            ->pluck('m12_test_number')
+            ->toArray();
+
+        foreach ($tests as $test) {
+            $test->has_result = in_array($test->m12_test_number, $testNumbersWithResults);
+        }
+
         $employees = $this->getLabEmployees($roId);
         $ros = Ro::where('m04_ro_id', '!=', $roId)->orderBy('m04_name')->get();
 
@@ -857,20 +866,34 @@ class AllottmentController extends Controller
 
             foreach ($request->allotments as $testId => $empId) {
                 if (!empty($empId)) {
-                    $updated = SampleTest::where('tr05_sample_test_id', $testId)
+                    $testRecord = SampleTest::where('tr05_sample_test_id', $testId)
                         ->where('tr04_sample_registration_id', $request->txt_sample_registration_id)
-                        ->where(function ($query) use ($roId) {
-                            $query->where('m04_ro_id', $roId)
-                                ->orWhere('m04_transferred_to', $roId);
-                        })
-                        ->update([
-                            'm06_alloted_to' => $empId,
-                            'm06_alloted_by' => $userId,
-                            'tr05_status' => 'ALLOTED',
-                            'tr05_alloted_at' => now()
-                        ]);
+                        ->first();
+                        
+                    if ($testRecord) {
+                        $hasResult = TestResult::where('tr04_reference_id', $testRecord->registration->tr04_reference_id)
+                            ->where('m12_test_number', $testRecord->m12_test_number)
+                            ->exists();
+                            
+                        if ($hasResult) {
+                            continue; // Skip allotment if result exists
+                        }
 
-                    $updatedCount += $updated;
+                        $updated = SampleTest::where('tr05_sample_test_id', $testId)
+                            ->where('tr04_sample_registration_id', $request->txt_sample_registration_id)
+                            ->where(function ($query) use ($roId) {
+                                $query->where('m04_ro_id', $roId)
+                                    ->orWhere('m04_transferred_to', $roId);
+                            })
+                            ->update([
+                                'm06_alloted_to' => $empId,
+                                'm06_alloted_by' => $userId,
+                                'tr05_status' => 'ALLOTED',
+                                'tr05_alloted_at' => now()
+                            ]);
+
+                        $updatedCount += $updated;
+                    }
                 }
             }
             DB::commit();
@@ -1084,6 +1107,7 @@ class AllottmentController extends Controller
                 ->update([
                     'm06_received_by' => $userId,
                     'tr06_received_at' => now(),
+                    'tr06_status' => 'ACCEPTED'
                 ]);
 
             $test->update([
@@ -1142,6 +1166,16 @@ class AllottmentController extends Controller
             if ($test->m06_alloted_to != $request->from_user_id) {
                 Session::flash('type', 'error');
                 Session::flash('message', 'Test is not currently alloted to the specified user');
+                return redirect()->back();
+            }
+
+            $hasResult = TestResult::where('tr04_reference_id', $test->registration->tr04_reference_id)
+                ->where('m12_test_number', $test->m12_test_number)
+                ->exists();
+
+            if ($hasResult) {
+                Session::flash('type', 'error');
+                Session::flash('message', 'Cannot reassign: Result has already been submitted for this test.');
                 return redirect()->back();
             }
 

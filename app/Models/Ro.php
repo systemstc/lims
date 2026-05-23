@@ -18,7 +18,16 @@ class Ro extends Model
         'cgst',
         'sgst',
         'igst',
-        'gst_no'
+        'gst_no',
+        'certificate_no',
+        'lab_name_hi',
+        'lab_name_en',
+        'ministry_hi',
+        'ministry_en',
+        'lab_address',
+        'lab_contact',
+        'lab_email',
+        'lab_website'
     ];
 
 

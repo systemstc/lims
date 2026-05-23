@@ -136,7 +136,7 @@
                                         {{-- Standards Section --}}
                                         <div class="col-md-4" id="standards-section">
                                             <div class="form-group">
-                                                <label class="form-label">Standards <b class="text-danger">*</b></label>
+                                                <label class="form-label">Standards</label>
                                                 <div class="form-control-wrap position-relative">
                                                     <input type="text" id="standard-search" class="form-control"
                                                         placeholder="Search or enter standard name" autocomplete="off">
@@ -164,8 +164,7 @@
                                         {{-- Primary Tests Section --}}
                                         <div class="col-md-4" id="primary-tests-section">
                                             <div class="form-group">
-                                                <label class="form-label">Primary Tests <b
-                                                        class="text-danger">*</b></label>
+                                                <label class="form-label">Primary Tests</label>
                                                 <div class="form-control-wrap position-relative">
                                                     <input type="text" id="primary-test-search" class="form-control"
                                                         placeholder="Search or enter primary test name"

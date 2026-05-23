@@ -10,6 +10,7 @@ use App\Models\SampleTest;
 use App\Models\SecondaryTest;
 use App\Models\TestReport;
 use App\Models\TestResult;
+use App\Traits\HasManuscriptContent;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -18,6 +19,7 @@ use Illuminate\Support\Facades\Session;
 
 class AnalystController extends Controller
 {
+    use HasManuscriptContent;
     public function viewAnalystDashboard(Request $request)
     {
         $userId = Session::get('user_id');
@@ -465,20 +467,41 @@ class AnalystController extends Controller
             foreach ($sampleTests as $sampleTest) {
                 if ($sampleTest->test) {
                     $test = $sampleTest->test;
+                    
+                    // Get primary test IDs from the test master
+                    $masterPrimaryTestIds = array_filter(explode(',', $test->m16_primary_test_id ?? ''));
+                    
+                    // ALSO get primary test IDs from the existing results for this test
+                    $resultPrimaryTestIds = $rejectedResults->where('m12_test_number', $test->m12_test_number)
+                        ->pluck('m16_primary_test_id')
+                        ->filter()
+                        ->unique()
+                        ->toArray();
 
-                    // Load primary tests that are associated with this test
-                    if ($test->m16_primary_test_id) {
-                        $primaryTestIds = explode(',', $test->m16_primary_test_id);
-                        $primaryTests = PrimaryTest::whereIn('m16_primary_test_id', $primaryTestIds)->get();
+                    // ALSO get primary test IDs from the existing custom fields for this test
+                    $customPrimaryIds = $rejectedCustomFields->where('m12_test_number', $test->m12_test_number)
+                        ->pluck('m16_primary_test_id')
+                        ->filter()
+                        ->unique()
+                        ->toArray();
+                        
+                    $allPrimaryTestIds = array_unique(array_merge($masterPrimaryTestIds, $resultPrimaryTestIds, $customPrimaryIds));
+                    
+                    $primaryTests = collect();
+                    if (!empty($allPrimaryTestIds)) {
+                        $primaryTests = \DB::table('m16_primary_tests')
+                            ->whereIn('m16_primary_test_id', $allPrimaryTestIds)
+                            ->get();
 
                         // Load secondary tests for each primary test
                         foreach ($primaryTests as $primaryTest) {
-                            $secondaryTests = SecondaryTest::where('m16_primary_test_id', $primaryTest->m16_primary_test_id)->get();
-                            $primaryTest->secondaryTests = $secondaryTests;
+                            $secondaryTests = \DB::table('m17_secondary_tests')
+                                ->where('m16_primary_test_id', $primaryTest->m16_primary_test_id)
+                                ->get();
+                            $primaryTest->secondaryTests = collect($secondaryTests);
                         }
-
-                        $test->primaryTests = $primaryTests;
                     }
+                    $test->primaryTests = $primaryTests;
                 }
             }
 
@@ -502,6 +525,7 @@ class AnalystController extends Controller
                 'test_date' => 'required|date',
                 'performance_date' => 'required|date',
                 'results' => 'nullable|array',
+                'test_calculation' => 'nullable|array',
                 'custom_fields' => 'nullable|array',
                 'remarks' => 'nullable|string',
                 'action' => 'required|string|in:DRAFT,SUBMITTED,RESULTED'
@@ -535,6 +559,7 @@ class AnalystController extends Controller
                                 'registration_id' => $refId,
                                 'test_number' => $testNumber,
                                 'result_data' => $testResult,
+                                'manuscript_content' => $request->test_calculation[(string)$testNumber] ?? null,
                                 'test_date' => $request->test_date,
                                 'performance_date' => $request->performance_date,
                                 'remarks' => $request->remarks,
@@ -555,6 +580,7 @@ class AnalystController extends Controller
                                         'test_number' => $testNumber,
                                         'primary_test_id' => $primaryTestId,
                                         'result_data' => $primaryData,
+                                        'manuscript_content' => $request->test_calculation[(string)$testNumber] ?? null,
                                         'test_date' => $request->test_date,
                                         'performance_date' => $request->performance_date,
                                         'remarks' => $request->remarks,
@@ -567,12 +593,15 @@ class AnalystController extends Controller
                                 // Primary test with secondary tests
                                 if (isset($primaryData['secondary_tests'])) {
                                     foreach ($primaryData['secondary_tests'] as $secondaryTestId => $secondaryData) {
+                                        
+
                                         $this->saveRevisedTestResult([
                                             'registration_id' => $refId,
                                             'test_number' => $testNumber,
                                             'primary_test_id' => $primaryTestId,
                                             'secondary_test_id' => $secondaryTestId,
                                             'result_data' => $secondaryData,
+                                            'manuscript_content' => $request->test_calculation[(string)$testNumber] ?? null,
                                             'test_date' => $request->test_date,
                                             'performance_date' => $request->performance_date,
                                             'remarks' => $request->remarks,
@@ -649,6 +678,7 @@ class AnalystController extends Controller
             'm16_primary_test_id' => $data['primary_test_id'] ?? null,
             'm17_secondary_test_id' => $data['secondary_test_id'] ?? null,
             'm22_manuscript_id' => null,
+            'tr07_manuscript_content' => $this->processManuscriptImages($data['manuscript_content'] ?? null),
             'tr07_result' => $resultData['result'],
             'tr07_unit' => $resultData['unit'] ?? null,
             'tr07_test_date' => $data['test_date'],
@@ -819,9 +849,10 @@ class AnalystController extends Controller
             ->where('tr05_status', '!=', 'COMPLETED')
             ->where('tr05_status', '!=', 'REPORTED');
 
-        // If not admin/manager, restrict to user's tests
-        // But for rejection flow, we might want to be permissive if they are fixing it
-        $query->where('m06_alloted_to', $userId);
+        // For revision flow, we allow the current user to complete tests even if not originally allotted
+        if (Session::get('role') !== 'Manager' && Session::get('role') !== 'Admin') {
+            $query->where('m06_alloted_to', $userId);
+        }
 
         $tests = $query->get();
 

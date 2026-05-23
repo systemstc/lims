@@ -22,6 +22,7 @@ class TestTransfer extends Model
         'tr06_received_at',
         'tr06_reason',
         'tr06_remark',
+        'tr06_status',
     ];
 
     protected $casts = [
@@ -58,12 +59,12 @@ class TestTransfer extends Model
     // Query Scopes
     public function scopePending(Builder $query): Builder
     {
-        return $query->whereNull('m06_received_by')->whereNull('tr06_received_at');
+        return $query->where('tr06_status', 'PENDING');
     }
 
     public function scopeReceived(Builder $query): Builder
     {
-        return $query->whereNotNull('m06_received_by')->whereNotNull('tr06_received_at');
+        return $query->where('tr06_status', 'ACCEPTED');
     }
 
     public function scopeForRo(Builder $query, $roId): Builder
@@ -86,22 +87,26 @@ class TestTransfer extends Model
     // Helper Methods
     public function isPending(): bool
     {
-        return is_null($this->m06_received_by) && is_null($this->tr06_received_at);
+        return $this->tr06_status === 'PENDING';
     }
 
     public function isReceived(): bool
     {
-        return !is_null($this->m06_received_by) && !is_null($this->tr06_received_at);
+        return $this->tr06_status === 'ACCEPTED';
     }
 
     public function getStatusLabel(): string
     {
-        return $this->isReceived() ? 'Received' : 'Pending';
+        return ucfirst(strtolower($this->tr06_status));
     }
 
     public function getStatusBadgeClass(): string
     {
-        return $this->isReceived() ? 'bg-success' : 'bg-warning';
+        return match($this->tr06_status) {
+            'ACCEPTED' => 'bg-success',
+            'CANCELLED' => 'bg-danger',
+            default => 'bg-warning',
+        };
     }
 
     public function getDurationInHours(): ?float

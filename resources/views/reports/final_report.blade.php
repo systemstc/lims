@@ -40,26 +40,92 @@
                                         <h4 class="text-decoration-underline">TEST REPORT</h4>
                                     </div>
 
+                                    @php
+                                        $isCustom = ($sample->m09_customer_type_id == 4) || ($sample->customerType && str_contains(strtolower($sample->customerType->m09_name), 'custom'));
+                                    @endphp
+
                                     {{-- Sample Information Table --}}
-                                    <table class="table table-bordered table-sm mb-4">
-                                        <tbody>
-                                            <tr>
-                                                <th width="30%">Test Report No</th>
-                                                <td>{{ $meta['report_no'] }}</td>
-                                                <th width="20%" class="text-end">Date</th>
-                                                <td width="20%">{{ $meta['date'] }}</td>
-                                            </tr>
-                                            <tr>
-                                                <th>Name & Address of Customer</th>
-                                                <td colspan="3">{{ $meta['customer_name'] }}</td>
-                                            </tr>
-                                            <tr>
-                                                <th>Sample Description</th>
-                                                <td colspan="3" class="text-center">{{ $meta['sample_description'] }}
-                                                </td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
+                                    @if($isCustom)
+                                        <table class="table table-bordered table-sm mb-4">
+                                            <tbody>
+                                                <tr>
+                                                    <th width="30%">Test Report No</th>
+                                                    <td>{{ $meta['report_no'] }}</td>
+                                                    <th width="20%" class="text-end">Date</th>
+                                                    <td width="20%">{{ $meta['date'] }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Name &amp; Address of Customer</th>
+                                                    <td colspan="3">{{ $meta['customer_name'] }}<br>{{ $meta['customer_address'] }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Sample forwarding letter No. &amp; date</th>
+                                                    <td colspan="3">Test Memo No. {{ $meta['reference'] }} dated {{ \Carbon\Carbon::parse($sample->tr04_reference_date)->format('d/m/Y') }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Date of receipt of sample</th>
+                                                    <td colspan="3">{{ Carbon\Carbon::parse($sample->created_at)->format('d M Y') }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Buyers Name &amp; address (Optional)</th>
+                                                    <td colspan="3">{{ $meta['buyer'] }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Customer Sample No.</th>
+                                                    <td>BE No. {{ $meta['be_no'] }}</td>
+                                                    <th class="text-end">Lab. Sample No.</th>
+                                                    <td>{{ $meta['report_no'] }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Sample Description</th>
+                                                    <td colspan="3">{{ $meta['sample_description'] }}</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    @else
+                                        <table class="table table-bordered table-sm mb-4">
+                                            <tbody>
+                                                <tr>
+                                                    <th width="30%">Test Report No</th>
+                                                    <td>{{ $meta['report_no'] }}</td>
+                                                    <th width="20%" class="text-end">Date</th>
+                                                    <td width="20%">{{ $meta['date'] }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Name &amp; Address of Customer</th>
+                                                    <td colspan="3">{{ $meta['customer_name'] }}<br>{{ $meta['customer_address'] }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Sample forwarding letter No. &amp; date</th>
+                                                    <td colspan="3">{{ $meta['reference'] }} dtd. {{ \Carbon\Carbon::parse($sample->tr04_reference_date)->format('d.m.Y') }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Date of receipt of sample</th>
+                                                    <td>{{ Carbon\Carbon::parse($sample->created_at)->format('d M Y') }}</td>
+                                                    <th class="text-end">Lab. Sample No.</th>
+                                                    <td>{{ $meta['report_no'] }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Customer Sample No</th>
+                                                    <td colspan="3">{{ $meta['be_no'] }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Sample Description</th>
+                                                    <td colspan="3">{{ $meta['sample_description'] }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Sample Characteristics</th>
+                                                    <td colspan="3">{{ $meta['sample_characteristics'] }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Date of Performance of Tests</th>
+                                                    <td colspan="3">
+                                                        {{ \Carbon\Carbon::parse($sample->created_at)->format('d.m.Y') }} to {{ $sample->testResult->first() && $sample->testResult->first()->tr07_performance_date ? \Carbon\Carbon::parse($sample->testResult->first()->tr07_performance_date)->format('d.m.Y') : \Carbon\Carbon::parse($sample->created_at)->format('d.m.Y') }}
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    @endif
 
                                     {{-- Test Results Section --}}
                                     <div class="text-center mb-3">
@@ -67,22 +133,39 @@
                                     </div>
 
                                     {{-- Sample Details --}}
-                                    <table class="table table-bordered table-sm mb-4">
-                                        <tbody>
-                                            <tr>
-                                                <th width="30%">Sample Characteristics</th>
-                                                <td>{{ $meta['sample_characteristics'] }}</td>
-                                            </tr>
-                                            <tr>
-                                                <th>Date of Performance of Test(s)</th>
-                                                <td>{{ $meta['date'] }} to {{ $meta['test_performance_date'] }}</td>
-                                            </tr>
-                                            <tr>
-                                                <th>Laboratory Sample No.</th>
-                                                <td>{{ $meta['report_no'] }}</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
+                                    @if($isCustom)
+                                        <table class="table table-bordered table-sm mb-4">
+                                            <tbody>
+                                                <tr>
+                                                    <th width="30%">Sample Characteristics</th>
+                                                    <td>{{ $meta['sample_characteristics'] }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Date of Performance of Test(s)</th>
+                                                    <td>{{ \Carbon\Carbon::parse($sample->created_at)->format('d.m.Y') }} to {{ $sample->testResult->first() && $sample->testResult->first()->tr07_performance_date ? \Carbon\Carbon::parse($sample->testResult->first()->tr07_performance_date)->format('d.m.Y') : \Carbon\Carbon::parse($sample->created_at)->format('d.m.Y') }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Laboratory Sample No.</th>
+                                                    <td>{{ $meta['report_no'] }}</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    @else
+                                        <table class="table table-bordered table-sm mb-4">
+                                            <tbody>
+                                                @if(isset($hasAccreditedTests) && $hasAccreditedTests && $sample->tr04_ulr_no)
+                                                <tr>
+                                                    <th width="30%">ULR No.</th>
+                                                    <td>{{ $sample->tr04_ulr_no }}</td>
+                                                </tr>
+                                                @endif
+                                                <tr>
+                                                    <th width="30%">Laboratory Sample No.</th>
+                                                    <td>{{ $meta['report_no'] }}</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    @endif
 
                                     {{-- Reorderable Test Sections --}}
                                     <div id="sortable-tests">
@@ -98,7 +181,7 @@
                                                         $testName =
                                                             $parent->test->m12_name ?? 'Test #' . $item['test_number'];
                                                         $isArylAminesTest =
-                                                            strpos(strtolower($testName), 'aryl amine') !== false;
+                                                            strpos(strtolower($testName), 'Banned amines') !== false;
                                                     @endphp
 
                                                     @if (!$isArylAminesTest)
@@ -109,9 +192,12 @@
                                                                 class="d-flex justify-content-between align-items-start mb-2">
                                                                 <div>
                                                                     <strong class="h6 mb-1">{{ $testName }} - </strong>
-                                                                    @if ($parent->test->standard->m15_method ?? false)
-                                                                        <small
-                                                                            class="fw-bold">({{ $parent->test->standard->m15_method }})</small>
+                                                                    @php
+                                                                        $sampleTest = $sample->sampleTests->firstWhere('m12_test_number', $item['test_number']);
+                                                                        $standardMethod = optional($sampleTest->standard)->m15_method ?? optional($parent->test->standard)->m15_method ?? null;
+                                                                    @endphp
+                                                                    @if ($standardMethod)
+                                                                        <small class="fw-bold">({{ $standardMethod }})</small>
                                                                     @endif
                                                                 </div>
                                                                 <div class="d-flex align-items-center">
@@ -288,7 +374,7 @@
                                         <div class="d-inline-block text-center">
                                             <div class="border-top border-dark pt-1" style="width: 200px;"></div>
                                             <div class="fw-bold mt-1">
-                                                {{ $report->generator->m06_name ?? 'Lab Manager JNPT' }}</div>
+                                                {{ optional($report->generator)->m06_name ?? 'Lab Manager JNPT' }}</div>
                                             <small class="text-muted">Authorized Signatory</small>
                                         </div>
                                     </div>

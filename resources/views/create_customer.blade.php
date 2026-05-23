@@ -562,9 +562,7 @@
                 validateField("m07_gst", $(this).val(), "txt_gst", 'Customer', getCurrentRoId());
             });
 
-            $("#txt_contact_person").on("input", function() {
-                validateField("m07_contact_person", $(this).val(), "txt_contact_person", 'Customer', getCurrentRoId());
-            });
+
 
             // Re-validate if ADMIN changes the RO
             @if (Session::get('role') === 'ADMIN')

@@ -7,7 +7,7 @@
                     <div class="nk-block nk-block-lg">
                         <div class="nk-block-head">
                             <div class="nk-block-head-content">
-                                <h4 class="nk-block-title">Customer Type List</h4>
+                                <h4 class="nk-block-title">NABL Accredited Parameters List</h4>
                                 <div class="nk-block-des d-flex justify-content-end">
                                     <a data-bs-toggle="modal" data-bs-target="#createAccreditation"
                                         class="btn btn-primary"><em class="icon ni ni-plus"></em> &nbsp; Add More</a>
@@ -23,6 +23,7 @@
                                             <th>Sr. No</th>
                                             <th>Ro</th>
                                             <th>Standard</th>
+                                            <th>Test/Parameter</th>
                                             <th>Accreditation Status</th>
                                             <th>Issue Date</th>
                                             <th>Expire Date</th>
@@ -36,7 +37,8 @@
                                             <tr>
                                                 <td>{{ $key + 1 }}</td>
                                                 <td>{{ $accreditation->ro->m04_name ?? '_' }}</td>
-                                                <td>{{ $accreditation->standard->m15_method }}</td>
+                                                <td>{{ $accreditation->standard->m15_method ?? '_' }}</td>
+                                                <td>{{ $accreditation->test->m12_name ?? '_' }}</td>
                                                 <td>{{ $accreditation->m21_is_accredited }}</td>
                                                 <td><b>{{ $accreditation->m21_accreditation_date }}</b></td>
                                                 <td>{{ $accreditation->m21_valid_till }}</td>
@@ -92,18 +94,30 @@
                     <div class="modal-body">
                         <div class="row g-3">
 
+                            {{-- Test --}}
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="form-label" for="dd_test">Test Parameter</label>
+                                    <div class="form-control-wrap">
+                                        <select class="form-select js-select2" data-search="on" data-dropdown-parent="#createAccreditation" name="dd_test" id="dd_test" required>
+                                            <option value="" disabled selected>Select Test</option>
+                                            @foreach ($tests as $test)
+                                                <option value="{{ $test->m12_test_id }}">
+                                                    {{ $test->m12_name }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
                             {{-- Standard --}}
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label class="form-label" for="dd_standard">Standard</label>
                                     <div class="form-control-wrap">
-                                        <select class="form-select" name="dd_standard" id="dd_standard" required>
+                                        <select class="form-select js-select2" data-search="on" data-dropdown-parent="#createAccreditation" name="dd_standard" id="dd_standard" required>
                                             <option value="" disabled selected>Select Standard</option>
-                                            @foreach ($standards as $standard)
-                                                <option value="{{ $standard->m15_standard_id }}">
-                                                    {{ $standard->m15_method }}
-                                                </option>
-                                            @endforeach
                                         </select>
                                     </div>
                                 </div>
@@ -155,4 +169,41 @@
             </div>
         </div>
     </div>
+@endsection
+
+@section('scripts')
+<script>
+    $(document).ready(function() {
+        $('#dd_test').on('change', function() {
+            var testId = $(this).val();
+            var standardSelect = $('#dd_standard');
+            
+            // Clear current options
+            standardSelect.empty();
+            standardSelect.append('<option value="" disabled selected>Select Standard</option>');
+            
+            if (testId) {
+                $.ajax({
+                    url: '{{ route("get_standards_by_test") }}',
+                    type: 'GET',
+                    data: { test_id: testId },
+                    success: function(response) {
+                        $.each(response, function(index, standard) {
+                            standardSelect.append('<option value="' + standard.id + '">' + standard.name + '</option>');
+                        });
+                        // Re-initialize select2 if available
+                        if (standardSelect.hasClass('select2-hidden-accessible')) {
+                            standardSelect.select2('destroy').select2();
+                        } else {
+                            standardSelect.select2();
+                        }
+                    },
+                    error: function(xhr) {
+                        console.error('Error fetching standards');
+                    }
+                });
+            }
+        });
+    });
+</script>
 @endsection

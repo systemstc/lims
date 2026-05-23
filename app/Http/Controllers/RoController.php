@@ -55,6 +55,15 @@ class RoController extends Controller
                     'm04_email'    => $request->txt_email,
                     'm04_phone'    => $request->txt_phone,
                     'm03_role_id'  => 1,
+                    'certificate_no' => $request->certificate_no,
+                    'lab_name_hi' => $request->lab_name_hi,
+                    'lab_name_en' => $request->lab_name_en,
+                    'ministry_hi' => $request->ministry_hi,
+                    'ministry_en' => $request->ministry_en,
+                    'lab_address' => $request->lab_address,
+                    'lab_contact' => $request->lab_contact,
+                    'lab_email' => $request->lab_email,
+                    'lab_website' => $request->lab_website,
                 ]);
                 DB::commit();
                 Session::flash('type', 'success');
@@ -96,6 +105,15 @@ class RoController extends Controller
                 'm04_name' => $request->txt_edit_name,
                 'm04_email' => $request->txt_edit_email,
                 'm04_phone' => $request->txt_edit_phone,
+                'certificate_no' => $request->certificate_no,
+                'lab_name_hi' => $request->lab_name_hi,
+                'lab_name_en' => $request->lab_name_en,
+                'ministry_hi' => $request->ministry_hi,
+                'ministry_en' => $request->ministry_en,
+                'lab_address' => $request->lab_address,
+                'lab_contact' => $request->lab_contact,
+                'lab_email' => $request->lab_email,
+                'lab_website' => $request->lab_website,
             ];
 
             $ro = Ro::findOrFail($request->txt_edit_id);

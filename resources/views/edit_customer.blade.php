@@ -361,22 +361,22 @@
             <input type="hidden" name="locations[__INDEX__][id]" value="">
             <div class="col-md-3">
                 <div class="form-group">
-                    <label class="form-label">Contact Person<b class="text-danger">*</b></label>
-                    <input type="text" class="form-control" name="locations[__INDEX__][contact_person]" required>
+                    <label class="form-label">Contact Person</label>
+                    <input type="text" class="form-control" name="locations[__INDEX__][contact_person]">
                     <span class="text-danger error-message" data-field="contact_person"></span>
                 </div>
             </div>
             <div class="col-md-3">
                 <div class="form-group">
-                    <label class="form-label">Email<b class="text-danger">*</b></label>
-                    <input type="email" class="form-control" name="locations[__INDEX__][email]" required>
+                    <label class="form-label">Email</label>
+                    <input type="email" class="form-control" name="locations[__INDEX__][email]">
                     <span class="text-danger error-message" data-field="email"></span>
                 </div>
             </div>
             <div class="col-md-3">
                 <div class="form-group">
-                    <label class="form-label">Phone<b class="text-danger">*</b></label>
-                    <input type="text" class="form-control" name="locations[__INDEX__][phone]" required>
+                    <label class="form-label">Phone</label>
+                    <input type="text" class="form-control" name="locations[__INDEX__][phone]">
                     <span class="text-danger error-message" data-field="phone"></span>
                 </div>
             </div>

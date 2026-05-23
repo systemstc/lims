@@ -200,6 +200,8 @@
                                                 <span class="text-muted">Transferred</span>
                                             @elseif($test->canAcceptTransfer(Session::get('ro_id')))
                                                 <span class="text-info">Pending Acceptance</span>
+                                            @elseif(isset($test->has_result) && $test->has_result)
+                                                <span class="text-success fw-bold"><em class="icon ni ni-check-circle"></em> Result Submitted</span>
                                             @else
                                                 <select name="allotments[{{ $test->tr05_sample_test_id }}]"
                                                     class="form-control form-select form-select-sm individual-select"

@@ -33,7 +33,27 @@
                             enctype="multipart/form-data" id="reviseResultForm">
                             @csrf
 
+                            @if (Session::has('message'))
+                                <div class="alert alert-{{ Session::get('type') === 'error' ? 'danger' : (Session::get('type') === 'warning' ? 'warning' : 'success') }} alert-dismissible fade show shadow-sm mb-4" role="alert">
+                                    <strong>{{ ucfirst(Session::get('type')) }}!</strong> {{ Session::get('message') }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                            @endif
+
                             <input type="hidden" name="registration_id" value="{{ $sample->tr04_reference_id }}">
+                            <input type="hidden" name="action" id="submitAction" value="SUBMITTED">
+
+                            @if ($errors->any())
+                                <div class="alert alert-danger alert-icon border-danger shadow-sm mb-4">
+                                    <em class="icon ni ni-cross-circle"></em>
+                                    <strong>Submission Failed!</strong> Please check the following errors:
+                                    <ul class="mt-2 mb-0">
+                                        @foreach ($errors->all() as $error)
+                                            <li>{{ $error }}</li>
+                                        @endforeach
+                                    </ul>
+                                </div>
+                            @endif
 
                             <!-- Report Information -->
                             <div class="card shadow-sm border-danger mb-4">
@@ -98,176 +118,210 @@
                             </div>
 
                             <!-- Test Results -->
-                            <div class="card border-danger shadow-sm mb-4">
-                                <div class="card-header bg-danger text-white py-2 px-3 rounded-top">
-                                    <h6 class="mb-0 text-uppercase">
-                                        <em class="icon ni ni-layers"></em> Revised Test Results
-                                        <small class="opacity-75">(Previous rejected results shown in red)</small>
-                                    </h6>
+                            <div class="mb-4">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h5 class="fw-bold text-uppercase mb-0 text-danger">
+                                        <em class="icon ni ni-layers"></em> Revised Test Results & Manuscripts
+                                    </h5>
                                 </div>
-                                <div class="">
-                                    <table class="table table-bordered align-middle mb-0">
-                                        <thead class="table-light">
-                                            <tr>
-                                                <th style="width: 10%">Sr. No.</th>
-                                                <th>Test Name</th>
-                                                <th style="width: 20%">Previous Result</th>
-                                                <th style="width: 35%">Revised Result / Entry</th>
-                                                <th style="width: 15%">Action</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="testResultsBody">
-                                            @foreach ($sampleTests as $key => $sampleTest)
-                                                @php
-                                                    $test = $sampleTest->test;
-                                                    $primaryTests = $test->primaryTests ?? collect();
-                                                    $existingTestResults = $rejectedResults->where(
-                                                        'm12_test_number',
-                                                        $test->m12_test_number,
-                                                    );
-                                                    $existingMainTestResult = $existingTestResults
-                                                        ->whereNull('m16_primary_test_id')
-                                                        ->whereNull('m17_secondary_test_id')
-                                                        ->first();
-                                                @endphp
+                                <div id="testResultsContainer">
+                                    @foreach ($sampleTests as $key => $sampleTest)
+                                        @php
+                                            $test = $sampleTest->test;
+                                            $primaryTests = $test->primaryTests ?? collect();
+                                            $existingTestResults = $rejectedResults->filter(function($r) use ($test) {
+                                                return (string)$r->m12_test_number === (string)$test->m12_test_number;
+                                            });
+                                            $existingMainTestResult = $existingTestResults
+                                                ->whereNull('m16_primary_test_id')
+                                                ->whereNull('m17_secondary_test_id')
+                                                ->first();
 
-                                                <!-- Main Test Row -->
-                                                <tr class="bg-light fw-bold test-main-row"
-                                                    data-test-id="{{ $test->m12_test_id }}"
-                                                    data-test-number="{{ $test->m12_test_number }}">
-                                                    <td>{{ $key + 1 }}</td>
-                                                    <td>
-                                                        <strong>{{ $test->m12_name ?? 'N/A' }}</strong>
+                                            $manuscriptContent = $existingTestResults->whereNotNull('tr07_manuscript_content')->first()->tr07_manuscript_content 
+                                                ?? $existingTestResults->pluck('tr07_manuscript_content')->filter()->first()
+                                                ?? '';
+                                            
+                                            $currentTestCustomFields = $rejectedCustomFields->filter(function($f) use ($test) {
+                                                return (string)$f->m12_test_number === (string)$test->m12_test_number;
+                                            });
+                                        @endphp
+
+                                        <div class="nk-block nk-block-lg card border-danger shadow-sm mb-4 test-card"
+                                            data-main-sr="{{ $key + 1 }}">
+                                            <div class="card-header bg-light border-bottom">
+                                                <h5 class="title nk-block-title mb-0 text-dark">
+                                                    {{ $key + 1 }}. {{ $test->m12_name ?? 'N/A' }}
+                                                    <span class="text-muted fw-normal fs-6">
                                                         @if ($sampleTest->standard)
-                                                            - ( {{ $sampleTest->standard->m15_method ?? 'N/A' }} )
-                                                        @endif
-                                                    </td>
-                                                    <td class="text-danger fw-bold text-center">
-                                                        @if ($existingMainTestResult)
-                                                            {{ $existingMainTestResult->tr07_result ?? 'N/A' }}
-                                                            @if ($existingMainTestResult->tr07_unit)
-                                                                <br><small
-                                                                    class="text-muted">({{ $existingMainTestResult->tr07_unit }})</small>
-                                                            @endif
+                                                            ({{ $sampleTest->standard->m15_method ?? 'N/A' }})
                                                         @else
-                                                            -
+                                                            (No standard for this test)
                                                         @endif
-                                                    </td>
-                                                    <td>
-                                                        @if ($primaryTests->isEmpty())
-                                                            <!-- Input field for main test when no primary tests -->
-                                                            <div class="input-group input-group-sm">
-                                                                <input type="text"
-                                                                    class="form-control form-control-sm bg-light border-primary"
-                                                                    name="results[{{ $test->m12_test_number }}][test][result]"
-                                                                    value="{{ old('results.' . $test->m12_test_number . '.test.result', $existingMainTestResult->tr07_result ?? '') }}"
-                                                                    placeholder="Enter revised result" autocomplete="off"
-                                                                    required>
-                                                                <input type="text"
-                                                                    class="form-control form-control-sm bg-light border-primary"
-                                                                    style="max-width: 80px;"
-                                                                    name="results[{{ $test->m12_test_number }}][test][unit]"
-                                                                    value="{{ old('results.' . $test->m12_test_number . '.test.unit', $existingMainTestResult->tr07_unit ?? ($test->m12_unit ?? '')) }}"
-                                                                    placeholder="Unit">
-                                                                <input type="hidden"
-                                                                    name="results[{{ $test->m12_test_number }}][test][test_id]"
-                                                                    value="{{ $test->m12_test_number }}">
-                                                            </div>
-                                                        @endif
-                                                    </td>
-                                                    <td>
-                                                        @if ($primaryTests->isNotEmpty())
-                                                            <button type="button"
-                                                                class="btn btn-outline-primary btn-sm add-primary-test"
-                                                                data-test-id="{{ $test->m12_test_id }}"
-                                                                data-test-number="{{ $test->m12_test_number }}"
-                                                                data-primary-tests="{{ $primaryTests->toJson() }}">
-                                                                <em class="icon ni ni-plus"></em> Primary
-                                                            </button>
-                                                        @else
-                                                            <button type="button"
-                                                                class="btn btn-outline-warning btn-sm add-custom-field"
-                                                                data-test-id="{{ $test->m12_test_id }}"
-                                                                data-test-number="{{ $test->m12_test_number }}"
-                                                                data-type="test">
-                                                                <em class="icon ni ni-plus"></em> Custom
-                                                            </button>
-                                                        @endif
-                                                    </td>
-                                                </tr>
+                                                    </span>
+                                                </h5>
+                                                <small class="text-muted d-block mt-1">Write your manuscript part and calculation below:</small>
+                                            </div>
+                                            <div class="card-inner p-2">
+                                                <!-- Summernote Editor -->
+                                                <div class="mb-4">
+                                                    <textarea class="summernote-basic form-control" name="test_calculation[{{ $test->m12_test_number }}]">{!! old('test_calculation.' . $test->m12_test_number, $manuscriptContent) !!}</textarea>
+                                                </div>
 
-                                                <!-- Existing Primary Tests from Rejected Results -->
-                                                @foreach ($existingTestResults->whereNotNull('m16_primary_test_id')->whereNull('m17_secondary_test_id') as $pKey => $existingPrimaryResult)
-                                                    @php
-                                                        $primaryTest = $primaryTests
-                                                            ->where(
-                                                                'm16_primary_test_id',
-                                                                $existingPrimaryResult->m16_primary_test_id,
-                                                            )
-                                                            ->first();
-                                                    @endphp
-                                                    @if ($primaryTest)
-                                                        @include('testresult.partials.primary_test_row', [
-                                                            'test' => $test,
-                                                            'primaryTest' => $primaryTest,
-                                                            'existingPrimaryResult' => $existingPrimaryResult,
-                                                            'key' => $key,
-                                                            'pKey' => $pKey,
-                                                            'existingResults' => $existingTestResults,
-                                                            'isRevision' => true,
-                                                        ])
-                                                    @endif
-                                                @endforeach
+                                                <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+                                                    <h6 class="title mb-0 text-danger">Revised Output <small class="text-muted fw-normal">(Previous rejected results shown in red)</small></h6>
+                                                </div>
 
-                                                <!-- Custom Fields for Main Test -->
-                                                @foreach ($rejectedCustomFields->where('m12_test_number', $test->m12_test_number)->whereNull('m16_primary_test_id')->whereNull('m17_secondary_test_id') as $customField)
-                                                    <tr class="custom-field-row revision-highlight"
-                                                        data-test-number="{{ $test->m12_test_number }}">
-                                                        <td>{{ $key + 1 }}.C{{ $loop->iteration }}</td>
-                                                        <td>
-                                                            <input type="text"
-                                                                class="form-control form-control-sm custom-field-input"
-                                                                name="custom_fields[{{ $test->m12_test_number }}][{{ $customField->tr08_custom_field_id }}][name]"
-                                                                value="{{ $customField->tr08_field_name }}"
-                                                                placeholder="Custom Field Name" required>
-                                                            <input type="hidden"
-                                                                name="custom_fields[{{ $test->m12_test_number }}][{{ $customField->tr08_custom_field_id }}][custom_field_id]"
-                                                                value="{{ $customField->tr08_custom_field_id }}">
-                                                        </td>
-                                                        <td class="text-danger fw-bold text-center">
-                                                            {{ $customField->tr08_field_value }}
-                                                            @if ($customField->tr08_field_unit)
-                                                                <br><small
-                                                                    class="text-muted">({{ $customField->tr08_field_unit }})</small>
+                                                <table class="table table-bordered table-sm align-middle mb-0 w-100" id="results_table_{{ $test->m12_test_number }}">
+                                                    <thead class="table-light">
+                                                        <tr>
+                                                            <th style="width: 10%">Sr. No.</th>
+                                                            <th>Test Name</th>
+                                                            <th style="width: 20%">Previous Result</th>
+                                                            <th style="width: 35%">Revised Result / Entry</th>
+                                                            <th style="width: 15%">Action</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody class="test-results-body">
+                                                        <!-- Main Test Row -->
+                                                        <tr class="bg-light fw-bold test-main-row"
+                                                            data-test-id="{{ $test->m12_test_id }}"
+                                                            data-test-number="{{ $test->m12_test_number }}">
+                                                            <td>{{ $key + 1 }}</td>
+                                                            <td>
+                                                                <strong>{{ $test->m12_name ?? 'N/A' }}</strong>
+                                                            </td>
+                                                            <td class="text-danger fw-bold text-center">
+                                                                @if ($existingMainTestResult)
+                                                                    {{ $existingMainTestResult->tr07_result ?? 'N/A' }}
+                                                                    @if ($existingMainTestResult->tr07_unit)
+                                                                        <br><small
+                                                                            class="text-muted">({{ $existingMainTestResult->tr07_unit }})</small>
+                                                                    @endif
+                                                                @else
+                                                                    -
+                                                                @endif
+                                                            </td>
+                                                            <td>
+                                                                @if ($primaryTests->isEmpty())
+                                                                    <!-- Input field for main test when no primary tests -->
+                                                                    <div class="input-group input-group-sm">
+                                                                        <input type="text"
+                                                                            class="form-control form-control-sm bg-light border-primary"
+                                                                            name="results[{{ $test->m12_test_number }}][test][result]"
+                                                                            value="{{ old('results.' . $test->m12_test_number . '.test.result', $existingMainTestResult->tr07_result ?? '') }}"
+                                                                            placeholder="Enter revised result" autocomplete="off"
+                                                                            required>
+                                                                        <button type="button" class="btn btn-outline-light btn-sm open-raw-entry" data-target-name="results[{{ $test->m12_test_number }}][test][result]" data-label="{{ $test->m12_name ?? 'Final Result' }}"><em class="icon ni ni-calc"></em></button>
+                                                                        <input type="text"
+                                                                            class="form-control form-control-sm bg-light border-primary"
+                                                                            style="max-width: 80px;"
+                                                                            name="results[{{ $test->m12_test_number }}][test][unit]"
+                                                                            value="{{ old('results.' . $test->m12_test_number . '.test.unit', $existingMainTestResult->tr07_unit ?? ($test->m12_unit ?? '')) }}"
+                                                                            placeholder="Unit">
+                                                                        <input type="hidden"
+                                                                            name="results[{{ $test->m12_test_number }}][test][test_id]"
+                                                                            value="{{ $test->m12_test_number }}">
+                                                                    </div>
+                                                                @endif
+                                                            </td>
+                                                            <td>
+                                                                @if ($primaryTests->isNotEmpty())
+                                                                    <button type="button"
+                                                                        class="btn btn-outline-primary btn-sm add-primary-test"
+                                                                        data-test-id="{{ $test->m12_test_id }}"
+                                                                        data-test-number="{{ $test->m12_test_number }}"
+                                                                        data-primary-tests="{{ $primaryTests->toJson() }}">
+                                                                        <em class="icon ni ni-plus"></em> Primary
+                                                                    </button>
+                                                                @else
+                                                                    <button type="button"
+                                                                        class="btn btn-outline-warning btn-sm add-custom-field"
+                                                                        data-test-id="{{ $test->m12_test_id }}"
+                                                                        data-test-number="{{ $test->m12_test_number }}"
+                                                                        data-type="test">
+                                                                        <em class="icon ni ni-plus"></em> Custom
+                                                                    </button>
+                                                                @endif
+                                                            </td>
+                                                        </tr>
+
+                                                        <!-- Existing Primary Tests from Rejected Results -->
+                                                        @foreach ($primaryTests as $pKey => $primaryTest)
+                                                            @php
+                                                                $existingPrimaryResult = $existingTestResults
+                                                                    ->filter(fn($r) => (string)$r->m16_primary_test_id === (string)$primaryTest->m16_primary_test_id && empty($r->m17_secondary_test_id))
+                                                                    ->first();
+
+                                                                $hasResultsOrChildren = $existingPrimaryResult || 
+                                                                    $existingTestResults->filter(fn($r) => (string)$r->m16_primary_test_id === (string)$primaryTest->m16_primary_test_id && !empty($r->m17_secondary_test_id))->isNotEmpty() ||
+                                                                    $currentTestCustomFields->filter(fn($f) => (string)$f->m16_primary_test_id === (string)$primaryTest->m16_primary_test_id)->isNotEmpty();
+                                                            @endphp
+                                                            
+                                                            @if ($hasResultsOrChildren)
+                                                                @include('testresult.partials.primary_test_row', [
+                                                                    'test' => $test,
+                                                                    'primaryTest' => $primaryTest,
+                                                                    'existingPrimaryResult' => $existingPrimaryResult,
+                                                                    'key' => $key,
+                                                                    'pKey' => $pKey,
+                                                                    'existingResults' => $existingTestResults,
+                                                                    'rejectedCustomFields' => $currentTestCustomFields,
+                                                                    'isRevision' => true,
+                                                                ])
                                                             @endif
-                                                        </td>
-                                                        <td>
-                                                            <div class="input-group input-group-sm">
-                                                                <input type="text"
-                                                                    class="form-control form-control-sm custom-field-input"
-                                                                    name="custom_fields[{{ $test->m12_test_number }}][{{ $customField->tr08_custom_field_id }}][value]"
-                                                                    value="{{ $customField->tr08_field_value }}"
-                                                                    placeholder="Enter revised value" required>
-                                                                <input type="text"
-                                                                    class="form-control form-control-sm custom-field-input"
-                                                                    style="max-width: 80px;"
-                                                                    name="custom_fields[{{ $test->m12_test_number }}][{{ $customField->tr08_custom_field_id }}][unit]"
-                                                                    value="{{ $customField->tr08_field_unit ?? '' }}"
-                                                                    placeholder="Unit">
-                                                            </div>
-                                                        </td>
-                                                        <td>
-                                                            <button type="button"
-                                                                class="btn btn-sm btn-outline-danger remove-custom-field"
-                                                                data-field-id="custom_field_{{ $customField->tr08_custom_field_id }}">
-                                                                <em class="icon ni ni-trash"></em>
-                                                            </button>
-                                                        </td>
-                                                    </tr>
-                                                @endforeach
-                                            @endforeach
-                                        </tbody>
-                                    </table>
+                                                        @endforeach
+
+                                                        <!-- Custom Fields for Main Test -->
+                                                        @foreach ($currentTestCustomFields->whereNull('m16_primary_test_id')->whereNull('m17_secondary_test_id') as $customField)
+                                                            <tr class="custom-field-row revision-highlight"
+                                                                data-test-number="{{ $test->m12_test_number }}">
+                                                                <td>{{ $key + 1 }}.C{{ $loop->iteration }}</td>
+                                                                <td>
+                                                                    <input type="text"
+                                                                        class="form-control form-control-sm custom-field-input"
+                                                                        name="custom_fields[{{ $test->m12_test_number }}][{{ $customField->tr08_custom_field_id }}][name]"
+                                                                        value="{{ $customField->tr08_field_name }}"
+                                                                        placeholder="Custom Field Name" required>
+                                                                    <input type="hidden"
+                                                                        name="custom_fields[{{ $test->m12_test_number }}][{{ $customField->tr08_custom_field_id }}][custom_field_id]"
+                                                                        value="{{ $customField->tr08_custom_field_id }}">
+                                                                </td>
+                                                                <td class="text-danger fw-bold text-center">
+                                                                    {{ $customField->tr08_field_value }}
+                                                                    @if ($customField->tr08_field_unit)
+                                                                        <br><small
+                                                                            class="text-muted">({{ $customField->tr08_field_unit }})</small>
+                                                                    @endif
+                                                                </td>
+                                                                <td>
+                                                                    <div class="input-group input-group-sm">
+                                                                        <input type="text"
+                                                                            class="form-control form-control-sm custom-field-input"
+                                                                            name="custom_fields[{{ $test->m12_test_number }}][{{ $customField->tr08_custom_field_id }}][value]"
+                                                                            value="{{ $customField->tr08_field_value }}"
+                                                                            placeholder="Enter revised value" required>
+                                                                        <input type="text"
+                                                                            class="form-control form-control-sm custom-field-input"
+                                                                            style="max-width: 80px;"
+                                                                            name="custom_fields[{{ $test->m12_test_number }}][{{ $customField->tr08_custom_field_id }}][unit]"
+                                                                            value="{{ $customField->tr08_field_unit ?? '' }}"
+                                                                            placeholder="Unit">
+                                                                    </div>
+                                                                </td>
+                                                                <td>
+                                                                    <button type="button"
+                                                                        class="btn btn-sm btn-outline-danger remove-custom-field"
+                                                                        data-field-id="custom_field_{{ $customField->tr08_custom_field_id }}">
+                                                                        <em class="icon ni ni-trash"></em>
+                                                                    </button>
+                                                                </td>
+                                                            </tr>
+                                                        @endforeach
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    @endforeach
                                 </div>
                             </div>
 
@@ -313,17 +367,17 @@
                                         </small>
                                     </div>
                                     <div class="btn-group">
-                                        <button type="submit" name="action" value="DRAFT"
+                                        <button type="submit" onclick="setAction('DRAFT')"
                                             class="btn btn-outline-primary">
                                             <em class="icon ni ni-file-text"></em> Save as Draft
                                         </button>
                                         @if (Session::get('role') === 'DEO')
-                                            <button type="submit" name="action" value="RESULTED"
+                                            <button type="submit" onclick="setAction('RESULTED')"
                                                 class="btn btn-primary">
                                                 <em class="icon ni ni-check-circle"></em> Submit Revisions
                                             </button>
                                         @else
-                                            <button type="submit" name="action" value="SUBMITTED"
+                                            <button type="submit" onclick="setAction('SUBMITTED')"
                                                 class="btn btn-primary">
                                                 <em class="icon ni ni-check-circle"></em> Submit Revisions
                                             </button>
@@ -339,29 +393,45 @@
         </div>
     </div>
 
-    <!-- Primary Test Selection Modal -->
-    <div class="modal fade" id="primaryTestModal" tabindex="-1" aria-labelledby="primaryTestModalLabel"
-        aria-hidden="true">
+    <!-- Modals -->
+    <div class="modal fade" id="uploadModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Upload Test Result Document</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form action="{{ route('testresult_upload', $sample->tr04_reference_id) }}" method="POST" enctype="multipart/form-data">
+                    @csrf
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Select Document</label>
+                            <input type="file" name="result_file" class="form-control" required accept=".pdf,.jpg,.jpeg,.png,.doc,.docx">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary">Upload</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="primaryTestModal" tabindex="-1">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="primaryTestModalLabel">Select Primary Test</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <h5 class="modal-title">Select Primary Test to Add</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <div class="table-responsive">
-                        <table class="table table-bordered">
-                            <thead>
-                                <tr>
-                                    <th>Primary Test Name</th>
-                                    <th>Unit</th>
-                                    <th>Requirement</th>
-                                    <th>Action</th>
-                                </tr>
+                        <table class="table table-sm table-hover align-middle">
+                            <thead class="table-light">
+                                <tr><th>Test Name</th><th>Unit</th><th>Action</th></tr>
                             </thead>
-                            <tbody id="primaryTestList">
-                                <!-- Will be populated dynamically -->
-                            </tbody>
+                            <tbody id="primaryTestList"></tbody>
                         </table>
                     </div>
                 </div>
@@ -369,706 +439,252 @@
         </div>
     </div>
 
-    <style>
-        .border-danger {
-            border-color: #dc3545 !important;
-        }
-
-        .border-primary {
-            border-color: #0d6efd !important;
-        }
-
-        .text-danger {
-            color: #dc3545 !important;
-        }
-
-        .test-main-row {
-            background-color: #e3f2fd !important;
-            border-left: 4px solid #0d6efd !important;
-        }
-
-        .primary-test-row {
-            background-color: #f3e5f5 !important;
-            border-left: 4px solid #9c27b0 !important;
-        }
-
-        .secondary-test-row {
-            background-color: #fafafa !important;
-            border-left: 4px solid #607d8b !important;
-        }
-
-        .custom-field-row {
-            background-color: #fff3cd !important;
-            border-left: 4px solid #ffc107 !important;
-        }
-
-        .custom-field-input {
-            background-color: #fffdf6 !important;
-            border: 1px dashed #ffc107 !important;
-        }
-
-        .revision-highlight {
-            animation: pulse-revision 2s infinite;
-        }
-
-        @keyframes pulse-revision {
-            0% {
-                background-color: transparent;
-            }
-
-            50% {
-                background-color: #fff3cd;
-            }
-
-            100% {
-                background-color: transparent;
-            }
-        }
-    </style>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            let currentTestNumber = null;
-            let currentTestId = null;
-            let customFieldCounter = {{ $rejectedCustomFields->count() }};
-            let usedPrimaryTests = new Map();
-            let usedSecondaryTests = new Map();
-
-            // Initialize used tests from existing rejected results
-            @foreach ($rejectedResults as $result)
-                @if ($result->m16_primary_test_id && !$result->m17_secondary_test_id)
-                    if (!usedPrimaryTests.has('{{ $result->m12_test_number }}')) {
-                        usedPrimaryTests.set('{{ $result->m12_test_number }}', new Set());
-                    }
-                    usedPrimaryTests.get('{{ $result->m12_test_number }}').add(
-                        '{{ $result->m16_primary_test_id }}');
-                @endif
-
-                @if ($result->m17_secondary_test_id)
-                    if (!usedSecondaryTests.has('{{ $result->m16_primary_test_id }}')) {
-                        usedSecondaryTests.set('{{ $result->m16_primary_test_id }}', new Set());
-                    }
-                    usedSecondaryTests.get('{{ $result->m16_primary_test_id }}').add(
-                        '{{ $result->m17_secondary_test_id }}');
-                @endif
-            @endforeach
-
-            // Event Delegation for dynamically added buttons
-            document.getElementById('testResultsBody').addEventListener('click', function(e) {
-                // Add Primary Test Button
-                if (e.target.closest('.add-primary-test')) {
-                    const button = e.target.closest('.add-primary-test');
-                    currentTestNumber = button.getAttribute('data-test-number');
-                    currentTestId = button.getAttribute('data-test-id');
-                    const primaryTestsData = JSON.parse(button.getAttribute('data-primary-tests'));
-                    showPrimaryTestModal(primaryTestsData);
-                }
-
-                // Add Secondary Test Button
-                if (e.target.closest('.add-secondary-test')) {
-                    const button = e.target.closest('.add-secondary-test');
-                    const testNumber = button.getAttribute('data-test-number');
-                    const primaryTestId = button.getAttribute('data-primary-test-id');
-                    const secondaryTests = JSON.parse(button.getAttribute('data-secondary-tests') || '[]');
-                    addSecondaryTestDropdown(testNumber, primaryTestId, secondaryTests);
-                }
-
-                // Add Custom Field Button
-                if (e.target.closest('.add-custom-field')) {
-                    const button = e.target.closest('.add-custom-field');
-                    const testId = button.getAttribute('data-test-id');
-                    const testNumber = button.getAttribute('data-test-number');
-                    const primaryTestId = button.getAttribute('data-primary-test-id');
-                    const secondaryTestId = button.getAttribute('data-secondary-test-id');
-                    const type = button.getAttribute('data-type');
-                    addCustomField(testNumber, primaryTestId, secondaryTestId, type);
-                }
-
-                // Remove Test Row Button
-                if (e.target.closest('.remove-test-row')) {
-                    const button = e.target.closest('.remove-test-row');
-                    const type = button.getAttribute('data-type');
-                    const id = button.getAttribute('data-id');
-                    const testNumber = button.getAttribute('data-test-number');
-                    const primaryTestId = button.getAttribute('data-primary-test-id');
-
-                    Swal.fire({
-                        title: 'Are you sure?',
-                        text: 'This test will be removed from revision.',
-                        icon: 'warning',
-                        showCancelButton: true,
-                        confirmButtonText: 'Yes, remove it!',
-                        cancelButtonText: 'Cancel',
-                        confirmButtonColor: '#d33',
-                        cancelButtonColor: '#3085d6'
-                    }).then((result) => {
-                        if (result.isConfirmed) {
-                            if (type === 'primary') {
-                                // Remove primary test and all its secondary tests
-                                document.querySelectorAll(`[data-primary-test-id="${id}"]`)
-                                    .forEach(row => row.remove());
-                                // Remove from used primary tests
-                                if (usedPrimaryTests.has(testNumber)) {
-                                    usedPrimaryTests.get(testNumber).delete(id);
-                                }
-                                // Remove associated secondary tests from used map
-                                usedSecondaryTests.delete(id);
-                            } else if (type === 'secondary') {
-                                // Remove only the specific secondary test
-                                document.querySelectorAll(`[data-secondary-test-id="${id}"]`)
-                                    .forEach(row => row.remove());
-                                // Remove from used secondary tests
-                                if (usedSecondaryTests.has(primaryTestId)) {
-                                    usedSecondaryTests.get(primaryTestId).delete(id);
-                                }
-                            }
-                            Swal.fire('Removed!', 'The test has been removed from revision.',
-                                'success');
-                        }
-                    });
-                }
-            });
-
-            // Remove Custom Field Button (event delegation)
-            document.addEventListener('click', function(e) {
-                if (e.target.closest('.remove-custom-field')) {
-                    const button = e.target.closest('.remove-custom-field');
-                    const fieldId = button.getAttribute('data-field-id');
-                    const fieldToRemove = document.getElementById(fieldId);
-
-                    Swal.fire({
-                        title: 'Remove this field?',
-                        text: 'This custom field will be deleted permanently.',
-                        icon: 'warning',
-                        showCancelButton: true,
-                        confirmButtonText: 'Yes, delete it!',
-                        cancelButtonText: 'Cancel',
-                        confirmButtonColor: '#d33',
-                        cancelButtonColor: '#3085d6'
-                    }).then((result) => {
-                        if (result.isConfirmed && fieldToRemove) {
-                            fieldToRemove.remove();
-                            Swal.fire('Deleted!', 'The custom field has been removed.', 'success');
-                        }
-                    });
-                }
-            });
-
-            // Add New Custom Field
-            document.getElementById('addNewCustomField').addEventListener('click', function() {
-                addNewCustomField();
-            });
-
-            function showPrimaryTestModal(primaryTests) {
-                const primaryTestList = document.getElementById('primaryTestList');
-                primaryTestList.innerHTML = '';
-
-                const usedSet = usedPrimaryTests.get(currentTestNumber) || new Set();
-                const availablePrimaryTests = primaryTests.filter(test =>
-                    !usedSet.has(test.m16_primary_test_id.toString())
-                );
-
-                if (availablePrimaryTests.length === 0) {
-                    primaryTestList.innerHTML = `
-                    <tr>
-                        <td colspan="4" class="text-center text-muted">
-                            No more primary tests available for this test.
-                        </td>
-                    </tr>
-                `;
-                } else {
-                    availablePrimaryTests.forEach(test => {
-                        const hasSecondaryTests = test.secondaryTests && test.secondaryTests.length > 0;
-                        const row = document.createElement('tr');
-                        row.innerHTML = `
-                        <td>
-                            <strong>${test.m16_name}</strong>
-                            ${hasSecondaryTests ? 
-                                '<br><small class="text-info">Has secondary tests available</small>' : 
-                                ''
-                            }
-                            ${test.m16_requirement ? 
-                                `<br><small class="text-warning">Requirement: ${test.m16_requirement}</small>` : 
-                                ''
-                            }
-                        </td>
-                        <td>
-                            <small>${test.m16_unit || 'N/A'}</small>
-                        </td>
-                        <td>
-                            <small>${test.m16_requirement || 'N/A'}</small>
-                        </td>
-                        <td>
-                            <button type="button" 
-                                class="btn btn-primary btn-sm select-primary-test"
-                                data-primary-test-id="${test.m16_primary_test_id}"
-                                data-primary-test-name="${test.m16_name}"
-                                data-primary-test-unit="${test.m16_unit || ''}"
-                                data-has-secondary="${hasSecondaryTests}"
-                                data-secondary-tests='${JSON.stringify(test.secondaryTests || [])}'>
-                                Select
-                            </button>
-                        </td>
-                    `;
-                        primaryTestList.appendChild(row);
-                    });
-                }
-
-                // Add event listeners for modal buttons
-                $('#primaryTestModal').on('shown.bs.modal', function() {
-                    document.querySelectorAll('.select-primary-test').forEach(button => {
-                        button.addEventListener('click', function() {
-                            const primaryTestId = this.getAttribute('data-primary-test-id');
-                            const primaryTestName = this.getAttribute(
-                                'data-primary-test-name');
-                            const primaryTestUnit = this.getAttribute(
-                                'data-primary-test-unit');
-                            const hasSecondary = this.getAttribute('data-has-secondary') ===
-                                'true';
-                            const secondaryTests = JSON.parse(this.getAttribute(
-                                'data-secondary-tests') || '[]');
-
-                            addPrimaryTestRow(currentTestNumber, currentTestId,
-                                primaryTestId, primaryTestName,
-                                primaryTestUnit, hasSecondary, secondaryTests);
-                            $('#primaryTestModal').modal('hide');
-                        });
-                    });
-                });
-
-                $('#primaryTestModal').modal('show');
-            }
-
-            function addPrimaryTestRow(testNumber, testId, primaryTestId, primaryTestName, primaryTestUnit,
-                hasSecondaryTests, secondaryTests) {
-                const rowId = `primary_test_${testNumber}_${primaryTestId}`;
-
-                const primaryTestHtml = `
-            <tr id="${rowId}" class="primary-test-row revision-highlight"
-                data-test-id="${testId}"
-                data-test-number="${testNumber}"
-                data-primary-test-id="${primaryTestId}">
-                <td>${getNextSerialNumber(testNumber)}</td>
-                <td>
-                    <strong>${primaryTestName}</strong>
-                </td>
-                <td class="text-muted text-center">-</td>
-                <td>
-                    <div class="input-group input-group-sm">
-                        <input type="hidden"
-                            name="results[${testNumber}][primary_tests][${primaryTestId}][test_id]"
-                            value="${testNumber}">
-                        <input type="hidden"
-                            name="results[${testNumber}][primary_tests][${primaryTestId}][primary_test_id]"
-                            value="${primaryTestId}">
-                        <input type="text"
-                            class="form-control form-control-sm border-primary bg-light"
-                            name="results[${testNumber}][primary_tests][${primaryTestId}][result]"
-                            placeholder="Enter revised result"
-                            autocomplete="off" required>
-                        <input type="text"
-                            class="form-control form-control-sm border-primary bg-light"
-                            style="max-width: 80px;"
-                            name="results[${testNumber}][primary_tests][${primaryTestId}][unit]"
-                            value="${primaryTestUnit}"
-                            placeholder="Unit">
-                    </div>
-                </td>
-                <td>
-                    <button type="button"
-                        class="btn btn-outline-danger btn-sm remove-test-row"
-                        data-type="primary"
-                        data-test-number="${testNumber}"
-                        data-id="${primaryTestId}">
-                        <em class="icon ni ni-trash"></em>
-                    </button>
-                    ${hasSecondaryTests ? `
-                            <button type="button"
-                                class="btn btn-outline-success btn-sm add-secondary-test"
-                                data-test-number="${testNumber}"
-                                data-primary-test-id="${primaryTestId}"
-                                data-secondary-tests='${JSON.stringify(secondaryTests)}'>
-                                <em class="icon ni ni-plus"></em> Secondary
-                            </button>
-                            ` : ''}
-                    <button type="button"
-                        class="btn btn-outline-warning btn-sm add-custom-field"
-                        data-test-id="${testId}"
-                        data-test-number="${testNumber}"
-                        data-primary-test-id="${primaryTestId}"
-                        data-type="primary">
-                        <em class="icon ni ni-plus"></em> Custom
-                    </button>
-                </td>
-            </tr>
-            `;
-
-                // Insert after the main test row
-                const mainTestRow = document.querySelector(`.test-main-row[data-test-number="${testNumber}"]`);
-                mainTestRow.insertAdjacentHTML('afterend', primaryTestHtml);
-
-                // Mark this primary test as used
-                if (!usedPrimaryTests.has(testNumber)) {
-                    usedPrimaryTests.set(testNumber, new Set());
-                }
-                usedPrimaryTests.get(testNumber).add(primaryTestId.toString());
-
-                // Store secondary tests for this primary test
-                if (hasSecondaryTests) {
-                    window.secondaryTestsData = window.secondaryTestsData || {};
-                    window.secondaryTestsData[primaryTestId] = secondaryTests;
-                }
-            }
-
-            function addSecondaryTestDropdown(testNumber, primaryTestId, secondaryTests) {
-                const primaryTestRow = document.querySelector(`[data-primary-test-id="${primaryTestId}"]`);
-                const dropdownId = `secondary_dropdown_${primaryTestId}`;
-
-                // Remove existing dropdown if any
-                const existingDropdown = document.getElementById(dropdownId);
-                if (existingDropdown) {
-                    existingDropdown.remove();
-                }
-
-                // Get available secondary tests
-                const availableSecondaryTests = getAvailableSecondaryTests(primaryTestId, secondaryTests);
-
-                if (availableSecondaryTests.length === 0) {
-                    Swal.fire('Info', 'No more secondary tests available for this primary test.', 'info');
-                    return;
-                }
-
-                const dropdownHtml = `
-            <tr id="${dropdownId}" class="secondary-dropdown">
-                <td colspan="5">
-                    <div class="p-2">
-                        <div class="row g-2 align-items-center">
-                            <div class="col-md-4">
-                                <select class="form-select form-select-sm" id="secondary_test_select_${primaryTestId}">
-                                    <option value="">Select Secondary Test</option>
-                                    ${availableSecondaryTests.map(test => 
-                                        `<option value="${test.m17_secondary_test_id}" data-unit="${test.m17_unit || ''}">${test.m17_name}</option>`
-                                    ).join('')}
-                                </select>
-                            </div>
-                            <div class="col-md-3">
-                                <input type="text" 
-                                    class="form-control form-control-sm" 
-                                    id="secondary_result_${primaryTestId}" 
-                                    placeholder="Enter result">
-                            </div>
-                            <div class="col-md-2">
-                                <input type="text" 
-                                    class="form-control form-control-sm" 
-                                    id="secondary_unit_${primaryTestId}" 
-                                    placeholder="Unit">
-                            </div>
-                            <div class="col-md-3">
-                                <button type="button" 
-                                    class="btn btn-success btn-sm add-selected-secondary"
-                                    data-test-number="${testNumber}"
-                                    data-primary-test-id="${primaryTestId}">
-                                    Add It
-                                </button>
-                                <button type="button" 
-                                    class="btn btn-secondary btn-sm cancel-secondary-dropdown"
-                                    data-primary-test-id="${primaryTestId}">
-                                    Cancel
-                                </button>
-                            </div>
+    <div class="modal fade" id="rawEntryModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Result Calculation (Formula)</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="formulaHeader" class="mb-3"></div>
+                    <div class="row g-2 align-items-center mb-3">
+                        <div class="col-auto"><label class="form-label mb-0">Readings:</label></div>
+                        <div class="col-auto" style="width: 80px;">
+                            <input type="number" id="numberOfReadings" class="form-control form-control-sm" value="1" min="1">
                         </div>
                     </div>
-                </td>
-            </tr>
-            `;
-
-                primaryTestRow.insertAdjacentHTML('afterend', dropdownHtml);
-
-                // Update unit when secondary test is selected
-                document.getElementById(`secondary_test_select_${primaryTestId}`).addEventListener('change',
-                    function() {
-                        const selectedOption = this.options[this.selectedIndex];
-                        const unit = selectedOption.getAttribute('data-unit') || '';
-                        document.getElementById(`secondary_unit_${primaryTestId}`).value = unit;
-                    });
-
-                // Add event listeners for the dropdown buttons
-                document.querySelector(`.add-selected-secondary[data-primary-test-id="${primaryTestId}"]`)
-                    .addEventListener('click', function() {
-                        const selectedSecondaryId = document.getElementById(
-                            `secondary_test_select_${primaryTestId}`).value;
-                        const resultValue = document.getElementById(`secondary_result_${primaryTestId}`).value;
-                        const unitValue = document.getElementById(`secondary_unit_${primaryTestId}`).value;
-
-                        if (!selectedSecondaryId) {
-                            Swal.fire('Error', 'Please select a secondary test', 'error');
-                            return;
-                        }
-
-                        addSecondaryTestRow(testNumber, primaryTestId, selectedSecondaryId, resultValue,
-                            unitValue, secondaryTests);
-                        document.getElementById(dropdownId).remove();
-                    });
-
-                document.querySelector(`.cancel-secondary-dropdown[data-primary-test-id="${primaryTestId}"]`)
-                    .addEventListener('click', function() {
-                        document.getElementById(dropdownId).remove();
-                    });
-            }
-
-            function addSecondaryTestRow(testNumber, primaryTestId, secondaryTestId, resultValue = '', unitValue =
-                '', secondaryTests) {
-                const secondaryTest = secondaryTests.find(test => test.m17_secondary_test_id.toString() ===
-                    secondaryTestId);
-                if (!secondaryTest) return;
-
-                const secondaryRowId = `secondary_${primaryTestId}_${secondaryTestId}`;
-                const serialNumber = getNextSecondarySerialNumber(testNumber, primaryTestId);
-
-                const secondaryTestHtml = `
-            <tr id="${secondaryRowId}" class="secondary-test-row revision-highlight"
-                data-test-number="${testNumber}"
-                data-primary-test-id="${primaryTestId}"
-                data-secondary-test-id="${secondaryTestId}">
-                <td>${serialNumber}</td>
-                <td>${secondaryTest.m17_name}</td>
-                <td class="text-muted text-center">-</td>
-                <td>
-                    <div class="input-group input-group-sm">
-                        <input type="hidden"
-                            name="results[${testNumber}][primary_tests][${primaryTestId}][secondary_tests][${secondaryTestId}][test_id]"
-                            value="${testNumber}">
-                        <input type="hidden"
-                            name="results[${testNumber}][primary_tests][${primaryTestId}][secondary_tests][${secondaryTestId}][primary_test_id]"
-                            value="${primaryTestId}">
-                        <input type="hidden"
-                            name="results[${testNumber}][primary_tests][${primaryTestId}][secondary_tests][${secondaryTestId}][secondary_test_id]"
-                            value="${secondaryTestId}">
-                        <input type="text"
-                            class="form-control form-control-sm border-primary bg-light"
-                            name="results[${testNumber}][primary_tests][${primaryTestId}][secondary_tests][${secondaryTestId}][result]"
-                            value="${resultValue}"
-                            placeholder="Enter revised result"
-                            autocomplete="off" required>
-                        <input type="text"
-                            class="form-control form-control-sm border-primary bg-light"
-                            style="max-width: 80px;"
-                            name="results[${testNumber}][primary_tests][${primaryTestId}][secondary_tests][${secondaryTestId}][unit]"
-                            value="${unitValue}"
-                            placeholder="Unit">
+                    <div id="readingsContainer" class="mb-3" style="max-height: 300px; overflow-y: auto;"></div>
+                    <div class="alert alert-info py-2 d-flex justify-content-between align-items-center">
+                        <strong>Average: <span id="calculatedResult">0.000</span></strong>
+                        <button type="button" class="btn btn-primary btn-sm" id="applyCalculatedResult">Apply</button>
                     </div>
-                </td>
-                <td>
-                    <button type="button"
-                        class="btn btn-outline-danger btn-sm remove-test-row"
-                        data-type="secondary"
-                        data-test-number="${testNumber}"
-                        data-primary-test-id="${primaryTestId}"
-                        data-id="${secondaryTestId}">
-                        <em class="icon ni ni-trash"></em>
-                    </button>
-                    <button type="button"
-                        class="btn btn-outline-warning btn-sm add-custom-field"
-                        data-test-id="${currentTestId}"
-                        data-test-number="${testNumber}"
-                        data-primary-test-id="${primaryTestId}"
-                        data-secondary-test-id="${secondaryTestId}"
-                        data-type="secondary">
-                        <em class="icon ni ni-plus"></em> Custom
-                    </button>
-                </td>
-            </tr>
-            `;
-
-                const primaryTestRow = document.querySelector(`[data-primary-test-id="${primaryTestId}"]`);
-                primaryTestRow.insertAdjacentHTML('afterend', secondaryTestHtml);
-
-                // Mark this secondary test as used
-                if (!usedSecondaryTests.has(primaryTestId)) {
-                    usedSecondaryTests.set(primaryTestId, new Set());
-                }
-                usedSecondaryTests.get(primaryTestId).add(secondaryTestId);
-            }
-
-            function addNewCustomField() {
-                customFieldCounter++;
-                const fieldId = `new_custom_field_${customFieldCounter}`;
-
-                const customFieldHtml = `
-            <div class="row g-2 mb-2 align-items-center custom-field-row p-2 rounded" id="${fieldId}">
-                <div class="col-md-3">
-                    <select class="form-select form-select-sm" name="new_custom_fields[${fieldId}][test_number]" required>
-                        <option value="">Select Test</option>
-                        @foreach ($sampleTests as $sampleTest)
-                        <option value="{{ $sampleTest->test->m12_test_number }}">
-                            {{ $sampleTest->test->m12_name }}
-                        </option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <input type="text" class="form-control form-control-sm" 
-                        name="new_custom_fields[${fieldId}][name]" 
-                        placeholder="Field Name" required>
-                </div>
-                <div class="col-md-3">
-                    <input type="text" class="form-control form-control-sm" 
-                        name="new_custom_fields[${fieldId}][value]" 
-                        placeholder="Field Value" required>
-                </div>
-                <div class="col-md-2">
-                    <input type="text" class="form-control form-control-sm" 
-                        name="new_custom_fields[${fieldId}][unit]" 
-                        placeholder="Unit">
-                </div>
-                <div class="col-md-1">
-                    <button type="button" class="btn btn-outline-danger btn-sm remove-new-custom-field" 
-                        data-field-id="${fieldId}">
-                        <em class="icon ni ni-trash"></em>
-                    </button>
                 </div>
             </div>
-            `;
+        </div>
+    </div>
 
-                document.getElementById('newCustomFieldsContainer').insertAdjacentHTML('beforeend',
-                customFieldHtml);
 
-                // Add remove event listener
-                document.querySelector(`#${fieldId} .remove-new-custom-field`).addEventListener('click',
-            function() {
-                    const fieldToRemove = document.getElementById(fieldId);
-                    if (fieldToRemove) {
-                        fieldToRemove.remove();
-                    }
-                });
-            }
+    <script>
+        $(document).ready(function() {
+            console.log("Revision Script Initialized");
 
-            function addCustomField(testNumber, primaryTestId = null, secondaryTestId = null, type = 'test') {
-                customFieldCounter++;
-                const fieldId = `custom_field_${customFieldCounter}`;
+            window.setAction = function(action) {
+                $('#submitAction').val(action);
+            };
 
-                let serialNumber = '';
-                let insertAfter = null;
-
-                if (type === 'secondary' && secondaryTestId) {
-                    const secondaryTestRow = document.querySelector(
-                    `[data-secondary-test-id="${secondaryTestId}"]`);
-                    if (secondaryTestRow) {
-                        const currentSerial = secondaryTestRow.cells[0].textContent;
-                        serialNumber = currentSerial + '.C';
-                        insertAfter = secondaryTestRow;
-                    }
-                } else if (type === 'primary' && primaryTestId) {
-                    const primaryTestRow = document.querySelector(`[data-primary-test-id="${primaryTestId}"]`);
-                    if (primaryTestRow) {
-                        const currentSerial = primaryTestRow.cells[0].textContent;
-                        serialNumber = currentSerial + '.C';
-                        insertAfter = primaryTestRow;
-                    }
-                } else {
-                    const testRow = document.querySelector(`.test-main-row[data-test-number="${testNumber}"]`);
-                    if (testRow) {
-                        const currentSerial = testRow.cells[0].textContent;
-                        serialNumber = currentSerial + '.C';
-                        insertAfter = testRow;
-                    }
-                }
-
-                let namePrefix = `custom_fields[${testNumber}]`;
-                if (primaryTestId) {
-                    namePrefix += `[primary_${primaryTestId}]`;
-                }
-                if (secondaryTestId) {
-                    namePrefix += `[secondary_${secondaryTestId}]`;
-                }
-                namePrefix += `[${fieldId}]`;
-
-                const customFieldHtml = `
-            <tr id="${fieldId}" class="custom-field-row revision-highlight" 
-                data-test-number="${testNumber}" 
-                ${primaryTestId ? `data-primary-test-id="${primaryTestId}"` : ''}
-                ${secondaryTestId ? `data-secondary-test-id="${secondaryTestId}"` : ''}>
-                <td>
-                    <small>${serialNumber}</small>
-                </td>
-                <td>
-                    <input type="text" 
-                        class="form-control form-control-sm custom-field-input" 
-                        name="${namePrefix}[name]" 
-                        placeholder="Custom Field Name" required>
-                </td>
-                <td class="text-muted text-center">-</td>
-                <td>
-                    <div class="input-group input-group-sm">
-                        <input type="text" 
-                            class="form-control form-control-sm custom-field-input" 
-                            name="${namePrefix}[value]" 
-                            placeholder="Enter revised value" required>
-                        <input type="text" 
-                            class="form-control form-control-sm custom-field-input" 
-                            style="max-width: 80px;"
-                            name="${namePrefix}[unit]" 
-                            placeholder="Unit">
-                    </div>
-                </td>
-                <td>
-                    <button type="button" class="btn btn-sm btn-outline-danger remove-custom-field" data-field-id="${fieldId}">
-                        <em class="icon ni ni-trash"></em>
-                    </button>
-                </td>
-            </tr>
-            `;
-
-                if (insertAfter) {
-                    insertAfter.insertAdjacentHTML('afterend', customFieldHtml);
-                }
-            }
-
-            // Helper functions
-            function getNextSerialNumber(testNumber) {
-                const testRows = document.querySelectorAll(`[data-test-number="${testNumber}"]`);
-                const primaryTestRows = Array.from(testRows).filter(row =>
-                    row.classList.contains('primary-test-row')
-                );
-                return `${parseInt(testNumber)}.${primaryTestRows.length + 1}`;
-            }
-
-            function getNextSecondarySerialNumber(testNumber, primaryTestId) {
-                const primaryTestRow = document.querySelector(`[data-primary-test-id="${primaryTestId}"]`);
-                const primarySerial = primaryTestRow.cells[0].textContent;
-                const secondaryRows = document.querySelectorAll(
-                    `[data-primary-test-id="${primaryTestId}"].secondary-test-row`);
-                return `${primarySerial}.${secondaryRows.length + 1}`;
-            }
-
-            function getAvailableSecondaryTests(primaryTestId, secondaryTests) {
-                const usedSet = usedSecondaryTests.get(primaryTestId) || new Set();
-                return secondaryTests.filter(test =>
-                    !usedSet.has(test.m17_secondary_test_id.toString())
-                );
-            }
-
-            // Form submission validation
-            document.getElementById('reviseResultForm').addEventListener('submit', function(e) {
-                const requiredFields = this.querySelectorAll('input[required]');
-                let allFilled = true;
-
-                requiredFields.forEach(field => {
-                    if (!field.value.trim()) {
-                        allFilled = false;
-                        field.classList.add('is-invalid');
-                    } else {
-                        field.classList.remove('is-invalid');
-                    }
-                });
-
-                if (!allFilled) {
-                    e.preventDefault();
-                    Swal.fire('Error', 'Please fill all required fields marked with previous results.',
-                        'error');
-                }
+            // Summernote
+            $('.summernote-basic').summernote({
+                height: 150
             });
 
+
+
+            // Event Delegation
+            $(document).on('click', '.add-primary-test', function() {
+                const testNumber = $(this).data('test-number');
+                let primaryTests = $(this).data('primary-tests');
+                if (typeof primaryTests === 'string') primaryTests = JSON.parse(primaryTests);
+                if (!Array.isArray(primaryTests)) primaryTests = Object.values(primaryTests || {});
+                
+                const tableBody = $(`#results_table_${testNumber} tbody`);
+                let html = '';
+                primaryTests.forEach(pt => {
+                    if (tableBody.find(`.primary-test-row[data-primary-test-id="${pt.m16_primary_test_id}"]`).length === 0) {
+                        html += `<tr><td>${pt.m16_name}</td><td>${pt.m16_unit || ''}</td>
+                            <td><button type="button" class="btn btn-primary btn-xs select-pt-btn" data-pt='${JSON.stringify(pt)}' data-tn="${testNumber}">Select</button></td></tr>`;
+                    }
+                });
+                $('#primaryTestList').html(html || '<tr><td colspan="3" class="text-center">No more tests to add</td></tr>');
+                $('#primaryTestModal').modal('show');
+            });
+
+            $(document).on('click', '.select-pt-btn', function() {
+                const pt = $(this).data('pt');
+                const tn = $(this).data('tn');
+                const tableBody = $(`#results_table_${tn} tbody`);
+                const row = `<tr class="primary-test-row" data-primary-test-id="${pt.m16_primary_test_id}" data-tn="${tn}">
+                    <td class="serial-col"></td>
+                    <td class="ps-3 fw-bold">${pt.m16_name}</td>
+                    <td>
+                        <div class="input-group input-group-sm ${pt.secondaryTests && pt.secondaryTests.length > 0 ? 'd-none' : ''}">
+                            <input type="text" class="form-control web-sync-val" data-sync="print_res_p_${pt.m16_primary_test_id}" name="results[${tn}][primary_tests][${pt.m16_primary_test_id}][result]" placeholder="Result">
+                            <input type="text" class="form-control web-sync-val" data-sync="print_unt_p_${pt.m16_primary_test_id}" name="results[${tn}][primary_tests][${pt.m16_primary_test_id}][unit]" value="${pt.m16_unit || ''}" style="max-width:70px;">
+                        </div>
+                    </td>
+                    <td>
+                        <div class="btn-group btn-group-sm">
+                            <button type="button" class="btn btn-outline-danger btn-sm remove-test-row" data-type="primary" data-id="${pt.m16_primary_test_id}"><em class="icon ni ni-trash"></em></button>
+                            ${pt.secondaryTests && pt.secondaryTests.length > 0 ? `<button type="button" class="btn btn-outline-success btn-sm add-secondary-test" data-test-number="${tn}" data-primary-test-id="${pt.m16_primary_test_id}" data-secondary-tests='${JSON.stringify(pt.secondaryTests)}'>+ Sec</button>` : ''}
+                            <button type="button" class="btn btn-outline-warning btn-sm add-custom-field" data-test-number="${tn}" data-primary-test-id="${pt.m16_primary_test_id}" data-type="primary">+ C</button>
+                        </div>
+                    </td>
+                </tr>`;
+                tableBody.append(row);
+                updateSerials(tn);
+                $('#primaryTestModal').modal('hide');
+            });
+
+            $(document).on('click', '.add-secondary-test', function() {
+                const tn = $(this).data('test-number');
+                const pid = $(this).data('primary-test-id');
+                let sts = $(this).data('secondary-tests');
+                if (typeof sts === 'string') sts = JSON.parse(sts);
+                if (!Array.isArray(sts)) sts = Object.values(sts || {});
+
+                const tableBody = $(`#results_table_${tn} tbody`);
+                let html = '';
+                sts.forEach(st => {
+                    if (tableBody.find(`.secondary-test-row[data-secondary-test-id="${st.m17_secondary_test_id}"]`).length === 0) {
+                        html += `<tr><td>${st.m17_name}</td><td>${st.m17_unit || ''}</td>
+                            <td><button type="button" class="btn btn-primary btn-xs select-st-btn" data-st='${JSON.stringify(st)}' data-tn="${tn}" data-pid="${pid}">Select</button></td></tr>`;
+                    }
+                });
+                $('#primaryTestList').html(html || '<tr><td colspan="3" class="text-center">No more secondary tests</td></tr>');
+                $('#primaryTestModal').modal('show');
+            });
+
+            $(document).on('click', '.select-st-btn', function() {
+                const st = $(this).data('st');
+                const tn = $(this).data('tn');
+                const pid = $(this).data('pid');
+                const tableBody = $(`#results_table_${tn} tbody`);
+                const row = `<tr class="secondary-test-row" data-secondary-test-id="${st.m17_secondary_test_id}" data-primary-test-id="${pid}">
+                    <td class="serial-col"></td>
+                    <td class="ps-4 text-muted">- ${st.m17_name}</td>
+                    <td>
+                        <div class="input-group input-group-sm">
+                            <input type="text" class="form-control" name="results[${tn}][primary_tests][${pid}][secondary_tests][${st.m17_secondary_test_id}][result]" placeholder="Result">
+                            <input type="text" class="form-control" name="results[${tn}][primary_tests][${pid}][secondary_tests][${st.m17_secondary_test_id}][unit]" value="${st.m17_unit || ''}" style="max-width:70px;">
+                        </div>
+                    </td>
+                    <td>
+                        <div class="btn-group btn-group-sm">
+                            <button type="button" class="btn btn-outline-danger btn-sm remove-test-row" data-type="secondary" data-id="${st.m17_secondary_test_id}"><em class="icon ni ni-trash"></em></button>
+                            <button type="button" class="btn btn-outline-warning btn-sm add-custom-field" data-test-number="${tn}" data-primary-test-id="${pid}" data-secondary-test-id="${st.m17_secondary_test_id}" data-type="secondary">+ C</button>
+                        </div>
+                    </td>
+                </tr>`;
+                $(`.primary-test-row[data-primary-test-id="${pid}"]`).after(row);
+                $(`.primary-test-row[data-primary-test-id="${pid}"] .input-group`).addClass('d-none');
+                updateSerials(tn);
+                $('#primaryTestModal').modal('hide');
+            });
+
+            // Combined Custom Field Listener
+            $(document).on('click', '.add-custom-field, #addNewCustomField', function() {
+                console.log("Add Custom Field Clicked");
+                const isNewBtn = $(this).attr('id') === 'addNewCustomField';
+                const type = $(this).data('type') || (isNewBtn ? 'new' : 'test');
+                const tn = $(this).data('test-number') || '';
+                const pid = $(this).data('primary-test-id');
+                const sid = $(this).data('secondary-test-id');
+                
+                Swal.fire({ 
+                    title: 'Enter Field Name', 
+                    input: 'text', 
+                    inputPlaceholder: 'e.g., pH Value',
+                    showCancelButton: true 
+                }).then(res => {
+                    if (res.isConfirmed && res.value) {
+                        const name = res.value;
+                        const ts = Date.now();
+                        let prefix = `custom_fields[${tn}]`;
+                        
+                        if (type === 'primary') { prefix += `[primary_${pid}]`; }
+                        else if (type === 'secondary') { prefix += `[primary_${pid}][secondary_${sid}]`; }
+                        
+                        const row = `<tr class="custom-field-row">
+                            <td class="serial-col"></td><td class="ps-4 small text-muted">${name}</td>
+                            <td>
+                                <div class="input-group input-group-sm">
+                                    <input type="hidden" name="${prefix}[new_${ts}][name]" value="${name}">
+                                    <input type="text" class="form-control" name="${prefix}[new_${ts}][value]" placeholder="Value">
+                                    <input type="text" class="form-control" name="${prefix}[new_${ts}][unit]" style="max-width:60px;" placeholder="Unit">
+                                </div>
+                            </td>
+                            <td><button type="button" class="btn btn-link btn-sm text-danger remove-test-row" data-type="custom"><em class="icon ni ni-trash"></em></button></td>
+                        </tr>`;
+                        
+                        if (isNewBtn) {
+                           $('#newCustomFieldsContainer').append(`<div class="mb-2 p-2 border rounded bg-light"><strong>${name}</strong>${row}</div>`);
+                        } else {
+                           $(this).closest('tr').after(row);
+                        }
+                        
+                        if (tn) updateSerials(tn);
+                    }
+                });
+            });
+
+            $(document).on('click', '.remove-test-row, .remove-custom-field', function() {
+                const row = $(this).closest('tr');
+                const type = $(this).data('type');
+                const id = $(this).data('id');
+                const sync = $(this).data('sync') || $(this).data('field-id');
+                const tn = row.data('tn') || row.closest('table').attr('id')?.replace('results_table_', '');
+
+                Swal.fire({ title: 'Are you sure?', text: "Remove this item?", icon: 'warning', showCancelButton: true }).then(res => {
+                    if (res.isConfirmed) {
+                        if (type === 'primary') { 
+                            $(`.secondary-test-row[data-primary-test-id="${id}"]`).remove();
+                        }
+                        if (type === 'secondary') {
+                            const pId = row.data('primary-test-id');
+                            const tbody = row.closest('tbody');
+                            if (tbody.find(`.secondary-test-row[data-primary-test-id="${pId}"]`).length <= 1) {
+                                tbody.find(`.primary-test-row[data-primary-test-id="${pId}"] .input-group`).removeClass('d-none');
+                            }
+                        }
+                        row.remove();
+                        if (tn) updateSerials(tn);
+                    }
+                });
+            });
+
+            function updateSerials(tn) {
+                const table = $(`#results_table_${tn}`);
+                if (!table.length) return;
+                const mainSr = table.closest('.test-card').data('main-sr');
+                let count = 0;
+                table.find('tbody tr.primary-test-row').each(function() {
+                    count++; 
+                    $(this).find('.serial-col').text(`${mainSr}.${count}`);
+                });
+            }
+
+            // Formula Logic
+            let activeInput = null;
+            $(document).on('click', '.open-raw-entry', function() {
+                activeInput = $(`input[name="${$(this).data('target-name')}"]`);
+                $('#formulaHeader').text($(this).data('label'));
+                $('#numberOfReadings').val(1).trigger('input');
+                $('#rawEntryModal').modal('show');
+            });
+
+            $('#numberOfReadings').on('input', function() {
+                const n = $(this).val();
+                let h = '';
+                for(let i=1; i<=n; i++) h += `<div class="row mb-1"><div class="col-2">#${i}</div><div class="col"><input type="number" class="form-control form-control-sm r-val"></div></div>`;
+                $('#readingsContainer').html(h);
+            });
+
+            $(document).on('input', '.r-val', function() {
+                let s = 0, c = 0;
+                $('.r-val').each(function() { if($(this).val()) { s += parseFloat($(this).val()); c++; } });
+                $('#calculatedResult').text(c ? (s/c).toFixed(3) : '0.000');
+            });
+
+            $('#applyCalculatedResult').click(function() {
+                if (activeInput) activeInput.val($('#calculatedResult').text()).trigger('input');
+                $('#rawEntryModal').modal('hide');
+            });
+
+            // Initial setup
+            $('[id^="results_table_"]').each(function() {
+                const tn = this.id.replace('results_table_', '');
+                updateSerials(tn);
+            });
         });
     </script>
 @endsection

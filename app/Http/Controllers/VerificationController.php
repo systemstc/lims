@@ -15,12 +15,18 @@ class VerificationController extends Controller
 {
     public function viewVerification()
     {
-        $samples = SampleTest::with(['registration', 'test', 'registration.testResult'])
+        $samples = SampleTest::with(['registration', 'test', 'registration.testResult', 'registration.customFields'])
             ->where('m04_ro_id', session('ro_id'))
             ->whereNotIn('tr05_status', ['TRANSFERRED'])
-            ->whereHas('registration.testResult', function ($q) {
-                $q->where('tr07_is_current', 'YES')
-                    ->whereIn('tr07_result_status', ['RESULTED', 'REVISED', 'SUBMITTED']);
+            ->where(function ($query) {
+                $query->whereHas('registration.testResult', function ($q) {
+                    $q->where('tr07_is_current', 'YES')
+                        ->whereIn('tr07_result_status', ['RESULTED', 'REVISED', 'SUBMITTED']);
+                })
+                ->orWhereHas('registration.customFields', function ($q) {
+                    $q->where('tr08_is_current', 'YES')
+                        ->whereIn('tr08_result_status', ['DRAFT', 'SUBMITTED', 'RESULTED']);
+                });
             })
             ->select('tr04_sample_registration_id')
             ->selectRaw("
@@ -32,16 +38,20 @@ class VerificationController extends Controller
             ->get()
             ->filter(function ($sample) {
                 $results = optional($sample->registration)->testResult ?? collect();
+                $customFields = optional($sample->registration)->customFields ?? collect();
 
                 // Only take current results
                 $currentResults = $results->where('tr07_is_current', 'YES');
+                $currentCustomFields = $customFields->where('tr08_is_current', 'YES')
+                    ->whereIn('tr08_result_status', ['DRAFT', 'SUBMITTED', 'RESULTED']);
 
-                // Allow partial verification: Include sample if at least one current test is RESULTED, REVISED, or SUBMITTED
+                // Allow partial verification: Include sample if at least one current test is RESULTED, REVISED, or SUBMITTED,
+                // or if there are current custom fields for the sample.
                 $hasResults = $currentResults->isNotEmpty() && $currentResults->contains(function ($r) {
                     return in_array($r->tr07_result_status, ['RESULTED', 'REVISED', 'SUBMITTED']);
                 });
 
-                return $hasResults;
+                return $hasResults || $currentCustomFields->isNotEmpty();
             })
             ->map(function ($sample) {
                 $registration = $sample->registration;
@@ -175,94 +185,50 @@ class VerificationController extends Controller
             }
         }
 
-        // Get current results and organize them properly
+        // Get current results
         $currentResults = $sample->testResult->where('tr07_is_current', 'YES');
 
-        // Get custom fields for this sample
+        // Get historical results for comparison (where current is NO)
+        $historicalResults = $sample->testResult->where('tr07_is_current', 'NO');
+
+        // Get custom fields
         $customFields = CustomField::where('tr04_reference_id', $sample->tr04_reference_id)
-            ->whereIn('tr08_result_status', ['SUBMITTED', 'DRAFT', 'RESULTED', 'REVISED'])
+            ->where('tr08_is_current', 'YES')
             ->get();
 
-        // dd($customFields);
-        // Group by test number first
-        $groupedResults = $currentResults->groupBy('m12_test_number');
+        $historicalCustomFields = CustomField::where('tr04_reference_id', $sample->tr04_reference_id)
+            ->where('tr08_is_current', 'NO')
+            ->get();
 
-        // Process each test group to organize the data properly
-        $organizedResults = $groupedResults->map(function ($results, $testNumber) use ($sample, $customFields) {
-            $test = $results->first()->test;
+        // Group results by test number
+        $testNumbers = $currentResults->pluck('m12_test_number')->unique();
+        $sampleTests = SampleTest::with(['test', 'test.standard', 'allotedTo'])
+            ->where('tr04_sample_registration_id', $sample->tr04_sample_registration_id)
+            ->whereIn('m12_test_number', $testNumbers)
+            ->get();
 
-            // Check what type of results we have
-            $hasPrimaryTests = $results->whereNotNull('m16_primary_test_id')->count() > 0;
-            $hasSecondaryTests = $results->whereNotNull('m17_secondary_test_id')->count() > 0;
-            $hasMainResult = $results->whereNull('m16_primary_test_id')->whereNull('m17_secondary_test_id')->count() > 0;
-
-            // Get custom fields for this test
-            $testCustomFields = $customFields->where('m12_test_number', $testNumber);
-
-            // Organize results by type
-            $organized = [
-                'test' => $test,
-                'has_primary_tests' => $hasPrimaryTests,
-                'has_secondary_tests' => $hasSecondaryTests,
-                'has_main_result' => $hasMainResult,
-                'main_results' => collect(),
-                'primary_results' => collect(),
-                'custom_fields' => [
-                    'main' => collect(),
-                    'primary' => collect()
-                ]
-            ];
-
-            // Get main test result (if exists)
-            if ($hasMainResult) {
-                $organized['main_results'] = $results->whereNull('m16_primary_test_id')
-                    ->whereNull('m17_secondary_test_id');
-            }
-
-            // Get custom fields for main test
-            $organized['custom_fields']['main'] = $testCustomFields->whereNull('m16_primary_test_id');
-
-            // Get primary tests and their secondary tests
-            if ($hasPrimaryTests) {
-                $primaryGroups = $results->whereNotNull('m16_primary_test_id')
-                    ->groupBy('m16_primary_test_id');
-
-                foreach ($primaryGroups as $primaryTestId => $primaryResults) {
-                    $primaryTest = $primaryResults->first()->primaryTest;
-
-                    // Get custom fields for this primary test
-                    $primaryCustomFields = $testCustomFields->where('m16_primary_test_id', $primaryTestId);
-
-                    $primaryData = [
-                        'primary_test' => $primaryTest,
-                        'primary_result' => $primaryResults->whereNull('m17_secondary_test_id')->first(),
-                        'secondary_results' => $primaryResults->whereNotNull('m17_secondary_test_id'),
-                        'custom_fields' => $primaryCustomFields
-                    ];
-
-                    $organized['primary_results']->push($primaryData);
-
-                    // Also add to organized custom fields collection
-                    $organized['custom_fields']['primary'] = $organized['custom_fields']['primary']->merge($primaryCustomFields);
+        // Organize tests with hierarchy (similar to AnalystController)
+        foreach ($sampleTests as $sampleTest) {
+            if ($sampleTest->test) {
+                $test = $sampleTest->test;
+                
+                // Get primary test IDs from master + results + custom fields
+                $masterPrimaryIds = array_filter(explode(',', $test->m16_primary_test_id ?? ''));
+                $resultPrimaryIds = $currentResults->where('m12_test_number', $test->m12_test_number)->pluck('m16_primary_test_id')->filter()->unique()->toArray();
+                $customPrimaryIds = $customFields->where('m12_test_number', $test->m12_test_number)->pluck('m16_primary_test_id')->filter()->unique()->toArray();
+                
+                $allPrimaryIds = array_unique(array_merge($masterPrimaryIds, $resultPrimaryIds, $customPrimaryIds));
+                
+                $primaryTests = collect();
+                if (!empty($allPrimaryIds)) {
+                    $primaryTests = \DB::table('m16_primary_tests')->whereIn('m16_primary_test_id', $allPrimaryIds)->get();
+                    foreach ($primaryTests as $p) {
+                        $p->secondaryTests = collect(\DB::table('m17_secondary_tests')->where('m16_primary_test_id', $p->m16_primary_test_id)->get());
+                    }
                 }
+                $test->primaryTests = $primaryTests;
             }
-
-            // Add old version for revised results
-            foreach ($results as $result) {
-                if ($result->tr07_current_version > 1) {
-                    $old = $sample->testResult()
-                        ->where('m12_test_number', $result->m12_test_number)
-                        ->where('m16_primary_test_id', $result->m16_primary_test_id)
-                        ->where('m17_secondary_test_id', $result->m17_secondary_test_id)
-                        ->where('tr07_is_current', 'NO')
-                        ->orderByDesc('tr07_test_result_id')
-                        ->first();
-                    $result->old_version = $old;
-                }
-            }
-
-            return $organized;
-        });
+        }
 
         // Get analysts for reassignment dropdown
         $roId = Session::get('ro_id');
@@ -271,8 +237,16 @@ class VerificationController extends Controller
             ->whereIn('m03_roles.m03_name', ['Analyst'])
             ->select('m06_employees.m06_employee_id', 'm06_employees.m06_name', 'm03_roles.m03_name as role')
             ->orderBy('m06_employees.m06_name')
-            ->get();;
+            ->get();
 
-        return view('verification.view_result', compact('sample', 'organizedResults', 'analysts'));
+        return view('verification.view_result', compact(
+            'sample', 
+            'sampleTests', 
+            'currentResults', 
+            'historicalResults', 
+            'customFields', 
+            'historicalCustomFields',
+            'analysts'
+        ));
     }
 }

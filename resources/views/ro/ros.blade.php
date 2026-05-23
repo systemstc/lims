@@ -52,6 +52,15 @@
                                                                                 data-name="{{ $ro->m04_name }}"
                                                                                 data-email="{{ $ro->m04_email }}"
                                                                                 data-phone="{{ $ro->m04_phone }}"
+                                                                                data-certificate_no="{{ $ro->certificate_no }}"
+                                                                                data-lab_name_hi="{{ $ro->lab_name_hi }}"
+                                                                                data-lab_name_en="{{ $ro->lab_name_en }}"
+                                                                                data-ministry_hi="{{ $ro->ministry_hi }}"
+                                                                                data-ministry_en="{{ $ro->ministry_en }}"
+                                                                                data-lab_address="{{ $ro->lab_address }}"
+                                                                                data-lab_contact="{{ $ro->lab_contact }}"
+                                                                                data-lab_email="{{ $ro->lab_email }}"
+                                                                                data-lab_website="{{ $ro->lab_website }}"
                                                                                 data-id="{{ $ro->m04_ro_id }}"
                                                                                 data-bs-target="#updateRo"><em
                                                                                     class="icon ni ni-edit"></em><span>Edit
@@ -122,11 +131,64 @@
                                     autocomplete="off" required>
                             </div>
                         </div>
-                        <div class="form-group col-md-6">
+                        <div class="form-group col-md-4">
                             <label class="form-label" for="txt_phone">Phone Number</label>
                             <div class="form-control-wrap">
-                                <input type="text" class="form-control" name="txt_phone" id="txt_phone"
-                                    autocomplete="off" required>
+                                <input type="text" class="form-control" name="txt_phone" id="txt_phone" autocomplete="off" required>
+                            </div>
+                        </div>
+                        <div class="form-group col-md-4">
+                            <label class="form-label" for="certificate_no">NABL Certificate No</label>
+                            <div class="form-control-wrap">
+                                <input type="text" class="form-control" name="certificate_no" id="certificate_no" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label class="form-label" for="lab_name_hi">Lab Name (Hindi)</label>
+                            <div class="form-control-wrap">
+                                <input type="text" class="form-control" name="lab_name_hi" id="lab_name_hi" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label class="form-label" for="lab_name_en">Lab Name (English)</label>
+                            <div class="form-control-wrap">
+                                <input type="text" class="form-control" name="lab_name_en" id="lab_name_en" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label class="form-label" for="ministry_hi">Ministry Text (Hindi)</label>
+                            <div class="form-control-wrap">
+                                <input type="text" class="form-control" name="ministry_hi" id="ministry_hi" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label class="form-label" for="ministry_en">Ministry Text (English)</label>
+                            <div class="form-control-wrap">
+                                <input type="text" class="form-control" name="ministry_en" id="ministry_en" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="form-group col-md-12">
+                            <label class="form-label" for="lab_address">Lab Address</label>
+                            <div class="form-control-wrap">
+                                <textarea class="form-control" name="lab_address" id="lab_address" rows="2"></textarea>
+                            </div>
+                        </div>
+                        <div class="form-group col-md-4">
+                            <label class="form-label" for="lab_contact">Lab Contact Info (Header)</label>
+                            <div class="form-control-wrap">
+                                <input type="text" class="form-control" name="lab_contact" id="lab_contact" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="form-group col-md-4">
+                            <label class="form-label" for="lab_email">Lab Email (Header)</label>
+                            <div class="form-control-wrap">
+                                <input type="text" class="form-control" name="lab_email" id="lab_email" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="form-group col-md-4">
+                            <label class="form-label" for="lab_website">Lab Website</label>
+                            <div class="form-control-wrap">
+                                <input type="text" class="form-control" name="lab_website" id="lab_website" autocomplete="off">
                             </div>
                         </div>
                     </div>
@@ -167,11 +229,64 @@
                                     autocomplete="off" required>
                             </div>
                         </div>
-                        <div class="form-group col-md-6">
+                        <div class="form-group col-md-4">
                             <label class="form-label" for="txt_edit_phone">Phone number</label>
                             <div class="form-control-wrap">
-                                <input type="text" class="form-control" name="txt_edit_phone" id="txt_edit_phone"
-                                    autocomplete="off" required>
+                                <input type="text" class="form-control" name="txt_edit_phone" id="txt_edit_phone" autocomplete="off" required>
+                            </div>
+                        </div>
+                        <div class="form-group col-md-4">
+                            <label class="form-label" for="edit_certificate_no">NABL Certificate No</label>
+                            <div class="form-control-wrap">
+                                <input type="text" class="form-control" name="certificate_no" id="edit_certificate_no" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label class="form-label" for="edit_lab_name_hi">Lab Name (Hindi)</label>
+                            <div class="form-control-wrap">
+                                <input type="text" class="form-control" name="lab_name_hi" id="edit_lab_name_hi" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label class="form-label" for="edit_lab_name_en">Lab Name (English)</label>
+                            <div class="form-control-wrap">
+                                <input type="text" class="form-control" name="lab_name_en" id="edit_lab_name_en" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label class="form-label" for="edit_ministry_hi">Ministry Text (Hindi)</label>
+                            <div class="form-control-wrap">
+                                <input type="text" class="form-control" name="ministry_hi" id="edit_ministry_hi" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label class="form-label" for="edit_ministry_en">Ministry Text (English)</label>
+                            <div class="form-control-wrap">
+                                <input type="text" class="form-control" name="ministry_en" id="edit_ministry_en" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="form-group col-md-12">
+                            <label class="form-label" for="edit_lab_address">Lab Address</label>
+                            <div class="form-control-wrap">
+                                <textarea class="form-control" name="lab_address" id="edit_lab_address" rows="2"></textarea>
+                            </div>
+                        </div>
+                        <div class="form-group col-md-4">
+                            <label class="form-label" for="edit_lab_contact">Lab Contact Info</label>
+                            <div class="form-control-wrap">
+                                <input type="text" class="form-control" name="lab_contact" id="edit_lab_contact" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="form-group col-md-4">
+                            <label class="form-label" for="edit_lab_email">Lab Email</label>
+                            <div class="form-control-wrap">
+                                <input type="text" class="form-control" name="lab_email" id="edit_lab_email" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="form-group col-md-4">
+                            <label class="form-label" for="edit_lab_website">Lab Website</label>
+                            <div class="form-control-wrap">
+                                <input type="text" class="form-control" name="lab_website" id="edit_lab_website" autocomplete="off">
                             </div>
                         </div>
                     </div>
@@ -191,6 +306,15 @@
                 $('#txt_edit_name').val($(this).data('name'));
                 $('#txt_edit_email').val($(this).data('email'));
                 $('#txt_edit_phone').val($(this).data('phone'));
+                $('#edit_certificate_no').val($(this).data('certificate_no'));
+                $('#edit_lab_name_hi').val($(this).data('lab_name_hi'));
+                $('#edit_lab_name_en').val($(this).data('lab_name_en'));
+                $('#edit_ministry_hi').val($(this).data('ministry_hi'));
+                $('#edit_ministry_en').val($(this).data('ministry_en'));
+                $('#edit_lab_address').val($(this).data('lab_address'));
+                $('#edit_lab_contact').val($(this).data('lab_contact'));
+                $('#edit_lab_email').val($(this).data('lab_email'));
+                $('#edit_lab_website').val($(this).data('lab_website'));
             });
 
 

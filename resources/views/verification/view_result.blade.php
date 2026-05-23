@@ -1,717 +1,288 @@
 @extends('layouts.app_back')
 
 @section('content')
-    <div class="container-fluid">
-        <div class="nk-content-inner">
-            <div class="nk-content-body">
-                <div class="nk-block nk-block-lg">
-
-                    <!-- Header Section -->
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <div>
-                            <h4 class="fw-bold text-primary mb-1">Result Verification</h4>
-                            <p class="text-muted mb-0">Sample Reference: {{ $sample->tr04_reference_id }}</p>
+    <div class="nk-content-inner">
+        <div class="nk-content-body">
+            <div class="nk-block-head nk-block-head-sm">
+                <div class="nk-block-between">
+                    <div class="nk-block-head-content">
+                        <h3 class="nk-block-title page-title text-primary">Sample Result Verification</h3>
+                        <div class="nk-block-des text-soft">
+                            <p>Verify or Reject results for Sample ID: <span class="fw-bold text-dark">{{ $sample->tr04_reference_id }}</span></p>
                         </div>
-                        <a href="{{ route('view_result_verification') }}" class="btn btn-outline-primary btn-sm">
-                            <em class="icon ni ni-back-alt-fill"></em> Back
-                        </a>
                     </div>
+                    <div class="nk-block-head-content">
+                        <div class="toggle-wrap nk-block-tools-toggle">
+                            <a href="{{ route('view_result_verification') }}" class="btn btn-outline-light btn-white">
+                                <em class="icon ni ni-arrow-left"></em><span>Back to List</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-                    <!-- Sample Information -->
-                    <div class="card card-bordered mt-3">
-                        <div class="card-body">
-                            <div class="row text-center">
-                                <div class="col-md-3 border-end">
-                                    <small class="text-muted">Sample Type</small>
-                                    <p class="mb-0 fw-bold">{{ $sample->labSample->m14_name ?? 'N/A' }}</p>
-                                </div>
-                                <div class="col-md-3 border-end">
-                                    <small class="text-muted">No. of Samples</small>
-                                    <p class="mb-0 fw-bold">{{ $sample->tr04_number_of_samples }}</p>
-                                </div>
-                                <div class="col-md-3 border-end">
-                                    <small class="text-muted">Total Tests</small>
-                                    <p class="mb-0 fw-bold">{{ $organizedResults->count() }}</p>
-                                </div>
-                                <div class="col-md-3">
-                                    <small class="text-muted">Status</small>
-                                    <p class="mb-0">
-                                        @php
-                                            $currentStatus =
-                                                $sample->testResult->where('tr07_is_current', 'YES')->first()
-                                                    ->tr07_result_status ?? 'PENDING';
-                                        @endphp
-                                        <span
-                                            class="badge bg-{{ $currentStatus === 'VERIFIED' ? 'success' : ($currentStatus === 'REJECTED' ? 'danger' : 'warning') }}">
-                                            {{ $currentStatus }}
-                                        </span>
-                                    </p>
+            <div class="nk-block">
+                <div class="row g-gs">
+                    <!-- Sample Overview Card -->
+                    <div class="col-12">
+                        <div class="card card-bordered">
+                            <div class="card-inner py-3">
+                                <div class="row g-3 align-center">
+                                    <div class="col-md-3">
+                                        <div class="profile-stats">
+                                            <span class="sub-text">Sample Type</span>
+                                            <span class="h5">{{ $sample->labSample->m14_name ?? 'N/A' }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="profile-stats">
+                                            <span class="sub-text">Priority</span>
+                                            <span class="badge badge-dim bg-{{ ($sample->tr04_sample_type ?? 'NORMAL') == 'TATKAL' ? 'danger' : 'info' }}">
+                                                {{ $sample->tr04_sample_type ?? 'NORMAL' }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="profile-stats">
+                                            <span class="sub-text">Registration Date</span>
+                                            <span class="h5">{{ date('d M Y', strtotime($sample->created_at)) }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="profile-stats">
+                                            <span class="sub-text">Total Tests</span>
+                                            <span class="h5">{{ $sampleTests->count() }}</span>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Test Results Section - Tabular View -->
-                    <div class="card card-bordered mt-4">
-                        <div class="card-header bg-light d-flex justify-content-between align-items-center">
-                            <h6 class="mb-0 text-dark">Test Results for Verification</h6>
-                            <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" id="showRevisionsOnly">
-                                <label class="form-check-label" for="showRevisionsOnly">Show revisions only</label>
-                            </div>
-                        </div>
-                        <div class="card-body p-0">
-                            <div class="table-responsive">
-                                <table class="table table-hover table-striped mb-0" id="verificationTable">
-                                    <thead class="bg-light">
-                                        <tr>
-                                            <th width="30%">Test Name</th>
-                                            <th width="15%">Type</th>
-                                            <th width="20%">Result</th>
-                                            <th width="15%">Status</th>
-                                            <th width="15%">Test Date</th>
-                                            <th width="5%" class="text-center">Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @foreach ($organizedResults as $testNumber => $testData)
-                                            @php
-                                                $test = $testData['test'];
-                                                $hasRevisions = false;
+                    @foreach ($sampleTests as $key => $sampleTest)
+                        @php
+                            $test = $sampleTest->test;
+                            $primaryTests = $test->primaryTests;
+                            $currentTestResults = $currentResults->where('m12_test_number', $test->m12_test_number);
+                            $historicalTestResults = $historicalResults->where('m12_test_number', $test->m12_test_number);
+                            
+                            // Get manuscript from any result record for this test
+                            $manuscript = $currentTestResults->first()->tr07_manuscript_content ?? 'No manuscript data available.';
+                            $isRevised = $currentTestResults->contains('tr07_result_status', 'REVISED');
+                        @endphp
 
-                                                // Check for revisions in all result types
-                                                if ($testData['has_main_result']) {
-                                                    $hasRevisions = $testData['main_results']->contains(
-                                                        'tr07_result_status',
-                                                        'REVISED',
-                                                    );
-                                                }
-                                                if (!$hasRevisions && $testData['has_primary_tests']) {
-                                                    foreach ($testData['primary_results'] as $primaryData) {
-                                                        if (
-                                                            $primaryData['primary_result'] &&
-                                                            $primaryData['primary_result']->tr07_result_status ===
-                                                                'REVISED'
-                                                        ) {
-                                                            $hasRevisions = true;
-                                                            break;
-                                                        }
-                                                        if (
-                                                            $primaryData['secondary_results']->contains(
-                                                                'tr07_result_status',
-                                                                'REVISED',
-                                                            )
-                                                        ) {
-                                                            $hasRevisions = true;
-                                                            break;
-                                                        }
-                                                    }
-                                                }
-                                            @endphp
-
-                                            <!-- Main Test Results -->
-                                            @if (!$testData['has_primary_tests'] && $testData['has_main_result'])
-                                                @foreach ($testData['main_results'] as $mainResult)
-                                                    <tr
-                                                        class="{{ $mainResult->tr07_result_status === 'REVISED' ? 'table-warning revision-row' : '' }}">
-                                                        <td>
-                                                            <div class="d-flex align-items-center">
-                                                                <strong>{{ $test->m12_name }}</strong>
-                                                                {{-- @if ($mainResult->tr07_result_status === 'REVISED')
-                                                                    <span class="badge bg-warning ms-2">Revised</span>
-                                                                @endif --}}
-                                                            </div>
-                                                            @if ($test->standard?->m15_method)
-                                                                <small class="text-muted d-block">Method:
-                                                                    {{ $test->standard->m15_method }}</small>
-                                                            @endif
-                                                        </td>
-                                                        <td>
-                                                            <span class="badge bg-primary">Main Test</span>
-                                                        </td>
-                                                        <td>
-                                                            @if (isset($mainResult->old_version))
-                                                                <div class="revision-comparison">
-                                                                    <div class="d-flex align-items-center">
-                                                                        <span
-                                                                            class="text-danger text-decoration-line-through me-2">
-                                                                            {{ $mainResult->old_version->tr07_result ?? 'N/A' }}
-                                                                        </span>
-                                                                        <em
-                                                                            class="icon ni ni-arrow-right text-muted me-2"></em>
-                                                                        <span class="text-success fw-bold">
-                                                                            {{ $mainResult->tr07_result ?? 'N/A' }}
-                                                                        </span>
-                                                                        @if ($mainResult->tr07_unit)
-                                                                            <small
-                                                                                class="text-muted ms-1">({{ $mainResult->tr07_unit }})</small>
-                                                                        @endif
-                                                                    </div>
-                                                                </div>
-                                                            @else
-                                                                <span
-                                                                    class="fw-bold text-dark">{{ $mainResult->tr07_result ?? 'N/A' }}</span>
-                                                                @if ($mainResult->tr07_unit)
-                                                                    <small
-                                                                        class="text-muted ms-1">({{ $mainResult->tr07_unit }})</small>
-                                                                @endif
-                                                            @endif
-                                                        </td>
-                                                        <td>
-                                                            <span
-                                                                class="fw-bold text-{{ $mainResult->tr07_result_status === 'RESULTED' ? 'success' : ($mainResult->tr07_result_status === 'REVISED' ? 'warning' : 'info') }}">
-                                                                {{ $mainResult->tr07_result_status }}
-                                                            </span>
-                                                        </td>
-                                                        <td>
-                                                            <small class="text-muted">
-                                                                {{ $mainResult->tr07_test_date ? date('d M Y', strtotime($mainResult->tr07_test_date)) : 'N/A' }}
-                                                            </small>
-                                                        </td>
-                                                        <td class="text-center">
-                                                            <button type="button"
-                                                                class="btn btn-sm btn-outline-primary view-details"
-                                                                data-test-name="{{ $test->m12_name }}"
-                                                                data-result="{{ $mainResult->tr07_result ?? 'N/A' }}"
-                                                                data-unit="{{ $mainResult->tr07_unit ?? '' }}"
-                                                                data-status="{{ $mainResult->tr07_result_status }}"
-                                                                data-date="{{ $mainResult->tr07_test_date ? date('d M Y', strtotime($mainResult->tr07_test_date)) : 'N/A' }}"
-                                                                data-method="{{ $test->standard->m15_method ?? 'N/A' }}"
-                                                                data-type="Main Test">
-                                                                <em class="icon ni ni-eye"></em>
-                                                            </button>
-                                                        </td>
-                                                    </tr>
-                                                @endforeach
-                                            @endif
-
-                                            <!-- Primary Tests -->
-                                            @if ($testData['has_primary_tests'])
-                                                @foreach ($testData['primary_results'] as $primaryData)
-                                                    @php
-                                                        $primaryTest = $primaryData['primary_test'];
-                                                        $primaryResult = $primaryData['primary_result'];
-                                                        $secondaryResults = $primaryData['secondary_results'];
-                                                    @endphp
-
-                                                    @if ($primaryResult)
-                                                        <tr
-                                                            class="{{ $primaryResult->tr07_result_status === 'REVISED' ? 'table-warning revision-row' : '' }}">
-                                                            <td>
-                                                                <div class="d-flex align-items-center">
-                                                                    <strong>{{ $primaryTest->m16_name ?? 'N/A' }}</strong>
-                                                                    {{-- @if ($primaryResult->tr07_result_status === 'REVISED')
-                                                                    <span class="badge bg-warning ms-2">Revised</span>
-                                                                @endif --}}
-                                                                </div>
-                                                                @if ($primaryTest?->m16_requirement)
-                                                                    <small class="text-info d-block">Required:
-                                                                        {{ $primaryTest?->m16_requirement }}</small>
-                                                                @endif
-                                                                <small class="text-muted d-block">Parent:
-                                                                    {{ $test?->m12_name }}</small>
-                                                            </td>
-                                                            <td>
-                                                                <span class="badge bg-info">Primary Test</span>
-                                                            </td>
-                                                            <td>
-                                                                @if ($primaryResult && isset($primaryResult->old_version))
-                                                                    <div class="revision-comparison">
-                                                                        <div class="d-flex align-items-center">
-                                                                            <span
-                                                                                class="text-danger text-decoration-line-through me-2">
-                                                                                {{ $primaryResult->old_version->tr07_result ?? 'N/A' }}
-                                                                            </span>
-                                                                            <em
-                                                                                class="icon ni ni-arrow-right text-muted me-2"></em>
-                                                                            <span class="text-success fw-bold">
-                                                                                {{ $primaryResult->tr07_result ?? 'N/A' }}
-                                                                            </span>
-                                                                            @if ($primaryResult->tr07_unit)
-                                                                                <small
-                                                                                    class="text-muted ms-1">({{ $primaryResult->tr07_unit }})</small>
-                                                                            @endif
-                                                                        </div>
-                                                                    </div>
-                                                                @elseif($primaryResult)
-                                                                    <span
-                                                                        class="fw-bold text-dark">{{ $primaryResult->tr07_result ?? 'N/A' }}</span>
-                                                                    @if ($primaryResult->tr07_unit)
-                                                                        <small
-                                                                            class="text-muted ms-1">({{ $primaryResult->tr07_unit }})</small>
-                                                                    @endif
-                                                                @endif
-                                                            </td>
-                                                            <td>
-                                                                @if ($primaryResult)
-                                                                    <span
-                                                                        class="fw-bold text-{{ $primaryResult->tr07_result_status === 'RESULTED' ? 'success' : ($primaryResult->tr07_result_status === 'REVISED' ? 'warning' : 'info') }}">
-                                                                        {{ $primaryResult->tr07_result_status }}
-                                                                    </span>
-                                                                @endif
-                                                            </td>
-                                                            <td>
-                                                                @if ($primaryResult)
-                                                                    <small class="text-muted">
-                                                                        {{ $primaryResult->tr07_test_date ? date('d M Y', strtotime($primaryResult->tr07_test_date)) : 'N/A' }}
-                                                                    </small>
-                                                                @endif
-                                                            </td>
-                                                            <td class="text-center">
-                                                                <button type="button"
-                                                                    class="btn btn-sm btn-outline-primary view-details"
-                                                                    data-test-name="{{ $primaryTest->m16_name ?? 'N/A' }}"
-                                                                    data-result="{{ $primaryResult->tr07_result ?? 'N/A' }}"
-                                                                    data-unit="{{ $primaryResult->tr07_unit ?? '' }}"
-                                                                    data-status="{{ $primaryResult->tr07_result_status }}"
-                                                                    data-date="{{ $primaryResult->tr07_test_date ? date('d M Y', strtotime($primaryResult->tr07_test_date)) : 'N/A' }}"
-                                                                    data-requirement="{{ $primaryTest->m16_requirement ?? 'N/A' }}"
-                                                                    data-type="Primary Test"
-                                                                    data-parent="{{ $test->m12_name }}">
-                                                                    <em class="icon ni ni-eye"></em>
-                                                                </button>
-                                                            </td>
+                        <div class="col-12">
+                            <div class="card card-bordered border-{{ $isRevised ? 'warning' : 'primary' }}">
+                                <div class="card-header bg-lighter d-flex justify-content-between align-items-center py-2">
+                                    <h6 class="mb-0">
+                                        <span class="badge bg-primary me-2">{{ $key + 1 }}</span>
+                                        {{ $test->m12_name }} 
+                                        @if($test->standard?->m15_method)
+                                            <span class="text-soft ms-2 small">({{ $test->standard->m15_method }})</span>
+                                        @endif
+                                        @if($isRevised) <span class="badge badge-outline-warning ms-2">Revised</span> @endif
+                                    </h6>
+                                    <small class="text-muted">Analyst: {{ $sampleTest->allotedTo->m06_name ?? 'N/A' }}</small>
+                                </div>
+                                <div class="card-inner p-0">
+                                    <div class="row g-0">
+                                        <!-- Result Table Section -->
+                                        <div class="col-lg-7 border-end">
+                                            <div class="table-responsive">
+                                                <table class="table table-bordered table-sm mb-0">
+                                                    <thead class="bg-light">
+                                                        <tr>
+                                                            <th width="80" class="text-center">Sr. No</th>
+                                                            <th>Test Specification / Field</th>
+                                                            <th width="200" class="text-center">Result (Original &rarr; Revised)</th>
+                                                            <th width="100" class="text-center">Status</th>
                                                         </tr>
-                                                    @endif
+                                                    </thead>
+                                                    <tbody>
+                                                        @php
+                                                            $mainCurrent = $currentTestResults->filter(fn($r) => empty($r->m16_primary_test_id) && empty($r->m17_secondary_test_id))->first();
+                                                            $mainHistorical = $historicalTestResults->filter(fn($r) => empty($r->m16_primary_test_id) && empty($r->m17_secondary_test_id))->sortByDesc('tr07_test_result_id')->first();
+                                                        @endphp
 
-                                                    <!-- Secondary Tests -->
-                                                    @if ($secondaryResults->count() > 0)
-                                                        @foreach ($secondaryResults as $secondaryResult)
-                                                            <tr
-                                                                class="{{ $secondaryResult->tr07_result_status === 'REVISED' ? 'table-warning revision-row' : '' }}">
-                                                                <td>
-                                                                    <div class="d-flex align-items-center ps-3">
-                                                                        <span
-                                                                            class="text-dark">{{ $secondaryResult->secondaryTest->m17_name ?? 'N/A' }}</span>
-                                                                        {{-- @if ($secondaryResult->tr07_result_status === 'REVISED')
-                                                                            <span class="badge bg-warning ms-2">Revised</span>
-                                                                        @endif --}}
-                                                                    </div>
-                                                                    <small class="text-muted d-block ps-3">Parent:
-                                                                        {{ $primaryTest->m16_name ?? 'N/A' }}</small>
-                                                                </td>
-                                                                <td>
-                                                                    <span class="badge bg-secondary">Secondary Test</span>
-                                                                </td>
-                                                                <td>
-                                                                    @if (isset($secondaryResult->old_version))
-                                                                        <div class="revision-comparison">
-                                                                            <div class="d-flex align-items-center">
-                                                                                <span
-                                                                                    class="text-danger text-decoration-line-through me-2">
-                                                                                    {{ $secondaryResult->old_version->tr07_result ?? 'N/A' }}
-                                                                                </span>
-                                                                                <em
-                                                                                    class="icon ni ni-arrow-right text-muted me-2"></em>
-                                                                                <span class="text-success fw-bold">
-                                                                                    {{ $secondaryResult->tr07_result ?? 'N/A' }}
-                                                                                </span>
-                                                                                @if ($secondaryResult->secondaryTest->m17_unit)
-                                                                                    <small
-                                                                                        class="text-muted ms-1">({{ $secondaryResult->secondaryTest->m17_unit }})</small>
-                                                                                @endif
-                                                                            </div>
+                                                        @if ($primaryTests->isEmpty())
+                                                            <tr>
+                                                                <td class="text-center fw-bold">{{ $key + 1 }}</td>
+                                                                <td class="fw-bold">{{ $test->m12_name }}</td>
+                                                                <td class="text-center">
+                                                                    @if ($mainHistorical && (string)$mainHistorical->tr07_result !== (string)$mainCurrent->tr07_result)
+                                                                        <div class="comparison-box">
+                                                                            <span class="text-danger text-decoration-line-through me-1">{{ $mainHistorical->tr07_result ?? 'N/A' }}</span>
+                                                                            <em class="icon ni ni-arrow-right small text-muted"></em>
+                                                                            <span class="text-success fw-bold ms-1">{{ $mainCurrent->tr07_result ?? 'N/A' }}</span>
+                                                                            @if ($mainCurrent->tr07_unit) <small class="text-muted">({{ $mainCurrent->tr07_unit }})</small> @endif
                                                                         </div>
                                                                     @else
-                                                                        <span
-                                                                            class="fw-bold text-dark">{{ $secondaryResult->tr07_result ?? 'N/A' }}</span>
-                                                                        @if ($secondaryResult->tr07_unit)
-                                                                            <small
-                                                                                class="text-muted ms-1">({{ $secondaryResult->tr07_unit }})</small>
-                                                                        @endif
+                                                                        <span class="fw-bold">{{ $mainCurrent->tr07_result ?? 'N/A' }}</span>
+                                                                        @if ($mainCurrent && $mainCurrent->tr07_unit) <small class="text-muted">({{ $mainCurrent->tr07_unit }})</small> @endif
                                                                     @endif
                                                                 </td>
-                                                                <td>
-                                                                    <span
-                                                                        class="fw-bold text-{{ $secondaryResult->tr07_result_status === 'RESULTED' ? 'success' : ($secondaryResult->tr07_result_status === 'REVISED' ? 'warning' : 'info') }}">
-                                                                        {{ $secondaryResult->tr07_result_status }}
-                                                                    </span>
-                                                                </td>
-                                                                <td>
-                                                                    <small class="text-muted">
-                                                                        {{ $secondaryResult->tr07_test_date ? date('d M Y', strtotime($secondaryResult->tr07_test_date)) : 'N/A' }}
-                                                                    </small>
-                                                                </td>
                                                                 <td class="text-center">
-                                                                    <button type="button"
-                                                                        class="btn btn-sm btn-outline-primary view-details"
-                                                                        data-test-name="{{ $secondaryResult->secondaryTest->m17_name ?? 'N/A' }}"
-                                                                        data-result="{{ $secondaryResult->tr07_result ?? 'N/A' }}"
-                                                                        data-unit="{{ $secondaryResult->tr07_unit ?? ($secondaryResult->secondaryTest->m17_unit ?? '') }}"
-                                                                        data-status="{{ $secondaryResult->tr07_result_status }}"
-                                                                        data-date="{{ $secondaryResult->tr07_test_date ? date('d M Y', strtotime($secondaryResult->tr07_test_date)) : 'N/A' }}"
-                                                                        data-type="Secondary Test"
-                                                                        data-parent="{{ $primaryTest->m16_name ?? 'N/A' }}">
-                                                                        <em class="icon ni ni-eye"></em>
-                                                                    </button>
+                                                                    @if ($mainCurrent)
+                                                                        <span class="badge badge-dim bg-{{ $mainCurrent->tr07_result_status === 'REVISED' ? 'warning' : 'success' }}">
+                                                                            {{ $mainCurrent->tr07_result_status }}
+                                                                        </span>
+                                                                    @endif
                                                                 </td>
                                                             </tr>
+                                                        @else
+                                                            <tr class="table-lighter">
+                                                                <td class="text-center fw-bold">{{ $key + 1 }}</td>
+                                                                <td class="fw-bold">{{ $test->m12_name }}</td>
+                                                                <td colspan="2" class="text-muted text-center italic small">Hierarchy follows below</td>
+                                                            </tr>
+                                                            @foreach ($primaryTests as $pKey => $primaryTest)
+                                                                @include('verification.partials.verification_primary_row', [
+                                                                    'key' => $key,
+                                                                    'pKey' => $pKey,
+                                                                    'test' => $test,
+                                                                    'primaryTest' => $primaryTest,
+                                                                    'currentResults' => $currentTestResults,
+                                                                    'historicalResults' => $historicalTestResults,
+                                                                    'customFields' => $customFields->where('m12_test_number', $test->m12_test_number),
+                                                                    'historicalCustomFields' => $historicalCustomFields->where('m12_test_number', $test->m12_test_number)
+                                                                ])
+                                                            @endforeach
+                                                        @endif
+
+                                                        <!-- Main Test Custom Fields -->
+                                                        @foreach ($customFields->where('m12_test_number', $test->m12_test_number)->filter(fn($f) => empty($f->m16_primary_test_id)) as $cf)
+                                                            @php
+                                                                $hCf = $historicalCustomFields->where('m12_test_number', $test->m12_test_number)->filter(fn($f) => $f->tr08_field_name === $cf->tr08_field_name && empty($f->m16_primary_test_id))->first();
+                                                            @endphp
+                                                            <tr class="custom-field-row table-light">
+                                                                <td class="text-center small text-muted">{{ $key + 1 }}.C{{ $loop->iteration }}</td>
+                                                                <td class="ps-3 small text-muted">{{ $cf->tr08_field_name }}</td>
+                                                                <td class="text-center">
+                                                                    @if ($hCf && (string)$hCf->tr08_field_value !== (string)$cf->tr08_field_value)
+                                                                        <div class="comparison-box">
+                                                                            <span class="text-danger text-decoration-line-through me-1">{{ $hCf->tr08_field_value ?? 'N/A' }}</span>
+                                                                            <em class="icon ni ni-arrow-right small text-muted"></em>
+                                                                            <span class="text-success fw-bold ms-1">{{ $cf->tr08_field_value ?? 'N/A' }}</span>
+                                                                        </div>
+                                                                    @else
+                                                                        {{ $cf->tr08_field_value }}
+                                                                    @endif
+                                                                </td>
+                                                                <td class="text-center small text-muted">Custom</td>
+                                                            </tr>
                                                         @endforeach
-                                                    @endif
-                                                @endforeach
-                                            @endif
-
-                                            <!-- Custom Fields -->
-                                            @php
-                                                $allCustomFields = \App\Models\CustomField::where(
-                                                    'tr04_reference_id',
-                                                    $sample->tr04_reference_id,
-                                                )
-                                                    ->where('m12_test_number', $testNumber)
-                                                    ->whereIn('tr08_result_status', ['SUBMITTED', 'DRAFT', 'RESULTED'])
-                                                    ->get();
-                                            @endphp
-
-                                            @if ($allCustomFields->count() > 0)
-                                                @foreach ($allCustomFields as $customField)
-                                                    @php
-                                                        $parentName = '';
-                                                        if (!is_null($customField->m16_primary_test_id)) {
-                                                            // Find the primary test name
-                                                            $primaryTest = $testData['primary_results']
-                                                                ->where(
-                                                                    'primary_test.m16_primary_test_id',
-                                                                    $customField->m16_primary_test_id,
-                                                                )
-                                                                ->first();
-                                                            $parentName = $primaryTest
-                                                                ? $primaryTest['primary_test']->m16_name
-                                                                : '';
-                                                        }
-                                                    @endphp
-                                                    <tr>
-                                                        <td>
-                                                            <div class="d-flex align-items-center ps-3">
-                                                                <span
-                                                                    class="text-dark">{{ $customField->tr08_field_name }}</span>
-                                                            </div>
-                                                            @if ($parentName)
-                                                                <small class="text-muted d-block ps-3">For:
-                                                                    {{ $parentName }}</small>
-                                                            @endif
-                                                        </td>
-                                                        <td>
-                                                            <span class="badge bg-warning">Custom Field</span>
-                                                        </td>
-                                                        <td>
-                                                            <span
-                                                                class="fw-bold text-dark">{{ $customField->tr08_field_value }}</span>
-                                                            @if ($customField->tr08_field_unit)
-                                                                <small
-                                                                    class="text-muted ms-1">({{ $customField->tr08_field_unit }})</small>
-                                                            @endif
-                                                        </td>
-                                                        <td>
-                                                            <span
-                                                                class="text-warning fw-bold">{{ $customField->tr08_result_status }}</span>
-                                                        </td>
-                                                        <td>
-                                                            <small class="text-muted">
-                                                                {{ $customField->tr08_test_date ? date('d M Y', strtotime($customField->tr08_test_date)) : 'N/A' }}
-                                                            </small>
-                                                        </td>
-                                                        <td class="text-center">
-                                                            <button type="button"
-                                                                class="btn btn-sm btn-outline-primary view-details"
-                                                                data-test-name="{{ $customField->tr08_field_name }}"
-                                                                data-result="{{ $customField->tr08_field_value }}"
-                                                                data-unit="{{ $customField->tr08_field_unit ?? '' }}"
-                                                                data-status="{{ $customField->tr08_result_status }}"
-                                                                data-date="{{ $customField->tr08_test_date ? date('d M Y', strtotime($customField->tr08_test_date)) : 'N/A' }}"
-                                                                data-type="Custom Field"
-                                                                data-parent="{{ $parentName }}">
-                                                                <em class="icon ni ni-eye"></em>
-                                                            </button>
-                                                        </td>
-                                                    </tr>
-                                                @endforeach
-                                            @endif
-                                        @endforeach
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Verification Action Form -->
-                    @if ($sample->testResult->where('tr07_is_current', 'YES')->whereIn('tr07_result_status', ['RESULTED', 'REVISED', 'SUBMITTED'])->count() > 0)
-                        <div class="card card-bordered mt-4">
-                            <div class="card-header bg-light">
-                                <h6 class="mb-0 text-dark">Verification Decision</h6>
-                            </div>
-                            <div class="card-body">
-                                <form action="{{ route('verify_result', $sample->tr04_sample_registration_id) }}"
-                                    method="POST" id="verificationForm">
-                                    @csrf
-                                    <div class="row">
-                                        <div class="col-md-8">
-                                            <div class="mb-3">
-                                                <label for="remarks" class="form-label">Remarks (optional)</label>
-                                                <textarea name="remarks" id="remarks" class="form-control" rows="3"
-                                                    placeholder="Enter verification remarks or observations...">{{ old('remarks') }}</textarea>
-                                            </div>
-                                            <div class="row mt-3" id="reassignSection" style="display: none;">
-                                                <div class="col-md-12">
-                                                    <label for="reassigned_analyst_id"
-                                                        class="form-label text-danger">Re-assign To (Optional)</label>
-                                                    <select name="reassigned_analyst_id" id="reassigned_analyst_id"
-                                                        class="form-select">
-                                                        <option value="">Keep Original Analyst</option>
-                                                        @foreach ($analysts as $analyst)
-                                                            <option value="{{ $analyst->m06_employee_id }}">
-                                                                {{ $analyst->m06_name }}</option>
-                                                        @endforeach
-                                                    </select>
-                                                    <div class="form-text text-muted">If a different analyst is selected,
-                                                        the rejected tests will be re-allotted to them.</div>
-                                                </div>
+                                                    </tbody>
+                                                </table>
                                             </div>
                                         </div>
-                                        <div class="col-md-4">
-                                            <div class="verification-actions mt-5">
-                                                <div class="d-grid gap-2">
-                                                    <button type="button" id="verifyBtn" class="btn btn-success">
-                                                        <em class="icon ni ni-check"></em>
-                                                        Verify Results
-                                                    </button>
 
-                                                    <button type="button" id="rejectBtn" class="btn btn-danger">
-                                                        <em class="icon ni ni-cross"></em>
-                                                        Reject Results
-                                                    </button>
+                                        <!-- Manuscript Content Section -->
+                                        <div class="col-lg-5 bg-lighter">
+                                            <div class="p-3">
+                                                <h6 class="overline-title text-soft mb-2">Manuscript & Calculations</h6>
+                                                <div class="manuscript-viewer border bg-white p-3 rounded" style="max-height: 400px; overflow-y: auto; font-family: serif;">
+                                                    {!! $manuscript !!}
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
+                                </div>
+                            </div>
+                        </div>
+                    @endforeach
+
+                    <!-- Final Verification Actions -->
+                    <div class="col-12 mt-4">
+                        <div class="card card-bordered card-stretch">
+                            <div class="card-inner">
+                                <form action="{{ route('verify_result', $sample->tr04_sample_registration_id) }}" method="POST" id="verificationForm">
+                                    @csrf
+                                    <div class="row g-4">
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label class="form-label">General Remarks</label>
+                                                <div class="form-control-wrap">
+                                                    <textarea name="remarks" class="form-control no-resize" rows="3" placeholder="Add any general observations or reasons for rejection..."></textarea>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="form-group">
+                                                <label class="form-label text-danger">Re-assign To (If Rejecting)</label>
+                                                <div class="form-control-wrap">
+                                                    <select name="reassigned_analyst_id" class="form-select js-select2">
+                                                        <option value="">Default Analyst</option>
+                                                        @foreach ($analysts as $analyst)
+                                                            <option value="{{ $analyst->m06_employee_id }}">{{ $analyst->m06_name }}</option>
+                                                        @endforeach
+                                                    </select>
+                                                </div>
+                                                <div class="form-text text-muted small">Only used if rejecting.</div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3 d-flex align-items-center justify-content-end">
+                                            <div class="d-flex flex-column w-100 gap-2">
+                                                <button type="button" onclick="submitVerification('verify')" class="btn btn-lg btn-success">
+                                                    <em class="icon ni ni-check-circle-fill"></em> <span>Verify All Results</span>
+                                                </button>
+                                                <button type="button" onclick="submitVerification('reject')" class="btn btn-lg btn-danger">
+                                                    <em class="icon ni ni-cross-circle-fill"></em> <span>Reject All Results</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <input type="hidden" name="action" id="actionField">
                                 </form>
                             </div>
                         </div>
-                    @else
-                        <div class="alert alert-info mt-4 text-center">
-                            <em class="icon ni ni-check-circle"></em>
-                            <strong>All results have been verified.</strong> No pending verification required.
-                        </div>
-                    @endif
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Result Details Modal -->
-    <div class="modal fade" id="resultDetailsModal" tabindex="-1" aria-labelledby="resultDetailsModalLabel"
-        aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="resultDetailsModalLabel">Test Result Details</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="row mb-3">
-                        <div class="col-sm-4 fw-bold">Test Name:</div>
-                        <div class="col-sm-8" id="detail-test-name"></div>
                     </div>
-                    <div class="row mb-3">
-                        <div class="col-sm-4 fw-bold">Type:</div>
-                        <div class="col-sm-8" id="detail-type"></div>
-                    </div>
-                    <div class="row mb-3">
-                        <div class="col-sm-4 fw-bold">Parent Test:</div>
-                        <div class="col-sm-8" id="detail-parent"></div>
-                    </div>
-                    <div class="row mb-3">
-                        <div class="col-sm-4 fw-bold">Result:</div>
-                        <div class="col-sm-8" id="detail-result"></div>
-                    </div>
-                    <div class="row mb-3">
-                        <div class="col-sm-4 fw-bold">Status:</div>
-                        <div class="col-sm-8" id="detail-status"></div>
-                    </div>
-                    <div class="row mb-3">
-                        <div class="col-sm-4 fw-bold">Test Date:</div>
-                        <div class="col-sm-8" id="detail-date"></div>
-                    </div>
-                    <div class="row mb-3">
-                        <div class="col-sm-4 fw-bold">Method/Requirement:</div>
-                        <div class="col-sm-8" id="detail-method"></div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                 </div>
             </div>
         </div>
     </div>
 
     <style>
-        .table th {
-            border-top: none;
-            font-weight: 600;
-            font-size: 0.85rem;
+        .comparison-box {
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 8px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            border: 1px solid #dee2e6;
+        }
+        .table-lighter { background-color: #f9fbfe; }
+        .manuscript-viewer {
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.05);
+            line-height: 1.6;
+            font-size: 14px;
+        }
+        .italic { font-style: italic; }
+        .overline-title {
+            font-size: 11px;
+            letter-spacing: 0.1em;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .table td {
-            vertical-align: middle;
-            padding: 0.75rem 0.5rem;
-        }
-
-        .revision-comparison {
-            font-size: 0.9rem;
-        }
-
-        .badge {
-            font-size: 0.7rem;
-        }
-
-        .table-hover tbody tr:hover {
-            background-color: rgba(0, 0, 0, 0.03);
-        }
-
-        .ps-3 {
-            padding-left: 1rem !important;
-        }
-
-        .view-details {
-            padding: 0.25rem 0.5rem;
-        }
-
-        .table-warning {
-            background-color: rgba(255, 193, 7, 0.1);
         }
     </style>
 
     <script>
-        async function confirmAction(action) {
-            const actionText = action === 'verify' ? 'verify' : 'reject';
-            const actionColor = action === 'verify' ? '#3085d6' : '#d33';
-
-            const result = await Swal.fire({
-                title: `Are you sure you want to ${actionText} all test results?`,
-                text: "This action will finalize the verification process.",
+        function submitVerification(action) {
+            const actionText = action === 'verify' ? 'VERIFY' : 'REJECT';
+            const actionClass = action === 'verify' ? 'text-success' : 'text-danger';
+            
+            Swal.fire({
+                title: 'Confirm Verification Action',
+                html: `Are you sure you want to <b class="${actionClass}">${actionText}</b> all results for this sample?`,
                 icon: 'warning',
                 showCancelButton: true,
-                confirmButtonColor: actionColor,
-                cancelButtonColor: '#6c757d',
-                confirmButtonText: `Yes, ${actionText} all!`,
-                cancelButtonText: 'Cancel',
-                reverseButtons: true
+                confirmButtonColor: action === 'verify' ? '#1ee0ac' : '#e85347',
+                cancelButtonColor: '#8094ae',
+                confirmButtonText: `Yes, ${actionText} All`
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    document.getElementById('actionField').value = action;
+                    document.getElementById('verificationForm').submit();
+                }
             });
-
-            return result.isConfirmed;
         }
-
-        document.addEventListener('DOMContentLoaded', function() {
-            const verifyBtn = document.getElementById('verifyBtn');
-            const rejectBtn = document.getElementById('rejectBtn');
-            const form = document.getElementById('verificationForm');
-            const showRevisionsOnly = document.getElementById('showRevisionsOnly');
-            const verificationTable = document.getElementById('verificationTable');
-            const viewDetailButtons = document.querySelectorAll('.view-details');
-            const resultDetailsModal = new bootstrap.Modal(document.getElementById('resultDetailsModal'));
-
-            // Filter revisions
-            if (showRevisionsOnly) {
-                showRevisionsOnly.addEventListener('change', function() {
-                    const rows = verificationTable.querySelectorAll('tbody tr');
-
-                    rows.forEach(row => {
-                        if (this.checked) {
-                            if (row.classList.contains('revision-row')) {
-                                row.style.display = '';
-                            } else {
-                                row.style.display = 'none';
-                            }
-                        } else {
-                            row.style.display = '';
-                        }
-                    });
-                });
-            }
-
-            // View details button handlers
-            viewDetailButtons.forEach(button => {
-                button.addEventListener('click', function() {
-                    const testName = this.getAttribute('data-test-name');
-                    const result = this.getAttribute('data-result');
-                    const unit = this.getAttribute('data-unit');
-                    const status = this.getAttribute('data-status');
-                    const date = this.getAttribute('data-date');
-                    const method = this.getAttribute('data-method') || this.getAttribute(
-                        'data-requirement') || 'N/A';
-                    const type = this.getAttribute('data-type');
-                    const parent = this.getAttribute('data-parent') || 'N/A';
-
-                    var elTestName = document.getElementById('detail-test-name');
-                    if (elTestName) elTestName.textContent = testName;
-
-                    var elType = document.getElementById('detail-type');
-                    if (elType) elType.textContent = type;
-
-                    var elParent = document.getElementById('detail-parent');
-                    if (elParent) elParent.textContent = parent;
-
-                    var elResult = document.getElementById('detail-result');
-                    if (elResult) elResult.textContent = unit ? `${result} ${unit}` : result;
-
-                    var elStatus = document.getElementById('detail-status');
-                    if (elStatus) elStatus.innerHTML =
-                        `<span class="badge bg-${status === 'RESULTED' ? 'success' : (status === 'REVISED' ? 'warning' : 'info')}">${status}</span>`;
-
-                    var elDate = document.getElementById('detail-date');
-                    if (elDate) elDate.textContent = date;
-
-                    var elMethod = document.getElementById('detail-method');
-                    if (elMethod) elMethod.textContent = method;
-
-                    resultDetailsModal.show();
-                });
-            });
-
-            // Verification buttons
-            if (verifyBtn) {
-                verifyBtn.addEventListener('click', async function() {
-                    const confirmed = await confirmAction('verify');
-                    if (confirmed) {
-                        const actionInput = document.createElement('input');
-                        actionInput.type = 'hidden';
-                        actionInput.name = 'action';
-                        actionInput.value = 'verify';
-                        form.appendChild(actionInput);
-                        form.submit();
-                    }
-                });
-            }
-
-            if (rejectBtn) {
-                rejectBtn.addEventListener('click', async function() {
-                    // Show reassignment dropdown if hidden (optional, maybe we want it always visible?)
-                    // Logic: If user clicks Reject, we show confirmation.
-                    // Let's make the dropdown visible only when we are about to reject? 
-                    // Or better: Use the dropdown in the UI naturally. 
-                    // Let's update the UI to toggle the dropdown based on intent, but for now 
-                    // standard behavior is: click Reject -> Confirm.
-                    // If we want them to pick analyst BEFORE clicking reject, the dropdown should be visible.
-
-                    const confirmed = await confirmAction('reject');
-                    if (confirmed) {
-                        const actionInput = document.createElement('input');
-                        actionInput.type = 'hidden';
-                        actionInput.name = 'action';
-                        actionInput.value = 'reject';
-                        form.appendChild(actionInput);
-                        form.submit();
-                    }
-                });
-
-                // Toggle reassignment visibility (optional, currently it's hidden)
-                // Let's make it visible when the user hovers reject or maybe just always visible?
-                // The prompt was "at the time of rejection".
-                // Let's actually show it permanently but styled for rejection, OR simpler:
-                // Just Show it always.
-                document.getElementById('reassignSection').style.display = 'flex';
-            }
-        });
     </script>
 @endsection

@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\SampleRegistration;
 use App\Models\TestReport;
 use App\Models\TestTransfer;
+use App\Models\SampleTest;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Session;
 
@@ -32,7 +34,8 @@ class SampleTransferController extends Controller
                 'st.tr05_status', // This is the OLD sample status (TRANSFERRED)
                 'tr06_test_transfers.tr06_transferred_at',
                 'tr06_test_transfers.tr06_remark', // Contains linkage to NEW sample
-                'tr06_test_transfers.m06_received_by'
+                'tr06_test_transfers.m06_received_by',
+                'tr06_test_transfers.tr06_status as transfer_status'
             )
             ->orderBy('tr06_test_transfers.tr06_transferred_at', 'desc')
             ->get();
@@ -47,30 +50,35 @@ class SampleTransferController extends Controller
             $isCompleted = false;
             $report = null;
 
-            // Look for linkage in remark
-            $linkData = json_decode($first->tr06_remark, true);
-            if ($linkData && isset($linkData['new_sample_id'])) {
-                $newSampleId = $linkData['new_sample_id'];
-
-                // Get status of the NEW sample
-                $linkedSample = SampleRegistration::find($newSampleId);
-                if ($linkedSample) {
-                    $newStatus = $linkedSample->tr04_progress; // e.g., 'testing', 'completed'
-
-                    // Check completion
-                    $isCompleted = in_array($newStatus, ['completed', 'reported', 'verified']);
-
-                    // Check for report on the NEW sample
-                    // TestReport uses tr04_reference_id, not sample_registration_id
-                    $report = TestReport::where('tr04_reference_id', $linkedSample->tr04_reference_id)
-                        ->where('tr09_is_current', 'YES')
-                        ->where('tr09_status', 'FINAL')
-                        ->first();
-                }
+            // Check if cancelled via DB status or legacy string fallback
+            if ($first->transfer_status === 'CANCELLED' || str_contains((string)$first->tr06_remark, '[CANCELLED BY SENDER]')) {
+                $newStatus = 'Cancelled';
             } else {
-                // Fallback to old logic or just check if received
-                if ($first->m06_received_by) {
-                    $newStatus = 'Received (Processing)';
+                // Look for linkage in remark
+                $linkData = json_decode($first->tr06_remark, true);
+                if ($linkData && isset($linkData['new_sample_id'])) {
+                    $newSampleId = $linkData['new_sample_id'];
+
+                    // Get status of the NEW sample
+                    $linkedSample = SampleRegistration::find($newSampleId);
+                    if ($linkedSample) {
+                        $newStatus = $linkedSample->tr04_progress; // e.g., 'testing', 'completed'
+
+                        // Check completion
+                        $isCompleted = in_array($newStatus, ['completed', 'reported', 'verified']);
+
+                        // Check for report on the NEW sample
+                        // TestReport uses tr04_reference_id, not sample_registration_id
+                        $report = TestReport::where('tr04_reference_id', $linkedSample->tr04_reference_id)
+                            ->where('tr09_is_current', 'YES')
+                            ->where('tr09_status', 'FINAL')
+                            ->first();
+                    }
+                } else {
+                    // Fallback to old logic or just check if received
+                    if ($first->m06_received_by) {
+                        $newStatus = 'Received (Processing)';
+                    }
                 }
             }
 
@@ -80,6 +88,7 @@ class SampleTransferController extends Controller
                 'tr04_reference_id' => $first->tr04_reference_id,
                 'customer_name' => $first->m07_customer_name,
                 'to_ro_name' => $first->to_ro_name,
+                'to_ro_id' => $first->to_ro_id,
                 'tests' => $tests->pluck('test_name')->implode(', '),
                 'statuses' => $newStatus, // Show status of the REMOTE sample
                 'test_count' => $tests->count(),
@@ -139,6 +148,71 @@ class SampleTransferController extends Controller
         } catch (\Exception $e) {
             Log::error("Download Remote Report Error: " . $e->getMessage());
             return back()->with('error', 'Failed to download report: ' . $e->getMessage());
+        }
+    }
+
+    public function cancelTransfer(Request $request)
+    {
+        $request->validate([
+            'sample_registration_id' => 'required|exists:tr04_sample_registrations,tr04_sample_registration_id',
+            'to_ro_id' => 'required|exists:m04_ros,m04_ro_id'
+        ]);
+
+        $roId = Session::get('ro_id');
+        $sampleId = $request->sample_registration_id;
+        $toRoId = $request->to_ro_id;
+
+        try {
+            DB::beginTransaction();
+
+            // Fetch transferred tests for this sample that have not been accepted yet
+            $testsToCancel = SampleTest::where('tr04_sample_registration_id', $sampleId)
+                ->where('tr05_status', 'TRANSFERRED')
+                ->where('m04_transferred_to', $toRoId)
+                ->get();
+
+            if ($testsToCancel->isEmpty()) {
+                return response()->json(['success' => false, 'message' => 'No pending transfers found or already accepted by destination.']);
+            }
+
+            foreach ($testsToCancel as $test) {
+                // Revert status to PENDING
+                $test->update([
+                    'tr05_status' => 'PENDING',
+                    'm04_transferred_to' => null,
+                    'm04_transferred_by' => null,
+                    'tr05_transferred_at' => null
+                ]);
+
+                // Update transfer history record to mark as cancelled
+                $transferRecord = TestTransfer::where('tr05_sample_test_id', $test->tr05_sample_test_id)
+                    ->where('m04_from_ro_id', $roId)
+                    ->where('m04_to_ro_id', $toRoId)
+                    ->whereNull('m06_received_by') // Only if not received
+                    ->orderBy('tr06_transferred_at', 'desc')
+                    ->first();
+
+                if ($transferRecord) {
+                    $transferRecord->update([
+                        'tr06_status' => 'CANCELLED',
+                        'tr06_remark' => $transferRecord->tr06_remark ? $transferRecord->tr06_remark . ' [CANCELLED BY SENDER]' : '[CANCELLED BY SENDER]'
+                    ]);
+                }
+            }
+
+            DB::commit();
+            
+            if ($request->ajax()) {
+                return response()->json(['success' => true, 'message' => 'Transfer cancelled successfully.']);
+            }
+            return back()->with('success', 'Transfer cancelled successfully. Tests have been returned to pending status.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Cancel Transfer Error: ' . $e->getMessage());
+            if ($request->ajax()) {
+                return response()->json(['success' => false, 'message' => 'Failed to cancel transfer: ' . $e->getMessage()]);
+            }
+            return back()->with('error', 'Failed to cancel transfer: ' . $e->getMessage());
         }
     }
 

@@ -368,6 +368,7 @@ class SampleController extends Controller
                         $transferRecord->update([
                             'm06_received_by' => $userId,
                             'tr06_received_at' => now(),
+                            'tr06_status' => 'ACCEPTED',
                             'tr06_remark' => json_encode([
                                 'new_sample_id' => $newReg->tr04_sample_registration_id,
                                 'new_test_id' => $newTest->tr05_sample_test_id,

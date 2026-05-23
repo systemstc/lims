@@ -10,6 +10,7 @@ class Accreditation extends Model
     protected $primaryKey = 'm21_accreditation_id';
     protected $fillable = [
         'm15_standard_id',
+        'm12_test_id',
         'm04_ro_id',
         'm21_is_accredited',
         'm21_accreditation_date',
@@ -20,6 +21,11 @@ class Accreditation extends Model
     public function standard()
     {
         return $this->belongsTo(Standard::class, 'm15_standard_id', 'm15_standard_id');
+    }
+
+    public function test()
+    {
+        return $this->belongsTo(Test::class, 'm12_test_id', 'm12_test_id');
     }
 
     public function ro()

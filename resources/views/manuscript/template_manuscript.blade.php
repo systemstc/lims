@@ -146,7 +146,13 @@
                                                             (No standard for this test)
                                                         @endif
                                                     </span>
+                                                    @if(!empty($manuscript->test->standardsList) && count($manuscript->test->standardsList) > 0)
+                                                        <a href="#" class="choose-standard ms-2 text-decoration-none" data-manuscript-id="{{ $manuscript->m12_test_id }}" data-test-id="{{ $manuscript->test->m12_test_id }}">
+                                                            <small><em class="icon ni ni-edit"></em> <span class="standard-label">{{ optional($manuscript->standard)->m15_method ?? 'Choose standard' }}</span></small>
+                                                        </a>
+                                                    @endif
                                                 </h5>
+                                                <input type="hidden" name="sample_tests[{{ $manuscript->m12_test_id }}][standard_id]" value="{{ old('sample_tests.' . $manuscript->m12_test_id . '.standard_id', optional($manuscript->standard)->m15_standard_id ?? '') }}">
                                                 <small class="text-muted d-block mt-1">Write your manuscript part and
                                                     calculation below:</small>
                                             </div>
@@ -332,7 +338,9 @@
 
                                                                 @if (
                                                                     $existingPrimaryResult ||
-                                                                        $existingTestResults->where('m16_primary_test_id', $primaryTest->m16_primary_test_id)->isNotEmpty())
+                                                                        $existingTestResults->where('m16_primary_test_id', $primaryTest->m16_primary_test_id)->isNotEmpty() ||
+                                                                        $existingTestResults->isEmpty() ||
+                                                                        old('results.' . $test->m12_test_number . '.primary_tests.' . $primaryTest->m16_primary_test_id) !== null)
                                                                     <tr class="primary-test-row"
                                                                         data-test-id="{{ $test->m12_test_id }}"
                                                                         data-test-number="{{ $test->m12_test_number }}"
@@ -426,7 +434,7 @@
                                                                                     ->first();
                                                                             @endphp
 
-                                                                            @if ($existingSecondaryResult)
+                                                                            @if ($existingSecondaryResult || $existingTestResults->isEmpty() || old('results.' . $test->m12_test_number . '.primary_tests.' . $primaryTest->m16_primary_test_id . '.secondary_tests.' . $secondaryTest->m17_secondary_test_id) !== null)
                                                                                 <tr class="secondary-test-row"
                                                                                     data-test-number="{{ $test->m12_test_number }}"
                                                                                     data-primary-test-id="{{ $primaryTest->m16_primary_test_id }}"
@@ -1089,7 +1097,72 @@
             });
         });
 
+        $(document).on('input', '.web-sync-val', function() {
+            var targetId = $(this).attr('data-sync');
+            if (targetId) {
+                var targetEl = document.getElementById(targetId);
+                if (targetEl) {
+                    if (this.type === 'date' && this.value) {
+                        var parts = this.value.split('-');
+                        if (parts.length === 3) {
+                            targetEl.textContent = parts[2] + '/' + parts[1] + '/' + parts[0];
+                        } else {
+                            targetEl.textContent = this.value;
+                        }
+                    } else {
+                        targetEl.textContent = this.value;
+                    }
+                }
+            }
+        });
+
+        $(document).on('input', '.primary-test-row input[name*="[result]"]', function() {
+            const name = $(this).attr('name');
+            const pIdMatch = name.match(/\[primary_tests\]\[(\d+)\]\[result\]/);
+            if (pIdMatch) {
+                $(`#print_res_p_${pIdMatch[1]}`).text($(this).val());
+            }
+        });
+
+        $(document).on('input', '.primary-test-row input[name*="[unit]"]', function() {
+            const name = $(this).attr('name');
+            const pIdMatch = name.match(/\[primary_tests\]\[(\d+)\]\[unit\]/);
+            if (pIdMatch) {
+                $(`#print_unt_p_${pIdMatch[1]}`).text($(this).val());
+            }
+        });
+
+        $(document).on('input', '.secondary-test-row input[name*="[result]"]', function() {
+            const name = $(this).attr('name');
+            const sIdMatch = name.match(/\[secondary_tests\]\[(\d+)\]\[result\]/);
+            if (sIdMatch) {
+                $(`#print_res_s_${sIdMatch[1]}`).text($(this).val());
+            }
+        });
+
+        $(document).on('input', '.secondary-test-row input[name*="[unit]"]', function() {
+            const name = $(this).attr('name');
+            const sIdMatch = name.match(/\[secondary_tests\]\[(\d+)\]\[unit\]/);
+            if (sIdMatch) {
+                $(`#print_unt_s_${sIdMatch[1]}`).text($(this).val());
+            }
+        });
+
         $(document).ready(function() {
+            // Focus and highlight empty date field
+            const $testDate = $('input[name="test_date"]');
+            const $perfDate = $('input[name="performance_date"]');
+            
+            if (!$testDate.val()) {
+                $testDate.addClass('is-invalid shadow-sm border-danger').focus();
+            } else if (!$perfDate.val()) {
+                $perfDate.addClass('is-invalid shadow-sm border-danger').focus();
+            }
+
+            // Remove highlight on input
+            $testDate.on('change input', function() { $(this).removeClass('is-invalid shadow-sm border-danger'); });
+            $perfDate.on('change input', function() { $(this).removeClass('is-invalid shadow-sm border-danger'); });
+
             // Add Primary Test
             $('.add-primary-test').on('click', function() {
                 const testId = $(this).data('test-id');
@@ -1099,6 +1172,9 @@
 
                 let modalHtml = '';
                 primaryTests.forEach(pt => {
+                    if (tableBody.find(`.primary-test-row[data-primary-test-id="${pt.m16_primary_test_id}"]`).length > 0) {
+                        return; // Skip already added
+                    }
                     modalHtml += `
                                                 <tr>
                                                     <td>${pt.m16_name}</td>
@@ -1408,6 +1484,60 @@
                 const testNumber = this.id.replace('results_table_', '');
                 updateSerialNumbers(testNumber);
             });
+
+            let currentStandardCell = null;
+            let currentSampleTestId = null;
+            const STANDARD_URL = '{{ route('get_standards_by_test') }}';
+
+            $(document).on('click', '.choose-standard', function(e) {
+                e.preventDefault();
+                currentStandardCell = $(this);
+                currentSampleTestId = $(this).data('manuscript-id');
+                loadStandards($(this).data('test-id'));
+                $('#standardModal').modal('show');
+            });
+
+            $(document).on('click', '.standard-item', function() {
+                const standardId = $(this).data('id');
+                const standardName = $(this).text().trim();
+
+                if (!currentStandardCell || !currentSampleTestId) {
+                    return;
+                }
+
+                currentStandardCell.find('.standard-label').text(standardName);
+                $(`input[name="sample_tests[${currentSampleTestId}][standard_id]"]`).val(standardId);
+                $('#standardModal').modal('hide');
+            });
+
+            function loadStandards(testId) {
+                $('#standard-list').html('<li class="list-group-item">Loading...</li>');
+
+                $.ajax({
+                    url: STANDARD_URL,
+                    type: 'GET',
+                    data: { test_id: testId },
+                    success: function(standards) {
+                        $('#standard-list').empty();
+                        if (!Array.isArray(standards) || standards.length === 0) {
+                            $('#standard-list').html('<li class="list-group-item text-muted">No standards found.</li>');
+                            return;
+                        }
+
+                        standards.forEach(function(std) {
+                            $('#standard-list').append(`
+                                <li class="list-group-item standard-item" data-id="${std.id}" style="cursor: pointer;">
+                                    ${std.name}
+                                </li>
+                            `);
+                        });
+                    },
+                    error: function() {
+                        $('#standard-list').html('<li class="list-group-item text-danger">Error loading standards.</li>');
+                    }
+                });
+            }
+
             // Add Secondary Test
             $(document).on('click', '.add-secondary-test', function() {
                 const testNumber = $(this).data('test-number');
@@ -1417,6 +1547,9 @@
 
                 let modalHtml = '';
                 secondaryTests.forEach(st => {
+                    if (tableBody.find(`.secondary-test-row[data-secondary-test-id="${st.m17_secondary_test_id}"]`).length > 0) {
+                        return; // Skip already added
+                    }
                     modalHtml += `
                                                 <tr>
                                                     <td>${st.m17_name}</td>
@@ -1533,18 +1666,30 @@
             generateReadingRows();
         });
 
-        $('#numberOfReadings, #aggregationType').on('change', function() {
+        $(document).on('input change', '#numberOfReadings', function() {
             generateReadingRows();
         });
 
+        $(document).on('change', '#aggregationType', function() {
+            calculateFormula();
+        });
+
         function generateReadingRows() {
-            const count = $('#numberOfReadings').val();
-            let html = '';
-            for (let i = 1; i <= count; i++) {
-                html +=
-                    `<tr><td>Reading ${i}</td><td><input type="number" class="form-control form-control-sm reading-val" value="0"></td></tr>`;
+            const count = parseInt($('#numberOfReadings').val()) || 1;
+            const currentRows = $('#readingsBody tr');
+            const currentCount = currentRows.length;
+            
+            if (count > currentCount) {
+                // Add new rows
+                for (let i = currentCount + 1; i <= count; i++) {
+                    $('#readingsBody').append(`<tr><td>Reading ${i}</td><td><input type="number" class="form-control form-control-sm reading-val" value="0"></td></tr>`);
+                }
+            } else if (count < currentCount && count > 0) {
+                // Remove excess rows
+                for (let i = currentCount; i > count; i--) {
+                    $('#readingsBody tr:last-child').remove();
+                }
             }
-            $('#readingsBody').html(html);
             calculateFormula();
         }
 
@@ -1578,7 +1723,7 @@
             $('#calculatedResult').text(result.toFixed(2));
         }
 
-        $('#applyCalculatedResult').on('click', function() {
+        $(document).on('click', '#applyCalculatedResult', function() {
             const val = $('#calculatedResult').text();
             if (currentTargetInput && currentTargetInput.length > 0) {
                 currentTargetInput.val(val).trigger('input');
@@ -1662,6 +1807,21 @@
                         </button>
                     </div>
                 </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Standard Selection Modal -->
+    <div class="modal fade" id="standardModal" tabindex="-1" aria-labelledby="standardModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="standardModalLabel">Select Standard</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <ul class="list-group" id="standard-list"></ul>
+                </div>
             </div>
         </div>
     </div>

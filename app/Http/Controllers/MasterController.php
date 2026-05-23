@@ -23,6 +23,7 @@ use App\Models\State;
 use App\Models\Test;
 use App\Models\User;
 use App\Models\LoginLog;
+use App\Traits\HasManuscriptContent;
 use Carbon\Carbon;
 use DateTime;
 use Illuminate\Http\Request;
@@ -34,6 +35,7 @@ use Yajra\DataTables\Facades\DataTables;
 
 class MasterController extends Controller
 {
+    use HasManuscriptContent;
     // public function adminDashboard()
     // {
     //     return view('dashboards.admin_dashboard');
@@ -1353,9 +1355,9 @@ class MasterController extends Controller
                 "txt_unit" => "nullable|string|max:100",
                 "txt_instrument" => "nullable|string|max:255",
                 "txt_remark" => "nullable|string|max:500",
-                "standard_ids" => "required|array|min:1",
-                "standard_ids.*" => "required|integer|exists:m15_standards,m15_standard_id",
-                "primary_test_ids" => "nullable|array|min:1",
+                "standard_ids" => "nullable|array|min:1",
+                "standard_ids.*" => "nullable|integer|exists:m15_standards,m15_standard_id",
+                "primary_test_ids" => "nullable|array",
                 "primary_test_ids.*" => "nullable|integer|exists:m16_primary_tests,m16_primary_test_id",
                 "secondary_test_ids" => "nullable|array",
                 "secondary_test_ids.*" => "nullable|integer|exists:m17_secondary_tests,m17_secondary_test_id",
@@ -1400,13 +1402,10 @@ class MasterController extends Controller
                 'txt_charge.required' => 'Charge is required.',
                 'txt_charge.numeric' => 'Charge must be a number.',
                 'txt_charge.min' => 'Charge must be 0 or more.',
-                'standard_ids.required' => 'At least one standard is required.',
                 'standard_ids.array' => 'Standards must be provided as an array.',
                 'standard_ids.min' => 'At least one standard is required.',
                 'standard_ids.*.exists' => 'One or more selected standards do not exist.',
-                'primary_test_ids.required' => 'At least one primary test is required.',
                 'primary_test_ids.array' => 'Primary tests must be provided as an array.',
-                'primary_test_ids.min' => 'At least one primary test is required.',
                 'primary_test_ids.*.exists' => 'One or more selected primary tests do not exist.',
                 'secondary_test_ids.*.exists' => 'One or more selected secondary tests do not exist.',
                 'lab_sample_ids.required' => 'Lab samples are required.',
@@ -1782,7 +1781,7 @@ class MasterController extends Controller
                 "standard_ids"              => "nullable|array|min:1",
                 "standard_ids.*"            => "nullable|integer|exists:m15_standards,m15_standard_id",
 
-                "primary_test_ids"          => "nullable|array|min:1",
+                "primary_test_ids"          => "nullable|array",
                 "primary_test_ids.*"        => "nullable|integer|exists:m16_primary_tests,m16_primary_test_id",
 
                 "secondary_test_ids"        => "nullable|array",
@@ -2924,18 +2923,20 @@ class MasterController extends Controller
     {
         $ro = Session::get('ro_id');
         if (!empty($ro)) {
-            $accreditations =  Accreditation::where('m04_ro_id', $ro)->with('ro', 'standard', 'employee')->get();
+            $accreditations =  Accreditation::where('m04_ro_id', $ro)->with('ro', 'standard', 'test', 'employee')->get();
         } else {
-            $accreditations = Accreditation::with('ro', 'standard', 'employee')->get();
+            $accreditations = Accreditation::with('ro', 'standard', 'test', 'employee')->get();
         }
         $standards = Standard::where('m15_status', 'ACTIVE')->get(['m15_method', 'm15_standard_id']);
-        return view('master.accreditations', compact('accreditations', 'standards'));
+        $tests = Test::where('m12_status', 'ACTIVE')->get(['m12_test_id', 'm12_name']);
+        return view('master.accreditations', compact('accreditations', 'standards', 'tests'));
     }
 
     public function createAccreditation(Request $request)
     {
         if ($request->isMethod('post')) {
             $validator = Validator::make($request->all(), [
+                'dd_test'               => 'required|exists:m12_tests,m12_test_id',
                 'dd_standard'           => 'required|exists:m15_standards,m15_standard_id',
                 'txt_accredited'        => 'required|string|in:Yes,No',
                 'txt_acc_date'          => 'required|date',
@@ -2945,6 +2946,7 @@ class MasterController extends Controller
                 return redirect()->back()->withErrors($validator)->withInput();
             }
             Accreditation::create([
+                'm12_test_id'            => $request->dd_test,
                 'm15_standard_id'        => $request->dd_standard,
                 'm04_ro_id'              => Session::get('ro_id') ?? -1,
                 'm21_is_accredited'      => $request->txt_accredited,
@@ -3101,7 +3103,7 @@ class MasterController extends Controller
                     'm12_test_number' => $request->txt_test_id,
                     'm22_name' => $request->txt_name,
                     'm15_standard_ids' => $request->has('standard_ids') ? implode(',', $request->standard_ids) : null,
-                    'm22_content' => $request->m22_content ?? null,
+                    'm22_content' => $this->processManuscriptImages($request->m22_content ?? null, 'templates'),
                     'tr01_created_by' => Session::get('role') === 'ADMIN' ? -1 : Session::get('user_id'),
                 ];
 
@@ -3241,7 +3243,7 @@ class MasterController extends Controller
                     'm12_test_number' => $request->txt_test_id,
                     'm22_name' => $request->txt_name,
                     'm15_standard_ids' => $request->has('standard_ids') ? implode(',', $request->standard_ids) : null,
-                    'm22_content' => $request->m22_content ?? null,
+                    'm22_content' => $this->processManuscriptImages($request->m22_content ?? null, 'templates'),
                 ]);
 
                 // Update Test with Primary/Secondary Tests

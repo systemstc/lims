@@ -11,6 +11,7 @@ use App\Http\Controllers\RegistrationController;
 use App\Http\Controllers\RoController;
 use App\Http\Controllers\SampleController;
 use App\Http\Controllers\TestResultController;
+use App\Http\Controllers\CumulativeReportController;
 use App\Http\Controllers\ValidationController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\PasswordResetController;
@@ -236,6 +237,10 @@ Route::middleware(['access_control'])->group(function () {
         Route::post('/get-raw-entry', [TestResultController::class, 'getRawEntry'])->name('get_raw_entry');
         Route::post('/save-raw-entry', [TestResultController::class, 'saveRawEntry'])->name('save_raw_entry');
     });
+    Route::get('cumulative-reports', [CumulativeReportController::class, 'index'])->name('cumulative_reports');
+    Route::match(['get', 'post'], 'cumulative-reports/preview', [CumulativeReportController::class, 'preview'])->name('show_cumulative_report');
+    Route::post('cumulative-reports/generate', [CumulativeReportController::class, 'generate'])->name('generate_cumulative_report');
+
     Route::get('/template', [TestResultController::class, 'getTestTemplate'])->name('create_test_template');
 
     Route::get('/get-districts', [MasterController::class, 'getDistricts'])->name('get_districts');
@@ -295,6 +300,7 @@ Route::middleware(['access_control'])->group(function () {
 
     // New Transfer Management Routes
     Route::get('/view-transferred-samples', [SampleTransferController::class, 'viewTransferredSamples'])->name('view_transferred_samples');
+    Route::post('/cancel-transfer', [SampleTransferController::class, 'cancelTransfer'])->name('cancel_transfer');
     Route::post('/pull-result', [SampleTransferController::class, 'pullResult'])->name('pull_result');
     Route::get('/download-remote-report/{id}', [SampleTransferController::class, 'downloadRemoteReport'])->name('download_remote_report');
 

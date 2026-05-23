@@ -22,31 +22,37 @@
         @endif
     </td>
     <td>
-        <div class="input-group input-group-sm">
-            <input type="hidden"
-                name="results[{{ $test->m12_test_number }}][primary_tests][{{ $primaryTest->m16_primary_test_id }}][test_id]"
-                value="{{ $test->m12_test_number }}">
-            <input type="hidden"
-                name="results[{{ $test->m12_test_number }}][primary_tests][{{ $primaryTest->m16_primary_test_id }}][primary_test_id]"
-                value="{{ $primaryTest->m16_primary_test_id }}">
-            @if (!$isRevision)
+        @if (!$hasSecondaryTests)
+            <div class="input-group input-group-sm">
                 <input type="hidden"
-                    name="results[{{ $test->m12_test_number }}][primary_tests][{{ $primaryTest->m16_primary_test_id }}][result_id]"
-                    value="{{ $existingPrimaryResult->tr07_test_result_id ?? '' }}">
-            @endif
-            <input type="text"
-                class="form-control form-control-sm {{ $isRevision ? 'border-primary bg-light' : 'border-0 bg-light' }}"
-                name="results[{{ $test->m12_test_number }}][primary_tests][{{ $primaryTest->m16_primary_test_id }}][result]"
-                value="{{ old('results.' . $test->m12_test_number . '.primary_tests.' . $primaryTest->m16_primary_test_id . '.result', $existingPrimaryResult->tr07_result ?? '') }}"
-                placeholder="Enter {{ $isRevision ? 'revised ' : '' }}result value" autocomplete="off"
-                {{ $isRevision ? 'required' : '' }}>
-            <input type="text"
-                class="form-control form-control-sm {{ $isRevision ? 'border-primary bg-light' : 'border-0 bg-light' }}"
-                style="max-width: 80px;"
-                name="results[{{ $test->m12_test_number }}][primary_tests][{{ $primaryTest->m16_primary_test_id }}][unit]"
-                value="{{ old('results.' . $test->m12_test_number . '.primary_tests.' . $primaryTest->m16_primary_test_id . '.unit', $existingPrimaryResult->tr07_unit ?? ($primaryTest->m16_unit ?? '')) }}"
-                placeholder="Unit">
-        </div>
+                    name="results[{{ $test->m12_test_number }}][primary_tests][{{ $primaryTest->m16_primary_test_id }}][test_id]"
+                    value="{{ $test->m12_test_number }}">
+                <input type="hidden"
+                    name="results[{{ $test->m12_test_number }}][primary_tests][{{ $primaryTest->m16_primary_test_id }}][primary_test_id]"
+                    value="{{ $primaryTest->m16_primary_test_id }}">
+                @if (!$isRevision)
+                    <input type="hidden"
+                        name="results[{{ $test->m12_test_number }}][primary_tests][{{ $primaryTest->m16_primary_test_id }}][result_id]"
+                        value="{{ $existingPrimaryResult->tr07_test_result_id ?? '' }}">
+                @endif
+                <input type="text"
+                    class="form-control form-control-sm {{ $isRevision ? 'border-primary bg-light' : 'border-0 bg-light' }}"
+                    name="results[{{ $test->m12_test_number }}][primary_tests][{{ $primaryTest->m16_primary_test_id }}][result]"
+                    value="{{ old('results.' . $test->m12_test_number . '.primary_tests.' . $primaryTest->m16_primary_test_id . '.result', $existingPrimaryResult->tr07_result ?? '') }}"
+                    placeholder="Enter {{ $isRevision ? 'revised ' : '' }}result value" autocomplete="off"
+                    {{ $isRevision ? 'required' : '' }}>
+                <input type="text"
+                    class="form-control form-control-sm {{ $isRevision ? 'border-primary bg-light' : 'border-0 bg-light' }}"
+                    style="max-width: 80px;"
+                    name="results[{{ $test->m12_test_number }}][primary_tests][{{ $primaryTest->m16_primary_test_id }}][unit]"
+                    value="{{ old('results.' . $test->m12_test_number . '.primary_tests.' . $primaryTest->m16_primary_test_id . '.unit', $existingPrimaryResult->tr07_unit ?? ($primaryTest->m16_unit ?? '')) }}"
+                    placeholder="Unit">
+            </div>
+        @else
+            <span class="text-muted small italic">Calculated from secondary tests</span>
+            {{-- Keep hidden fields for structure --}}
+            <input type="hidden" name="results[{{ $test->m12_test_number }}][primary_tests][{{ $primaryTest->m16_primary_test_id }}][primary_test_id]" value="{{ $primaryTest->m16_primary_test_id }}">
+        @endif
     </td>
     <td>
         <button type="button" class="btn btn-outline-danger btn-sm remove-test-row" data-type="primary"
@@ -70,10 +76,10 @@
 </tr>
 
 <!-- Existing Secondary Tests -->
-@foreach ($existingResults->where('m16_primary_test_id', $primaryTest->m16_primary_test_id)->whereNotNull('m17_secondary_test_id') as $existingSecondaryResult)
+@foreach ($existingResults->filter(fn($r) => (string)$r->m16_primary_test_id === (string)$primaryTest->m16_primary_test_id && !empty($r->m17_secondary_test_id)) as $existingSecondaryResult)
     @php
-        $secondaryTest = $primaryTest->secondaryTests
-            ->where('m17_secondary_test_id', $existingSecondaryResult->m17_secondary_test_id)
+        $secondaryTest = collect($primaryTest->secondaryTests)
+            ->filter(fn($st) => (string)$st->m17_secondary_test_id === (string)$existingSecondaryResult->m17_secondary_test_id)
             ->first();
     @endphp
     @if ($secondaryTest)
@@ -139,7 +145,13 @@
 
         <!-- Custom Fields for Secondary Tests in Revision -->
         @if ($isRevision)
-            @foreach ($rejectedCustomFields->where('m16_primary_test_id', $primaryTest->m16_primary_test_id)->where('m17_secondary_test_id', $secondaryTest->m17_secondary_test_id) as $customField)
+            @php
+                $secondaryCustomFields = $rejectedCustomFields->filter(function($f) use ($primaryTest, $secondaryTest) {
+                    return (string)$f->m16_primary_test_id === (string)$primaryTest->m16_primary_test_id && 
+                           (string)$f->m17_secondary_test_id === (string)$secondaryTest->m17_secondary_test_id;
+                });
+            @endphp
+            @foreach ($secondaryCustomFields as $customField)
                 <tr class="custom-field-row revision-highlight" data-test-number="{{ $test->m12_test_number }}"
                     data-primary-test-id="{{ $primaryTest->m16_primary_test_id }}"
                     data-secondary-test-id="{{ $secondaryTest->m17_secondary_test_id }}">
@@ -185,7 +197,13 @@
 
 <!-- Custom Fields for Primary Tests in Revision -->
 @if ($isRevision)
-    @foreach ($rejectedCustomFields->where('m16_primary_test_id', $primaryTest->m16_primary_test_id)->whereNull('m17_secondary_test_id') as $customField)
+    @php
+        $primaryCustomFields = $rejectedCustomFields->filter(function($f) use ($primaryTest) {
+            return (string)$f->m16_primary_test_id === (string)$primaryTest->m16_primary_test_id && 
+                   empty($f->m17_secondary_test_id);
+        });
+    @endphp
+    @foreach ($primaryCustomFields as $customField)
         <tr class="custom-field-row revision-highlight" data-test-number="{{ $test->m12_test_number }}"
             data-primary-test-id="{{ $primaryTest->m16_primary_test_id }}">
             <td>{{ $key + 1 }}.{{ $pKey + 1 }}.C{{ $loop->iteration }}</td>
