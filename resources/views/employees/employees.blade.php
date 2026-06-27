@@ -21,6 +21,7 @@
                                     <thead>
                                         <tr>
                                             <th>ID</th>
+                                            <th>Emp Govt ID</th>
                                             <th>Name</th>
                                             <th>Email</th>
                                             <th>Role</th>
@@ -33,9 +34,10 @@
                                         @foreach ($employees as $key => $employee)
                                             <tr>
                                                 <td>{{ $key + 1 }}</td>
+                                                <td>{{ $employee->m06_emp_id ?? 'N/A' }}</td>
                                                 <td>{{ $employee->m06_name }}</td>
                                                 <td>{{ $employee->m06_email }}</td>
-                                                <td>{{ $employee->role->m03_name }}</td>
+                                                <td>{{ $employee->role->m03_name ?? 'N/A' }}</td>
                                                 <td>{{ $employee->ro->m04_name }}</td>
                                                 <td
                                                     class="text-{{ $employee->m06_status == 'ACTIVE' ? 'success' : 'danger' }}">
@@ -51,7 +53,7 @@
                                                                         class="icon ni ni-more-h"></em></a>
                                                                 <div class="dropdown-menu dropdown-menu-end">
                                                                     <ul class="link-list-opt no-bdr">
-                                                                        <li><a href="#"><em
+                                                                        <li><a href="{{ route('update_employee', $employee->m06_employee_id) }}"><em
                                                                                     class="icon ni ni-edit"></em><span>Edit
                                                                                 </span></a></li>
                                                                         <li><a href="#"><em

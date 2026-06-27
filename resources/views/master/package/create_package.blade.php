@@ -59,7 +59,7 @@
                                         <tbody>
                                             <tr>
                                                 <td>
-                                                    <select name="tests[0][test_id]" class="form-control test-select"
+                                                    <select name="tests[0][test_id]" class="form-select js-select2 test-select" data-search="on"
                                                         required>
                                                         <option value="">-- Select Test --</option>
                                                         @foreach ($tests as $test)
@@ -96,13 +96,14 @@
     </div>
 
     <script>
-        let rowIndex = 1;
+        $(document).ready(function() {
+            let rowIndex = 1;
 
-        // Add new row
-        $('#add-row').click(function() {
-            let newRow = `<tr>
+            // Add new row
+            $('#add-row').click(function() {
+                let newRow = `<tr>
         <td>
-            <select name="tests[${rowIndex}][test_id]" class="form-control test-select" required>
+            <select name="tests[${rowIndex}][test_id]" class="form-select js-select2 test-select" data-search="on" required>
                 <option value="">-- Select Test --</option>
                 @foreach ($tests as $test)
                     <option value="{{ $test->m12_test_id }}">{{ $test->m12_name }}</option>
@@ -117,15 +118,17 @@
         <td><button type="button" class="btn btn-sm btn-danger remove-row">X</button></td>
     </tr>`;
             $('#test-standard-table tbody').append(newRow);
+            
+            // Initialize select2 for newly added selects
+            $('#test-standard-table tbody tr:last-child .js-select2').select2();
+            
             rowIndex++;
         });
-
-        // Remove row
         $(document).on('click', '.remove-row', function() {
             $(this).closest('tr').remove();
         });
 
-        // Load standards via AJAX when test is selected
+        // Handle standard loading for all test dropdowns (initial & dynamic)
         $(document).on('change', '.test-select', function() {
             let testId = $(this).val();
             let $standardSelect = $(this).closest('tr').find('.standard-select');
@@ -145,6 +148,8 @@
             } else {
                 $standardSelect.empty().append('<option value="">-- Select Standard --</option>');
             }
+        });
+        
         });
     </script>
 @endsection

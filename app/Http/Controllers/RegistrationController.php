@@ -449,6 +449,41 @@ class RegistrationController extends Controller
         return response()->json($results);
     }
 
+    public function getGroupTestsModal(Request $request)
+    {
+        try {
+            $groupId = $request->get('group_id');
+            $tests = Test::query()
+            ->where('m11_group_code', $groupId)
+            ->where('m12_status', 'ACTIVE')
+            ->get();
+
+            $results = $tests->map(function ($test) {
+                $standard = null;
+
+                if (!empty($test->m15_standard_id)) {
+                    $ids = explode(',', $test->m15_standard_id);
+
+                    $standard = Standard::whereIn('m15_standard_id', $ids)
+                        ->where('m15_method', 'LIKE', 'IS%')
+                        ->first(['m15_standard_id as standard_id', 'm15_method as name']);
+                }
+
+                return [
+                    'id'            => $test->m12_test_id,
+                    'test_number'   => $test->m12_test_number,
+                    'test_name'     => $test->m12_name,
+                    'charge'        => $test->m12_charge,
+                    'remark'        => $test->m12_remark,
+                    'standard'      => $standard
+                ];
+            });
+            return response()->json($results->values()->all());
+        } catch (\Throwable $e) {
+            return response()->json(['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()], 500);
+        }
+    }
+
     public function getStandardByTest(Request $request)
     {
         $testId = $request->test_id;

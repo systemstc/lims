@@ -57,6 +57,7 @@ class AccessControl
             'get_secondary_tests_by_ids',
             'search_customer',
             'search_test',
+            'get_group_tests_modal',
             'get_standards_by_test',
             'get_packages',
             'get_tests_by_package',

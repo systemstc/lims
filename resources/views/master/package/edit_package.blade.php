@@ -54,7 +54,7 @@
                                                 <tr>
                                                     <td>
                                                         <select name="tests[{{ $index }}][test_id]"
-                                                            class="form-control test-select" required>
+                                                            class="form-select js-select2 test-select" data-search="on" required>
                                                             <option value="">-- Select Test --</option>
                                                             @foreach ($tests as $test)
                                                                 <option value="{{ $test->m12_test_id }}"
@@ -95,13 +95,14 @@
     </div>
 
     <script>
-        let rowIndex = {{ $package->packageTests->count() }};
+        $(document).ready(function() {
+            let rowIndex = {{ $package->packageTests->count() }};
 
-        // Add new row
-        $('#add-row').click(function() {
-            let newRow = `<tr>
+            // Add new row
+            $('#add-row').click(function() {
+                let newRow = `<tr>
             <td>
-                <select name="tests[${rowIndex}][test_id]" class="form-control test-select" required>
+                <select name="tests[${rowIndex}][test_id]" class="form-select js-select2 test-select" data-search="on" required>
                     <option value="">-- Select Test --</option>
                     @foreach ($tests as $test)
                         <option value="{{ $test->m12_test_id }}">{{ $test->m12_name }}</option>
@@ -115,34 +116,39 @@
             </td>
             <td><button type="button" class="btn btn-sm btn-danger remove-row">X</button></td>
         </tr>`;
-            $('#test-standard-table tbody').append(newRow);
-            rowIndex++;
-        });
+                $('#test-standard-table tbody').append(newRow);
+                
+                // Initialize select2 for newly added selects
+                $('#test-standard-table tbody tr:last-child .js-select2').select2();
+                
+                rowIndex++;
+            });
 
-        // Remove row
-        $(document).on('click', '.remove-row', function() {
-            $(this).closest('tr').remove();
-        });
+            // Remove row
+            $(document).on('click', '.remove-row', function() {
+                $(this).closest('tr').remove();
+            });
 
-        // Load standards via AJAX when test is selected
-        $(document).on('change', '.test-select', function() {
-            let testId = $(this).val();
-            let $standardSelect = $(this).closest('tr').find('.standard-select');
-            $standardSelect.empty().append('<option value="">Loading...</option>');
+            // Handle standard loading for all test dropdowns (initial & dynamic)
+            $(document).on('change', '.test-select', function() {
+                let testId = $(this).val();
+                let $standardSelect = $(this).closest('tr').find('.standard-select');
+                $standardSelect.empty().append('<option value="">Loading...</option>');
 
-            if (testId) {
-                $.get("{{ route('get_standards_by_test') }}", {
-                    test_id: testId
-                }, function(data) {
-                    $standardSelect.empty().append('<option value="">-- Select Standard --</option>');
-                    $.each(data, function(key, standard) {
-                        $standardSelect.append(
-                            `<option value="${standard.id}">${standard.name}</option>`);
+                if (testId) {
+                    $.get("{{ route('get_standards_by_test') }}", {
+                        test_id: testId
+                    }, function(data) {
+                        $standardSelect.empty().append('<option value="">-- Select Standard --</option>');
+                        $.each(data, function(key, standard) {
+                            $standardSelect.append(
+                                `<option value="${standard.id}">${standard.name}</option>`);
+                        });
                     });
-                });
-            } else {
-                $standardSelect.empty().append('<option value="">-- Select Standard --</option>');
-            }
+                } else {
+                    $standardSelect.empty().append('<option value="">-- Select Standard --</option>');
+                }
+            });
         });
     </script>
 @endsection

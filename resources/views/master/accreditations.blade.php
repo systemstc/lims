@@ -140,7 +140,7 @@
                                     <label class="form-label" for="txt_acc_date">Accreditation Date</label>
                                     <div class="form-control-wrap">
                                         <input type="date" class="form-control" name="txt_acc_date" id="txt_acc_date"
-                                            value="{{ now()->format('Y-m-d') }}" readonly>
+                                            value="{{ now()->format('Y-m-d') }}">
                                     </div>
                                 </div>
                             </div>

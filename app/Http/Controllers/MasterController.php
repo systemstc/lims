@@ -603,12 +603,12 @@ class MasterController extends Controller
         }
 
         // Get samples with required fields
-        $samples = $query->select([
-            'tr04_reference_id',
-            'tr04_progress',
-            'tr04_expected_date',
-            'created_at'
-        ])
+        $samples = $query->with([
+                'customer',
+                'buyer',
+                'thirdParty',
+                'cha'
+            ])
             ->orderByRaw("CASE 
         WHEN tr04_progress = 'IN_PROGRESS' THEN 1
         WHEN tr04_progress = 'REGISTERED' THEN 2
@@ -620,6 +620,53 @@ class MasterController extends Controller
     END ASC")
             ->orderBy('created_at', 'desc')
             ->get();
+
+        // Map report_to names
+        $samples->transform(function ($s) {
+            $reportToNames = [];
+            $reportToArr = json_decode($s->tr04_report_to, true);
+            
+            // Sometimes it can be double encoded
+            if (is_string($reportToArr)) {
+                $reportToArr = json_decode($reportToArr, true);
+            }
+
+            if (is_array($reportToArr)) {
+                $parties = collect($s->parties);
+                $partyKeyMap = [
+                    'first_party' => 'customer',
+                    'second_party' => 'buyer',
+                    'third_party' => 'third_party',
+                    'cha' => 'cha'
+                ];
+
+                foreach ($reportToArr as $partyType) {
+                    $mappedKey = $partyKeyMap[$partyType] ?? $partyType;
+                    $partyData = $parties->get($mappedKey);
+                    
+                    if ($partyData && !empty($partyData['name'])) {
+                        $reportToNames[] = $partyData['name'];
+                    } else {
+                        if ($mappedKey === 'customer' && $s->customer) {
+                            $reportToNames[] = $s->customer->m07_name;
+                        } elseif ($mappedKey === 'buyer' && $s->buyer) {
+                            $reportToNames[] = $s->buyer->m07_name;
+                        } elseif ($mappedKey === 'third_party' && $s->thirdParty) {
+                            $reportToNames[] = $s->thirdParty->m07_name;
+                        } elseif ($mappedKey === 'cha' && $s->cha) {
+                            $reportToNames[] = $s->cha->m07_name;
+                        }
+                    }
+                }
+            }
+            
+            $s->report_to = implode(', ', $reportToNames);
+            if (empty($s->report_to)) {
+                $s->report_to = 'N/A';
+            }
+            
+            return $s;
+        });
 
         return response()->json([
             'success' => true,
@@ -912,7 +959,7 @@ class MasterController extends Controller
             'm11_name' => $request->txt_group_name,
             'm11_group_charge' => $request->txt_group_charge,
             'm11_remark' => $request->txt_remark,
-            'tr01_created_by' => Session::get('user_id'),
+            'tr01_created_by' => Session::get('user_id') ?? -1,
         ]);
         Session::flash('type', 'success');
         Session::flash('message', 'Group created successfully.');

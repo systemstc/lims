@@ -40,7 +40,7 @@
                                                 <td>{{ $group->m11_name }}</td>
                                                 <td>{{ $group->m11_group_charge }}</td>
                                                 <td>{{ $group->m11_remark }}</td>
-                                                <td>{{ $group->user->tr01_name }}</td>
+                                                <td>{{ $group->user->tr01_name ?? 'ADMIN' }}</td>
                                                 <td>{{ $group->created_at }}</td>
                                                 <td
                                                     class="text-{{ $group->m11_status == 'ACTIVE' ? 'success' : 'danger' }}">

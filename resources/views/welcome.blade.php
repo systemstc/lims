@@ -999,10 +999,17 @@
 
         <div class="drawer-cta">
             <hr class="drawer-divider">
-            <a href="#" class="btn-access" data-bs-toggle="modal" data-bs-target="#loginModal" data-drawer-link>
-                <em class="icon ni ni-signin"></em>
-                Access System
-            </a>
+            @if (session()->has('admin_id') || session()->has('user_id'))
+                <a href="{{ route('dashboard') }}" class="btn-access" data-drawer-link>
+                    <em class="icon ni ni-arrow-right"></em>
+                    Go to Dashboard
+                </a>
+            @else
+                <a href="#" class="btn-access" data-bs-toggle="modal" data-bs-target="#loginModal" data-drawer-link>
+                    <em class="icon ni ni-signin"></em>
+                    Access System
+                </a>
+            @endif
         </div>
     </div>
 
@@ -1031,9 +1038,15 @@
                 <li><a class="nav-link" href="#labs">Laboratories</a></li>
                 <li><a class="nav-link" href="#contact">Contact</a></li>
                 <li style="margin-left:0.5rem;">
-                    <a href="#" class="btn-outline-light" data-bs-toggle="modal" data-bs-target="#loginModal">
-                        <em class="icon ni ni-signin" style="margin-right:0.4rem;"></em>Access System
-                    </a>
+                    @if (session()->has('admin_id') || session()->has('user_id'))
+                        <a href="{{ route('dashboard') }}" class="btn-outline-light">
+                            <em class="icon ni ni-arrow-right" style="margin-right:0.4rem;"></em>Go to Dashboard
+                        </a>
+                    @else
+                        <a href="#" class="btn-outline-light" data-bs-toggle="modal" data-bs-target="#loginModal">
+                            <em class="icon ni ni-signin" style="margin-right:0.4rem;"></em>Access System
+                        </a>
+                    @endif
                 </li>
             </ul>
         </div>

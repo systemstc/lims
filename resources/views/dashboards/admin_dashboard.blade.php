@@ -641,13 +641,14 @@
                 </div>
                 <div class="modal-body">
                     <div class="table-responsive">
-                        <table class="table table-bordered table-hover">
+                        <table class="table table-bordered table-hover" id="adminModalSamplesTable">
                             <thead class="thead-light">
                                 <tr>
-                                    <th width="30%">Sample ID</th>
-                                    <th width="25%">Status</th>
-                                    <th width="25%">Expected Date</th>
-                                    <th width="20%">Days Remaining</th>
+                                    <th width="20%">Sample ID</th>
+                                    <th width="25%">Report To</th>
+                                    <th width="20%">Status</th>
+                                    <th width="20%">Expected Date</th>
+                                    <th width="15%">Days Remaining</th>
                                 </tr>
                             </thead>
                             <tbody id="modalSamplesTable">
@@ -784,9 +785,12 @@
         // Function to show date details modal
         function showDateDetails(day, month, year) {
             // Show loading state
+            if ($.fn.DataTable.isDataTable('#adminModalSamplesTable')) {
+                $('#adminModalSamplesTable').DataTable().destroy();
+            }
             document.getElementById('modalSamplesTable').innerHTML = `
         <tr>
-            <td colspan="4" class="text-center">
+            <td colspan="5" class="text-center">
                 <div class="spinner-border spinner-border-sm me-2" role="status"></div>
                 Loading samples...
             </td>
@@ -841,7 +845,7 @@
                     console.error('Error fetching samples:', error);
                     document.getElementById('modalSamplesTable').innerHTML = `
         <tr>
-            <td colspan="4" class="text-center text-danger">
+            <td colspan="5" class="text-center text-danger">
                 Error loading samples. Please try again.
             </td>
         </tr>
@@ -876,6 +880,9 @@
                     <strong>${sample.tr04_reference_id}</strong>
                 </td>
                 <td>
+                    ${sample.report_to}
+                </td>
+                <td>
                     <strong class="${statusClass}">${formatStatus(sample.tr04_progress)}</strong>
                 </td>
                 <td>
@@ -897,6 +904,12 @@
             });
 
             tableBody.innerHTML = html;
+            
+            $('#adminModalSamplesTable').DataTable({
+                pageLength: 10,
+                autoWidth: false,
+                destroy: true
+            });
         }
 
         // Helper function to get month name

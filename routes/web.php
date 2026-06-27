@@ -53,6 +53,7 @@ Route::middleware(['access_control'])->group(function () {
 
     Route::get('employees', [EmployeeController::class, 'viewEmployee'])->name('view_employees');
     Route::match(['get', 'post'], 'create-employee', [EmployeeController::class, 'createEmployee'])->name('create_employee');
+    Route::match(['get', 'post'], 'update-employee/{id}', [EmployeeController::class, 'updateEmployee'])->name('update_employee');
 
     // User 2FA Control
     Route::post('user/{user}/toggle-2fa', [MasterController::class, 'toggleTwoFactorAccess'])->name('toggle_2fa_access');
@@ -266,6 +267,7 @@ Route::middleware(['access_control'])->group(function () {
     Route::get('/check-test-exists', [MasterController::class, 'checkTestExists'])->name('check_test_exists');
     Route::get('search-customers', [RegistrationController::class, 'searchCustomer'])->name('search_customer');
     Route::get('/search-test', [RegistrationController::class, 'searchTest'])->name('search_test');
+    Route::get('/get-group-tests', [RegistrationController::class, 'getGroupTestsModal'])->name('get_group_tests_modal');
     Route::get('/get-standards-by-test', [RegistrationController::class, 'getStandardByTest'])->name('get_standards_by_test');
 
 

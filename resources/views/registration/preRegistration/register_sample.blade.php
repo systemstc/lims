@@ -806,6 +806,39 @@
 </div>
 
 
+<!-- Custom Query Tests Modal -->
+<div class="modal fade" id="customQueryModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-scrollable modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Select Tests</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered" id="customQueryTestsTable">
+                        <thead>
+                            <tr>
+                                <th><input type="checkbox" id="selectAllCustomTests"></th>
+                                <th>Test Number</th>
+                                <th>Test Name</th>
+                                <th>Charge</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Tests will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="saveCustomTestsBtn">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Standards Modal -->
 <div class="modal fade" id="standardModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-scrollable">
@@ -2568,7 +2601,283 @@ window.showNotification = function(message, type = 'info') {
                 numberInput.prop('disabled', true).val('');
             } else {
                 numberInput.prop('disabled', false);
+                                </div>
+                                <div class="col-md-4">
+                                    <input type="number" step="0.01" class="form-control" name="additional_items[${index}][charge]" placeholder="Charge" value="${item.charge || 0}">
+                                </div>
+                                <div class="col-md-2 d-flex align-items-center">
+                                    <button type="button" class="btn btn-outline-danger btn-sm removeItem">
+                                        <i class="icon ni ni-minus"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            `;
+                            $('#additionalItemsContainer').append(newRow);
+                        });
+                        updateAdditionalCharges();
+                    }
+
+                    // Add tests to table if they exist
+                    if (sampleData.tests && sampleData.tests.length > 0) {
+                        setTimeout(() => {
+                            sampleData.tests.forEach(test => {
+                                // Check if test is not already in the selected list
+                                if (typeof selectedTestIds !== 'undefined' && !selectedTestIds.includes(test.id)) {
+                                    addTestToTable({
+                                        id: test.id,
+                                        test_number: test.test_number,
+                                        test_name: test.name,
+                                        name: test.name,
+                                        charge: test.charge || 0,
+                                        remark: test.remark || '',
+                                        standard: {
+                                            standard_id: test.standard_id || null,
+                                            name: test.standard_method || ''
+                                        }
+                                    });
+                                    selectedTestIds.push(test.id);
+                                }
+                            });
+
+                            // Recalculate charges if function exists
+                            if (typeof calculateCharges === 'function') {
+                                calculateCharges();
+                            }
+                        }, 500);
+                    }
+
+                    showNotification('Sample data copied successfully', 'success');
+                    $(`.recent-sample-item[data-sample-id="${sampleId}"]`)
+                    .addClass('bg-light')
+                    .delay(2000)
+                    .queue(function(next) {
+                        $(this).removeClass('bg-light');
+                        next();
+                    });
+
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error copying sample data:', error);
+                    showNotification('Error copying sample data. Please try again.', 'danger');
+                }
+            });
+}
+        // --------------------
+        // UTILITY FUNCTIONS
+        // --------------------
+window.clearFormData = function() {
+    $('#txt_customer_name, #txt_reference, #txt_ref_date, #txt_description').val('');
+    $('#selected_customer_id').val('');
+    $('#dd_sample_type, #dd_priority_type, #dd_test_type').val('').trigger('change');
+    if ($('.table.table-tranx tbody').length) {
+        $('.table.table-tranx tbody').empty();
+    }
+    if (typeof selectedTestIds !== 'undefined') {
+        selectedTestIds.length = 0;
+    }
+    $('#party-address, #buyer-address, #third-address, #cha-address').empty();
+    $('#party-contact-person, #party-phone, #party-email').empty();
+    $('#buyer-contact-person, #buyer-phone, #buyer-email').empty();
+    $('#third-contact-person, #third-phone, #third-email').empty();
+    $('#cha-contact-person, #cha-phone, #cha-email').empty();
+}
+
+window.showNotification = function(message, type = 'info') {
+    if (typeof toastr !== 'undefined') {
+        toastr.clear();
+    }
+    const typeMap = {
+        'info': 'info',
+        'success': 'success',
+        'warning': 'warning',
+        'danger': 'error',
+        'error': 'error'
+    };
+
+    const toastType = typeMap[type] || 'info';
+
+    if (typeof NioApp !== 'undefined' && NioApp.Toast) {
+        NioApp.Toast(message, toastType, {
+            position: 'top-right'
+        });
+    } else if (typeof toastr !== 'undefined') {
+        toastr[toastType](message);
+    } else {
+        console.log(`[${toastType.toUpperCase()}] ${message}`);
+    }
+}
+        // --------------------
+        // HELPER FUNCTIONS FOR FORM INTEGRATION
+        // --------------------
+
+</script>
+<script>
+    $(document).ready(function() {
+        let video = document.getElementById("video");
+        let canvas = document.getElementById("canvas");
+        let context = canvas.getContext("2d");
+        let captureBtn = $("#captureBtn");
+        let retakeBtn = $("#retakeBtn");
+        let saveImageBtn = $("#saveImageBtn");
+        let inputBase64 = $("#sample_image_base64");
+        let streamRef = null;
+
+            // When modal opens → start camera
+        $('#cameraModal').on('shown.bs.modal', function() {
+            navigator.mediaDevices.getUserMedia({
+                video: {
+                    width: {
+                        ideal: 1280
+                            }, // HD resolution
+                            height: {
+                                ideal: 720
+                            },
+                            facingMode: "environment"
+                        }
+                    })
+            .then(function(stream) {
+                streamRef = stream;
+                video.srcObject = stream;
+            })
+            .catch(function(err) {
+                alert("Camera not available: " + err.message);
+            });
+        });
+
+        captureBtn.on("click", function() {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            $(canvas).show();
+            $(video).hide();
+            captureBtn.hide();
+            retakeBtn.show();
+            saveImageBtn.show();
+        });
+
+            // Retake
+        retakeBtn.on("click", function() {
+            $(canvas).hide();
+            $(video).show();
+            captureBtn.show();
+            retakeBtn.hide();
+            saveImageBtn.hide();
+        });
+
+            // Save image (to hidden input + show thumbnail)
+        saveImageBtn.on("click", function() {
+                let base64Image = canvas.toDataURL("image/jpeg", 0.9); // 90% quality JPEG
+                console.log(base64Image);
+
+                $("#txt_sample_image").val(base64Image);
+
+                $("#preview").html(
+                    `<img src="${base64Image}" width="200" class="img-thumbnail mt-2">`
+                    );
+            });
+    });
+</script>
+<script>
+    function openCustomerPopup(el) {
+        let url = el.dataset.url;
+        window.open(
+            url,
+            "CustomerPopup",
+            "width=900,height=600"
+            );
+    }
+</script>
+
+<script>
+    $(document).ready(function() {
+        $(document).on('change', '#txt_unknown_sample', function() {
+            let numberInput = $('#txt_number_of_samples');
+            if (this.checked) {
+                numberInput.prop('disabled', true).val('');
+            } else {
+                numberInput.prop('disabled', false);
             }
+        });
+    });
+</script>
+<script>
+    $(document).ready(function() {
+        $(document).on('change', '#dd_group', function() {
+            let groupText = $(this).find("option:selected").text().trim().toLowerCase();
+            let groupId = $(this).val();
+
+            if (groupText === 'custom query') {
+                // Load tests for this group
+                $('#customQueryTestsTable tbody').html('<tr><td colspan="4" class="text-center">Loading tests...</td></tr>');
+                $('#customQueryModal').modal('show');
+
+                $.ajax({
+                    url: '{{ route("get_group_tests_modal") }}',
+                    type: 'GET',
+                    data: { group_id: groupId },
+                    dataType: 'json',
+                    cache: false,
+                    success: function(tests) {
+                        if (typeof tests === 'string') {
+                            try { tests = JSON.parse(tests); } catch(e) { tests = []; }
+                        }
+                        if (tests && tests.data) {
+                            tests = tests.data;
+                        }
+                        if (!Array.isArray(tests)) {
+                            tests = Object.values(tests);
+                        }
+
+                        window.currentCustomTests = tests;
+                        let tbody = $('#customQueryTestsTable tbody');
+                        tbody.empty();
+                        let filteredTests = tests.filter(t => !window.selectedTestIds.includes(t.id));
+
+                        if (filteredTests.length > 0) {
+                            filteredTests.forEach(function(test) {
+                                let tr = $('<tr>');
+                                tr.append(`<td><input type="checkbox" class="custom-test-checkbox" value="${test.id}"></td>`);
+                                tr.append(`<td>${test.test_number}</td>`);
+                                tr.append(`<td>${test.test_name}</td>`);
+                                tr.append(`<td>${test.charge || 0}</td>`);
+                                tbody.append(tr);
+                            });
+                        } else {
+                            tbody.html('<tr><td colspan="4" class="text-center">No new tests available for this group.</td></tr>');
+                        }
+                        $('#selectAllCustomTests').prop('checked', false);
+                    },
+                    error: function(xhr) {
+                        console.error(xhr);
+                        let errMsg = "Error loading tests.";
+                        if (xhr.responseJSON && xhr.responseJSON.error) {
+                            errMsg += " Detail: " + xhr.responseJSON.error;
+                        } else if (xhr.responseText) {
+                            let text = xhr.responseText.substring(0, 200).replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                            errMsg += " Detail: " + text;
+                        }
+                        $('#customQueryTestsTable tbody').html(`<tr><td colspan="4" class="text-center text-danger">${errMsg}</td></tr>`);
+                    }
+                });
+            }
+        });
+
+        $(document).on('change', '#selectAllCustomTests', function() {
+            $('.custom-test-checkbox').prop('checked', $(this).prop('checked'));
+        });
+
+        $(document).on('click', '#saveCustomTestsBtn', function() {
+            $('.custom-test-checkbox:checked').each(function() {
+                let testId = parseInt($(this).val());
+                if (window.currentCustomTests) {
+                    let test = window.currentCustomTests.find(t => t.id === testId);
+                    if (test && !window.selectedTestIds.includes(test.id)) {
+                        addTestToTable(test);
+                        window.selectedTestIds.push(test.id);
+                    }
+                }
+            });
+            $('#customQueryModal').modal('hide');
         });
     });
 </script>
