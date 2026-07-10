@@ -116,6 +116,22 @@ class AccessControl
             'profile.2fa.send_email_code',
             'profile.2fa.confirm_email',
             'profile.2fa.disable',
+
+            // manual payment
+            'payment.sample_checkout',
+            'payment.create_sample_order',
+            'payment.verify_sample',
+
+            // Customer Login
+            'customer.login',
+            'customer.otp',
+            'customer.dashboard',
+            'customer.profile',
+            'customer.profile.update',
+            'customer.logout',
+            'customer.sample_checkout',
+            'customer.create_sample_order',
+            'customer.verify_sample',
         ];
 
         if (in_array($routeName, $skipPermissionRoutes)) {

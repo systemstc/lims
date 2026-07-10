@@ -60,13 +60,11 @@
                                         </div>
                                         <div class="col-md-4">
                                             <div class="form-group">
-                                                <label class="form-label" for="txt_edit_email">Email<b
-                                                        class="text-danger">*</b></label>
+                                                <label class="form-label" for="txt_edit_email">Email</label>
                                                 <div class="form-control-wrap">
                                                     <input type="email" class="form-control" id="txt_edit_email"
                                                         name="txt_edit_email"
-                                                        value="{{ old('txt_edit_email', $customer['m07_email']) }}"
-                                                        required>
+                                                        value="{{ old('txt_edit_email', $customer['m07_email']) }}">
                                                 </div>
                                                 @error('txt_edit_email')
                                                     <span class="text-danger">{{ $message }}</span>
@@ -75,8 +73,7 @@
                                         </div>
                                         <div class="col-md-4">
                                             <div class="form-group">
-                                                <label class="form-label" for="txt_edit_phone">Phone<b
-                                                        class="text-danger">*</b></label>
+                                                <label class="form-label" for="txt_edit_phone">Phone</label>
                                                 <div class="form-control-wrap">
                                                     <div class="input-group">
                                                         <div class="input-group-prepend">
@@ -85,8 +82,7 @@
                                                         </div>
                                                         <input type="text" class="form-control" id="txt_edit_phone"
                                                             name="txt_edit_phone"
-                                                            value="{{ old('txt_edit_phone', $customer['m07_phone']) }}"
-                                                            required>
+                                                            value="{{ old('txt_edit_phone', $customer['m07_phone']) }}">
                                                     </div>
                                                 </div>
                                                 @error('txt_edit_phone')

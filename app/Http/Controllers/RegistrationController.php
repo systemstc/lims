@@ -99,15 +99,22 @@ class RegistrationController extends Controller
                 }
 
                 // 2. Upfront Wallet Balance Check
-                $wallet = Wallet::where('m07_customer_id', $payingCustomerId)->lockForUpdate()->first();
-                if (!$wallet) {
-                    throw new \Exception('Wallet not found for the selected paying customer.');
-                }
+                $payingCustomer = Customer::find($payingCustomerId);
+                $hasWallet = !empty($payingCustomer->m07_email) || !empty($payingCustomer->m07_phone);
 
-                $availableBalance = $wallet->tr02_balance - $wallet->tr02_hold_amount;
-                // if (!$isNonCommercial && $availableBalance < $totalCharges) {
-                //     throw new \Exception('Insufficient wallet balance. Available: ' . number_format($availableBalance, 2) . ', Required: ' . number_format($totalCharges, 2));
-                // }
+                if ($hasWallet) {
+                    $wallet = Wallet::where('m07_customer_id', $payingCustomerId)->lockForUpdate()->first();
+                    if (!$wallet) {
+                        throw new \Exception('Wallet not found for the selected paying customer.');
+                    }
+
+                    $availableBalance = $wallet->tr02_balance - $wallet->tr02_hold_amount;
+                    // if (!$isNonCommercial && $availableBalance < $totalCharges) {
+                    //     throw new \Exception('Insufficient wallet balance. Available: ' . number_format($availableBalance, 2) . ', Required: ' . number_format($totalCharges, 2));
+                    // }
+                } else {
+                    $wallet = null;
+                }
 
                 $registrations = [];
                 // 3. Loop to register each sample
@@ -246,13 +253,17 @@ class RegistrationController extends Controller
 
                     // Wallet Hold Transaction (Unit basis)
                     if (!$isNonCommercial) {
-                        $unitTotal = $totalCharges / $numSamples;
-                        $invoiceNumber = 'INV-' . $registration->tr04_reference_id;
-                        $holdResult = $this->createHoldTransaction($payingCustomerId, $registration->tr04_reference_id, $registration->tr04_sample_registration_id, $unitTotal, $invoiceNumber);
-                        if ($holdResult['success']) {
-                            $registration->update(['tr03_hold_transaction_id' => $holdResult['transaction_id']]);
+                        if ($hasWallet) {
+                            $unitTotal = $totalCharges / $numSamples;
+                            $invoiceNumber = 'INV-' . $registration->tr04_reference_id;
+                            $holdResult = $this->createHoldTransaction($payingCustomerId, $registration->tr04_reference_id, $registration->tr04_sample_registration_id, $unitTotal, $invoiceNumber);
+                            if ($holdResult['success']) {
+                                $registration->update(['tr03_hold_transaction_id' => $holdResult['transaction_id']]);
+                            } else {
+                                throw new \Exception('Wallet Hold Failed for sample ' . ($i+1) . ': ' . $holdResult['message']);
+                            }
                         } else {
-                            throw new \Exception('Wallet Hold Failed for sample ' . ($i+1) . ': ' . $holdResult['message']);
+                            $registration->update(['tr04_progress' => 'PENDING_PAYMENT']);
                         }
                     }
 
@@ -274,6 +285,12 @@ class RegistrationController extends Controller
                 Session::flash('type', 'success');
                 Session::flash('message', 'Sample(s) Registered Successfully!');
                 Session::flash('registration_id', $registrations[0]->tr04_reference_id);
+
+                if (!$isNonCommercial && !$hasWallet) {
+                    $registrationIds = array_map(function($r) { return $r->tr04_sample_registration_id; }, $registrations);
+                    return redirect()->route('payment.sample_checkout', ['ids' => implode(',', $registrationIds)]);
+                }
+
                 return redirect()->back();
             } catch (\Exception $e) {
                 DB::rollBack();

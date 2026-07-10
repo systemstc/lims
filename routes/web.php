@@ -20,6 +20,7 @@ use App\Http\Controllers\SampleTransferController;
 use App\Http\Controllers\VerificationController;
 use App\Http\Controllers\WalletController;
 use App\Http\Controllers\TwoFactorController;
+use App\Http\Controllers\CustomerPortalController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Session;
 
@@ -27,6 +28,19 @@ Route::get('/', function () {
     return view('welcome');
 });
 Route::post('contact-us', [FrontController::class, 'contactSupport'])->name('contact_support');
+
+// Customer Portal Routes
+Route::get('customer/login', [CustomerPortalController::class, 'showLogin'])->name('customer.login');
+Route::post('customer/login', [CustomerPortalController::class, 'login'])->name('customer.login.post');
+Route::get('customer/otp', [CustomerPortalController::class, 'showOtp'])->name('customer.otp');
+Route::post('customer/otp', [CustomerPortalController::class, 'verifyOtp'])->name('customer.otp.verify');
+
+Route::prefix('customer')->name('customer.')->group(function () {
+    Route::get('dashboard', [CustomerPortalController::class, 'dashboard'])->name('dashboard');
+    Route::get('profile', [CustomerPortalController::class, 'profile'])->name('profile');
+    Route::post('profile', [CustomerPortalController::class, 'updateProfile'])->name('profile.update');
+    Route::get('logout', [CustomerPortalController::class, 'logout'])->name('logout');
+});
 
 // 2FA Challenge Routes - these must be accessible after password verify but before role assignment
 Route::get('auth/2fa/challenge', [TwoFactorController::class, 'showChallenge'])->name('auth.2fa.challenge');
@@ -60,6 +74,10 @@ Route::middleware(['access_control'])->group(function () {
 
 
     Route::get('sample-registration', [SampleController::class, 'registerSample'])->name('sample_registration');
+
+    Route::get('payment/sample-checkout', [RazorpayController::class, 'sampleCheckout'])->name('payment.sample_checkout');
+    Route::post('payment/create-sample-order', [RazorpayController::class, 'createSampleOrder'])->name('payment.create_sample_order');
+    Route::post('payment/verify-sample', [RazorpayController::class, 'verifySamplePayment'])->name('payment.verify_sample');
 
     Route::get('/search-names', [SampleController::class, 'searchNames'])->name('search.names');
 

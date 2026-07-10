@@ -87,11 +87,10 @@
 
                                         <div class="col-md-4">
                                             <div class="form-group">
-                                                <label class="form-label" for="txt_email">Email address<b
-                                                        class="text-danger">*</b></label>
+                                                <label class="form-label" for="txt_email">Email address</label>
                                                 <div class="form-control-wrap">
                                                     <input type="email" class="form-control" id="txt_email"
-                                                        name="txt_email" value="{{ old('txt_email') }}" required>
+                                                        name="txt_email" value="{{ old('txt_email') }}">
                                                 </div>
                                                 <span id="txt_email-msg" class="text-danger"></span>
                                                 @error('txt_email')
@@ -102,15 +101,14 @@
 
                                         <div class="col-md-4">
                                             <div class="form-group">
-                                                <label class="form-label" for="txt_phone">Phone<b
-                                                        class="text-danger">*</b></label>
+                                                <label class="form-label" for="txt_phone">Phone</label>
                                                 <div class="form-control-wrap">
                                                     <div class="input-group">
                                                         <div class="input-group-prepend">
                                                             <span class="input-group-text" id="txt_phone_addon">+91</span>
                                                         </div>
                                                         <input type="text" name="txt_phone" class="form-control"
-                                                            id="txt_phone" value="{{ old('txt_phone') }}" required>
+                                                            id="txt_phone" value="{{ old('txt_phone') }}">
                                                     </div>
                                                 </div>
                                                 <span id="txt_phone-msg" class="text-danger"></span>

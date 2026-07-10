@@ -138,7 +138,7 @@ class CustomerController extends Controller
                 "txt_ro_id" => "nullable|integer",
                 "txt_name" => "required|string|max:255",
                 "txt_email" => [
-                    "required",
+                    "nullable",
                     "email",
                     "max:255",
                     Rule::unique('m07_customers', 'm07_email')->where(function ($query) use ($request) {
@@ -147,7 +147,7 @@ class CustomerController extends Controller
                     })
                 ],
                 "txt_phone" => [
-                    "required",
+                    "nullable",
                     "digits:10",
                     Rule::unique('m07_customers', 'm07_phone')->where(function ($query) use ($request) {
                         $roId = Session::get('role') === 'ADMIN' ? $request->txt_ro_id : Session::get('ro_id');
@@ -261,15 +261,17 @@ class CustomerController extends Controller
                         'm07_gst' => $request->txt_gst,
                         'm07_iec_code' => $request->txt_iec,
                     ]);
-                    // 2. Create Wallet Automatically
-                    Wallet::create([
-                        'm07_customer_id' => $customer->m07_customer_id,
-                        'tr02_wallet_uuid' => (string) Str::uuid(),
-                        'tr02_balance' => 0,
-                        'tr02_hold_amount' => 0,
-                        'tr02_currency' => 'INR',
-                        'tr02_status' => 'active'
-                    ]);
+                    // 2. Create Wallet Automatically if email or phone is provided
+                    if (!empty($request->txt_email) || !empty($request->txt_phone)) {
+                        Wallet::create([
+                            'm07_customer_id' => $customer->m07_customer_id,
+                            'tr02_wallet_uuid' => (string) Str::uuid(),
+                            'tr02_balance' => 0,
+                            'tr02_hold_amount' => 0,
+                            'tr02_currency' => 'INR',
+                            'tr02_status' => 'active'
+                        ]);
+                    }
                     // 3. Create Customer Locations if available
                     if ($request->has('contacts') && is_array($request->contacts)) {
                         foreach ($request->contacts as $contactData) {
@@ -330,8 +332,8 @@ class CustomerController extends Controller
             $validator = Validator::make($request->all(), [
                 'txt_edit_customer_type_id' => 'required|integer|exists:m09_customer_types,m09_customer_type_id',
                 'txt_edit_name'             => 'required|string|max:255',
-                'txt_edit_email'            => 'required|email|max:255',
-                'txt_edit_phone'            => 'required|string|max:15',
+                'txt_edit_email'            => 'nullable|email|max:255',
+                'txt_edit_phone'            => 'nullable|string|max:15',
                 'txt_edit_gst'              => 'nullable|string|max:15',
                 'txt_edit_iec'              => 'nullable|string|max:20',
                 'txt_edit_contact_person'   => 'required|string|max:255',

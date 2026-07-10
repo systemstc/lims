@@ -320,6 +320,7 @@ class MasterController extends Controller
             ->count();
 
         // Test performed count
+        DB::statement('SET SQL_BIG_SELECTS=1');
         $testPerformed = DB::table('tr07_test_results')
             ->when(Session::get('role') !== 'ADMIN', function ($q) {
                 $q->join('tr04_sample_registrations', 'tr07_test_results.tr04_reference_id', '=', 'tr04_sample_registrations.tr04_reference_id')

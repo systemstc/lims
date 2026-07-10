@@ -346,4 +346,160 @@ class RazorpayController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Show sample payment checkout page
+     */
+    public function sampleCheckout(Request $request)
+    {
+        $ids = explode(',', $request->input('ids'));
+        $samples = \App\Models\SampleRegistration::whereIn('tr04_sample_registration_id', $ids)->get();
+
+        if ($samples->isEmpty()) {
+            abort(404, 'Samples not found');
+        }
+
+        $totalAmount = $samples->sum('tr04_total_charges') + $samples->sum('tr04_cgst') + $samples->sum('tr04_sgst') + $samples->sum('tr04_igst');
+        $customer = \App\Models\Customer::find($samples->first()->m07_customer_id);
+
+        return view('payments.sample_checkout', compact('samples', 'totalAmount', 'customer'));
+    }
+
+    /**
+     * Create Razorpay Order for Sample Payment
+     */
+    public function createSampleOrder(Request $request)
+    {
+        try {
+            $request->validate([
+                'amount' => 'required|numeric|min:1',
+                'sampleIds' => 'required|array'
+            ]);
+
+            $amountInRupees = $request->input('amount');
+            $amount = $amountInRupees * 100; // convert to paise
+
+            // Create Razorpay order
+            $order = $this->api->order->create([
+                'receipt' => 'sample_rcpt_' . Str::random(10),
+                'amount' => $amount,
+                'currency' => 'INR',
+                'payment_capture' => 1
+            ]);
+
+            $sampleIdsStr = implode(',', $request->input('sampleIds'));
+
+            // Save order to DB
+            $payment = Payment::create([
+                'tr02_order_id' => $order['id'],
+                'tr02_amount' => $amount,
+                'tr02_status' => 'created',
+                'm07_customer_id' => null, // Not strictly tied to one wallet customer
+                'tr02_type' => 'sample_payment',
+                'created_at' => now(),
+            ]);
+
+            // Save relationship temporarily in session or a custom mapping table. We'll use session for simplicity or just pass the ids.
+            Session::put('sample_payment_' . $order['id'], $request->input('sampleIds'));
+
+            return response()->json([
+                'success' => true,
+                'order_id' => $order['id'],
+                'amount' => $amount,
+                'key' => config('services.razorpay.key'),
+                'payment_id' => $payment->tr02_payment_id
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Razorpay Sample Order Creation Error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Order creation failed!',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Verify Razorpay Sample Payment
+     */
+    public function verifySamplePayment(Request $request)
+    {
+        try {
+            $request->validate([
+                'razorpay_payment_id' => 'required',
+                'razorpay_order_id' => 'required',
+                'razorpay_signature' => 'required'
+            ]);
+
+            $razorpayPaymentId = $request->input('razorpay_payment_id');
+            $razorpayOrderId   = $request->input('razorpay_order_id');
+            $razorpaySignature = $request->input('razorpay_signature');
+
+            // Verify signature
+            $generatedSignature = hash_hmac(
+                'sha256',
+                $razorpayOrderId . "|" . $razorpayPaymentId,
+                config('services.razorpay.secret')
+            );
+
+            if ($generatedSignature !== $razorpaySignature) {
+                return response()->json(['success' => false, 'message' => 'Payment verification failed!'], 400);
+            }
+
+            DB::beginTransaction();
+            $payment = Payment::where('tr02_order_id', $razorpayOrderId)->first();
+            if (!$payment) {
+                throw new \Exception('Payment record not found');
+            }
+
+            $payment->update([
+                'tr02_payment_t_id' => $razorpayPaymentId,
+                'tr02_status' => 'paid',
+                'tr02_payment_verified_at' => now()
+            ]);
+
+            $sampleIds = Session::get('sample_payment_' . $razorpayOrderId);
+            if ($sampleIds) {
+                \App\Models\SampleRegistration::whereIn('tr04_sample_registration_id', $sampleIds)
+                    ->update(['tr04_progress' => 'REGISTERED']);
+                Session::forget('sample_payment_' . $razorpayOrderId);
+                
+                // Record wallet transaction without wallet
+                foreach ($sampleIds as $sampleId) {
+                    $reg = \App\Models\SampleRegistration::find($sampleId);
+                    if ($reg) {
+                        WalletTransaction::create([
+                            'tr03_transaction_uuid' => 'TXN-S-' . date('Y') . '-' . str_pad(WalletTransaction::count() + 1, 4, '0', STR_PAD_LEFT),
+                            'tr02_wallet_id' => null, // No wallet
+                            'tr03_type' => 'debit',
+                            'tr03_amount' => $reg->tr04_total_charges + $reg->tr04_cgst + $reg->tr04_sgst + $reg->tr04_igst,
+                            'tr03_currency' => 'INR',
+                            'tr03_description' => 'Payment for Sample Registration (No Wallet)',
+                            'tr03_payment_reference' => $razorpayPaymentId,
+                            'tr03_invoice_number' => 'INV-' . $reg->tr04_reference_id,
+                            'tr03_balance_before' => 0,
+                            'tr03_balance_after' => 0,
+                            'tr03_status' => 'completed',
+                            'm07_created_by' => $reg->m07_customer_id,
+                            'tr03_payment_method' => 'Razorpay QR',
+                            'tr03_razorpay_order_id' => $razorpayOrderId,
+                            'tr03_razorpay_payment_id' => $razorpayPaymentId,
+                            'tr04_sample_registration_id' => $sampleId
+                        ]);
+                    }
+                }
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Sample Registration Payment verified successfully!',
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Razorpay Sample Payment Verification Error: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
 }
