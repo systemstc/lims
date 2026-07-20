@@ -1,6 +1,16 @@
 @extends('layouts.app_back')
 @section('content')
     <div class="container-fluid">
+        @php
+            $sampleDebug = \App\Models\SampleRegistration::latest('tr04_sample_registration_id')->first();
+            $rk = json_decode($sampleDebug->tr04_report_to, true);
+        @endphp
+        <div style="display:none;" id="debug-parties">
+            <!-- DEBUG:
+            Report To: {{ print_r($rk, true) }}
+            Parties: {{ print_r($sampleDebug->parties, true) }}
+            -->
+        </div>
         <div class="nk-content-inner">
             <div class="nk-content-body">
                 <div class="components-preview wide-xxl mx-auto">
@@ -37,36 +47,40 @@
                         </div>
                     </div>
                     <div class="nk-block">
-                        <div class="invoice">
-                            <div class="invoice-action">
-                                <a class="btn btn-icon btn-lg btn-white btn-dim btn-outline-primary"
+                        <div class="card card-bordered">
+                            <div class="card-inner">
+                                <div class="invoice">
+                                    <div class="invoice-action">
+                                        <a class="btn btn-icon btn-lg btn-white btn-dim btn-outline-primary"
                                     href="{{ route('print_sample_acknowledgement', $sample->tr04_sample_registration_id) }}"
                                     target="_blank" title="Print Sample Details">
                                     <em class="icon ni ni-printer-fill"></em>
                                 </a>
                             </div><!-- .invoice-actions -->
                             <div class="invoice-wrap">
+                                @php
+                                    $paymentByKey = strtolower($sample->tr04_payment_by ?? 'customer');
+                                    $payer = $sample->parties[$paymentByKey] ?? $sample->parties['customer'];
+                            
+                                    $reportToKeys = json_decode($sample->tr04_report_to, true) ?? ['customer'];
+                                @endphp
                                 <div class="invoice-head">
                                     <div class="invoice-contact">
-                                        <span class="overline-title">Customer Details</span>
+                                        <span class="overline-title">Billed To ({{ ucfirst(str_replace('_', ' ', $paymentByKey)) }})</span>
                                         <div class="invoice-contact-info">
-                                            <h4 class="title">{{ $sample->parties['customer']['name'] }}</h4>
+                                            <h4 class="title">{{ $payer['name'] }}</h4>
                                             <ul class="list-plain">
                                                 <li><em
-                                                        class="icon ni ni-user-fill"></em><span>{{ $sample->parties['customer']['contact_person'] }}</span>
+                                                        class="icon ni ni-user-fill"></em><span>{{ $payer['contact_person'] }}</span>
                                                 </li>
-                                                <li><em class="icon ni ni-map-pin-fill"></em><span>{{ $sample->parties['customer']['address'] }}
-                                                        &nbsp;&nbsp;{{ $sample->parties['customer']['district'] }},
-                                                        {{ $sample->parties['customer']['state'] }}</span></li>
-                                                <li><em
-                                                        class="icon ni ni-call-fill"></em><span>{{ $sample->parties['customer']['phone'] }}</span>
-                                                </li>
-                                                <li><em
-                                                        class="icon ni ni-mail-fill"></em><span>{{ $sample->parties['customer']['email'] }}</span>
-                                                </li>
-                                                @if ($sample->parties['customer']['gst'])
+                                                <li><em class="icon ni ni-map-pin-fill"></em><span>{{ $payer['address'] }}
+                                                        &nbsp;&nbsp;{{ $payer['district'] }},
+                                                        {{ $payer['state'] }}</span></li>
+                                                @if($payer['phone'])<li><em class="icon ni ni-call-fill"></em><span>{{ $payer['phone'] }}</span></li>@endif
+                                                @if($payer['email'])<li><em class="icon ni ni-mail-fill"></em><span>{{ $payer['email'] }}</span></li>@endif
+                                                @if ($payer['gst'])
                                                     <li><em class="icon ni ni-file-text-fill"></em><span>GST:
-                                                            {{ $sample->parties['customer']['gst'] }}</span></li>
+                                                            {{ $payer['gst'] }}</span></li>
                                                 @endif
                                             </ul>
                                         </div>
@@ -89,98 +103,71 @@
                                             <li class="invoice-date"><span>Expected
                                                     Date</span>:<span>{{ $sample->tr04_expected_date ? \Carbon\Carbon::parse($sample->tr04_expected_date)->format('d M, Y') : 'N/A' }}</span>
                                             </li>
+                                            <li class="invoice-date"><span>Payment</span>:
+                                                <span class="fw-bold @if ($sample->tr04_payment_status == 'COMPLETED') text-success @elseif($sample->tr04_payment_status == 'PENDING') text-warning @else text-secondary @endif">
+                                                    {{ $sample->tr04_payment_status }}
+                                                </span>
+                                            </li>
+                                            @if ($sample->package)
+                                                <li class="invoice-date"><span>Package</span>:<span>{{ $sample->package['m19_name'] }}</span></li>
+                                            @endif
                                         </ul>
                                     </div>
                                 </div><!-- .invoice-head -->
 
-                                <!-- Additional Party Details -->
-                                @if ($sample->parties['buyer']['name'] || $sample->parties['third_party']['name'] || $sample->parties['cha']['name'])
-                                    <div class="invoice-bills mb-4">
-                                        <div class="row">
-                                            @if ($sample->parties['buyer']['name'])
-                                                <div class="col-md-4">
+                                <!-- Report To Details -->
+                                <div class="invoice-bills mb-4 mt-4">
+                                    <div class="row">
+                                        @foreach ($reportToKeys as $index => $rKey)
+                                            @php 
+                                                $rk = strtolower($rKey);
+                                                $rp = $sample->parties[$rk] ?? null;
+                                            @endphp
+                                            @if($rp)
+                                                <div class="col-md-6 mb-3">
                                                     <div class="invoice-contact">
-                                                        <span class="overline-title">Buyer Details</span>
+                                                        <span class="overline-title">Report To ({{ ucfirst(str_replace('_', ' ', $rk)) }})</span>
                                                         <div class="invoice-contact-info">
-                                                            <h6 class="title">{{ $sample->parties['buyer']['name'] }}
-                                                            </h6>
+                                                            <h6 class="title">{{ $rp['name'] }}</h6>
                                                             <ul class="list-plain small">
-                                                                <li><em
-                                                                        class="icon ni ni-user"></em><span>{{ $sample->parties['buyer']['contact_person'] }}</span>
-                                                                </li>
-                                                                <li><em
-                                                                        class="icon ni ni-call"></em><span>{{ $sample->parties['buyer']['phone'] }}</span>
-                                                                </li>
-                                                                <li><em
-                                                                        class="icon ni ni-mail"></em><span>{{ $sample->parties['buyer']['email'] }}</span>
-                                                                </li>
+                                                                <li><em class="icon ni ni-user"></em><span>{{ $rp['contact_person'] }}</span></li>
+                                                                <li><em class="icon ni ni-map-pin"></em><span>{{ $rp['address'] }}
+                                                                        &nbsp;&nbsp;{{ $rp['district'] }},
+                                                                        {{ $rp['state'] }}</span></li>
+                                                                @if($rp['phone'])<li><em class="icon ni ni-call"></em><span>{{ $rp['phone'] }}</span></li>@endif
+                                                                @if($rp['email'])<li><em class="icon ni ni-mail"></em><span>{{ $rp['email'] }}</span></li>@endif
+                                                                @if ($rp['gst'])
+                                                                    <li><em class="icon ni ni-file-text"></em><span>GST: {{ $rp['gst'] }}</span></li>
+                                                                @endif
                                                             </ul>
                                                         </div>
                                                     </div>
                                                 </div>
                                             @endif
-
-                                            @if ($sample->parties['third_party']['name'])
-                                                <div class="col-md-4">
-                                                    <div class="invoice-contact">
-                                                        <span class="overline-title">Third Party Details</span>
-                                                        <div class="invoice-contact-info">
-                                                            <h6 class="title">
-                                                                {{ $sample->parties['third_party']['name'] }}</h6>
-                                                            <ul class="list-plain small">
-                                                                <li><em
-                                                                        class="icon ni ni-user"></em><span>{{ $sample->parties['third_party']['contact_person'] }}</span>
-                                                                </li>
-                                                                <li><em
-                                                                        class="icon ni ni-call"></em><span>{{ $sample->parties['third_party']['phone'] }}</span>
-                                                                </li>
-                                                                <li><em
-                                                                        class="icon ni ni-mail"></em><span>{{ $sample->parties['third_party']['email'] }}</span>
-                                                                </li>
-                                                            </ul>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            @endif
-
-                                            @if ($sample->parties['cha']['name'])
-                                                <div class="col-md-4">
-                                                    <div class="invoice-contact">
-                                                        <span class="overline-title">CHA Details</span>
-                                                        <div class="invoice-contact-info">
-                                                            <h6 class="title">{{ $sample->parties['cha']['name'] }}
-                                                            </h6>
-                                                            <ul class="list-plain small">
-                                                                <li><em
-                                                                        class="icon ni ni-user"></em><span>{{ $sample->parties['cha']['contact_person'] }}</span>
-                                                                </li>
-                                                                <li><em
-                                                                        class="icon ni ni-call"></em><span>{{ $sample->parties['cha']['phone'] }}</span>
-                                                                </li>
-                                                                <li><em
-                                                                        class="icon ni ni-mail"></em><span>{{ $sample->parties['cha']['email'] }}</span>
-                                                                </li>
-                                                            </ul>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            @endif
-                                        </div>
+                                        @endforeach
                                     </div>
-                                @endif
+                                </div>
 
                                 <!-- Sample Information with Image -->
                                 <div class="invoice-bills mb-4">
                                     <div class="row">
-                                        <div class="col-md-6">
-                                            <div class="card border">
+                                        <div class="col-md-12 mb-4 mb-md-0">
+                                            <div class="card border shadow-sm h-100">
                                                 <div class="card-inner">
                                                     <div class="row">
-                                                        <div class="col-6">
+                                                        <div class="col-8">
                                                             <h6 class="card-title mb-3">Sample Information</h6>
                                                             <ul class="list-plain">
                                                                 <li><strong>Lab Sample:</strong>
                                                                     {{ $sample->labSample['m14_name'] ?? 'N/A' }}</li>
+                                                                @if ($sample->tr04_sample_mark)
+                                                                    <li><strong>Sample Mark:</strong>
+                                                                        {{ $sample->tr04_sample_mark }}</li>
+                                                                @endif
+                                                                @if ($sample->tr04_be_no)
+                                                                    <li><strong>BE Number:</strong>
+                                                                        {{ $sample->tr04_be_no }}</li>
+                                                                @endif
                                                                 <li><strong>Description:</strong>
                                                                     {{ $sample->tr04_sample_description ?? 'N/A' }}
                                                                 </li>
@@ -189,43 +176,23 @@
                                                                 </li>
                                                             </ul>
                                                         </div>
-                                                        <div class="col-6">
+                                                        <div class="col-4 text-center">
                                                             @if ($sample->tr04_attachment)
-                                                                <img src="{{ asset('storage/' . $sample->tr04_attachment) }}"
+                                                                @php
+                                                                    $imagePath = storage_path('app/public/' . $sample->tr04_attachment);
+                                                                    if (file_exists($imagePath)) {
+                                                                        $imageData = base64_encode(file_get_contents($imagePath));
+                                                                        $src = 'data:image/jpeg;base64,'.$imageData;
+                                                                    } else {
+                                                                        $src = asset('storage/' . $sample->tr04_attachment);
+                                                                    }
+                                                                @endphp
+                                                                <img src="{{ $src }}"
                                                                     alt="Sample Image" class="img-thumbnail"
-                                                                    style="width: 100%; max-width: 200px; height: auto; object-fit: cover;">
+                                                                    style="max-width: 100%; max-height: 200px; object-fit: contain;">
                                                             @endif
                                                         </div>
                                                     </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <div class="card border">
-                                                <div class="card-inner">
-                                                    <h6 class="card-title mb-3">Payment & Report Information</h6>
-                                                    <ul class="list-plain">
-                                                        <li><strong>Payment By:</strong>
-                                                            {{ ucfirst(str_replace('_', ' ', $sample->tr04_payment_by)) }}
-                                                        </li>
-                                                        <li>
-                                                            <strong>Report To:</strong>
-                                                            {{ implode(', ', array_map(fn($item) => ucwords(str_replace('_', ' ', $item)), json_decode($sample->tr04_report_to, true))) }}
-                                                        </li>
-                                                        <li><strong>Payment Status:</strong>
-                                                            <span
-                                                                class="fw-bold 
-                                                    @if ($sample->tr04_payment_status == 'COMPLETED') text-success 
-                                                    @elseif($sample->tr04_payment_status == 'PENDING') text-warning 
-                                                    @else text-secondary @endif">
-                                                                {{ $sample->tr04_payment_status }}
-                                                            </span>
-                                                        </li>
-                                                        @if ($sample->package)
-                                                            <li><strong>Package:</strong>
-                                                                {{ $sample->package['m19_name'] }}</li>
-                                                        @endif
-                                                    </ul>
                                                 </div>
                                             </div>
                                         </div>
@@ -383,11 +350,13 @@
                                                 {{ $sample->ro->m04_name ?? '' }}
                                             </div>
                                         @endif
-                                    </div>
-                                </div><!-- .invoice-bills -->
-                            </div><!-- .invoice-wrap -->
-                        </div><!-- .invoice -->
-                    </div><!-- .nk-block -->
+                                        </div>
+                                    </div><!-- .invoice-bills -->
+                                </div><!-- .invoice-wrap -->
+                            </div><!-- .invoice -->
+                        </div><!-- .card-inner -->
+                    </div><!-- .card -->
+                </div><!-- .nk-block -->
                 </div>
             </div>
         </div>

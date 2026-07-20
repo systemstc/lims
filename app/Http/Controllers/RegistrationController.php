@@ -54,6 +54,7 @@ class RegistrationController extends Controller
                 'txt_number_of_samples' => 'nullable|integer|min:1',
                 'txt_unknown_sample' => 'nullable|boolean',
                 "txt_description" => "nullable|string",
+                "txt_sample_mark" => "nullable|string",
                 'txt_sample_image' => 'nullable|string',
                 "txt_due_date" => "required|date",
                 'txt_be_no' => "nullable|string",
@@ -147,6 +148,7 @@ class RegistrationController extends Controller
                         'tr04_sample_type' => $request->dd_priority_type,
                         'tr04_number_of_samples' => 1, // Store 1 for internal record as it's a separate entry
                         'tr04_sample_description' => $request->txt_description,
+                        'tr04_sample_mark' => $request->txt_sample_mark,
                         'tr04_be_no' => $request->txt_be_no,
                         'm19_package_id' => $request->dd_contracts,
                         'tr04_charge_type' => $request->dd_charge_type,
@@ -253,7 +255,28 @@ class RegistrationController extends Controller
 
                     // Wallet Hold Transaction (Unit basis)
                     if (!$isNonCommercial) {
-                        if ($hasWallet) {
+                        if ($request->input('manual_payment_action') === 'done') {
+                            $registration->update([
+                                'tr04_progress' => 'REGISTERED',
+                                'tr04_payment_status' => 'PAID'
+                            ]);
+                            $unitTotal = $totalCharges / $numSamples;
+                            \App\Models\Payment::create([
+                                'tr02_order_id' => $registration->tr04_reference_id,
+                                'tr02_amount' => $unitTotal,
+                                'tr02_currency' => 'INR',
+                                'tr02_status' => 'paid',
+                                'tr02_payment_t_id' => 'MANUAL_' . time() . '_' . $i,
+                                'm07_customer_id' => $payingCustomerId,
+                                'tr02_type' => 'MANUAL',
+                                'tr02_payment_verified_at' => now(),
+                            ]);
+                        } elseif ($request->input('manual_payment_action') === 'pending') {
+                            $registration->update([
+                                'tr04_progress' => 'PENDING_PAYMENT',
+                                'tr04_payment_status' => 'PENDING'
+                            ]);
+                        } elseif ($hasWallet) {
                             $unitTotal = $totalCharges / $numSamples;
                             $invoiceNumber = 'INV-' . $registration->tr04_reference_id;
                             $holdResult = $this->createHoldTransaction($payingCustomerId, $registration->tr04_reference_id, $registration->tr04_sample_registration_id, $unitTotal, $invoiceNumber);
@@ -286,7 +309,7 @@ class RegistrationController extends Controller
                 Session::flash('message', 'Sample(s) Registered Successfully!');
                 Session::flash('registration_id', $registrations[0]->tr04_reference_id);
 
-                if (!$isNonCommercial && !$hasWallet) {
+                if (!$isNonCommercial && !$hasWallet && empty($request->input('manual_payment_action'))) {
                     $registrationIds = array_map(function($r) { return $r->tr04_sample_registration_id; }, $registrations);
                     return redirect()->route('payment.sample_checkout', ['ids' => implode(',', $registrationIds)]);
                 }

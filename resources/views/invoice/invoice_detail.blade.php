@@ -6,42 +6,46 @@
             <div class="nk-content-body">
                 <div class="components-preview wide-xxl mx-auto">
                     <!-- INVOICE WRAPPER -->
-                    <div class="card shadow-sm bg-white p-4" style="page-break-inside: avoid;">
-                        <!-- HEADER -->
-                        <div class="d-flex justify-content-between align-items-center mb-4">
-                            <div>
-                                <h4 class="mb-1">INVOICE</h4>
-                                <p class="text-muted small mb-0">Sample Reference: <strong>#{{ $sample->tr04_reference_id }}</strong></p>
-                                <p class="text-muted small">Date: {{ $sample->created_at->format('d M, Y') }}</p>
-                            </div>
-                            <div>
-                                <a href="{{ url()->previous() }}" class="btn btn-outline-primary btn-sm no-print">
-                                    <em class="icon ni ni-back-alt-fill"></em> Back
-                                </a>
-                                <button onclick="window.print()" class="btn btn-outline-primary btn-sm no-print">
-                                    <em class="icon ni ni-printer-fill"></em> Print
-                                </button>
-                            </div>
+                    <div class="card shadow-sm bg-white p-4">
+                        <!-- ACTION BUTTONS -->
+                        <div class="text-end mb-3 no-print d-print-none">
+                            <a href="{{ url()->previous() }}" class="btn btn-outline-primary btn-sm">
+                                <em class="icon ni ni-back-alt-fill"></em> Back
+                            </a>
+                            <button onclick="window.print()" class="btn btn-outline-primary btn-sm no-loader">
+                                <em class="icon ni ni-printer-fill"></em> Print
+                            </button>
                         </div>
 
-                        <div id="invoice-section" class="card shadow-sm bg-white p-4" style="page-break-inside: avoid;">
+                        <div id="invoice-section" class="card shadow-sm bg-white p-4">
+
+                        <!-- HEADER -->
+                        <div class="mb-4 pb-3 border-bottom">
+                            <h4 class="mb-1">INVOICE</h4>
+                            <p class="text-muted small mb-0">Sample Reference: <strong>#{{ $sample->tr04_reference_id }}</strong></p>
+                            <p class="text-muted small">Date: {{ $sample->created_at->format('d M, Y') }}</p>
+                        </div>
 
 
                         <!-- CUSTOMER DETAILS -->
                         <div class="mb-4">
-                            <h6 class="border-bottom pb-2 mb-3">Customer Information</h6>
+                            @php
+                                $paymentByKey = strtolower($sample->tr04_payment_by ?? 'customer');
+                                $payer = $sample->parties[$paymentByKey] ?? $sample->parties['customer'];
+                            @endphp
+                            <h6 class="border-bottom pb-2 mb-3">Billed To ({{ ucwords(str_replace('_', ' ', $paymentByKey)) }})</h6>
                             <div class="row">
                                 <div class="col-md-6">
-                                    <p class="mb-1"><strong>Name:</strong> {{ $sample->parties['customer']['name'] }}</p>
-                                    <p class="mb-1"><strong>Contact Person:</strong> {{ $sample->parties['customer']['contact_person'] }}</p>
-                                    <p class="mb-1"><strong>Phone:</strong> {{ $sample->parties['customer']['phone'] }}</p>
-                                    <p class="mb-1"><strong>Email:</strong> {{ $sample->parties['customer']['email'] }}</p>
-                                    <p class="mb-1"><strong>GST:</strong> {{ $sample->parties['customer']['gst'] ?? 'N/A' }}</p>
+                                    <p class="mb-1"><strong>Name:</strong> {{ $payer['name'] }}</p>
+                                    <p class="mb-1"><strong>Contact Person:</strong> {{ $payer['contact_person'] }}</p>
+                                    <p class="mb-1"><strong>Phone:</strong> {{ $payer['phone'] }}</p>
+                                    <p class="mb-1"><strong>Email:</strong> {{ $payer['email'] }}</p>
+                                    <p class="mb-1"><strong>GST:</strong> {{ $payer['gst'] ?? 'N/A' }}</p>
                                 </div>
                                 <div class="col-md-6">
-                                    <p class="mb-1"><strong>Address:</strong> {{ $sample->parties['customer']['address'] }}</p>
-                                    <p class="mb-1"><strong>District:</strong> {{ $sample->parties['customer']['district'] }}</p>
-                                    <p class="mb-1"><strong>State:</strong> {{ $sample->parties['customer']['state'] }}</p>
+                                    <p class="mb-1"><strong>Address:</strong> {{ $payer['address'] }}</p>
+                                    <p class="mb-1"><strong>District:</strong> {{ $payer['district'] }}</p>
+                                    <p class="mb-1"><strong>State:</strong> {{ $payer['state'] }}</p>
                                     <p class="mb-1"><strong>Status:</strong> 
                                         <span class="badge 
                                             @if ($sample->tr04_status == 'ACTIVE') bg-success 

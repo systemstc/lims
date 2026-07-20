@@ -1,5 +1,8 @@
 @extends('layouts.app_back')
 @section('content')
+<!-- Cropper.js for image upload/crop -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
     <div class="container-fluid">
         <div class="nk-content-inner">
             <div class="nk-content-body">
@@ -412,7 +415,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="col-md-6">
+                                <div class="col-md-4">
                                     <div class="form-group">
                                         <label class="form-label" for="dd_department">Lab Department<b
                                             class="text-danger">*</b></label>
@@ -431,7 +434,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="col-md-6">
+                                <div class="col-md-4">
                                     <div class="form-group">
                                         <label class="form-label" for="dd_sample_type">Sample
                                             Charactor<b class="text-danger">*</b></label>
@@ -450,7 +453,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="col-md-6">
+                                <div class="col-md-4">
                                     <div class="form-group">
                                         <label class="form-label"
                                         for="dd_priority_type">Priority</label>
@@ -482,30 +485,43 @@
                                 </div>
                             </div>
 
-                            <div class="col-md-2">
-                                <div class="form-group">
+                            <div class="col-md-2 d-flex align-items-center mt-4">
+                                <div class="form-group mt-1">
                                     <input type="checkbox" class="form-check-input"
                                     name="txt_unknown_sample"
                                     id="txt_unknown_sample" value="Unknown">
                                     <label class="form-check-label"
                                     for="txt_unknown_sample">
                                     Unknown
-                                </label>
+                                    </label>
+                                </div>
                             </div>
-                        </div>
 
 
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label class="form-label">Sample Image</label>
+                                <div>
+                                    <input type="hidden" name="txt_sample_image" id="txt_sample_image">
                                     <button type="button" class="btn btn-primary"
                                     data-bs-toggle="modal" data-bs-target="#cameraModal">
-                                    📷 Take Sample Image
-                                </button>
+                                    📸 Upload / Capture
+                                    </button>
+                                </div>
                                 <div id="preview" class="mt-2"></div>
                             </div>
                         </div>
 
+
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="form-label" for="txt_sample_mark">Sample Mark</label>
+                                <div class="form-control-wrap">
+                                    <input class="form-control" id="txt_sample_mark"
+                                        name="txt_sample_mark" autocomplete="off" placeholder="Optional">
+                                </div>
+                            </div>
+                        </div>
 
                         <div class="col-md-6">
                             <div class="form-group">
@@ -557,6 +573,7 @@
                                 </div>
                             </div>
                         </div>
+
                         <div class="col-md-6" id="be-wrapper" style="display:none;">
                             <div class="form-group">
                                 <label class="form-label" for="txt_be_no">BE No. <b
@@ -806,6 +823,27 @@
 </div>
 
 
+<!-- Payment QR Modal -->
+<div class="modal fade" id="paymentQRModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Payment Required</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+                <p>The selected customer lacks sufficient contact details (email/mobile). Please scan the QR code to complete the payment.</p>
+                <!-- Placeholder for actual QR code -->
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=Payment" alt="QR Code" class="mb-3">
+                <div class="d-flex justify-content-center mt-3" style="gap: 10px;">
+                    <button type="button" class="btn btn-success" id="btnMarkPaymentDone">Mark Payment Done</button>
+                    <button type="button" class="btn btn-warning" id="btnPaymentPending">Register as Payment Pending</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Custom Query Tests Modal -->
 <div class="modal fade" id="customQueryModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-scrollable modal-lg">
@@ -859,21 +897,29 @@
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Capture Sample Image</h5>
+                <h5 class="modal-title">Sample Image (Capture or Upload)</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body text-center">
-                <video id="video" width="480" height="360" autoplay playsinline
-                style="border:1px solid #ccc; border-radius:8px;"></video>
-                <canvas id="canvas" width="480" height="360"
-                style="display:none; border:1px solid #ccc; border-radius:8px;"></canvas>
+                <div class="mb-3 d-flex justify-content-center" style="gap: 10px;">
+                    <button type="button" class="btn btn-secondary" id="startCameraBtn" style="display:none;">🎥 Restart Camera</button>
+                    <label class="btn btn-info mb-0">
+                        📁 Upload Image <input type="file" id="uploadImageInput" accept="image/*" hidden>
+                    </label>
+                </div>
+                <!-- Camera View -->
+                <div id="camera-view">
+                    <video id="video" width="480" height="360" autoplay playsinline style="border:1px solid #ccc; border-radius:8px;"></video>
+                </div>
+                <!-- Crop View -->
+                <div id="crop-view" style="display: none; width: 100%; max-height: 400px; overflow: hidden; text-align: center;">
+                    <img id="crop-image" src="" style="max-width: 100%; display: block; margin: 0 auto;">
+                </div>
             </div>
             <div class="modal-footer">
-                <button type="button" id="captureBtn" class="btn btn-primary">📸 Capture</button>
-                <button type="button" id="retakeBtn" class="btn btn-warning" style="display:none;">🔄
-                Retake</button>
-                <button type="button" id="saveImageBtn" class="btn btn-success" style="display:none;"
-                data-bs-dismiss="modal">✅ Use Image</button>
+                <button type="button" id="captureBtn" class="btn btn-primary">📸 Capture Photo</button>
+                <button type="button" id="retakeBtn" class="btn btn-warning" style="display:none;">🔄 Retake</button>
+                <button type="button" id="saveImageBtn" class="btn btn-success" style="display:none;" data-bs-dismiss="modal">✅ Crop & Use</button>
             </div>
         </div>
     </div>
@@ -1168,7 +1214,24 @@ aria-hidden="true">
         $(mapping.hiddenCustomer).val(customerId || '');
     }
 
-    $(document).ready(function() {
+        $(document).ready(function() {
+            // Customer type change handler for BE No. visibility - using event delegation for maximum reliability
+            $(document).on('change', '#dd_customer_type', function() {
+                let selectedText = $(this).find('option:selected').text().trim().toLowerCase();
+                if (selectedText.includes('regulatory')) {
+                    $('#be-wrapper').show();
+                } else {
+                    $('#be-wrapper').hide();
+                }
+            });
+            
+            // Trigger on load if pre-selected, with a slight delay to avoid race conditions
+        setTimeout(function() {
+            if ($('#dd_customer_type').val()) {
+                $('#dd_customer_type').trigger('change');
+            }
+        }, 300);
+
         // SweetAlert for Registration Success
         @if(Session::has('registration_id'))
             Swal.fire({
@@ -1415,11 +1478,8 @@ aria-hidden="true">
                 $('.table.table-tranx tbody');
                 selectedTestIds = [];
                 calculateCharges();
-                if (type === "CUSTOM") {
-                    $('#be-wrapper').show();
-                } else {
-                    $('#be-wrapper').hide();
-                }
+                
+
 
                 if (type === "CONTRACT" || type === "PACKAGE" || type === "SPECIFICATION" || type ===
                     "CUSTOM") {
@@ -1781,6 +1841,34 @@ function initializeCustomerEvents() {
              *  TABLE & CALCULATION FUNCTIONS
              ========================= **/
     window.addTestToTable = function(test) {
+        let testName = (test.test_name || test.name || '').trim().toLowerCase();
+        let isFibreBlend = testName.includes('% fibre blend composition') || testName.includes('% fiber blend composition');
+        
+        if (isFibreBlend) {
+            let hasIdFiber = false;
+            $('.table.table-tranx tbody tr').each(function() {
+                let text = $(this).find('td:nth-child(2)').text().toLowerCase();
+                if (text.includes('identification of fibre')) hasIdFiber = true;
+            });
+
+            if (!hasIdFiber) {
+                $.ajax({
+                    url: '{{ route('search_test') }}',
+                    type: 'GET',
+                    data: { query: 'Identification of fibre' },
+                    success: function(results) {
+                        if (results && results.length > 0) {
+                            let idTest = results[0];
+                            if (!selectedTestIds.includes(idTest.id)) {
+                                addTestToTable(idTest);
+                                selectedTestIds.push(idTest.id);
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
         const row = `
         <tr data-id="${test.id}">
         <td>${test.test_number}</td>
@@ -1794,7 +1882,7 @@ function initializeCustomerEvents() {
         <input type="hidden" name="tests[${test.id}][standard_id]" class="standard-id" value="${test.standard?.standard_id || ''}">
         </td>
         <td class="test-charge" data-charge="${test.charge || 0}" 
-        data-base-charge="${test.charge || 0}">${test.charge || 0}</td>
+        data-base-charge="${test.charge || 0}" data-original-charge="${test.charge || 0}">${test.charge || 0}</td>
         <td>
         <div class="d-flex align-items-center">
         <button type="button" class="btn btn-sm btn-light decrement-qty" data-id="${test.id}">-</button>
@@ -1899,6 +1987,46 @@ function initializeCustomerEvents() {
             //     $("#txt_total_charges").val(finalTotal.toFixed(2));
             // }
             window.calculateCharges = function() {
+                // === Custom Logic: Apply Fibre Blend Bundle Pricing ===
+                let hasFibreBlend = false;
+                $(".test-charge").each(function () {
+                    let $testRow = $(this).closest('tr');
+                    let text = $testRow.find('td:nth-child(2)').text().toLowerCase();
+                    if (text.includes('% fibre blend composition') || text.includes('% fiber blend composition')) {
+                        hasFibreBlend = true;
+                    }
+                });
+
+                $(".test-charge").each(function () {
+                    let $testRow = $(this).closest('tr');
+                    let text = $testRow.find('td:nth-child(2)').text().toLowerCase();
+                    let originalCharge = parseFloat($(this).data("original-charge")) || 0;
+                    
+                    if (text.includes('% fibre blend composition') || text.includes('% fiber blend composition')) {
+                        $(this).attr('data-base-charge', 550).data('base-charge', 550);
+                    }
+                    
+                    if (text.includes('identification of fibre')) {
+                        if (hasFibreBlend) {
+                            $(this).attr('data-base-charge', 0).data('base-charge', 0);
+                        } else {
+                            $(this).attr('data-base-charge', originalCharge).data('base-charge', originalCharge);
+                        }
+                    }
+                });
+
+                // Recalculate row charge based on qty and new base-charge
+                $(".test-charge").each(function () {
+                    let $testRow = $(this).closest('tr');
+                    let qty = parseInt($testRow.find(".test-qty").data("qty")) || 1;
+                    let baseCharge = parseFloat($(this).data("base-charge")) || 0;
+                    let newCharge = qty * baseCharge;
+                    
+                    $(this).text(newCharge.toFixed(2));
+                    $(this).attr("data-charge", newCharge.toFixed(2));
+                    $(this).data("charge", newCharge.toFixed(2));
+                });
+
                 let total = 0;
 
     // === Step 1: Get Priority Type ===
@@ -2293,7 +2421,7 @@ function initializeCustomerEvents() {
                     
                     // Populate customer information
                     if (sampleData.customer_type) {
-                        $('#dd_customer_type').val(sampleData.customer_type);
+                        $('#dd_customer_type').val(sampleData.customer_type).trigger('change');
                     }
                     
                     if (sampleData.customer) {
@@ -2352,6 +2480,7 @@ function initializeCustomerEvents() {
                     // Populate sample details
                     $('#txt_reference').val(sampleData.reference_no || '');
                     $('#txt_ref_date').val(sampleData.reference_date || '');
+                    $('#txt_sample_mark').val(sampleData.sample_mark || '');
                     $('#txt_description').val(sampleData.description || '');
                     
                     if (sampleData.due_date) {
@@ -2471,7 +2600,7 @@ function initializeCustomerEvents() {
         // UTILITY FUNCTIONS
         // --------------------
 window.clearFormData = function() {
-    $('#txt_customer_name, #txt_reference, #txt_ref_date, #txt_description').val('');
+    $('#txt_customer_name, #txt_reference, #txt_ref_date, #txt_sample_mark, #txt_description').val('');
     $('#selected_customer_id').val('');
     $('#dd_sample_type, #dd_priority_type, #dd_test_type').val('').trigger('change');
     if ($('.table.table-tranx tbody').length) {
@@ -2519,67 +2648,114 @@ window.showNotification = function(message, type = 'info') {
 <script>
     $(document).ready(function() {
         let video = document.getElementById("video");
-        let canvas = document.getElementById("canvas");
-        let context = canvas.getContext("2d");
         let captureBtn = $("#captureBtn");
         let retakeBtn = $("#retakeBtn");
         let saveImageBtn = $("#saveImageBtn");
-        let inputBase64 = $("#sample_image_base64");
         let streamRef = null;
+        let cropper = null;
 
-            // When modal opens → start camera
-        $('#cameraModal').on('shown.bs.modal', function() {
-            navigator.mediaDevices.getUserMedia({
-                video: {
-                    width: {
-                        ideal: 1280
-                            }, // HD resolution
-                            height: {
-                                ideal: 720
-                            },
-                            facingMode: "environment"
-                        }
-                    })
-            .then(function(stream) {
-                streamRef = stream;
-                video.srcObject = stream;
-            })
-            .catch(function(err) {
-                alert("Camera not available: " + err.message);
-            });
-        });
-
-        captureBtn.on("click", function() {
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            context.drawImage(video, 0, 0, canvas.width, canvas.height);
-            $(canvas).show();
-            $(video).hide();
-            captureBtn.hide();
-            retakeBtn.show();
-            saveImageBtn.show();
-        });
-
-            // Retake
-        retakeBtn.on("click", function() {
-            $(canvas).hide();
-            $(video).show();
+        function startCamera() {
+            $('#camera-view').show();
+            $('#crop-view').hide();
+            $('#startCameraBtn').hide();
             captureBtn.show();
             retakeBtn.hide();
             saveImageBtn.hide();
+
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                navigator.mediaDevices.getUserMedia({
+                    video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "environment" }
+                })
+                .then(function(stream) {
+                    streamRef = stream;
+                    video.srcObject = stream;
+                })
+                .catch(function(err) {
+                    alert("Camera not available: " + err.message);
+                });
+            }
+        }
+
+        function stopCamera() {
+            if (streamRef) {
+                streamRef.getTracks().forEach(track => track.stop());
+                streamRef = null;
+            }
+        }
+
+        function initCropper(imageSrc) {
+            stopCamera();
+            $('#camera-view').hide();
+            $('#crop-view').show();
+            $('#startCameraBtn').show();
+            captureBtn.hide();
+            retakeBtn.show();
+            saveImageBtn.show();
+            
+            let cropImage = document.getElementById('crop-image');
+            cropImage.src = imageSrc;
+            
+            if (cropper) { cropper.destroy(); }
+            
+            // Need a slight timeout for the image to render before cropper attaches
+            setTimeout(() => {
+                cropper = new Cropper(cropImage, {
+                    viewMode: 1,
+                    autoCropArea: 1,
+                });
+            }, 100);
+        }
+
+        $('#cameraModal').on('shown.bs.modal', function() {
+            startCamera();
         });
 
-            // Save image (to hidden input + show thumbnail)
+        $('#cameraModal').on('hidden.bs.modal', function() {
+            stopCamera();
+            if (cropper) { cropper.destroy(); cropper = null; }
+            $('#uploadImageInput').val('');
+        });
+
+        $('#startCameraBtn').on("click", function() {
+            if (cropper) { cropper.destroy(); cropper = null; }
+            startCamera();
+        });
+
+        $('#uploadImageInput').on('change', function(e) {
+            if (e.target.files && e.target.files[0]) {
+                let reader = new FileReader();
+                reader.onload = function(e) {
+                    initCropper(e.target.result);
+                }
+                reader.readAsDataURL(e.target.files[0]);
+            }
+        });
+
+        captureBtn.on("click", function() {
+            let canvas = document.createElement("canvas");
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            let context = canvas.getContext("2d");
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            initCropper(canvas.toDataURL("image/jpeg", 0.9));
+        });
+
+        retakeBtn.on("click", function() {
+            if (cropper) { cropper.destroy(); cropper = null; }
+            startCamera();
+        });
+
         saveImageBtn.on("click", function() {
-                let base64Image = canvas.toDataURL("image/jpeg", 0.9); // 90% quality JPEG
-                console.log(base64Image);
-
+            if (cropper) {
+                let croppedCanvas = cropper.getCroppedCanvas({
+                    maxWidth: 1280,
+                    maxHeight: 1280
+                });
+                let base64Image = croppedCanvas.toDataURL("image/jpeg", 0.8);
                 $("#txt_sample_image").val(base64Image);
-
-                $("#preview").html(
-                    `<img src="${base64Image}" width="200" class="img-thumbnail mt-2">`
-                    );
-            });
+                $("#preview").html(`<img src="${base64Image}" class="img-thumbnail mt-2" style="max-height: 200px;">`);
+            }
+        });
     });
 </script>
 <script>
@@ -2666,7 +2842,7 @@ window.showNotification = function(message, type = 'info') {
         // UTILITY FUNCTIONS
         // --------------------
 window.clearFormData = function() {
-    $('#txt_customer_name, #txt_reference, #txt_ref_date, #txt_description').val('');
+    $('#txt_customer_name, #txt_reference, #txt_ref_date, #txt_sample_mark, #txt_description').val('');
     $('#selected_customer_id').val('');
     $('#dd_sample_type, #dd_priority_type, #dd_test_type').val('').trigger('change');
     if ($('.table.table-tranx tbody').length) {
@@ -2878,6 +3054,86 @@ window.showNotification = function(message, type = 'info') {
                 }
             });
             $('#customQueryModal').modal('hide');
+        });
+    });
+</script>
+
+<script>
+    $(document).ready(function() {
+        const form = document.getElementById('wizard-01');
+        const originalSubmit = form.submit;
+
+        function checkPaymentAndSubmit() {
+            let currentAction = new URL(form.action);
+            if (currentAction.searchParams.has('manual_payment_action')) {
+                return true;
+            }
+
+            let isNonCommercial = $('input[name="commercial_type"]:checked').val() == '2';
+            if (isNonCommercial) {
+                return true;
+            }
+
+            let paymentBy = $('input[name="txt_payment_by"]:checked').val();
+            let email = '';
+            let phone = '';
+
+            if (paymentBy === 'first_party') {
+                email = $('#party-email').text().trim();
+                phone = $('#party-phone').text().trim();
+            } else if (paymentBy === 'second_party') {
+                email = $('#buyer-email').text().trim();
+                phone = $('#buyer-phone').text().trim();
+            } else if (paymentBy === 'third_party') {
+                email = $('#third-email').text().trim();
+                phone = $('#third-phone').text().trim();
+            } else if (paymentBy === 'cha') {
+                email = $('#cha-email').text().trim();
+                phone = $('#cha-phone').text().trim();
+            }
+
+            let cleanEmail = email.replace('Email:', '').trim();
+            if (cleanEmail.toUpperCase() === 'N/A') cleanEmail = '';
+            
+            let cleanPhone = phone.replace('Phone:', '').trim();
+            if (cleanPhone.toUpperCase() === 'N/A') cleanPhone = '';
+
+            if (!cleanEmail && !cleanPhone) {
+                $('#paymentQRModal').modal('show');
+                return false;
+            }
+            return true;
+        }
+
+        // Override native submit to catch wizard calls
+        form.submit = function() {
+            if (checkPaymentAndSubmit()) {
+                originalSubmit.call(form);
+            }
+        };
+
+        // Catch standard submit events
+        $(form).on('submit', function(e) {
+            if (!checkPaymentAndSubmit()) {
+                e.preventDefault();
+                return false;
+            }
+        });
+
+        $('#btnMarkPaymentDone').on('click', function() {
+            let actionUrl = new URL(form.action);
+            actionUrl.searchParams.set('manual_payment_action', 'done');
+            form.action = actionUrl.toString();
+            $('#paymentQRModal').modal('hide');
+            originalSubmit.call(form);
+        });
+
+        $('#btnPaymentPending').on('click', function() {
+            let actionUrl = new URL(form.action);
+            actionUrl.searchParams.set('manual_payment_action', 'pending');
+            form.action = actionUrl.toString();
+            $('#paymentQRModal').modal('hide');
+            originalSubmit.call(form);
         });
     });
 </script>

@@ -155,13 +155,20 @@
         @php $firstsample = $samples->first(); @endphp
 
         <div class="customer-info">
-            <div class="section-title">Billed To:</div>
+            @php 
+                $paymentByKey = strtolower($firstsample->tr04_payment_by ?? 'customer');
+                $payer = $firstsample->parties[$paymentByKey] ?? $firstsample->parties['customer'] ?? null;
+            @endphp
+            <div class="section-title">Billed To ({{ ucwords(str_replace('_', ' ', $paymentByKey)) }}):</div>
             <ul>
-                <li><strong>{{ $firstsample['customer']['m07_name'] }}</strong></li>
-                <li>Contact Person: {{ $firstsample['customer']['m07_contact_person'] }}</li>
-                <li>GST: {{ $firstsample['customer']['m07_gst'] ?? 'N/A' }}</li>
-                <li>Location ID: {{ $firstsample['m08_customer_location_id'] ?? 'N/A' }}</li>
-                <li>Payment By: {{ $firstsample['tr04_payment_by'] ?? 'N/A' }}</li>
+                <li><strong>{{ $payer['name'] ?? $firstsample->customer->m07_name ?? 'N/A' }}</strong></li>
+                <li>Contact Person: {{ $payer['contact_person'] ?? $firstsample->customer->m07_contact_person ?? 'N/A' }}</li>
+                <li>GST: {{ $payer['gst'] ?? $firstsample->customer->m07_gst ?? 'N/A' }}</li>
+                <li>Location: 
+                    {{ $payer['address'] ?? 'N/A' }}
+                    {{ !empty($payer['district']) ? ', ' . $payer['district'] : '' }}
+                    {{ !empty($payer['state']) ? ', ' . $payer['state'] : '' }}
+                </li>
             </ul>
         </div>
 

@@ -339,6 +339,9 @@ Route::middleware(['access_control'])->group(function () {
     Route::post('/get-analyst-test-details', [AllottmentController::class, 'getAnalystTestDetails'])->name('get_analyst_test_details');
     // Additional operations
     Route::post('/reassign', [AllottmentController::class, 'reassignTest'])->name('reassign');
+    Route::post('/revert-allotment', [AllottmentController::class, 'revertAllotment'])->name('revert_allotment');
+    Route::post('/bulk-revert-allotment', [AllottmentController::class, 'bulkRevertAllotment'])->name('bulk_revert_allotment');
+    Route::get('/search-sample-for-allotment', [AllottmentController::class, 'searchSampleForAllotment'])->name('search_sample_for_allotment');
     Route::get('/history/{testId}', [AllottmentController::class, 'getAllotmentHistory'])->name('history');
 
     // Manuscript

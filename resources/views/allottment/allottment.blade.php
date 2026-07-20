@@ -65,7 +65,7 @@
                     </div>
                     <div class="col-2">
                         @if ($registration->tr04_attachment)
-                            <img src="{{ asset('storage/' . $registration->tr04_attachment) }}" alt="Sample Image"
+                            <img src="{{ asset('public/storage/' . $registration->tr04_attachment) }}" alt="Sample Image"
                                 class="img-thumbnail"
                                 style="width: 100%; max-width: 200px; height: auto; object-fit: cover;">
                         @endif
@@ -78,43 +78,24 @@
         <div class="card card-bordered mb-4">
             <div class="card-inner">
                 <div class="row align-items-end g-3">
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                         <div class="form-group">
-                            <label class="form-label">
+                            <label class="form-label mt-2">
                                 <input type="checkbox" id="select-all" class="form-check-input me-2">
                                 Select All Available Tests
                             </label>
                         </div>
                     </div>
-                    <div class="col-md-3">
-                        <div class="form-group">
-                            <label class="form-label">Bulk Allot To:</label>
-                            <select id="bulk-employee" class="form-control form-select">
-                                <option value="">-- Select Employee --</option>
-                                @foreach ($employees as $emp)
-                                    <option value="{{ $emp->m06_employee_id }}">{{ $emp->m06_name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="form-group">
-                            <label class="form-label">Bulk Transfer To:</label>
-                            <select id="bulk-ro" class="form-control form-select">
-                                <option value="">-- Select RO --</option>
-                                @foreach ($ros as $ro)
-                                    <option value="{{ $ro->m04_ro_id }}">{{ $ro->m04_name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="btn-group w-100">
+                    <div class="col-md-8 text-end">
+                        <div class="btn-group">
                             <button type="button" class="btn btn-primary" onclick="bulkAllotSelected()">
                                 <em class="icon ni ni-user-check"></em> Allot Selected
                             </button>
                             <button type="button" class="btn btn-warning" onclick="bulkTransferSelected()">
                                 <em class="icon ni ni-exchange"></em> Transfer Selected
+                            </button>
+                            <button type="button" class="btn btn-danger" onclick="bulkRevertSelected()">
+                                <em class="icon ni ni-undo"></em> Revert Selected
                             </button>
                         </div>
                     </div>
@@ -202,6 +183,13 @@
                                                 <span class="text-info">Pending Acceptance</span>
                                             @elseif(isset($test->has_result) && $test->has_result)
                                                 <span class="text-success fw-bold"><em class="icon ni ni-check-circle"></em> Result Submitted</span>
+                                            @elseif(in_array($test->tr05_status, ['ALLOTED', 'IN_PROGRESS']))
+                                                @php
+                                                    $allottedEmp = $employees->firstWhere('m06_employee_id', $test->m06_alloted_to);
+                                                @endphp
+                                                <span class="text-primary fw-bold">
+                                                    <em class="icon ni ni-user-check"></em> Allotted to {{ $allottedEmp ? $allottedEmp->m06_name : 'Unknown' }}
+                                                </span>
                                             @else
                                                 <select name="allotments[{{ $test->tr05_sample_test_id }}]"
                                                     class="form-control form-select form-select-sm individual-select"
@@ -233,6 +221,12 @@
                                                     <button type="button" class="btn btn-outline-info btn-sm"
                                                         onclick="showHistory({{ $test->tr05_sample_test_id }})">
                                                         <em class="icon ni ni-clock"></em> History
+                                                    </button>
+                                                @endif
+                                                @if (in_array($test->tr05_status, ['ALLOTED', 'IN_PROGRESS']) && (!$test->has_result))
+                                                    <button type="button" class="btn btn-outline-danger btn-sm"
+                                                        onclick="revertAllotment({{ $test->tr05_sample_test_id }})">
+                                                        <em class="icon ni ni-undo"></em> Revert
                                                     </button>
                                                 @endif
                                             </div>
@@ -396,6 +390,18 @@
         <input type="hidden" id="accept-test-id" name="test_id">
     </form>
 
+    <!-- Revert Allotment Form -->
+    <form id="revert-allotment-form" method="POST" action="{{ route('revert_allotment') }}" style="display: none;">
+        @csrf
+        <input type="hidden" id="revert-test-id" name="test_id">
+    </form>
+
+    <!-- Bulk Revert Form -->
+    <form id="bulk-revert-form" method="POST" action="{{ route('bulk_revert_allotment') }}" style="display: none;">
+        @csrf
+        <input type="hidden" id="bulk-revert-test-ids" name="test_ids">
+    </form>
+
     <script>
         $(document).ready(function() {
             // Select All functionality
@@ -437,6 +443,30 @@
             $('#bulkTransferModal').modal('show');
         }
 
+        // Bulk revert selected tests
+        function bulkRevertSelected() {
+            const selectedTests = getSelectedTests();
+            if (selectedTests.length === 0) {
+                alert('Please select at least one test to revert.');
+                return;
+            }
+
+            Swal.fire({
+                title: 'Are you sure?',
+                text: `This will revert the allotment for ${selectedTests.length} selected test(s) and make them unassigned.`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Yes, revert them!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $('#bulk-revert-test-ids').val(selectedTests.join(','));
+                    $('#bulk-revert-form').submit();
+                }
+            });
+        }
+
         // Show individual transfer modal
         function showTransferModal(testId, testName) {
             $('#single-test-id').val(testId);
@@ -450,6 +480,24 @@
                 $('#accept-test-id').val(testId);
                 $('#accept-transfer-form').submit();
             }
+        }
+
+        // Revert Allotment
+        function revertAllotment(testId) {
+            Swal.fire({
+                title: 'Are you sure?',
+                text: "This will revert the test allotment and make it unassigned. The analyst will no longer have access to this test.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Yes, Revert it!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $('#revert-test-id').val(testId);
+                    $('#revert-allotment-form').submit();
+                }
+            });
         }
 
         // Get selected test IDs

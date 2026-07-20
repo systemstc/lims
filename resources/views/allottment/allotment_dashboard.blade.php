@@ -136,6 +136,34 @@
             </div>
         </div>
 
+        <!-- Search & Re-allotment Module -->
+        <div class="card card-bordered mb-4">
+            <div class="card-inner">
+                <div class="card-title-group align-start mb-2">
+                    <div class="card-title">
+                        <h6 class="title">Quick Search & Re-allotment</h6>
+                        <p class="text-muted small">Search by the last 5 digits of the Reference ID or Tracker ID to quickly find a sample and revert/re-allot its tests.</p>
+                    </div>
+                </div>
+                <div class="row g-4">
+                    <div class="col-md-6">
+                        <div class="form-group position-relative">
+                            <label class="form-label" for="searchSampleReallot">Search Sample</label>
+                            <div class="form-control-wrap">
+                                <div class="form-icon form-icon-left">
+                                    <em class="icon ni ni-search"></em>
+                                </div>
+                                <input type="text" class="form-control" id="searchSampleReallot" placeholder="Enter last 5 digits (e.g. 01917)">
+                            </div>
+                            <div id="searchSampleReallotDropdown" class="dropdown-menu w-100 mt-1" style="max-height: 300px; overflow-y: auto; display: none; position: absolute; z-index: 9999;">
+                                <!-- Results will be populated here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="card card-bordered shadow-sm mb-4">
             <div class="card-inner p-2">
                 <div class="row align-items-end g-3">
@@ -256,7 +284,7 @@
                         <button class="nav-link active" id="unallotted-samples-tab" data-bs-toggle="tab"
                             data-bs-target="#unallotted-samples-pane" type="button" role="tab"
                             aria-controls="unallotted-samples-pane" aria-selected="true">
-                            <em class="icon ni ni-alert-circle"></em>&nbsp; Unallotted Samples
+                            <em class="icon ni ni-alert-circle"></em>&nbsp; Unallotted / Needs Attention
                         </button>
                     </li>
                     <li class="nav-item" role="presentation">
@@ -270,7 +298,7 @@
 
                 <!-- Tab Content -->
                 <div class="tab-content" id="samplesTabContent">
-                    <!-- Unallotted Samples Tab -->
+                    <!-- Unallotted / Needs Attention Tab -->
                     <div class="tab-pane fade show active" id="unallotted-samples-pane" role="tabpanel"
                         aria-labelledby="unallotted-samples-tab">
                         <div class="nk-tb-list nk-tb-ulist mt-3">
@@ -325,6 +353,21 @@
                                                             </span>
                                                         @endif
                                                     </div>
+                                                    @php
+                                                        $remarkedTests = $registration->sampleTests->filter(function($test) {
+                                                            return !empty($test->tr05_remark) && in_array($test->tr05_status, ['ALLOTED', 'IN_PROGRESS']);
+                                                        });
+                                                    @endphp
+                                                    @if($remarkedTests->isNotEmpty())
+                                                        <div class="mt-1">
+                                                            @foreach($remarkedTests as $rTest)
+                                                                <div class="text-danger small" style="line-height: 1.2;">
+                                                                    <em class="icon ni ni-info-fill"></em>
+                                                                    <strong>{{ $rTest->test->m12_name ?? 'Test' }}:</strong> {{ $rTest->tr05_remark }}
+                                                                </div>
+                                                            @endforeach
+                                                        </div>
+                                                    @endif
                                                 </div>
                                             </td>
                                             <td>
@@ -510,6 +553,21 @@
                                                                 <em class="icon ni ni-arrow-up"></em>
                                                                 {{ $registration->transferred_tests }}
                                                             </span>
+                                                        @endif
+                                                        @php
+                                                            $remarkedTests = $registration->sampleTests->filter(function($test) {
+                                                                return !empty($test->tr05_remark) && in_array($test->tr05_status, ['ALLOTED', 'IN_PROGRESS']);
+                                                            });
+                                                        @endphp
+                                                        @if($remarkedTests->isNotEmpty())
+                                                            <div class="mt-1">
+                                                                @foreach($remarkedTests as $rTest)
+                                                                    <div class="text-danger small" style="line-height: 1.2;">
+                                                                        <em class="icon ni ni-info-fill"></em>
+                                                                        <strong>{{ $rTest->test->m12_name ?? 'Test' }}:</strong> {{ $rTest->tr05_remark }}
+                                                                    </div>
+                                                                @endforeach
+                                                            </div>
                                                         @endif
                                                     </div>
                                                 </div>
@@ -1531,5 +1589,64 @@
             });
         });
     </script>
+<script>
+    $(document).ready(function() {
+        let searchTimeout;
+        const $searchInput = $('#searchSampleReallot');
+        const $dropdown = $('#searchSampleReallotDropdown');
+
+        $searchInput.on('input', function() {
+            clearTimeout(searchTimeout);
+            const query = $(this).val().trim();
+
+            if (query.length < 3) {
+                $dropdown.hide().empty();
+                return;
+            }
+
+            searchTimeout = setTimeout(function() {
+                $.ajax({
+                    url: '{{ route("search_sample_for_allotment") }}',
+                    method: 'GET',
+                    dataType: 'json',
+                    data: { query: query },
+                    success: function(response) {
+                        $dropdown.empty();
+                        
+                        if (Array.isArray(response)) {
+                            if (response.length === 0) {
+                                $dropdown.append('<div class="dropdown-item text-muted">No samples found.</div>');
+                            } else {
+                                response.forEach(function(sample) {
+                                    const url = '{{ url("allotment/manage") }}/' + sample.id;
+                                    $dropdown.append(`
+                                        <a href="${url}" class="dropdown-item border-bottom py-2">
+                                            <div class="fw-bold">${sample.reference_id}</div>
+                                            <div class="text-muted small">Tracker ID: ${sample.tracker_id}</div>
+                                        </a>
+                                    `);
+                                });
+                            }
+                        } else {
+                            $dropdown.append('<div class="dropdown-item text-danger">Invalid server response</div>');
+                        }
+                        $dropdown.show();
+                    },
+                    error: function(xhr) {
+                        console.error("AJAX Error:", xhr.responseText);
+                        $dropdown.empty().append('<div class="dropdown-item text-danger">Error searching samples</div>').show();
+                    }
+                });
+            }, 300);
+        });
+
+        // Hide dropdown when clicking outside
+        $(document).on('click', function(e) {
+            if (!$(e.target).closest('.form-group.position-relative').length) {
+                $dropdown.hide();
+            }
+        });
+    });
+</script>
 @endsection
 @endsection

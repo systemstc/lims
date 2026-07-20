@@ -889,7 +889,15 @@ class TestResultController extends Controller
 
             Session::flash('type', 'success');
             Session::flash('message', $message);
-            return to_route('view_completed_camples');
+            
+            $role = Session::get('role');
+            if ($role === 'Analyst') {
+                return to_route('view_analyst_dashboard');
+            } elseif ($role === 'DEO') {
+                return to_route('view_completed_camples');
+            } else {
+                return to_route('test_results');
+            }
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error saving test results: ' . $e->getMessage());
@@ -1593,7 +1601,7 @@ class TestResultController extends Controller
             if (!$isPartial) {
                 if (!$this->releaseHoldAndDebit($selectedCustomerId, $sample)) {
                     Log::error("Failed to release hold and debit for sample {$sample->tr04_reference_id}");
-                    abort(500, 'Failed to process wallet transaction. Please contact support.');
+                    abort(500, 'Payment is pending or failed to process wallet transaction. Please ensure payment is completed.');
                 }
             } else {
                 Log::info("Partial Report: Skipping wallet transaction.");
@@ -1771,7 +1779,14 @@ class TestResultController extends Controller
             $wallet = Wallet::where('m07_customer_id', $customerId)->lockForUpdate()->first();
 
             if (!$wallet) {
-                throw new \Exception("Wallet not found for customer ID: {$customerId}");
+                // If no wallet exists, check the direct payment status on the sample registration
+                if (in_array($sample->tr04_payment_status, ['PAID', 'NOT_APPLICABLE'])) {
+                    Log::info("No wallet found for customer ID: {$customerId}, but payment status is {$sample->tr04_payment_status}. Proceeding.");
+                    DB::rollBack();
+                    return true;
+                } else {
+                    throw new \Exception("Wallet not found and payment status is {$sample->tr04_payment_status}");
+                }
             }
 
             // Find existing HOLD transaction for this sample
@@ -1781,7 +1796,14 @@ class TestResultController extends Controller
                 ->first();
 
             if (!$heldTransaction) {
-                throw new \Exception("No pending HOLD transaction found for sample {$sample->tr04_reference_id}");
+                // If wallet exists but no HOLD transaction, verify if payment was done directly
+                if (in_array($sample->tr04_payment_status, ['PAID', 'NOT_APPLICABLE'])) {
+                    Log::info("No pending HOLD transaction found, but payment status is {$sample->tr04_payment_status}. Proceeding.");
+                    DB::rollBack();
+                    return true;
+                } else {
+                    throw new \Exception("No pending HOLD transaction found for sample {$sample->tr04_reference_id} and payment status is not PAID.");
+                }
             }
 
             // Release hold amount and deduct from wallet balance

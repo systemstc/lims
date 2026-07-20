@@ -1,559 +1,245 @@
 <!DOCTYPE html>
-<html lang="en" class="js">
-
+<html lang="en">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <title>Sample Registration Acknowledgement | LIMS</title>
-    <!-- DashLite Styles -->
-    <meta name="csrf-token" content="{{ csrf_token() }}">
-    <link rel="icon" href="{{ asset('backAssets/images/favicon.png') }}">
-    <link rel="stylesheet" href="{{ asset('backAssets/css/dashlite.css') }}">
-    <link id="skin-default" rel="stylesheet" href="{{ asset('backAssets/css/theme.css') }}">
-    <script src="{{ asset('backAssets/js/jquery.js') }}"></script>
+    <title>Sample Registration Acknowledgement</title>
     <style>
-        /* Print-specific styles */
-        @media print {
-            body {
-                -webkit-print-color-adjust: exact !important;
-                color-adjust: exact !important;
-                print-color-adjust: exact !important;
-            }
-
-            .no-print {
-                display: none !important;
-            }
-
-            .row {
-                display: flex !important;
-                flex-wrap: wrap !important;
-                margin: 0 !important;
-            }
-
-            .col-md-4 {
-                flex: 0 0 33.3333% !important;
-                max-width: 33.3333% !important;
-                padding: 0 15px !important;
-            }
-
-            .col-md-6 {
-                flex: 0 0 50% !important;
-                max-width: 50% !important;
-                padding: 0 15px !important;
-            }
-
-            .col-md-12 {
-                flex: 0 0 100% !important;
-                max-width: 100% !important;
-                padding: 0 15px !important;
-            }
-
-            /* Fix invoice header layout for side-by-side display */
-            .invoice-head {
-                display: table !important;
-                width: 100% !important;
-                table-layout: fixed !important;
-            }
-
-            .invoice-contact {
-                display: table-cell !important;
-                width: 60% !important;
-                vertical-align: top !important;
-                padding-right: 20px !important;
-            }
-
-            .invoice-desc {
-                display: table-cell !important;
-                width: 40% !important;
-                vertical-align: top !important;
-                padding-left: 20px !important;
-            }
-
-            .badge {
-                background-color: #e5e5e5 !important;
-                color: #000 !important;
-                border: 1px solid #ccc !important;
-            }
-
-            .badge.bg-success,
-            .badge.badge-success {
-                background-color: #d4edda !important;
-                color: #155724 !important;
-                border-color: #c3e6cb !important;
-            }
-
-            .badge.bg-warning,
-            .badge.badge-warning {
-                background-color: #fff3cd !important;
-                color: #856404 !important;
-                border-color: #faeeba !important;
-            }
-
-            .badge.bg-primary,
-            .badge.badge-primary {
-                background-color: #d1ecf1 !important;
-                color: #0c5460 !important;
-                border-color: #bee5eb !important;
-            }
-
-            .badge.badge-info {
-                background-color: #d1ecf1 !important;
-                color: #0c5460 !important;
-                border-color: #bee5eb !important;
-            }
-
-            .text-primary {
-                color: #526484 !important;
-            }
-
-            .card {
-                border: 1px solid #dbdfea !important;
-                box-shadow: none !important;
-                margin-bottom: 1rem !important;
-            }
-
-            /*
-            .table {
-                border-collapse: collapse !important;
-            }
-
-            .table th,
-            .table td {
-                border: 1px solid #dbdfea !important;
-                padding: 8px !important;
-            }
-
-            .table-striped tbody tr:nth-of-type(odd) {
-                background-color: #f8f9fa !important;
-            }
-
-            .overline-title {
-                font-size: 11px !important;
-                font-weight: 600 !important;
-                text-transform: uppercase !important;
-                color: #8094ae !important;
-            }
-*/
-            .page-break {
-                page-break-before: always !important;
-            }
-
-            /* Ensure icons don't break */
-            .icon {
-                font-size: 14px !important;
-                margin-right: 5px !important;
-            }
-        }
-
-        */
-        /* Screen styles */
-        @media screen {
-            body {
-                background-color: #fff !important;
-                padding: 20px !important;
-            }
-        }
+        body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 13px; color: #333; margin: 0; padding: 20px; background: #fff; }
+        table { width: 100%; border-collapse: collapse; }
+        td { vertical-align: top; }
+        .divider { border-bottom: 2px solid #2c3e50; margin: 20px 0; }
+        .section-title { font-size: 16px; font-weight: bold; color: #2c3e50; margin-bottom: 12px; border-bottom: 1px solid #ddd; padding-bottom: 5px; }
+        .data-table th, .data-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        .data-table th { background-color: #f4f6f8; font-weight: bold; color: #2c3e50; font-size: 11px; text-transform: uppercase; }
+        ul { list-style-type: none; padding: 0; margin: 0; }
+        li { margin-bottom: 6px; }
+        .lbl { font-weight: bold; width: 130px; display: inline-block; color: #444; }
     </style>
 </head>
-
-<body class="bg-white" onload="window.print()">
-    <div class="nk-content">
-        <div class="container-fluid">
-            <div class="nk-content-inner">
-                <div class="nk-content-body">
-                    <div class="components-preview wide-xxl mx-auto">
-                        <!-- Logo Section -->
-                        <div class="invoice-brand text-center mb-4">
-                            <img src="{{ asset('backAssets/images/logo.png') }}" alt="Logo"
-                                style="max-height:60px;">
-                        </div>
-
-                        <!-- Header Section -->
-                        <div class="nk-block nk-block-lg">
-                            <div class="nk-block-head-content">
-                                <h3 class="nk-block-title page-title">Sample Details
-                                    <strong class="text-primary small">#{{ $sample->tr04_reference_id }}</strong>
-                                </h3>
-                                <div class="nk-block-des text-soft">
-                                    <ul class="list-inline">
-                                        <li>Created At: <span
-                                                class="text-base">{{ $sample->created_at->format('d M, Y h:i A') }}</span>
-                                        </li>
-                                        <li>Status:
-                                            <span
-                                                class="badge badge-dot 
-                                                @if ($sample->tr04_status == 'ACTIVE') bg-success 
-                                                @elseif($sample->tr04_status == 'PENDING') bg-warning 
-                                                @else bg-secondary @endif">
-                                                {{ ucfirst(strtolower($sample->tr04_status)) }}
-                                            </span>
-                                        </li>
-                                        <li>Progress:
-                                            <span
-                                                class="badge bg-primary">{{ ucfirst(strtolower($sample->tr04_progress)) }}</span>
-                                        </li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="nk-block">
-                            <div class="invoice">
-                                <div class="invoice-wrap">
-                                    <!-- Main Header with Customer Details -->
-                                    <div class="invoice-head">
-                                        <div class="invoice-contact">
-                                            <span class="overline-title">Customer Details</span>
-                                            <div class="invoice-contact-info">
-                                                <h4 class="title">{{ $sample->parties['customer']['name'] }}</h4>
-                                                <ul class="list-plain">
-                                                    <li><em
-                                                            class="icon ni ni-user-fill"></em><span>{{ $sample->parties['customer']['contact_person'] }}</span>
-                                                    </li>
-                                                    <li><em class="icon ni ni-map-pin-fill"></em><span>{{ $sample->parties['customer']['address'] }}
-                                                            &nbsp;&nbsp;{{ $sample->parties['customer']['district'] }},
-                                                            {{ $sample->parties['customer']['state'] }}</span></li>
-                                                    <li><em
-                                                            class="icon ni ni-call-fill"></em><span>{{ $sample->parties['customer']['phone'] }}</span>
-                                                    </li>
-                                                    <li><em
-                                                            class="icon ni ni-mail-fill"></em><span>{{ $sample->parties['customer']['email'] }}</span>
-                                                    </li>
-                                                    @if ($sample->parties['customer']['gst'])
-                                                        <li><em class="icon ni ni-file-text-fill"></em><span>GST:
-                                                                {{ $sample->parties['customer']['gst'] }}</span></li>
-                                                    @endif
-                                                </ul>
-                                            </div>
-                                        </div>
-                                        <div class="invoice-desc">
-                                            <ul class="list-plain">
-                                                <li class="invoice-id"><span>Registration
-                                                        ID</span>:<span>#{{ $sample->tr04_sample_registration_id }}</span>
-                                                </li>
-                                                <li class="invoice-date"><span>Reference
-                                                        No</span>:<span>{{ $sample->tr04_reference_no ?? 'N/A' }}</span>
-                                                </li>
-                                                <li class="invoice-date"><span>Reference
-                                                        Date</span>:<span>{{ $sample->tr04_reference_date ? \Carbon\Carbon::parse($sample->tr04_reference_date)->format('d M, Y') : 'N/A' }}</span>
-                                                </li>
-                                                <li class="invoice-date"><span>Tracker
-                                                        ID</span>:<span>{{ $sample->tr04_tracker_id ?? 'N/A' }}</span>
-                                                </li>
-                                                <li class="invoice-date"><span>Sample
-                                                        Type</span>:<span>{{ $sample->tr04_sample_type }}</span></li>
-                                                <li class="invoice-date"><span>Expected
-                                                        Date</span>:<span>{{ $sample->tr04_expected_date ? \Carbon\Carbon::parse($sample->tr04_expected_date)->format('d M, Y') : 'N/A' }}</span>
-                                                </li>
-                                            </ul>
-                                        </div>
-                                    </div><!-- .invoice-head -->
-
-                                    <!-- Additional Party Details -->
-                                    @if ($sample->parties['buyer']['name'] || $sample->parties['third_party']['name'] || $sample->parties['cha']['name'])
-                                        <div class="invoice-bills mb-4">
-                                            <div class="row">
-                                                @if ($sample->parties['buyer']['name'])
-                                                    <div class="col-md-4">
-                                                        <div class="invoice-contact">
-                                                            <span class="overline-title">Buyer Details</span>
-                                                            <div class="invoice-contact-info">
-                                                                <h6 class="title">
-                                                                    {{ $sample->parties['buyer']['name'] }}</h6>
-                                                                <ul class="list-plain small">
-                                                                    <li><em
-                                                                            class="icon ni ni-user"></em><span>{{ $sample->parties['buyer']['contact_person'] }}</span>
-                                                                    </li>
-                                                                    <li><em
-                                                                            class="icon ni ni-call"></em><span>{{ $sample->parties['buyer']['phone'] }}</span>
-                                                                    </li>
-                                                                    <li><em
-                                                                            class="icon ni ni-mail"></em><span>{{ $sample->parties['buyer']['email'] }}</span>
-                                                                    </li>
-                                                                </ul>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                @endif
-
-                                                @if ($sample->parties['third_party']['name'])
-                                                    <div class="col-md-4">
-                                                        <div class="invoice-contact">
-                                                            <span class="overline-title">Third Party Details</span>
-                                                            <div class="invoice-contact-info">
-                                                                <h6 class="title">
-                                                                    {{ $sample->parties['third_party']['name'] }}</h6>
-                                                                <ul class="list-plain small">
-                                                                    <li><em
-                                                                            class="icon ni ni-user"></em><span>{{ $sample->parties['third_party']['contact_person'] }}</span>
-                                                                    </li>
-                                                                    <li><em
-                                                                            class="icon ni ni-call"></em><span>{{ $sample->parties['third_party']['phone'] }}</span>
-                                                                    </li>
-                                                                    <li><em
-                                                                            class="icon ni ni-mail"></em><span>{{ $sample->parties['third_party']['email'] }}</span>
-                                                                    </li>
-                                                                </ul>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                @endif
-
-                                                @if ($sample->parties['cha']['name'])
-                                                    <div class="col-md-4">
-                                                        <div class="invoice-contact">
-                                                            <span class="overline-title">CHA Details</span>
-                                                            <div class="invoice-contact-info">
-                                                                <h6 class="title">
-                                                                    {{ $sample->parties['cha']['name'] }}</h6>
-                                                                <ul class="list-plain small">
-                                                                    <li><em
-                                                                            class="icon ni ni-user"></em><span>{{ $sample->parties['cha']['contact_person'] }}</span>
-                                                                    </li>
-                                                                    <li><em
-                                                                            class="icon ni ni-call"></em><span>{{ $sample->parties['cha']['phone'] }}</span>
-                                                                    </li>
-                                                                    <li><em
-                                                                            class="icon ni ni-mail"></em><span>{{ $sample->parties['cha']['email'] }}</span>
-                                                                    </li>
-                                                                </ul>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                @endif
-                                            </div>
-                                        </div>
-                                    @endif
-
-                                    <!-- Sample Information Cards -->
-                                    <div class="invoice-bills mb-4">
-                                        <div class="row">
-                                            <div class="col-md-6">
-                                                <div class="card border">
-                                                    <div class="card-inner">
-                                                        <div class="row">
-                                                            {{-- <div class="col-6"> --}}
-                                                                <h6 class="card-title mb-3">Sample Information</h6>
-                                                                <ul class="list-plain">
-                                                                    <li><strong>Lab Sample:</strong>
-                                                                        {{ $sample->labSample['m14_name'] ?? 'N/A' }}
-                                                                    </li>
-                                                                    <li><strong>Description:</strong>
-                                                                        {{ $sample->tr04_sample_description ?? 'N/A' }}
-                                                                    </li>
-                                                                    <li><strong>Received Via:</strong>
-                                                                        {{ ucfirst(str_replace('_', ' ', $sample->tr04_received_via)) }}
-                                                                    </li>
-                                                                </ul>
-                                                            {{-- </div>
-                                                            <div class="col-6">
-                                                                @if ($sample->tr04_attachment)
-                                                                    <img src="{{ asset('storage/' . $sample->tr04_attachment) }}"
-                                                                        alt="Sample Image" class="img-thumbnail"
-                                                                        style="width: 100%; max-width: 200px; height: auto; object-fit: cover;">
-                                                                @endif
-                                                            </div> --}}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-6">
-                                                <div class="card border">
-                                                    <div class="card-inner">
-                                                        <h6 class="card-title mb-3">Payment & Report Information</h6>
-                                                        <ul class="list-plain">
-                                                            <li><strong>Payment By:</strong>
-                                                                {{ ucfirst(str_replace('_', ' ', $sample->tr04_payment_by)) }}
-                                                            </li>
-                                                            <li><strong>Report To:</strong>
-                                                                 {{ implode(', ', array_map(fn($item) => ucwords(str_replace('_', ' ', $item)), json_decode($sample->tr04_report_to, true))) }}
-                                                            </li>
-                                                            <li><strong>Payment Status:</strong>
-                                                                <span
-                                                                    class="fw-bold 
-                                                                    @if ($sample->tr04_payment_status == 'COMPLETED') text-success 
-                                                                    @elseif($sample->tr04_payment_status == 'PENDING') text-warning 
-                                                                    @else text-secondary @endif">
-                                                                    {{ $sample->tr04_payment_status }}
-                                                                </span>
-                                                            </li>
-                                                            @if ($sample->package)
-                                                                <li><strong>Package:</strong>
-                                                                    {{ $sample->package['m19_name'] }}</li>
-                                                            @endif
-                                                        </ul>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Test Details Table -->
-                                    <div class="invoice-bills">
-                                        <h5 class="mb-3">Test Details</h5>
-                                        <div class="table-responsive">
-                                            <table class="table table-striped" style="border: 1px solid #cac8c8;">
-                                                <thead>
-                                                    <tr>
-                                                        <th class="w-150px">Test ID</th>
-                                                        <th class="w-60">Test Name & Description</th>
-                                                        <th>Standard/Method</th>
-                                                        {{-- <th>Unit</th> --}}
-                                                        <th>Charge</th>
-                                                        <th>Status</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    @forelse($sample->sampleTests as $sampleTest)
-                                                        <tr style="border-bottom: 1px solid #141414;">
-                                                            <td>{{ $sampleTest['test']['m12_test_id'] }}</td>
-                                                            <td>
-                                                                <strong>{{ $sampleTest['test']['m12_name'] }}</strong>
-                                                                @if ($sampleTest['test']['m12_description'])
-                                                                    <br><small
-                                                                        class="text-muted">{{ $sampleTest['test']['m12_description'] }}</small>
-                                                                @endif
-                                                                @if ($sampleTest['test']['m12_alias'])
-                                                                    <br><span
-                                                                        class="badge bg-outline-info">{{ $sampleTest['test']['m12_alias'] }}</span>
-                                                                @endif
-                                                            </td>
-                                                            <td>
-                                                                {{ $sampleTest['standard']['m15_method'] ?? '_' }}
-                                                                @if (
-                                                                    !empty($sampleTest['standard']['accreditationForCurrentRo']) &&
-                                                                        $sampleTest['standard']['accreditationForCurrentRo']['m21_is_accredited'] === 'YES')
-                                                                    <br><span
-                                                                        class="badge bg-outline-success badge-xs">
-                                                                        Accredited (till
-                                                                        {{ \Carbon\Carbon::parse($sampleTest['standard']['accreditationForCurrentRo']['m21_valid_till'])->format('d M Y') }})
-                                                                    </span>
-                                                                @endif
-                                                            </td>
-                                                            {{-- <td>{{ $sampleTest['test']['m12_unit'] ?? '_' }}</td> --}}
-                                                            <td>&#8377;{{ number_format($sampleTest['test']['m12_charge'], 2) }}
-                                                            </td>
-                                                            <td>
-                                                                <span
-                                                                    class="bold 
-                                                                @if ($sampleTest['tr05_status'] == 'COMPLETED') text-success 
-                                                                @elseif($sampleTest['tr05_status'] == 'PENDING') text-warning 
-                                                                @elseif($sampleTest['tr05_status'] == 'IN_PROGRESS') text-info 
-                                                                @elseif($sampleTest['tr05_status'] == 'TRANSFERRED') text-primary 
-                                                                @else text-secondary @endif">
-                                                                    {{ ucfirst(strtolower(str_replace('_', ' ', $sampleTest['tr05_status']))) }}
-                                                                </span>
-                                                            </td>
-                                                        </tr>
-                                                    @empty
-                                                        <tr>
-                                                            <td colspan="6" class="text-center">No tests found</td>
-                                                        </tr>
-                                                    @endforelse
-                                                </tbody>
-                                                <tfoot class="bg-light">
-                                                    <tr>
-                                                        <!-- QR Code Cell -->
-                                                        <td rowspan = {{ $sample->tr04_igst > 0 ? '4' : '5' }}><small class="my-auto text-muted">Scan to
-                                                                view
-                                                                registration >>></small></td>
-                                                        <td
-                                                            rowspan={{ $sample->tr04_igst > 0 ? '4' : '5' }}>
-                                                            <div class="d-flex flex-column align-items-center p-2">
-                                                                {!! QrCode::size(100)->generate(route('track_sample', ['trackerId' => $sample->tr04_tracker_id])) !!}
-                                                                <strong class="text-dark fw-semibold">
-                                                                    {{ $sample->tr04_tracker_id }}</strong>
-                                                            </div>
-                                                        </td>
-                                                    </tr>
-                                                    <tr>
+<body onload="window.print()">
+    <!-- HEADER -->
+    <table width="100%">
+        <tr>
+            <td width="20%">
+                <img src="{{ asset('backAssets/images/logo.png') }}" alt="Logo" width="100" style="width: 100px; height: auto;">
+            </td>
+            <td width="80%" style="text-align: right;">
+                <div style="font-size: 24px; text-transform: uppercase; color: #2c3e50; font-weight: bold; margin-bottom: 5px;">Sample Acknowledgement</div>
+                <div style="font-size: 12px; color: #717374;">LABORATORIES</div>
+                <div style="font-size: 16px; color: #494949; font-weight: bold;">TEXTILES COMMITTEE</div>
+                <div style="font-size: 14px; color: #7f8c8d;">{{ $sample->ro->ministry_en }}</div>
+                <div style="font-size: 14px; color: #7f8c8d;">{{ $sample->ro->lab_address ?? '' }}</div>
+            </td>
+        </tr>
+    </table>
     
-                                                        <!-- Testing Charges -->
-                                                        <td>
-                                                            <strong>Testing Charges</strong>
-                                                        </td>
-                                                        <td class="text-end">
-                                                            <span class="fw-semibold">&#8377;
-                                                                {{ number_format($sample->tr04_testing_charges, 2) }}</span>
-                                                        </td>
-                                                    </tr>
-                                                        <tr>
-                                                            <td>
-                                                                <strong>Additional Charges</strong>
-                                                            </td>
-                                                            <td class="text-end">
-                                                                <span class="fw-semibold">&#8377;
-                                                                    {{ number_format($sample->tr04_additional_charges, 2) ?? 0 }}</span>
-                                                            </td>
-                                                        </tr>
-                                                    @php
-                                                        $taxableAmount = $sample->tr04_testing_charges + $sample->tr04_additional_charges;
-                                                        $cgstRate = ($taxableAmount > 0 && $sample->tr04_cgst > 0) ? ($sample->tr04_cgst / $taxableAmount) * 100 : 0;
-                                                        $sgstRate = ($taxableAmount > 0 && $sample->tr04_sgst > 0) ? ($sample->tr04_sgst / $taxableAmount) * 100 : 0;
-                                                        $igstRate = ($taxableAmount > 0 && $sample->tr04_igst > 0) ? ($sample->tr04_igst / $taxableAmount) * 100 : 0;
-                                                        $rowCountQR = ($sample->tr04_cgst > 0 || $sample->tr04_sgst > 0) ? 5 : 4; 
-                                                    @endphp
-                                                    
-                                                    <!-- Update rowspan dynamically via JS or just set it here if we could. 
-                                                         Since we are inside the table body/footer, we can't easily change the previous TD's rowspan 
-                                                         without JS or checking beforehand.
-                                                         However, for now let's focus on the GST breakdown row content. -->
+    <div class="divider"></div>
 
-                                                    @if($sample->tr04_cgst > 0 || $sample->tr04_sgst > 0)
-                                                        <tr>
-                                                            <td><strong>CGST ({{ round($cgstRate) }}%)</strong></td>
-                                                            <td class="text-end">
-                                                                <span class="fw-semibold">&#8377;{{ number_format($sample->tr04_cgst, 2) }}</span>
-                                                            </td>
-                                                        </tr>
-                                                        <tr>
-                                                            <td><strong>SGST ({{ round($sgstRate) }}%)</strong></td>
-                                                            <td class="text-end">
-                                                                <span class="fw-semibold">&#8377;{{ number_format($sample->tr04_sgst, 2) }}</span>
-                                                            </td>
-                                                        </tr>
-                                                    @elseif($sample->tr04_igst > 0)
-                                                        <tr>
-                                                            <td><strong>IGST ({{ round($igstRate) }}%)</strong></td>
-                                                            <td class="text-end">
-                                                                <span class="fw-semibold">&#8377;{{ number_format($sample->tr04_igst, 2) }}</span>
-                                                            </td>
-                                                        </tr>
-                                                    @endif
+    <!-- META INFO -->
+    <table width="100%" style="margin-bottom: 20px;">
+        <tr>
+            <td width="50%">
+                <ul>
+                    <li><span class="lbl">Registration ID:</span> <strong>#{{ $sample->tr04_sample_registration_id }}</strong></li>
+                    <li><span class="lbl">Reference ID:</span> #{{ $sample->tr04_reference_id }}</li>
+                    <li><span class="lbl">Tracker ID:</span> <strong>{{ $sample->tr04_tracker_id ?? 'N/A' }}</strong></li>
+                </ul>
+            </td>
+            <td width="50%" style="text-align: right;">
+                <ul>
+                    <li><span class="lbl" style="text-align: right; margin-right: 10px;">Date:</span> {{ $sample->created_at->format('d M, Y h:i A') }}</li>
+                    <li><span class="lbl" style="text-align: right; margin-right: 10px;">Status:</span> <strong>{{ ucfirst(strtolower($sample->tr04_status)) }}</strong></li>
+                    <li><span class="lbl" style="text-align: right; margin-right: 10px;">Payment:</span> <strong>{{ $sample->tr04_payment_status }}</strong></li>
+                </ul>
+            </td>
+        </tr>
+        @if ($sample->package)
+        <tr>
+            <td colspan="2" style="padding-top: 5px;">
+                <span class="lbl">Package:</span> <strong>{{ $sample->package['m19_name'] }}</strong>
+            </td>
+        </tr>
+        @endif
+    </table>
 
-                                                    <tr class="bg-white">
-                                                        <td class="" colspan="2">
-                                                        </td>
-                                                        <td class="">
-                                                            <strong class="fs-6 text-dark">Grand Total</strong>
-                                                        </td>
-                                                        <td class="float-end">
-                                                            <strong class="text-primary fs-5">&#8377;
-                                                                {{ number_format($sample->tr04_total_charges, 2) }}</strong>
-                                                        </td>
-                                                        <td></td>
-                                                    </tr>
-                                                </tfoot>
-                                            </table>
-                                            @if ($sample->tr04_details)
-                                                <div class="nk-notes ff-italic fs-12px text-soft mt-3">
-                                                    <strong>Lab Info:</strong> Laboratory of Textiles
-                                                    {{ $sample->ro->m04_name ?? '' }}
-                                                </div>
-                                            @endif
-                                        </div>
-                                    </div><!-- .invoice-bills -->
-                                </div><!-- .invoice-wrap -->
-                            </div><!-- .invoice -->
-                        </div><!-- .nk-block -->
-                    </div>
+    <!-- PARTIES DETAILS -->
+    @php
+        $paymentByKey = strtolower($sample->tr04_payment_by ?? 'customer');
+        $payer = $sample->parties[$paymentByKey] ?? $sample->parties['customer'];
+
+        $reportToKeys = json_decode($sample->tr04_report_to, true) ?? ['customer'];
+    @endphp
+    <table width="100%" style="margin-bottom: 25px;">
+        <tr>
+            <!-- Billed To (Payer) -->
+            <td width="50%" style="padding-right: 20px;">
+                <div class="section-title">Billed To ({{ ucfirst(str_replace('_', ' ', $paymentByKey)) }})</div>
+                <div style="font-weight: bold; font-size: 15px; margin-bottom: 5px;">{{ $payer['name'] }}</div>
+                <div style="color: #666; margin-bottom: 5px;">{{ $payer['contact_person'] }}</div>
+                <div style="margin-bottom: 5px;">{{ $payer['address'] }}
+                   {{ $payer['district'] ? ', ' . $payer['district'] : '' }}
+                   {{ $payer['state'] ? ', ' . $payer['state'] : '' }}
                 </div>
-            </div>
-        </div>
+                @if($payer['phone']) <div style="margin-bottom: 3px;">Ph: {{ $payer['phone'] }}</div> @endif
+                @if($payer['email']) <div style="margin-bottom: 3px;">Email: {{ $payer['email'] }}</div> @endif
+                @if($payer['gst']) <div style="font-weight: bold; margin-top: 5px;">GST: {{ $payer['gst'] }}</div> @endif
+            </td>
+            
+            <!-- Report To -->
+            <td width="50%" style="padding-left: 20px;">
+                @foreach ($reportToKeys as $index => $rKey)
+                    @php 
+                        $rk = strtolower($rKey);
+                        $rp = $sample->parties[$rk] ?? null;
+                    @endphp
+                    @if($rp)
+                        <div class="section-title" @if($index > 0) style="margin-top: 20px; border-bottom-color: #ccc;" @endif>
+                            Report To ({{ ucfirst(str_replace('_', ' ', $rk)) }})
+                        </div>
+                        <div style="font-weight: bold; font-size: 15px; margin-bottom: 5px;">{{ $rp['name'] }}</div>
+                        <div style="color: #666; margin-bottom: 5px;">{{ $rp['contact_person'] }}</div>
+                        <div style="margin-bottom: 5px;">{{ $rp['address'] }}
+                           {{ $rp['district'] ? ', ' . $rp['district'] : '' }}
+                           {{ $rp['state'] ? ', ' . $rp['state'] : '' }}
+                        </div>
+                        @if($rp['phone']) <div style="margin-bottom: 3px;">Ph: {{ $rp['phone'] }}</div> @endif
+                        @if($rp['email']) <div style="margin-bottom: 3px;">Email: {{ $rp['email'] }}</div> @endif
+                        @if($rp['gst']) <div style="font-weight: bold; margin-top: 5px;">GST: {{ $rp['gst'] }}</div> @endif
+                    @endif
+                @endforeach
+            </td>
+        </tr>
+    </table>
+    
+    <!-- SAMPLE INFO -->
+    <table width="100%" style="background: #f8f9fa; border: 1px solid #eaeaea; margin-bottom: 30px;">
+        <tr>
+            <td width="65%" style="padding: 15px;">
+                <div class="section-title" style="border-bottom-color: #ccc;">Sample Information</div>
+                <ul>
+                    <li><span class="lbl">Lab Sample:</span> {{ $sample->labSample['m14_name'] ?? 'N/A' }}</li>
+                    @if ($sample->tr04_sample_mark)
+                        <li><span class="lbl">Sample Mark:</span> {{ $sample->tr04_sample_mark }}</li>
+                    @endif
+                    @if ($sample->tr04_be_no)
+                        <li><span class="lbl">BE Number:</span> {{ $sample->tr04_be_no }}</li>
+                    @endif
+                    <li><span class="lbl">Description:</span> {{ $sample->tr04_sample_description ?? 'N/A' }}</li>
+                    <li><span class="lbl">Received Via:</span> {{ ucfirst(str_replace('_', ' ', $sample->tr04_received_via)) }}</li>
+                    <li><span class="lbl">Sample Type:</span> {{ $sample->tr04_sample_type }}</li>
+                </ul>
+            </td>
+            <td width="35%" style="padding: 15px; text-align: center; vertical-align: middle;">
+                @if ($sample->tr04_attachment)
+                    @php
+                        $imagePath = storage_path('app/public/' . $sample->tr04_attachment);
+                        if (file_exists($imagePath)) {
+                            $imageData = base64_encode(file_get_contents($imagePath));
+                            $src = 'data:image/jpeg;base64,'.$imageData;
+                        } else {
+                            $src = asset('storage/' . $sample->tr04_attachment);
+                        }
+                    @endphp
+                    <img src="{{ $src }}" alt="Sample Image" width="220" style="width: 220px; height: auto; border: 1px solid #ddd; padding: 4px; background: #fff;">
+                @endif
+            </td>
+        </tr>
+    </table>
+    
+    <!-- TESTS TABLE -->
+    <div class="section-title">Test Details</div>
+    <table class="data-table" style="margin-bottom: 10px;">
+        <thead>
+            <tr>
+                <th width="15%">Test ID</th>
+                <th width="35%">Test Name & Description</th>
+                <th width="25%">Standard/Method</th>
+                <th width="15%">Status</th>
+                <th width="10%" style="text-align: right;">Charge</th>
+            </tr>
+        </thead>
+        <tbody>
+            @forelse($sample->sampleTests as $sampleTest)
+                <tr>
+                    <td>{{ $sampleTest['test']['m12_test_id'] }}</td>
+                    <td>
+                        <strong>{{ $sampleTest['test']['m12_name'] }}</strong>
+                        @if ($sampleTest['test']['m12_description'])
+                            <br><span style="color: #666; font-size: 11px;">{{ $sampleTest['test']['m12_description'] }}</span>
+                        @endif
+                    </td>
+                    <td>
+                        {{ $sampleTest['standard']['m15_method'] ?? '_' }}
+                        @if (!empty($sampleTest['standard']['accreditationForCurrentRo']) && $sampleTest['standard']['accreditationForCurrentRo']['m21_is_accredited'] === 'YES')
+                            <br><span style="font-size: 10px; color: #155724;">Accredited till {{ \Carbon\Carbon::parse($sampleTest['standard']['accreditationForCurrentRo']['m21_valid_till'])->format('d M Y') }}</span>
+                        @endif
+                    </td>
+                    <td>{{ ucfirst(strtolower(str_replace('_', ' ', $sampleTest['tr05_status']))) }}</td>
+                    <td style="text-align: right;">&#8377;{{ number_format($sampleTest['test']['m12_charge'], 2) }}</td>
+                </tr>
+            @empty
+                <tr>
+                    <td colspan="5" style="text-align: center;">No tests found</td>
+                </tr>
+            @endforelse
+        </tbody>
+    </table>
+
+    <!-- TOTALS & QR -->
+    <table width="100%">
+        <tr>
+            <td width="60%" style="text-align: center; vertical-align: middle;">
+                <div style="display: inline-block; padding: 10px; border: 1px dashed #ccc; margin-top: 15px;">
+                    {!! QrCode::size(90)->generate(route('track_sample', ['trackerId' => $sample->tr04_tracker_id])) !!}
+                    <div style="font-size: 11px; margin-top: 5px; font-weight: bold;">Scan to Track</div>
+                    <div style="font-size: 12px; font-weight: bold;">{{ $sample->tr04_tracker_id }}</div>
+                </div>
+            </td>
+            <td width="40%">
+                <table width="100%">
+                    <tr>
+                        <td style="text-align: right; padding: 5px 15px 5px 0;">Testing Charges:</td>
+                        <td style="text-align: right; padding: 5px 0; width: 100px;">&#8377;{{ number_format($sample->tr04_testing_charges, 2) }}</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align: right; padding: 5px 15px 5px 0;">Additional Charges:</td>
+                        <td style="text-align: right; padding: 5px 0;">&#8377;{{ number_format($sample->tr04_additional_charges ?? 0, 2) }}</td>
+                    </tr>
+                    
+                    @php
+                        $taxableAmount = $sample->tr04_testing_charges + $sample->tr04_additional_charges;
+                        $cgstRate = ($taxableAmount > 0 && $sample->tr04_cgst > 0) ? ($sample->tr04_cgst / $taxableAmount) * 100 : 0;
+                        $sgstRate = ($taxableAmount > 0 && $sample->tr04_sgst > 0) ? ($sample->tr04_sgst / $taxableAmount) * 100 : 0;
+                        $igstRate = ($taxableAmount > 0 && $sample->tr04_igst > 0) ? ($sample->tr04_igst / $taxableAmount) * 100 : 0;
+                    @endphp
+                    
+                    @if($sample->tr04_cgst > 0 || $sample->tr04_sgst > 0)
+                        <tr>
+                            <td style="text-align: right; padding: 5px 15px 5px 0;">CGST ({{ round($cgstRate) }}%):</td>
+                            <td style="text-align: right; padding: 5px 0;">&#8377;{{ number_format($sample->tr04_cgst, 2) }}</td>
+                        </tr>
+                        <tr>
+                            <td style="text-align: right; padding: 5px 15px 5px 0;">SGST ({{ round($sgstRate) }}%):</td>
+                            <td style="text-align: right; padding: 5px 0;">&#8377;{{ number_format($sample->tr04_sgst, 2) }}</td>
+                        </tr>
+                    @elseif($sample->tr04_igst > 0)
+                        <tr>
+                            <td style="text-align: right; padding: 5px 15px 5px 0;">IGST ({{ round($igstRate) }}%):</td>
+                            <td style="text-align: right; padding: 5px 0;">&#8377;{{ number_format($sample->tr04_igst, 2) }}</td>
+                        </tr>
+                    @endif
+                    
+                    <tr>
+                        <td style="border-top: 2px solid #2c3e50; text-align: right; padding: 10px 15px 10px 0; font-weight: bold; font-size: 15px;">Grand Total:</td>
+                        <td style="border-top: 2px solid #2c3e50; text-align: right; padding: 10px 0; font-weight: bold; font-size: 15px;">&#8377;{{ number_format($sample->tr04_total_charges, 2) }}</td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+    
+    <div style="margin-top: 40px; font-size: 11px; color: #888; text-align: center;">
+        This is a computer-generated document. No signature is required.
     </div>
-
-    <script src="{{ asset('backAssets/js/bundle.js') }}"></script>
-    <script src="{{ asset('backAssets/js/scripts.js') }}"></script>
 </body>
-
 </html>

@@ -43,8 +43,16 @@ class AllottmentController extends Controller
         $allSamples = $pendingRegistrations;
 
         // Get unallotted or partially allotted (where allotted_tests < total_tests)
+        // OR fully allotted samples where a test has a remark (needs attention)
         $unallottedOrPartial = $pendingRegistrations->filter(function ($reg) {
-            return $reg->allotted_tests < $reg->total_tests;
+            $hasUnallotted = $reg->allotted_tests < $reg->total_tests;
+            
+            // Check if any allotted test has a remark and is not completed
+            $hasRemarkedPendingTests = $reg->sampleTests->contains(function ($test) {
+                return !empty($test->tr05_remark) && in_array($test->tr05_status, ['ALLOTED', 'IN_PROGRESS']);
+            });
+
+            return $hasUnallotted || $hasRemarkedPendingTests;
         });
 
         $stats = $this->calculateLabManagerStats($roId);
@@ -234,7 +242,8 @@ class AllottmentController extends Controller
     private function buildPendingQuery($roId)
     {
         return SampleRegistration::query()
-            ->with(['sampleTests']) // Eager load to prevent N+1 if accessed
+            ->with(['sampleTests.test']) // Eager load to prevent N+1 if accessed
+            ->where('tr04_progress', '!=', 'PENDING_PAYMENT') // Exclude PAYMENT_PENDING
             ->whereHas('sampleTests', function ($query) use ($roId) {
                 $query->where('m04_ro_id', $roId);
             })
@@ -885,6 +894,7 @@ class AllottmentController extends Controller
                                 $query->where('m04_ro_id', $roId)
                                     ->orWhere('m04_transferred_to', $roId);
                             })
+                            ->whereNull('m06_alloted_to')
                             ->update([
                                 'm06_alloted_to' => $empId,
                                 'm06_alloted_by' => $userId,
@@ -1204,6 +1214,138 @@ class AllottmentController extends Controller
         }
     }
 
+    public function revertAllotment(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'test_id' => 'required|exists:tr05_sample_tests,tr05_sample_test_id'
+        ]);
+
+        if ($validator->fails()) {
+            Session::flash('type', 'error');
+            Session::flash('message', 'Validation failed: ' . $validator->errors()->first());
+            return redirect()->back();
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $roId = Session::get('ro_id');
+            $test = SampleTest::where('tr05_sample_test_id', $request->test_id)
+                ->where(function ($query) use ($roId) {
+                    $query->where('m04_ro_id', $roId)->orWhere('m04_transferred_to', $roId);
+                })
+                ->firstOrFail();
+
+            if (!in_array($test->tr05_status, ['ALLOTED', 'IN_PROGRESS'])) {
+                Session::flash('type', 'error');
+                Session::flash('message', 'Cannot revert: Test is not currently allotted or is already completed.');
+                return redirect()->back();
+            }
+
+            // Also ensure no result has been submitted
+            $hasResult = TestResult::where('tr04_reference_id', $test->registration->tr04_reference_id)
+                ->where('m12_test_number', $test->m12_test_number)
+                ->exists();
+
+            if ($hasResult) {
+                Session::flash('type', 'error');
+                Session::flash('message', 'Cannot revert: Result has already been submitted for this test.');
+                return redirect()->back();
+            }
+
+            // Revert back to unassigned state
+            $test->update([
+                'm06_alloted_to' => null,
+                'm06_alloted_by' => null,
+                'tr05_alloted_at' => null,
+                'tr05_status' => 'PENDING',
+                // optionally we could clear the remark: 'tr05_remark' => null
+            ]);
+
+            DB::commit();
+            Session::flash('type', 'success');
+            Session::flash('message', 'Test allotment has been reverted successfully. It is now unassigned.');
+            return redirect()->back();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Revert Allotment Error: ' . $e->getMessage(), [
+                'user_id' => Session::get('user_id'),
+                'test_id' => $request->test_id,
+                'trace' => $e->getTraceAsString()
+            ]);
+            Session::flash('type', 'error');
+            Session::flash('message', 'Failed to revert allotment: ' . $e->getMessage());
+            return redirect()->back();
+        }
+    }
+
+    public function bulkRevertAllotment(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'test_ids' => 'required|string'
+        ]);
+
+        if ($validator->fails()) {
+            Session::flash('type', 'error');
+            Session::flash('message', 'Validation failed: ' . $validator->errors()->first());
+            return redirect()->back();
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $roId = Session::get('ro_id');
+            $testIds = explode(',', $request->test_ids);
+            
+            $tests = SampleTest::whereIn('tr05_sample_test_id', $testIds)
+                ->where(function ($query) use ($roId) {
+                    $query->where('m04_ro_id', $roId)->orWhere('m04_transferred_to', $roId);
+                })
+                ->get();
+
+            if ($tests->isEmpty()) {
+                Session::flash('type', 'error');
+                Session::flash('message', 'No valid tests found to revert.');
+                return redirect()->back();
+            }
+
+            $revertedCount = 0;
+            foreach ($tests as $test) {
+                if (in_array($test->tr05_status, ['ALLOTED', 'IN_PROGRESS'])) {
+                    // Check if result exists
+                    $hasResult = TestResult::where('tr04_reference_id', $test->registration->tr04_reference_id)
+                        ->where('m12_test_number', $test->m12_test_number)
+                        ->exists();
+
+                    if (!$hasResult) {
+                        $test->update([
+                            'm06_alloted_to' => null,
+                            'm06_alloted_by' => null,
+                            'tr05_alloted_at' => null,
+                            'tr05_status' => 'PENDING',
+                        ]);
+                        $revertedCount++;
+                    }
+                }
+            }
+
+            DB::commit();
+            Session::flash('type', 'success');
+            Session::flash('message', "Successfully reverted allotment for {$revertedCount} test(s).");
+            return redirect()->back();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Bulk Revert Allotment Error: ' . $e->getMessage(), [
+                'user_id' => Session::get('user_id'),
+                'test_ids' => $request->test_ids,
+                'trace' => $e->getTraceAsString()
+            ]);
+            Session::flash('type', 'error');
+            Session::flash('message', 'Failed to revert allotments: ' . $e->getMessage());
+            return redirect()->back();
+        }
+    }
+
     public function getAllotmentHistory($testId)
     {
         $roId = Session::get('ro_id');
@@ -1362,5 +1504,28 @@ class AllottmentController extends Controller
                 'message' => 'Failed to allot tests: ' . $e->getMessage()
             ]);
         }
+    }
+
+    public function searchSampleForAllotment(Request $request)
+    {
+        $query = $request->input('query');
+        if (strlen($query) < 3) {
+            return response()->json([]);
+        }
+
+        $roId = Session::get('ro_id');
+
+        $samples = DB::table('tr04_sample_registrations')
+            ->where('m04_ro_id', $roId)
+            ->where(function($q) use ($query) {
+                // Search by last N digits or matching tracker ID
+                $q->where('tr04_reference_id', 'LIKE', '%' . $query)
+                  ->orWhere('tr04_tracker_id', 'LIKE', '%' . $query . '%');
+            })
+            ->select('tr04_sample_registration_id as id', 'tr04_reference_id as reference_id', 'tr04_tracker_id as tracker_id')
+            ->limit(10)
+            ->get();
+
+        return response()->json($samples);
     }
 }

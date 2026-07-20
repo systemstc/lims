@@ -132,6 +132,10 @@ class AccessControl
             'customer.sample_checkout',
             'customer.create_sample_order',
             'customer.verify_sample',
+
+            'revert_allotment',
+            'bulk_revert_allotment',
+            'search_sample_for_allotment'
         ];
 
         if (in_array($routeName, $skipPermissionRoutes)) {

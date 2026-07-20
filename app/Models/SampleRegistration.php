@@ -34,6 +34,7 @@ class SampleRegistration extends Model
         'tr04_number_of_samples',
         'tr04_attachment',
         'tr04_sample_description',
+        'tr04_sample_mark',
         'tr04_test_type',
         'tr04_be_no',
         'm19_package_id',

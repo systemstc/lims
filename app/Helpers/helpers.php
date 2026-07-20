@@ -119,23 +119,24 @@ if (!function_exists('generateReferenceId')) {
                 ->first();
 
             if ($lastRecord && !empty($lastRecord->tr04_reference_id)) {
-
-                // Extract the sequence number (last 4 digits)
-                preg_match('/(\d{4})$/', $lastRecord->tr04_reference_id, $matches);
-                $lastNumber = isset($matches[1]) ? intval($matches[1]) : 0;
-
-                // If it's a new year or new prefix structure, you might want to reset,
-                // but usually, sequence is continuous per RO or per financial year.
-                // Assuming continuous sequence per RO as per previous logic.
+                $refId = $lastRecord->tr04_reference_id;
+                if (strpos($refId, '-') !== false) {
+                    // New format with hyphen: PREFIX-00001
+                    $parts = explode('-', $refId);
+                    $lastNumber = intval(end($parts));
+                } else {
+                    // Old format without hyphen: PREFIX0001 (last 4 digits are sequence)
+                    $lastNumber = intval(substr($refId, -4));
+                }
                 $nextNumber = $lastNumber + 1;
             } else {
                 $nextNumber = 1;
             }
 
             // Format next number
-            $formattedNumber = str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
+            $formattedNumber = str_pad($nextNumber, 5, '0', STR_PAD_LEFT);
 
-            return $prefix . $formattedNumber;
+            return $prefix . '-' . $formattedNumber;
         });
     }
 }
@@ -143,7 +144,8 @@ if (!function_exists('generateReferenceId')) {
 if (!function_exists('generateTrackerId')) {
     function generateTrackerId($referenceId)
     {
-        $intVal = intval($referenceId);
+        $cleanRef = str_replace('-', '', $referenceId);
+        $intVal = intval($cleanRef);
         $hex = strtoupper(dechex($intVal));
         return substr(str_pad($hex, 6, '0', STR_PAD_LEFT), -6);
     }
