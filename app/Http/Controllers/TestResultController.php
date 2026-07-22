@@ -1796,6 +1796,18 @@ class TestResultController extends Controller
                 ->first();
 
             if (!$heldTransaction) {
+                // Check if wallet deduction was already completed for this sample
+                $completedDebit = WalletTransaction::where('tr04_sample_registration_id', $sample->tr04_sample_registration_id)
+                    ->where('tr03_type', 'DEBIT')
+                    ->where('tr03_status', 'COMPLETED')
+                    ->first();
+
+                if ($completedDebit) {
+                    Log::info("Wallet deduction already completed for sample {$sample->tr04_reference_id}. Proceeding.");
+                    DB::rollBack();
+                    return true;
+                }
+
                 // If wallet exists but no HOLD transaction, verify if payment was done directly
                 if (in_array($sample->tr04_payment_status, ['PAID', 'NOT_APPLICABLE'])) {
                     Log::info("No pending HOLD transaction found, but payment status is {$sample->tr04_payment_status}. Proceeding.");
@@ -1833,6 +1845,12 @@ class TestResultController extends Controller
                 'tr03_balance_after' => $wallet->tr02_balance,
                 'tr03_status' => 'COMPLETED',
                 'm07_created_by' => $customerId,
+            ]);
+
+            // Update sample payment status
+            $sample->update([
+                'tr04_payment_status' => 'PAID',
+                'tr04_hold_amount' => 0
             ]);
 
             DB::commit();
