@@ -50,7 +50,7 @@
                                                 </td>
                                                 <td class="nk-tb-col nk-tb-col-tools">
                                                     <ul class="nk-tb-actions gx-1">
-                                                        <li class="nk-tb-action-hidden">
+                                                        <li>
                                                             <a href="{{ route('view_wallet', $customer->m07_customer_id) }}" class="btn btn-trigger btn-icon"
                                                                 data-bs-toggle="tooltip" data-bs-placement="top"
                                                                 title="Wallet">

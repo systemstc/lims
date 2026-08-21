@@ -39,7 +39,9 @@
                                                 <td>{{ $accreditation->ro->m04_name ?? '_' }}</td>
                                                 <td>{{ $accreditation->standard->m15_method ?? '_' }}</td>
                                                 <td>{{ $accreditation->test->m12_name ?? '_' }}</td>
-                                                <td>{{ $accreditation->m21_is_accredited }}</td>
+                                                <td class="text-{{ strtoupper($accreditation->m21_is_accredited) == 'YES' ? 'success' : 'danger' }}">
+                                                    <strong>{{ strtoupper($accreditation->m21_is_accredited) }}</strong>
+                                                </td>
                                                 <td><b>{{ $accreditation->m21_accreditation_date }}</b></td>
                                                 <td>{{ $accreditation->m21_valid_till }}</td>
                                                 <td>{{ $accreditation->employee->m06_name ?? 'ADMIN' }}</td>
@@ -174,6 +176,8 @@
 @section('scripts')
 <script>
     $(document).ready(function() {
+        bindToggleStatus('.eg-swal-av3', "{{ route('delete_accreditation') }}");
+
         $('#dd_test').on('change', function() {
             var testId = $(this).val();
             var standardSelect = $('#dd_standard');

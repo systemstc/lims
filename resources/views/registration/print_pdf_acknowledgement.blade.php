@@ -146,8 +146,21 @@
         </tr>
     </table>
     
+    @php
+        $isPackageBased = !empty($sample->m19_package_id) || (!empty($sample->tr04_charge_type) && strtolower($sample->tr04_charge_type) !== 'individual');
+        $packageName = $sample->package->m19_name ?? (!empty($sample->tr04_charge_type) ? ucfirst(strtolower($sample->tr04_charge_type)) : 'Package');
+        $packageCharge = $sample->package->m19_charges ?? $sample->tr04_testing_charges;
+        $packageType = !empty($sample->tr04_charge_type) ? ucfirst(strtolower($sample->tr04_charge_type)) : ($sample->package->m19_type ?? 'Package');
+    @endphp
+
     <!-- TESTS TABLE -->
     <div class="section-title">Test Details</div>
+    @if ($isPackageBased)
+        <div style="background-color: #eef2f5; border: 1px solid #cbd5e1; border-radius: 4px; padding: 6px 10px; margin-bottom: 10px; font-size: 11px; color: #1e293b;">
+            <strong>{{ $packageType }} Applied:</strong> {{ $packageName }} &nbsp;&nbsp;|&nbsp;&nbsp; 
+            <strong>Package Charges:</strong> &#8377;{{ number_format($packageCharge, 2) }}
+        </div>
+    @endif
     <table class="data-table" style="margin-bottom: 10px;">
         <thead>
             <tr>
@@ -175,7 +188,7 @@
                         @endif
                     </td>
                     <td>{{ ucfirst(strtolower(str_replace('_', ' ', $sampleTest['tr05_status']))) }}</td>
-                    <td style="text-align: right;">&#8377;{{ number_format($sampleTest['test']['m12_charge'], 2) }}</td>
+                    <td style="text-align: right;">&#8377;{{ number_format($isPackageBased ? 0 : ($sampleTest['test']['m12_charge'] ?? 0), 2) }}</td>
                 </tr>
             @empty
                 <tr>
@@ -198,7 +211,12 @@
             <td width="40%">
                 <table width="100%">
                     <tr>
-                        <td style="text-align: right; padding: 5px 15px 5px 0;">Testing Charges:</td>
+                        <td style="text-align: right; padding: 5px 15px 5px 0;">
+                            Testing Charges:
+                            @if ($isPackageBased)
+                                <br><span style="font-size: 10px; color: #2563eb; font-weight: bold;">({{ $packageType }}: {{ $packageName }})</span>
+                            @endif
+                        </td>
                         <td style="text-align: right; padding: 5px 0; width: 100px;">&#8377;{{ number_format($sample->tr04_testing_charges, 2) }}</td>
                     </tr>
                     <tr>

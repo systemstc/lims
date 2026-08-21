@@ -8,11 +8,7 @@
 
     <style>
         @page {
-            margin: 270px 30px 260px 30px;
-        }
-
-        @page :first {
-            margin-top: 270px;
+            margin: 290px 30px 135px 30px;
         }
 
         body {
@@ -26,13 +22,13 @@
 
         .container {
             width: 100%;
-            margin: 0 auto;
+            margin-top: 0;
         }
 
         h3,
         h4,
         h5 {
-            margin: 4px 0;
+            margin: 0;
             text-align: center;
             text-decoration: underline;
         }
@@ -44,22 +40,22 @@
         }
 
         tr {
-            page-break-inside: avoid;
+            page-break-inside: avoid !important;
         }
 
         tbody {
-            page-break-inside: avoid;
+            page-break-inside: avoid !important;
             display: table-row-group;
         }
 
         tbody.test-block {
-            page-break-inside: avoid;
+            page-break-inside: avoid !important;
             page-break-after: auto;
         }
 
         .table-primary,
         .table-secondary {
-            page-break-inside: avoid;
+            page-break-inside: avoid !important;
         }
 
         thead {
@@ -70,6 +66,7 @@
         td {
             border: 1px solid #000;
             padding: 4px 6px;
+            text-align: left;
             vertical-align: top;
         }
 
@@ -89,26 +86,26 @@
         /* ===== LETTERHEAD HEADER ===== */
         .header-content {
             position: fixed;
-            top: -240px;
+            top: -250px;
             left: 0;
             right: 0;
-            height: 235px;
+            height: 250px;
             background: transparent;
         }
 
         /* Two logo placeholders */
         .logo-left {
             position: absolute;
-            top: 5px;
+            top: 1px;
             left: 5px;
-            width: 80px;
+            width: 100px;
         }
 
         .logo-right {
             position: absolute;
-            top: 5px;
+            top: 1px;
             right: 5px;
-            width: 80px;
+            width: 100px;
         }
 
         /* Actual <img> tags inside logo placeholders */
@@ -125,52 +122,49 @@
             left: 55px;
             right: 55px;
             text-align: center;
-            line-height: 1.2;
+            line-height: 1.15;
         }
 
         .header-eng-title {
-            font-size: 11px;
-            font-weight: bold;
-            color: #000;
-            letter-spacing: 1px;
-            margin-bottom: 2px;
+            font-size: 10.5px;
+            font-weight: 500;
+            color: #0c023b;
+            letter-spacing: 1.5px;
+            margin-top: -2px;
         }
 
         .header-eng-big {
-            font-size: 18px;
+            font-size: 15px;
             font-weight: bold;
             color: #c00000;
             letter-spacing: 1px;
-            margin-bottom: 2px;
         }
 
         .header-eng-ministry {
-            font-size: 11px;
-            color: #000;
-            margin-bottom: 2px;
+            font-size: 12px;
+            color: #0c023b;
+            font-weight: bold;
         }
 
         .header-eng-lab {
-            font-size: 11px;
+            font-size: 10px;
             font-weight: bold;
             color: #008000;
-            margin-bottom: 2px;
         }
 
         .header-address {
-            font-size: 10px;
-            color: #000;
-            margin-bottom: 2px;
+            font-size: 9px;
+            color: #0c023b;
         }
 
         .header-contact {
-            font-size: 10px;
-            color: #000;
-            margin-bottom: 2px;
+            font-size: 9.5px;
+            color: #0c023b;
+            margin-bottom: 1px;
         }
 
         .header-email {
-            font-size: 10px;
+            font-size: 9.5px;
             color: #c00000;
         }
 
@@ -187,7 +181,7 @@
         /* TEST REPORT title row */
         .header-report-title {
             position: absolute;
-            top: 145px;
+            top: 122px;
             left: 0;
             right: 0;
             text-align: center;
@@ -210,7 +204,7 @@
 
         .header-divider {
             position: absolute;
-            top: 140px;
+            top: 118px;
             left: 0;
             right: 0;
             border-bottom: 1.5px solid #1c276b;
@@ -219,8 +213,8 @@
         /* Outer page border */
         .outer-border {
             position: fixed;
-            top: -240px;
-            bottom: -235px;
+            top: -260px;
+            bottom: -100px;
             left: 0;
             right: 0;
             border: 1.5px solid #1c276b;
@@ -229,15 +223,22 @@
 
         /* Aryl Section Styles */
         .aryl-section {
-            page-break-inside: avoid;
-            margin-bottom: 15px;
-            font-size: 10px;
+            margin-bottom: 2px;
+            font-size: 8px;
+        }
+
+        .end-of-report {
+            text-align: center;
+            font-weight: bold;
+            margin-top: 4px;
+            margin-bottom: 2px;
+            font-size: 12px;
         }
 
         .aryl-legal-header {
-            font-size: 10.5px;
-            line-height: 1.3;
-            margin: 6px 0;
+            font-size: 8px;
+            line-height: 1.12;
+            margin: 2px 0;
             text-align: justify;
         }
 
@@ -248,15 +249,15 @@
         .aryl-side-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 9.5px;
-            margin: 6px 0;
+            font-size: 9px;
+            margin: 2px 0;
         }
 
         .aryl-side-table th,
         .aryl-side-table td {
             border: 1px solid #000;
-            padding: 3px 5px;
-            line-height: 1.25;
+            padding: 1px 2px;
+            line-height: 1.05;
         }
 
         .aryl-side-table th {
@@ -265,9 +266,14 @@
         }
 
         .aryl-footer {
-            font-size: 9.5px;
-            margin-top: 4px;
+            font-size: 10px;
+            margin-top: 2px;
             text-align: justify;
+        }
+
+        .aryl-footer p {
+            margin: 0 0 1.5px 0;
+            line-height: 1.1;
         }
 
         .table-primary {
@@ -276,22 +282,35 @@
 
         /* First page specific styles */
         .first-page-header {
-            margin-top: -55px;
-            /* Pulls the table up to reduce empty space from header */
-            margin-bottom: 15px;
+            margin-top: -95px;
+            margin-bottom: 0px;
+        }
+
+        .first-page-header table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #ffffff;
+        }
+
+        .first-page-header th,
+        .first-page-header td {
+            border: 1px solid #000;
+            padding: 4px 6px;
+            vertical-align: top;
+            background: #ffffff;
         }
 
         /* ===== FOOTER ===== */
         .footer-content {
             position: fixed;
-            bottom: -228px;
+            bottom: -103px;
             left: 0;
             right: 0;
-            height: 110px;
+            height: 70px;
             background: transparent;
         }
 
-        .footer-iso {
+        /* .footer-iso {
             position: absolute;
             top: 5px;
             left: 0;
@@ -300,11 +319,11 @@
             font-size: 11px;
             font-weight: bold;
             color: #000;
-        }
+        } */
 
         .footer-note {
             position: absolute;
-            top: 25px;
+            top: 4px;
             left: 0;
             right: 0;
             text-align: center;
@@ -315,7 +334,7 @@
 
         .footer-disclaimer {
             position: absolute;
-            top: 38px;
+            top: 18px;
             left: 0;
             right: 0;
             text-align: center;
@@ -326,18 +345,18 @@
 
         .footer-quote {
             position: absolute;
-            top: 51px;
+            top: 31px;
             left: 0;
             right: 0;
             text-align: center;
-            font-size: 9px;
+            font-size: 10px;
             font-weight: bold;
             color: #c00000;
         }
 
         .footer-complaints {
             position: absolute;
-            top: 64px;
+            top: 45px;
             left: 0;
             right: 0;
             text-align: center;
@@ -347,24 +366,25 @@
         }
 
         .footer-service {
-            position: absolute;
-            top: 78px;
-            left: 0;
-            right: 0;
             text-align: center;
             font-size: 10px;
             font-weight: bold;
-            color: #000;
+            color: #24004d;
+            margin-top: 5px;
         }
 
         .footer-social {
-            position: absolute;
-            top: 92px;
-            left: 0;
-            right: 0;
             text-align: center;
             font-size: 10px;
-            color: #333;
+            color: #008000;
+        }
+
+        .footer-outside {
+            position: fixed;
+            bottom: -120px;
+            left: 0;
+            right: 0;
+            height: 25px;
         }
 
         .footer-divider {
@@ -418,16 +438,16 @@
         /* End of Report */
         .end-of-report {
             text-align: center;
-            margin-top: 16px;
-            margin-bottom: 8px;
+            margin-top: 25px;
+            margin-bottom: 2px;
             font-weight: bold;
-            font-size: 11px;
+            font-size: 12px;
         }
 
         /* Page number */
         .page-number {
             position: absolute;
-            bottom: -255px;
+            bottom: -130px;
             left: 0;
             right: 0;
             text-align: center;
@@ -441,216 +461,270 @@
 
     <div class="outer-border"></div>
 
-    {{-- ===== LETTERHEAD HEADER (fixed, repeats every page) ===== --}}
-    <div class="header-content">
-
-        {{-- LEFT LOGO PLACEHOLDER --}}
-        <div class="logo-left">
-            @php
-                $leftLogoPath = base_path('backAssets/images/logo.png');
-                $leftLogoSrc = file_exists($leftLogoPath)
-                    ? 'data:image/png;base64,' . base64_encode(file_get_contents($leftLogoPath))
-                    : 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
-            @endphp
-            <img src="{{ $leftLogoSrc }}" alt="Textiles Committee of India">
-        </div>
-
-        {{-- RIGHT LOGO PLACEHOLDER (NABL) --}}
-        @if(isset($hasAccreditedTests) && $hasAccreditedTests)
-        <div class="logo-right" style="text-align: center;">
-            @php
-                $rightLogoPath = base_path('backAssets/images/accrediation.png');
-                $rightLogoSrc = file_exists($rightLogoPath)
-                    ? 'data:image/png;base64,' . base64_encode(file_get_contents($rightLogoPath))
-                    : 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
-            @endphp
-            <img src="{{ $rightLogoSrc }}" alt="Accreditation Logo" style="width: 70px;">
-            @if($sample->ro && $sample->ro->certificate_no)
-            <div style="font-size: 9px; font-weight: bold; margin-top: 2px;">{{ $sample->ro->certificate_no }}</div>
-            @endif
-        </div>
-        @endif
-
-        {{-- CENTER HEADER --}}
-        <div class="header-center">
-            <div class="header-eng-title">LABORATORIES</div>
-            <div class="header-eng-big">{{ $sample->ro->lab_name_en ?? 'TEXTILES COMMITTEE' }}</div>
-            <div class="header-eng-ministry">{{ $sample->ro->ministry_en ?? 'Government of India, Ministry of Textiles' }}</div>
-            <div class="header-address">{{ $sample->ro->lab_address ?? 'P. Balu Road, Prabhadevi Chowk, Prabhadevi, Mumbai-400 025.' }}</div>
-            <div class="header-contact">{{ $sample->ro->lab_contact ?? 'Tel.: +91-22-6652 7541 / 545 / 550 / 607' }}</div>
-            <div class="header-email">{{ $sample->ro->lab_email ?? '* E-mail : dlab.tc@nic.in / tclabmumbai@gmail.com * Website : www.textilescommittee.nic.in' }}</div>
-        </div>
-
-        {{-- Format No. top-right --}}
-        {{-- <div class="header-format-no">Format No. 04/26/23</div> --}}
-  
-        {{-- TEST REPORT title --}}
-        <div class="header-report-title">TEST REPORT</div>
-
-        @if(isset($hasAccreditedTests) && $hasAccreditedTests && $sample->tr04_ulr_no)
-        <div style="position: absolute; top: 165px; left: 0; right: 0; text-align: center; font-size: 11px; font-weight: bold;">
-            ULR Number : {{ $sample->tr04_ulr_no }}
-        </div>
-        @endif
-
-        {{-- Continued text is rendered on pages > 1 via dompdf script below --}}
-
-        {{-- Bottom divider line --}}
-        <div class="header-divider"></div>
+    {{-- ===== FOOTER (fixed, repeats every page) ===== --}}
+    <div class="footer-content">
+        <div class="footer-divider"></div>
+        <!-- <div class="footer-iso">** ISO: 17025 Accredited Testing Laboratory **</div> -->
+        <div class="footer-note">Sample not drawn by Textiles Committee, Results relate only to the sample tested.</div>
+        <div class="footer-disclaimer">This test report shall not be published in any form without the explicit written
+            consent of the Textiles Committee.</div>
+        <div class="footer-quote">Please quote Test Report No. and date for all future correspondence.</div>
+        <div class="footer-complaints">Complaints if any, are to be received within 45 days from the date of issue of
+            test report.</div>
     </div>
 
-    {{-- ===== FIRST PAGE CONTENT ===== --}}
-    <div class="first-page">
+    <div class="footer-outside">
+        <div class="footer-service">Avail services of Textiles Committee -Most Reliable and Most Accurate</div>
+        <div class="footer-social">
+            "Follow us on
+            <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgd2lkdGg9IjEwIiBoZWlnaHQ9IjEwIiBmaWxsPSIjMTg3N0YyIj48cGF0aCBkPSJNMjQgMTIuMDczYzAtNi42MjctNS4zNzMtMTItMTItMTJzLTEyIDUuMzczLTEyIDEyYzAgNS45OSA0LjM4OCAxMC45NTQgMTAuMTI1IDExLjg1NHYtOC4zODVINy4wNzh2LTMuNDdoMy4wNDdWOS40M2MwLTMuMDA3IDEuNzkyLTQuNjY5IDQuNTMzLTQuNjY5IDEuMzEyIDAgMi42ODYuMjM1IDIuNjg2LjIzNXYyLjk1M0gxNS44M2MtMS40OTEgMC0xLjk1Ni45MjUtMS45NTYgMS44NzR2Mi4yNWgzLjMyOGwtLjUzMiAzLjQ3aC0yLjc5NnY4LjM4NUMxOS42MTIgMjMuMDI3IDI0IDE4LjA2MiAyNCAxMi4wNzN6Ii8+PC9zdmc+"
+                style="width: 4px; height: 4px; vertical-align: baseline; margin: 4px;">
+            fb.com/textilescommittee,
+            <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgd2lkdGg9IjEwIiBoZWlnaHQ9IjEwIiBmaWxsPSIjMDAwMDAwIj48cGF0aCBkPSJNMTguOTAxIDEuMTUzaDMuNjhsLTguMDQgOS4xOUwyNCAyMi44NDZoLTcuNDA2bC01LjgtNy41ODQtNi42MzggNy41ODRILjQ3NGw4LjYtOS44M0wwIDEuMTU0aDcuNTk0bDUuMjQzIDYuOTMyWk0xNy42MSAyMC42NDRoMi4wMzlMNi40ODYgMy4yNEg0LjI5OFoiLz48L3N2Zz4="
+                style="width: 4px; height: 4px; vertical-align: baseline; margin: 4px;">
+            @TexComIndia"
+        </div>
+    </div>
 
-        {{-- ===== FIRST PAGE DESCRIPTIVE HEADER ===== --}}
+    @php
+        $isCustom =
+            $sample->m09_customer_type_id == 4 ||
+            ($sample->customerType && str_contains(strtolower($sample->customerType->m09_name), 'custom'));
+        $totalParts = count($reportParts);
+        $romanMap = [1 => 'I', 2 => 'II', 3 => 'III', 4 => 'IV'];
+        $totalRoman = $romanMap[$totalParts] ?? $totalParts;
+    @endphp
+
+    @foreach ($reportParts as $pIndex => $partData)
         @php
-            $isCustom = ($sample->m09_customer_type_id == 4) || ($sample->customerType && str_contains(strtolower($sample->customerType->m09_name), 'custom'));
+            $orderedItems = $partData['items'];
+            $partHasAccredited = $partData['has_accredited_tests'];
+
+            $currentRoman = $romanMap[$pIndex + 1] ?? $pIndex + 1;
+
+            $reportNoStr = $meta['report_no'] . ' Part ' . $currentRoman . ' of ' . $totalRoman;
+
+            $swatchSrc = null;
+            if (!empty($sample->tr04_attachment)) {
+                $pathsToCheck = [storage_path('app/public/' . $sample->tr04_attachment)];
+                foreach ($pathsToCheck as $swatchPath) {
+                    if (file_exists($swatchPath) && is_file($swatchPath)) {
+                        $ext = strtolower(pathinfo($swatchPath, PATHINFO_EXTENSION));
+                        $imgType = in_array($ext, ['jpg', 'jpeg']) ? 'jpeg' : ($ext === 'png' ? 'png' : 'jpeg');
+                        $swatchSrc =
+                            'data:image/' . $imgType . ';base64,' . base64_encode(file_get_contents($swatchPath));
+                        break;
+                    }
+                }
+            }
         @endphp
 
+        @if ($pIndex > 0)
+            <div style="page-break-before: always;"></div>
+        @endif
+
+        <script type="text/php">
+            if (isset($pdf)) {
+                if (!isset($GLOBALS['part_starts'])) {
+                    $GLOBALS['part_starts'] = [];
+                }
+                $GLOBALS['part_starts'][{{ $pIndex }}] = $PAGE_NUM;
+            }
+        </script>
+
+        {{-- ===== LETTERHEAD HEADER (fixed, repeats every page) ===== --}}
+        @if ($pIndex == 0)
+            <div class="header-content">
+
+                {{-- LEFT LOGO PLACEHOLDER --}}
+                <div class="logo-left">
+                    @php
+                        $leftLogoPath = base_path('backAssets/images/logo.png');
+                        $leftLogoSrc = file_exists($leftLogoPath)
+                            ? 'data:image/png;base64,' . base64_encode(file_get_contents($leftLogoPath))
+                            : 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+                    @endphp
+                    <img src="{{ $leftLogoSrc }}" alt="Textiles Committee of India">
+                </div>
+
+                {{-- CENTER HEADER --}}
+                <div class="header-center">
+                    <div class="header-eng-title">LABORATORY</div>
+                    <div class="header-eng-big">
+                        {{ strtoupper($sample->ro->lab_name_en) ?? 'TEXTILES COMMITTEE' }}
+                    </div>
+                    <div class="header-eng-ministry">
+                        {{ $sample->ro->ministry_en ?? 'Government of India, Ministry of Textiles' }}
+                    </div>
+                    <div class="header-address" style="font-size: 12px;">
+                        <strong style="color: #008000; font-size: 14px;">Textile Laboratory & Research Centre</strong>
+                        <br>
+                        {{ $sample->ro->lab_address ?? 'P. Balu Road, Prabhadevi Chowk, Prabhadevi, Mumbai-400 025.' }}
+                    </div>
+                    <div class="header-contact">Tel. :
+                        {{ $sample->ro->lab_contact ?? '+91-22-6652 7541 / 545 / 550 / 607' }}</div>
+                    <div class="header-email">* Email :
+                        {{ $sample->ro->lab_email ?? 'dlab.tc@nic.in / tclabmumbai@gmail.com' }} * Website :
+                        www.textilescommittee.nic.in</div>
+                </div>
+
+                {{-- TEST REPORT title --}}
+                <div class="header-report-title">TEST REPORT</div>
+
+                {{-- Bottom divider line --}}
+                <div class="header-divider"></div>
+            </div>
+        @endif
+
+        {{-- RIGHT LOGO PLACEHOLDER (NABL) - Positioned fixed per part so it does not corrupt normal flow baseline --}}
+        @if ($partHasAccredited)
+            <div style="position: fixed; top: -245px; right: 5px; width: 100px; text-align: center; z-index: 10;">
+                @php
+                    $rightLogoPath = base_path('backAssets/images/accrediation.png');
+                    $rightLogoSrc = file_exists($rightLogoPath)
+                        ? 'data:image/png;base64,' . base64_encode(file_get_contents($rightLogoPath))
+                        : 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+                @endphp
+                <img src="{{ $rightLogoSrc }}" alt="Accreditation Logo" style="width: 70px;">
+                @if ($sample->ro && $sample->ro->certificate_no)
+                    <div style="font-size: 9px; font-weight: bold; margin-top: 2px;">{{ $sample->ro->certificate_no }}
+                    </div>
+                @endif
+            </div>
+        @endif
+
+
+
+        {{-- ===== FIRST PAGE CONTENT ===== --}}
+
         {{-- ===== FIRST PAGE DESCRIPTIVE HEADER ===== --}}
-        <div class="first-page-header">
-            <table>
-                <tbody>
-                    <tr>
-                        <th colspan="2" style="width: 80%;">
-                            Test Report No : {{ $meta['report_no'] }}
-                            <span style="float: right;">
-                                Date : {{ $meta['date'] }}
-                            </span>
-                        </th>
-                        @if(!$isCustom)
-                        <th rowspan="3" class="text-center"
-                            style="vertical-align: middle; width: 20%; padding: 2px;">
-                            @php
-                                $swatchHtml = 'Sample <br> Swatch';
-                                if (!empty($sample->tr04_attachment)) {
-                                    $swatchPath = storage_path('app/public/' . $sample->tr04_attachment);
-                                    if (file_exists($swatchPath)) {
-                                        $ext = pathinfo($swatchPath, PATHINFO_EXTENSION);
-                                        $swatchSrc =
-                                            'data:image/' .
-                                            ($ext === 'jpg' ? 'jpeg' : $ext) .
-                                            ';base64,' .
-                                            base64_encode(file_get_contents($swatchPath));
-                                        $swatchHtml =
-                                            '<img src="' .
-                                            $swatchSrc .
-                                            '" style="max-width: 70px; max-height: 48px; border: 1px solid #ccc;" alt="Swatch">';
-                                    }
-                                }
-                            @endphp
-                            {!! $swatchHtml !!}
-                        </th>
+@if ($pIndex == 0)
+<div class="first-page-header">
+    <table style="width: 100%; border-collapse: collapse;">
+        <tbody>
+            <!-- Header Row with Report No and Date -->
+            <tr>
+                <th colspan="4" style="width: 100%; text-align: left; border: 1px solid #000; padding: 5px; font-size: 12px;">
+                    <span style="float: right;">Date : {{ $meta['date'] }}</span>
+                    Test Report No : {{ $reportNoStr }}
+                </th>
+            </tr>
+            
+            <!-- Customer Name and Address -->
+            <tr>
+                <td style="width: 45%; border: 1px solid #000; padding: 5px; font-weight: bold; background-color: #f5f5f5;">Name &amp; Address of Customer :</td>
+                <td colspan="3" style="width: 50%; border: 1px solid #000; padding: 5px;">
+                    {{ $meta['customer_name'] }}<br>{{ $meta['customer_address'] }}
+                </td>
+            </tr>
+
+            <!-- Sample Forwarding Letter -->
+            <tr>
+                <td style="border: 1px solid #000; font-weight: bold; background-color: #f5f5f5;">Sample forwarding letter No. &amp; date :</td>
+                <td colspan="2" style="border: 1px solid #000;">
+                    Test Memo No. {{ $meta['reference'] }} dated {{ \Carbon\Carbon::parse($sample->tr04_reference_date)->format('d/m/Y') }}
+                </td>
+                <th rowspan="4" 
+                    style="vertical-align: middle; width: 10%; border: 1px solid #000; text-align: center; background-color: #f9f9f9; min-height: 150px;">
+                    <div style="border: 2px dashed #999; display: flex; align-items: center; justify-content: center; {{ $swatchSrc ? 'background: url(\'' . $swatchSrc . '\') no-repeat center center; background-size: contain;' : '' }}">
+                        @if (!$swatchSrc)
+                            <div style="color:#999; font-size:11px; text-align: center;">
+                                <div style="font-size: 24px; margin-bottom: 5px;">🖼️</div>
+                                <div>Sample<br>Swatch</div>
+                                <div style="font-size: 8px; color: #ccc;">(Placeholder)</div>
+                            </div>
                         @endif
-                    </tr>
-                    @if($isCustom)
-                        <tr>
-                            <th style="width: 30%;">Name &amp; Address of Customer :</th>
-                            <td colspan="2" style="width: 70%;">{{ $meta['customer_name'] }}<br>{{ $meta['customer_address'] }}</td>
-                        </tr>
-                        <tr>
-                            <th>Sample forwarding letter No. &amp; date :</th>
-                            <td colspan="2">Test Memo No. {{ $meta['reference'] }} dated {{ \Carbon\Carbon::parse($sample->tr04_reference_date)->format('d/m/Y') }}</td>
-                        </tr>
-                        <tr>
-                            <th>Date of receipt of sample :</th>
-                            <td colspan="2">{{ Carbon\Carbon::parse($sample->created_at)->format('d M Y') }}</td>
-                        </tr>
-                        <tr>
-                            <th>Buyers Name &amp; address (Optional) :</th>
-                            <td colspan="2">{{ $meta['buyer'] }}</td>
-                        </tr>
-                        <tr>
-                            <th>Customer Sample No. :</th>
-                            <td>BE No. {{ $meta['be_no'] }}</td>
-                            <th class="text-center" style="width: 20%;">Lab. Sample No.</th>
-                        </tr>
-                        <tr>
-                            <th>Sample Description :</th>
-                            <td>{{ $meta['sample_description'] }}</td>
-                            <td class="text-center">{{ $meta['report_no'] }}</td>
-                        </tr>
+                    </div>
+                </th>
+            </tr>
+
+            <!-- Date of Receipt -->
+            <tr>
+                <td style="border: 1px solid #000; font-weight: bold; background-color: #f5f5f5;">Date of receipt of sample :</td>
+                <td colspan="2" style="border: 1px solid #000;">
+                    {{ Carbon\Carbon::parse($sample->created_at)->format('d M Y') }}
+                </td>
+            </tr>
+
+            <!-- Buyer Name (Customs Only) -->
+            @if ($isCustom)
+            <tr>
+                <td style="border: 1px solid #000; font-weight: bold; background-color: #f5f5f5;">Buyers Name &amp; address (Optional) :</td>
+                <td colspan="2" style="border: 1px solid #000;">
+                    {{ $meta['buyer'] }}
+                </td>
+            </tr>
+            @endif
+
+            <!-- Customer Sample No / BE No -->
+            <tr>
+                <td style="border: 1px solid #000; font-weight: bold; background-color: #f5f5f5;">
+                    @if ($isCustom)
+                        Customer Sample No. :
                     @else
-                        <tr>
-                            <th rowspan="2" style="width: 30%;">Name &amp; Address of Customer</th>
-                            <td style="width: 50%;">{{ $meta['customer_name'] }}</td>
-                        </tr>
-                        <tr>
-                            <td>{{ $meta['customer_address'] }}</td>
-                        </tr>
-                        <tr>
-                            <th>Sample forwarding letter No. &amp; date</th>
-                            <td colspan="2">{{ $meta['reference'] }} dtd. {{ \Carbon\Carbon::parse($sample->tr04_reference_date)->format('d.m.Y') }}</td>
-                        </tr>
-                        <tr>
-                            <th>Date of receipt of sample</th>
-                            <td>{{ Carbon\Carbon::parse($sample->created_at)->format('d M Y') }}</td>
-                            <th rowspan="2" class="text-center" style="vertical-align: middle; width: 20%;">Lab. Sample No.</th>
-                        </tr>
-                        <tr>
-                            <th>Customer Sample No :</th>
-                            <td>{{ $meta['be_no'] }}</td>
-                        </tr>
-                        <tr>
-                            <th>Sample Description:</th>
-                            <td>{{ $meta['sample_description'] }}</td>
-                            <td rowspan="3" class="text-center" style="vertical-align: middle;">{{ $meta['report_no'] }}</td>
-                        </tr>
-                        <tr>
-                            <th>Sample Characteristics:</th>
-                            <td>{{ $meta['sample_characteristics'] }}</td>
-                        </tr>
-                        <tr>
-                            <th>Date of Performance of Tests:</th>
-                            <td>
-                                {{ \Carbon\Carbon::parse($sample->created_at)->format('d.m.Y') }}
-                                to
-                                {{ $sample->testResult->first() && $sample->testResult->first()->tr07_performance_date ? \Carbon\Carbon::parse($sample->testResult->first()->tr07_performance_date)->format('d.m.Y') : \Carbon\Carbon::parse($sample->created_at)->format('d.m.Y') }}
-                            </td>
-                        </tr>
+                        Customer Sample No :
                     @endif
-                </tbody>
-            </table>
-        </div>
+                </td>
+                <td style="border: 1px solid #000; width: 50%;">
+                    BE No. {{ $meta['be_no'] }}
+                </td>
+            </tr>
+
+            <!-- Sample Description and Lab Sample No -->
+            <tr>
+                <td style="border: 1px solid #000;  font-weight: bold; background-color: #f5f5f5;">Sample Description :</td>
+                <td style="border: 1px solid #000; ">
+                    {{ $meta['sample_description'] }}
+                </td>
+            </tr>
+
+            <!-- Sample Characteristics -->
+            <tr>
+                <td style="border: 1px solid #000; font-weight: bold; background-color: #f5f5f5;">Sample Characteristics:</td>
+                <td colspan="2" style="border: 1px solid #000;">
+                    {{ $meta['sample_characteristics'] }}
+                </td>
+                <td rowspan="2" style="border: 1px solid #000; padding: 5px; text-align: center; font-weight: bold; background-color: #f5f5f5; width: 30%;">
+                    Lab. Sample No. 
+                    {{ $meta['report_no'] }}
+                </td>
+            </tr>
+
+            <!-- Date of Performance of Tests -->
+            <tr>
+                <td style="border: 1px solid #000; padding: 5px; font-weight: bold; background-color: #f5f5f5;">Date of Performance of Tests:</td>
+                <td colspan="2" style="border: 1px solid #000; padding: 5px;">
+                    {{ \Carbon\Carbon::parse($sample->created_at)->format('d.m.Y') }} to
+                    {{ $sample->testResult->first() && $sample->testResult->first()->tr07_performance_date ? \Carbon\Carbon::parse($sample->testResult->first()->tr07_performance_date)->format('d.m.Y') : \Carbon\Carbon::parse($sample->created_at)->format('d.m.Y') }}
+                </td>
+            </tr>
+
+            <!-- ULR No (Conditional) -->
+            @if ($partHasAccredited && $sample->tr04_ulr_no)
+            <tr>
+                <td style="width:30%; border: 1px solid #000; padding: 5px; font-weight: bold; background-color: #f5f5f5;">ULR No.</td>
+                <td colspan="3" style="border: 1px solid #000; padding: 5px;">{{ $sample->tr04_ulr_no }}</td>
+            </tr>
+            @endif
+
+            <!-- Sample Mark (Customs Only) -->
+            @if ($isCustom)
+            <tr>
+                <td style="width:30%; border: 1px solid #000; padding: 5px; font-weight: bold; background-color: #f5f5f5;">Sample Mark</td>
+                <td colspan="3" style="border: 1px solid #000; padding: 5px;">{{ $meta['sample_characteristics'] }}</td>
+            </tr>
+            @endif
+        </tbody>
+    </table>
+</div>
+@endif
+
 
         {{-- ===== MAIN BODY ===== --}}
         <div class="container">
-            <h4>TEST RESULTS</h4>
 
-            @if($isCustom)
-            {{-- Sample Description Section --}}
-            <table>
-                <tbody>
-                    <tr>
-                        <th style="width:30%">Sample Characteristics</th>
-                        <td>{{ $meta['sample_characteristics'] }}</td>
-                    </tr>
-                    <tr>
-                        <th>Date of Performance of Test(s)</th>
-                        <td>{{ \Carbon\Carbon::parse($sample->created_at)->format('d.m.Y') }} to {{ $sample->testResult->first() && $sample->testResult->first()->tr07_performance_date ? \Carbon\Carbon::parse($sample->testResult->first()->tr07_performance_date)->format('d.m.Y') : \Carbon\Carbon::parse($sample->created_at)->format('d.m.Y') }}</td>
-                    </tr>
-                    <tr>
-                        <th>Laboratory Sample No.</th>
-                        <td>{{ $meta['report_no'] }}</td>
-                    </tr>
-                </tbody>
-            </table>
-            @else
-            <table>
-                <tbody>
-                    @if(isset($hasAccreditedTests) && $hasAccreditedTests && $sample->tr04_ulr_no)
-                    <tr>
-                        <th style="width:30%">ULR No.</th>
-                        <td>{{ $sample->tr04_ulr_no }}</td>
-                    </tr>
-                    @endif
-                    <tr>
-                        <th style="width:30%">Laboratory Sample No.</th>
-                        <td>{{ $meta['report_no'] }}</td>
-                    </tr>
-                </tbody>
-            </table>
-            @endif
+
+            <h4 style="margin-bottom: 5px; font-size: 13px;">TEST RESULTS</h4>
 
             {{-- ==== Aryl Amines Section (FIRST PAGE ONLY) ==== --}}
             @php
@@ -661,7 +735,11 @@
                         $parent = $results->first();
                         if ($parent) {
                             $testName = $parent->test->m12_name ?? '';
-                            if (strpos(strtolower($testName), 'Banned amines') !== false) {
+                            if (
+                                strpos(strtolower($testName), 'banned amines') !== false ||
+                                strpos(strtolower($testName), 'aryl amine') !== false ||
+                                strpos(strtolower($testName), 'azo') !== false
+                            ) {
                                 $arylAminesTest = ['parent' => $parent, 'results' => $results];
                                 break;
                             }
@@ -672,19 +750,25 @@
 
             @if ($arylAminesTest)
                 <div class="aryl-section">
-                    <div class="aryl-legal-header">
-                        <strong>Presence of dyes prohibited by the Government of India under Section 6(2)(D) of the
-                            Environment (Protection) Act, 1986 (29 of 1986) read with Rule 13 of the Environment
+                    <div style="display: table; width: 100%; border: 1px solid #000; margin-bottom: 2px;">
+                        <div
+                            style="display: table-cell; width: 75%; padding: 2px 4px; border-right: 1px solid #000; font-weight: bold; text-align: justify; font-size: 10px; line-height: 1.12;">
+                            Presence of dyes prohibited by the Government of India under Section 6(2) (D) of the
+                            Environment (protection) Act, 1986 (29 of 1986) read with Rule 13 of the Environment
                             (Protection) Rules, 1986 vide Notifications S.O.108(E) dated 30th January, 1990 and
-                            S.O.243(E) dated 26th March 1997.</strong>
-                        <div style="clear:both;"></div>
+                            S.O. 243(E) dated 26th March 1997.
+                        </div>
+                        <div
+                            style="display: table-cell; width: 25%; padding: 2px; text-align: center; vertical-align: middle; font-weight: bold; font-size: 10px;">
+                            {{ $arylAminesTest['parent']->tr07_result ?? 'Not detected' }}
+                        </div>
                     </div>
 
-                    <div class="divider">
+                    <div class="divider" style="margin: 1px 0; font-size: 10px;">
                         ****************************************************************************************************
                     </div>
 
-                    <div style="font-size:10px; font-weight:bold; margin:4px 0;">
+                    <div style="font-size:10px; font-weight:bold; margin:1px 5px 0px 5px;">
                         Details of release of individual aryl amines (mg/kg) on reductive cleavage with sodium
                         di-thionite.
                     </div>
@@ -692,11 +776,11 @@
                     <table class="aryl-side-table">
                         <thead>
                             <tr class="text-center">
-                                <th style="width:6%;">Sr. No</th>
+                                <th style="width:6%;">S.No</th>
                                 <th style="width:32%;">Name of the amines</th>
                                 <th style="width:12%;">Contents</th>
-                                <th style="border:none; background:transparent; width:2%;"></th>
-                                <th style="width:6%;">Sr. No</th>
+                                <th style="border:none; background:transparent; width:1%;"></th>
+                                <th style="width:6%;">S.No</th>
                                 <th style="width:32%;">Name of the amines</th>
                                 <th style="width:12%;">Contents</th>
                             </tr>
@@ -739,7 +823,7 @@
                         </tbody>
                     </table>
 
-                    <div class="aryl-footer">
+                    <div class="aryl-footer" style="margin: 0 10px">
                         <p>1. As per Section 6(2)(D) of the Environment (Protection) Act 1986 (29 of 1986) read with
                             Rule 13 of the Environment (Protection) Rules, 1986, handling of hazardous dyes which
                             release
@@ -757,204 +841,283 @@
                 </div>
             @endif
 
-            {{-- ===== Main Test Results Table ===== --}}
-            <table>
-                <thead>
-                    <tr class="text-center">
-                        <th style="width:6%;">#</th>
-                        <th>Test / Parameter</th>
-                        <th style="width:28%;">Result</th>
-                    </tr>
-                </thead>
+            @php
+                $hasNonArylItems = false;
+                foreach ($orderedItems as $chkItem) {
+                    if ($chkItem['type'] === 'test') {
+                        $results = $groupedResults[$chkItem['test_number']] ?? collect();
+                        $parent = $results->first();
+                        if ($parent) {
+                            $testName = $parent->test->m12_name ?? '';
+                            if (
+                                strpos(strtolower($testName), 'banned amines') === false &&
+                                strpos(strtolower($testName), 'aryl amine') === false &&
+                                strpos(strtolower($testName), 'azo') === false
+                            ) {
+                                $hasNonArylItems = true;
+                                break;
+                            }
+                        }
+                    } else {
+                        $hasNonArylItems = true;
+                        break;
+                    }
+                }
+            @endphp
 
-                @php $counter = 1; @endphp
-                @foreach ($orderedItems as $item)
-                    @if ($item['type'] === 'test')
-                        @php
-                            $results = $groupedResults[$item['test_number']] ?? collect();
-                            $parent = $results->first();
-                        @endphp
+            @if ($hasNonArylItems)
+                @if (!empty($arylAminesTest))
+                    <div style="page-break-before: always;"></div>
+                @endif
+                {{-- ===== Main Test Results Table ===== --}}
+                <table class="main-table">
+                    <thead>
+                        <tr class="text-center">
+                            <th style="width:8%;">Sr. No</th>
+                            <th>Test / Parameter</th>
+                            <th style="width:28%;">Result</th>
+                        </tr>
+                    </thead>
 
-                        @if ($parent)
+                    @php $counter = 1; @endphp
+                    @foreach ($orderedItems as $item)
+                        @if ($item['type'] === 'test')
                             @php
-                                $testName = $parent->test->m12_name ?? '';
-                                $isArylAminesTest = strpos(strtolower($testName), 'aryl amine') !== false;
+                                $results = $groupedResults[$item['test_number']] ?? collect();
+                                $parent = $results->first();
                             @endphp
 
-                            @if (!$isArylAminesTest)
-                                <tbody class="test-block">
-                                    <tr class="table-primary">
-                                        <td class="text-center">{{ $counter }}</td>
-                                        <td>
-                                            <strong>{{ $testName ?: 'Test #' . $item['test_number'] }}</strong>&nbsp;-&nbsp;
-                                            @php
-                                                $sampleTest = $sample->sampleTests->firstWhere('m12_test_number', $item['test_number']);
-                                                $standardMethod = optional($sampleTest->standard)->m15_method ?? optional($parent->test->standard)->m15_method ?? null;
-                                            @endphp
-                                            @if ($standardMethod)
-                                                <small>({{ $standardMethod }})</small>
-                                            @endif
-                                            {{ $parent->tr07_unit }}
-                                        </td>
-                                        <td class="text-center">
-                                            @php
-                                                $hasPrimary = $results
-                                                    ->whereNotNull('m16_primary_test_id')
-                                                    ->isNotEmpty();
-                                            @endphp
-                                            @if (!$hasPrimary)
-                                                {{ $parent->tr07_result ?? '' }}
-                                            @endif
-                                        </td>
-                                    </tr>
+                            @if ($parent)
+                                @php
+                                    $testName = $parent->test->m12_name ?? '';
+                                    $isArylAminesTest =
+                                        strpos(strtolower($testName), 'banned amines') !== false ||
+                                        strpos(strtolower($testName), 'aryl amine') !== false ||
+                                        strpos(strtolower($testName), 'azo') !== false;
+                                @endphp
 
-                                    @php $subCounter = 1; @endphp
+                                @if (!$isArylAminesTest)
+                                    <tbody class="test-block">
+                                        <tr class="table-primary">
+                                            <td class="text-center">{{ $counter }}.</td>
+                                            <td>
+                                                <strong>{{ $testName ?: 'Test #' . $item['test_number'] }}</strong>&nbsp;-&nbsp;
+                                                @php
+                                                    $sampleTest = $sample->sampleTests->firstWhere(
+                                                        'm12_test_number',
+                                                        $item['test_number'],
+                                                    );
+                                                    $standardMethod =
+                                                        optional($sampleTest->standard)->m15_method ??
+                                                        (optional($parent->test->standard)->m15_method ?? null);
+                                                @endphp
+                                                @if ($standardMethod)
+                                                    <small>({{ $standardMethod }})</small>
+                                                @endif
+                                                {{ $parent->tr07_unit }}
+                                            </td>
+                                            <td class="text-center">
+                                                @php
+                                                    $hasPrimary = $results
+                                                        ->whereNotNull('m16_primary_test_id')
+                                                        ->isNotEmpty();
+                                                @endphp
+                                                @if (!$hasPrimary)
+                                                    {!! $parent->tr07_result ?? '' !!}
+                                                @endif
+                                            </td>
+                                        </tr>
 
-                                    @if ($hasPrimary)
-                                        @foreach ($results->groupBy('m16_primary_test_id') as $primaryId => $primaryResults)
-                                            @php
-                                                $primaryTest = $primaryResults->first()->primaryTest;
-                                                $hasSecondary = $primaryResults
-                                                    ->whereNotNull('m17_secondary_test_id')
-                                                    ->isNotEmpty();
-                                            @endphp
+                                        @php $subCounter = 1; @endphp
 
-                                            @if ($hasSecondary)
-                                                <tr class="table-secondary">
-                                                    <td class="text-center"></td>
-                                                    <td class="text-end">
-                                                        <em>
-                                                            {{ $primaryTest->m16_name ?? 'Primary Parameter' }}
-                                                            @if (!empty($primaryResults->first()->tr07_unit))
-                                                                <i>({{ $primaryResults->first()->tr07_unit }})</i>
-                                                            @endif
-                                                        </em>
-                                                    </td>
-                                                    <td class="text-center"></td>
-                                                </tr>
+                                        @if ($hasPrimary)
+                                            @foreach ($results->groupBy('m16_primary_test_id') as $primaryId => $primaryResults)
+                                                @php
+                                                    $primaryTest = $primaryResults->first()->primaryTest;
+                                                    $hasSecondary = $primaryResults
+                                                        ->whereNotNull('m17_secondary_test_id')
+                                                        ->isNotEmpty();
+                                                @endphp
 
-                                                @foreach ($primaryResults->whereNotNull('m17_secondary_test_id') as $secondary)
-                                                    <tr>
+                                                @if ($hasSecondary)
+                                                    <tr class="table-secondary">
                                                         <td class="text-center"></td>
                                                         <td class="text-end">
                                                             <em>
-                                                                {{ $secondary->secondaryTest->m17_name ?? 'Secondary Parameter' }}
-                                                                @if (!empty($secondary->tr07_unit))
-                                                                    <i>({{ $secondary->tr07_unit }})</i>
+                                                                {{ $primaryTest->m16_name ?? 'Primary Parameter' }}
+                                                                @if (!empty($primaryResults->first()->tr07_unit))
+                                                                    <i>({{ $primaryResults->first()->tr07_unit }})</i>
                                                                 @endif
                                                             </em>
                                                         </td>
-                                                        <td class="text-center">{{ $secondary->tr07_result ?? '-' }}
-                                                        </td>
+                                                        <td class="text-center"></td>
                                                     </tr>
-                                                @endforeach
-                                            @else
+
+                                                    @foreach ($primaryResults->whereNotNull('m17_secondary_test_id') as $secondary)
+                                                        <tr>
+                                                            <td class="text-center"></td>
+                                                            <td class="text-end">
+                                                                <em>
+                                                                    {{ $secondary->secondaryTest->m17_name ?? 'Secondary Parameter' }}
+                                                                    @if (!empty($secondary->tr07_unit))
+                                                                        <i>({{ $secondary->tr07_unit }})</i>
+                                                                    @endif
+                                                                </em>
+                                                            </td>
+                                                            <td class="text-center">{!! $secondary->tr07_result ?? '-' !!}
+                                                            </td>
+                                                        </tr>
+                                                    @endforeach
+                                                @else
+                                                    <tr class="table-secondary">
+                                                        <td class="text-center"></td>
+                                                        <td class="text-end">
+                                                            <em>
+                                                                {{ $primaryTest->m16_name ?? 'Primary Parameter' }}
+                                                                @if (!empty($primaryResults->first()->tr07_unit))
+                                                                    <i>({{ $primaryResults->first()->tr07_unit }})</i>
+                                                                @endif
+                                                            </em>
+                                                        </td>
+                                                        <td class="text-center">
+                                                            {!! $primaryResults->first()->tr07_result ?? '-' !!}</td>
+                                                    </tr>
+                                                @endif
+                                            @endforeach
+                                        @endif
+
+                                        @php
+                                            $customFields = $groupedCustomFields[$item['test_number']] ?? collect();
+                                        @endphp
+
+                                        @if ($customFields->isNotEmpty())
+                                            @foreach ($customFields as $custom)
                                                 <tr class="table-secondary">
                                                     <td class="text-center"></td>
                                                     <td class="text-end">
                                                         <em>
-                                                            {{ $primaryTest->m16_name ?? 'Primary Parameter' }}
-                                                            @if (!empty($primaryResults->first()->tr07_unit))
-                                                                <i>({{ $primaryResults->first()->tr07_unit }})</i>
+                                                            {{ $custom->tr08_field_name }}
+                                                            @if (!empty($custom->tr08_field_unit))
+                                                                <i>({{ $custom->tr08_field_unit }})</i>
                                                             @endif
                                                         </em>
                                                     </td>
-                                                    <td class="text-center">
-                                                        {{ $primaryResults->first()->tr07_result ?? '-' }}</td>
+                                                    <td class="text-center">{!! $custom->tr08_field_value !!}</td>
                                                 </tr>
-                                            @endif
-                                        @endforeach
-                                    @endif
-
-                                    @php
-                                        $customFields = $groupedCustomFields[$item['test_number']] ?? collect();
-                                    @endphp
-
-                                    @if ($customFields->isNotEmpty())
-                                        @foreach ($customFields as $custom)
-                                            <tr class="table-secondary">
-                                                <td class="text-center"></td>
-                                                <td class="text-end">
-                                                    <em>
-                                                        {{ $custom->tr08_field_name }}
-                                                        @if (!empty($custom->tr08_field_unit))
-                                                            <i>({{ $custom->tr08_field_unit }})</i>
-                                                        @endif
-                                                    </em>
-                                                </td>
-                                                <td class="text-center">{{ $custom->tr08_field_value }}</td>
-                                            </tr>
-                                        @endforeach
-                                    @endif
-                                </tbody>
-                                @php $counter++; @endphp
-                            @else
-                                @php $counter++; @endphp
+                                            @endforeach
+                                        @endif
+                                    </tbody>
+                                    @php $counter++; @endphp
+                                @else
+                                    @php $counter++; @endphp
+                                @endif
                             @endif
                         @endif
-                    @endif
-                @endforeach
-            </table>
+                    @endforeach
+                </table>
+            @endif
+
+            {{-- ===== SIGNATURE PART ===== --}}
+            <div class="signature-part"
+                style="text-align: right; margin-top: 40px; margin-right: 15px; page-break-inside: avoid;">
+                <div style="font-weight: bold; font-size: 14px;">{{ $report->generator->m06_name ?? 'Manager' }}</div>
+                <div style="font-size: 13px; color: #333;">Authorized Signatory</div>
+            </div>
 
             {{-- ===== END OF REPORT (after last table row on every/last page) ===== --}}
             <div class="end-of-report">----------End of Report ----------</div>
 
         </div>
-    </div>
-
-    {{-- ===== FOOTER (fixed, repeats every page) ===== --}}
-    <div class="footer-content">
-        <div class="footer-divider"></div>
-        <!-- <div class="footer-iso">** ISO: 17025 Accredited Testing Laboratory **</div> -->
-        <div class="footer-note">Sample not drawn by Textiles Committee, Results relate only to the sample tested.</div>
-        <div class="footer-disclaimer">This test report shall not be published in any form without the explicit written
-            consent of the Textiles Committee.</div>
-        <div class="footer-quote">Please quote Test Report No. and date for all future correspondence.</div>
-        <div class="footer-complaints">Complaints if any, are to be received within 45 days from the date of issue of
-            test report.</div>
-        <div class="footer-service">Avail services of Textiles Committee -Most Reliable and Most Accurate</div>
-        <div class="footer-social">"Follow us on <strong>f</strong> fb.com/textilescommittee, <strong>✉</strong> @
-            TexComIndia"</div>
-    </div>
-
-    {{-- ===== Page Number ===== --}}
-    {{-- <div class="page-number">Page <span class="page-count"></span></div> --}}
+    @endforeach
 
     {{-- ===== Footer Page Script (dompdf) ===== --}}
     @php
         $jsReportNo = addslashes($meta['report_no'] ?? '');
         $jsReportDate = addslashes($meta['date'] ?? '');
-        $jsCustomer = addslashes($meta['customer_name'] ?? '');
-        $jsSigner = addslashes($report->generator->m06_name ?? 'Manager');
+        $jsReference = addslashes($meta['reference'] ?? '');
+        $jsReferenceDate = addslashes(\Carbon\Carbon::parse($sample->tr04_reference_date)->format('d.m.Y'));
+        $jsReferenceDateCustom = addslashes(\Carbon\Carbon::parse($sample->tr04_reference_date)->format('d/m/Y'));
+        $jsBuyer = addslashes($meta['buyer'] ?? '_');
+        $jsBeNo = addslashes($meta['be_no'] ?? '_');
+        $jsIsCustom = $isCustom ? 1 : 0;
     @endphp
     <script type="text/php">
         if (isset($pdf)) {
             $pdf->page_script('
                 $font       = $fontMetrics->get_font("DejaVu Sans", "normal");
                 $bold       = $fontMetrics->get_font("DejaVu Sans", "bold");
+                $boldItalic = $fontMetrics->get_font("DejaVu Sans", "bold_oblique");
                 $size       = 10;
                 $pageWidth  = $pdf->get_width();
                 $pageHeight = $pdf->get_height();
 
-                if ($PAGE_NUM > 1) {
-                    $pdf->text(50, 160, "Report No: {!! $jsReportNo !!}", $font, 9, [0,0,0]);
-                    $dateText  = "Date: {!! $jsReportDate !!}";
-                    $textWidth = $fontMetrics->get_text_width($dateText, $font, 9);
-                    $pdf->text($pageWidth - 55 - $textWidth, 160, $dateText, $font, 9);
-                    $pdf->text(50, 175, "Customer: {!! $jsCustomer !!}", $font, 9, [0,0,0]);
+                // Calculate per-part page number
+                $partStarts = $GLOBALS["part_starts"] ?? [0 => 1];
+                $partStarts[] = $PAGE_COUNT + 1; // Dummy end marker
+                
+                $currentPartIndex = 0;
+                $partKeys = array_keys($partStarts);
+                for ($i = 0; $i < count($partKeys) - 1; $i++) {
+                    if ($PAGE_NUM >= $partStarts[$partKeys[$i]] && $PAGE_NUM < $partStarts[$partKeys[$i+1]]) {
+                        $currentPartIndex = $partKeys[$i];
+                        break;
+                    }
+                }
+                
+                $partStartPage = $partStarts[$currentPartIndex];
+                $partEndPage = $partStarts[$currentPartIndex + 1] - 1;
+                $partTotalPages = $partEndPage - $partStartPage + 1;
+                $partCurrentPage = $PAGE_NUM - $partStartPage + 1;
 
-                    $contText = "Continued ...........";
-                    $contWidth = $fontMetrics->get_text_width($contText, $bold, 10);
-                    // Right-aligned around X=$pageWidth - 35, Y=20.
-                    $pdf->text($pageWidth - 50 - $contWidth, 145, $contText, $bold, 10, [0,0,0]);
+                $numParts = count($GLOBALS["part_starts"] ?? [0 => 1]);
+                $romanMap = [1 => "I", 2 => "II", 3 => "III", 4 => "IV"];
+                $currentRoman = $romanMap[$currentPartIndex + 1] ?? ($currentPartIndex + 1);
+                $totalRoman = $romanMap[$numParts] ?? $numParts;
+
+                $partSuffix = " Part " . $currentRoman . " of " . $totalRoman;
+                $fullReportNo = "{!! $jsReportNo !!}" . $partSuffix;
+
+                // Draw tabular header on all pages EXCEPT Part 1 Page 1
+                if (!($currentPartIndex == 0 && $partCurrentPage == 1)) {
+                    // Outer table border
+                    $pdf->rectangle(24, 142, 547, 67, [0,0,0], 0.8);
+
+                    // Row dividers
+                    $pdf->line(24, 163, 572, 163, [0,0,0], 0.8);
+                    $pdf->line(24, 178, 572, 178, [0,0,0], 0.8);
+                    $pdf->line(24, 193, 572, 193, [0,0,0], 0.8);
+
+                    // Vertical column divider for rows 2, 3, 4
+                    $pdf->line(230, 163, 230, 209, [0,0,0], 0.8);
+
+                    // Row 1: Report No, Continued, Date
+                    $pdf->text(35, 146, "Test Report No : " . $fullReportNo, $bold, 9, [0,0,0]);
+                    $pdf->text(310, 146, "Continued ...........", $boldItalic, 9, [0,0,0]);
+                    $pdf->text(465, 146, "Date : {!! $jsReportDate !!}", $bold, 9, [0,0,0]);
+
+                    // Row 2: Sample forwarding letter
+                    $lbl2 = {!! $jsIsCustom !!} ? "Sample forwarding letter No. & date :" : "Sample forwarding letter No. & date";
+                    $val2 = {!! $jsIsCustom !!} ? "Test Memo No. {!! $jsReference !!} dated {!! $jsReferenceDateCustom !!}" : "{!! $jsReference !!} dtd. {!! $jsReferenceDate !!}";
+                    $pdf->text(35, 164, $lbl2, $font, 9, [0,0,0]);
+                    $pdf->text(235, 164, $val2, $font, 9, [0,0,0]);
+
+                    // Row 3: Buyers Name
+                    $lbl3 = {!! $jsIsCustom !!} ? "Buyers Name & address (Optional) :" : "Buyers Name & address";
+                    $pdf->text(35, 179, $lbl3, $font, 9, [0,0,0]);
+                    $pdf->text(235, 179, "{!! $jsBuyer !!}", $font, 9, [0,0,0]);
+
+                    // Row 4: Customer Sample No
+                    $lbl4 = {!! $jsIsCustom !!} ? "Customer Sample No. :" : "Customer Sample No :";
+                    $val4 = {!! $jsIsCustom !!} ? "BE No. {!! $jsBeNo !!}" : "{!! $jsBeNo !!}";
+                    $pdf->text(35, 194, $lbl4, $font, 9, [0,0,0]);
+                    $pdf->text(235, 194, $val4, $font, 8.5, [0,0,0]);
                 }
 
-                $pageText  = "Page " . $PAGE_NUM . " of " . $PAGE_COUNT;
+                $pageText  = "Page " . $partCurrentPage . " of " . $partTotalPages;
                 $textWidth = $fontMetrics->get_text_width($pageText, $font, $size);
-                $pdf->text(($pageWidth - $textWidth) / 2, $pageHeight - 130, $pageText, $font, $size, [0,0,0]);
-
-                $pdf->text($pageWidth - 155, $pageHeight - 155, "Authorized Signatory", $font, 9, [0.3,0.3,0.3]);
-                $pdf->text($pageWidth - 155, $pageHeight - 170, "{!! $jsSigner !!}", $bold, 10, [0,0,0]);
+                
+                // Page counting (bottom right corner)
+                $pdf->text($pageWidth - 90, $pageHeight - 112, $pageText, $font, $size, [0,0,0]);
             ');
         }
     </script>

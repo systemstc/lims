@@ -17,7 +17,18 @@
                     <div class="nk-block nk-block-lg">
                         <div class="card">
                             <div class="card-inner">
-                                <form action="{{ route('update_standard', $standard->m15_standard_id) }}" method="POST">
+                                @if ($errors->any())
+                                    <div class="alert alert-danger alert-dismissible fade show mb-4" role="alert">
+                                        <strong><em class="icon ni ni-alert-circle"></em> Please fix the following errors:</strong>
+                                        <ul class="mb-0 mt-1 ps-3">
+                                            @foreach ($errors->all() as $error)
+                                                <li>{{ $error }}</li>
+                                            @endforeach
+                                        </ul>
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                    </div>
+                                @endif
+                                <form action="{{ route('update_standard', $standard->m15_standard_id) }}" class="form-validate is-alter" method="POST">
                                     @csrf
                                     <input type="hidden" name="txt_edit_id" value="{{ $standard->m15_standard_id }}">
 
@@ -29,7 +40,7 @@
                                                         class="text-danger">*</b></label>
                                                 <div class="form-control-wrap">
                                                     <select name="txt_edit_sample_id" id="txt_edit_sample_id"
-                                                        class="form-select" required>
+                                                        class="form-control form-select @error('txt_edit_sample_id') is-invalid @enderror" required>
                                                         <option value="">-- Select Sample --</option>
                                                         @foreach ($samples as $sample)
                                                             <option value="{{ $sample->m10_sample_id }}"
@@ -40,7 +51,7 @@
                                                     </select>
                                                 </div>
                                                 @error('txt_edit_sample_id')
-                                                    <span class="text-danger">{{ $message }}</span>
+                                                    <span class="text-danger small">{{ $message }}</span>
                                                 @enderror
                                             </div>
                                         </div>
@@ -52,34 +63,16 @@
                                                         class="text-danger">*</b></label>
                                                 <div class="form-control-wrap">
                                                     <select name="txt_edit_group_id" id="txt_edit_group_id"
-                                                        class="form-select" required>
+                                                        class="form-control form-select @error('txt_edit_group_id') is-invalid @enderror" required>
                                                         <option value="">-- Select Group --</option>
                                                         {{-- Options will be loaded by JS --}}
                                                     </select>
                                                 </div>
                                                 @error('txt_edit_group_id')
-                                                    <span class="text-danger">{{ $message }}</span>
+                                                    <span class="text-danger small">{{ $message }}</span>
                                                 @enderror
                                             </div>
                                         </div>
-
-                                        {{-- Test --}}
-                                        {{-- <div class="col-md-4">
-                                            <div class="form-group">
-                                                <label class="form-label" for="txt_edit_test_id">Test Name <b
-                                                        class="text-danger">*</b></label>
-                                                <div class="form-control-wrap">
-                                                    <select name="txt_edit_test_id" id="txt_edit_test_id"
-                                                        class="form-select" required>
-                                                        <option value="">-- Select Test --</option>
-                                                    
-                                                    </select>
-                                                </div>
-                                                @error('txt_edit_test_id')
-                                                    <span class="text-danger">{{ $message }}</span>
-                                                @enderror
-                                            </div>
-                                        </div> --}}
 
                                         {{-- Remaining Fields --}}
                                         @php
@@ -99,13 +92,13 @@
                                                     <label class="form-label"
                                                         for="{{ $name }}">{{ $label }}{{ $required ? ' *' : '' }}</label>
                                                     <div class="form-control-wrap">
-                                                        <input type="text" class="form-control" id="{{ $name }}"
+                                                        <input type="text" class="form-control @error($name) is-invalid @enderror" id="{{ $name }}"
                                                             name="{{ $name }}"
                                                             value="{{ old($name, $standard[str_replace('txt_edit_', 'm15_', $name)]) }}"
                                                             {{ $required ? 'required' : '' }}>
                                                     </div>
                                                     @error($name)
-                                                        <span class="text-danger">{{ $message }}</span>
+                                                        <span class="text-danger small">{{ $message }}</span>
                                                     @enderror
                                                 </div>
                                             </div>

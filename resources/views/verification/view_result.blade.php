@@ -111,13 +111,13 @@
                                                                 <td class="text-center">
                                                                     @if ($mainHistorical && (string)$mainHistorical->tr07_result !== (string)$mainCurrent->tr07_result)
                                                                         <div class="comparison-box">
-                                                                            <span class="text-danger text-decoration-line-through me-1">{{ $mainHistorical->tr07_result ?? 'N/A' }}</span>
+                                                                            <span class="text-danger text-decoration-line-through me-1">{!! $mainHistorical->tr07_result ?? 'N/A' !!}</span>
                                                                             <em class="icon ni ni-arrow-right small text-muted"></em>
-                                                                            <span class="text-success fw-bold ms-1">{{ $mainCurrent->tr07_result ?? 'N/A' }}</span>
+                                                                            <span class="text-success fw-bold ms-1">{!! $mainCurrent->tr07_result ?? 'N/A' !!}</span>
                                                                             @if ($mainCurrent->tr07_unit) <small class="text-muted">({{ $mainCurrent->tr07_unit }})</small> @endif
                                                                         </div>
                                                                     @else
-                                                                        <span class="fw-bold">{{ $mainCurrent->tr07_result ?? 'N/A' }}</span>
+                                                                        <span class="fw-bold">{!! $mainCurrent->tr07_result ?? 'N/A' !!}</span>
                                                                         @if ($mainCurrent && $mainCurrent->tr07_unit) <small class="text-muted">({{ $mainCurrent->tr07_unit }})</small> @endif
                                                                     @endif
                                                                 </td>

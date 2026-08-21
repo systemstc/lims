@@ -82,6 +82,18 @@
                         <!-- TEST DETAILS -->
                         <div class="mb-4">
                             <h6 class="border-bottom pb-2 mb-3">Test Details</h6>
+                             @php
+                                 $isPackageBased = !empty($sample->m19_package_id) || (!empty($sample->tr04_charge_type) && strtolower($sample->tr04_charge_type) !== 'individual');
+                                 $packageName = $sample->package->m19_name ?? (!empty($sample->tr04_charge_type) ? ucfirst(strtolower($sample->tr04_charge_type)) : 'Package');
+                                 $packageCharge = $sample->package->m19_charges ?? $sample->tr04_testing_charges;
+                                 $packageType = !empty($sample->tr04_charge_type) ? ucfirst(strtolower($sample->tr04_charge_type)) : ($sample->package->m19_type ?? 'Package');
+                             @endphp
+                             @if ($isPackageBased)
+                                 <div class="alert alert-info py-2 px-3 mb-3">
+                                     <strong>{{ $packageType }} Applied:</strong> {{ $packageName }} &mdash; 
+                                     <strong>Charges:</strong> ₹{{ number_format($packageCharge, 2) }}
+                                 </div>
+                             @endif
                             <div class="table-responsive">
                                 <table class="table table-bordered table-sm">
                                     <thead class="bg-light">
@@ -94,18 +106,18 @@
                                             <th>Charge (₹)</th>
                                         </tr>
                                     </thead>
-                                    <tbody>
-                                        @foreach($sample->sampleTests as $test)
-                                            <tr>
-                                                <td>{{ $test['test']['m12_test_id'] }}</td>
-                                                <td>{{ $test['test']['m12_name'] }}</td>
-                                                <td>{{ $test['test']['m12_description'] ?? '-' }}</td>
-                                                <td>{{ $test['standard']['m15_method'] ?? '-' }}</td>
-                                                <td>{{ $test['test']['m12_unit'] ?? '-' }}</td>
-                                                <td>{{ number_format($test['test']['m12_charge'], 2) }}</td>
-                                            </tr>
-                                        @endforeach
-                                    </tbody>
+                                     <tbody>
+                                         @foreach($sample->sampleTests as $test)
+                                             <tr>
+                                                 <td>{{ $test['test']['m12_test_id'] }}</td>
+                                                 <td>{{ $test['test']['m12_name'] }}</td>
+                                                 <td>{{ $test['test']['m12_description'] ?? '-' }}</td>
+                                                 <td>{{ $test['standard']['m15_method'] ?? '-' }}</td>
+                                                 <td>{{ $test['test']['m12_unit'] ?? '-' }}</td>
+                                                 <td>{{ number_format($isPackageBased ? 0 : ($test['test']['m12_charge'] ?? 0), 2) }}</td>
+                                             </tr>
+                                         @endforeach
+                                     </tbody>
                                 </table>
                             </div>
                         </div>
@@ -114,10 +126,15 @@
                         <div class="mb-4">
                             <h6 class="border-bottom pb-2 mb-3">Charges Summary</h6>
                             <table class="table table-borderless w-50 ms-auto">
-                                <tr>
-                                    <td>Testing Charges</td>
-                                    <td class="text-end">₹{{ number_format($sample->tr04_testing_charges, 2) }}</td>
-                                </tr>
+                                 <tr>
+                                     <td>
+                                         Testing Charges
+                                         @if ($isPackageBased)
+                                             <br><small class="text-primary">({{ $packageType }}: {{ $packageName }})</small>
+                                         @endif
+                                     </td>
+                                     <td class="text-end">₹{{ number_format($sample->tr04_testing_charges, 2) }}</td>
+                                 </tr>
                                 @if ($sample->tr04_additional_charges > 0)
                                 <tr>
                                     <td>Additional Charges</td>

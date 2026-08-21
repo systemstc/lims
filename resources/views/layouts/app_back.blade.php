@@ -75,13 +75,29 @@
         }
 
 
-        // Toaster that toast on top right side for each session messages 
+        // Toast / SweetAlert for session messages 
         const hasMessage = @json(Session::has('message'));
         const message = @json(Session::get('message'));
         const type = @json(Session::get('type'));
 
+        const hasSwal = @json(Session::has('swal_message'));
+        const swalMessage = @json(Session::get('swal_message'));
+        const swalTitle = @json(Session::get('swal_title') ?? 'Notice');
+        const swalIcon = @json(Session::get('swal_icon') ?? 'error');
+
         $(document).ready(function() {
-            if (hasMessage && type && message) {
+            if (hasSwal && swalMessage) {
+                Swal.fire({
+                    title: swalTitle,
+                    text: swalMessage,
+                    icon: swalIcon,
+                    confirmButtonText: 'OK',
+                    buttonsStyling: false,
+                    customClass: {
+                        confirmButton: 'btn btn-danger'
+                    }
+                });
+            } else if (hasMessage && type && message) {
                 toastr.clear();
                 NioApp.Toast(message, type, {
                     position: 'top-right'

@@ -27,7 +27,7 @@ class TwoFactorController extends Controller
     public function setupGoogle()
     {
         $user = User::findOrFail(Session::get('tr01_user_id'));
-        if ($user->two_factor_confirmed_at && $user->tr01_two_factor_method === 'google') {
+        if ($user->tr01_two_factor_confirmed_at && $user->tr01_two_factor_method === 'google') {
             return redirect()->route('profile.2fa.index')->with('error', 'Google 2FA is already active.');
         }
 
@@ -137,6 +137,22 @@ class TwoFactorController extends Controller
         Cache::forget('2fa_setup_email_' . $user->tr01_user_id);
 
         return redirect()->route('profile.2fa.index')->with('success', 'Email 2FA enabled successfully! Please save your recovery codes.');
+    }
+
+    /**
+     * Regenerate 2FA recovery codes.
+     */
+    public function regenerateRecoveryCodes(Request $request)
+    {
+        $user = User::findOrFail(Session::get('tr01_user_id'));
+        if (!$user->tr01_two_factor_confirmed_at || !$user->tr01_two_factor_method) {
+            return redirect()->route('profile.2fa.index')->with('error', 'Two-Factor Authentication is not enabled.');
+        }
+
+        $user->tr01_two_factor_recovery_codes = encrypt(json_encode($this->generateRecoveryCodes()));
+        $user->save();
+
+        return redirect()->route('profile.2fa.index')->with('success', '8 new emergency recovery codes have been generated successfully! Please save them safely.');
     }
 
     /**

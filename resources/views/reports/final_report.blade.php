@@ -180,8 +180,7 @@
                                                     @php
                                                         $testName =
                                                             $parent->test->m12_name ?? 'Test #' . $item['test_number'];
-                                                        $isArylAminesTest =
-                                                            strpos(strtolower($testName), 'Banned amines') !== false;
+                                                        $isArylAminesTest = (strpos(strtolower($testName), 'banned amines') !== false || strpos(strtolower($testName), 'aryl amine') !== false || strpos(strtolower($testName), 'azo') !== false);
                                                     @endphp
 
                                                     @if (!$isArylAminesTest)
@@ -220,7 +219,7 @@
                                                                     <div
                                                                         class="d-flex justify-content-between border-bottom pb-1 mb-1">
                                                                         <span>{{ $parent->tr07_unit }}</span>
-                                                                        <strong>{{ $parent->tr07_result ?? '-' }}</strong>
+                                                                        <strong>{!! $parent->tr07_result ?? '-' !!}</strong>
                                                                     </div>
                                                                 @else
                                                                     @php $subCounter = 1; @endphp
@@ -258,7 +257,7 @@
                                                                                         @endif
                                                                                         :
                                                                                     </span>
-                                                                                    <strong>{{ $secondary->tr07_result ?? '-' }}</strong>
+                                                                                    <strong>{!! $secondary->tr07_result ?? '-' !!}</strong>
                                                                                 </div>
                                                                             @endforeach
                                                                         @else
@@ -269,7 +268,7 @@
                                                                                     <strong>(
                                                                                         {{ $primaryResults->first()->tr07_unit ?? '' }}
                                                                                         )</strong>:</span>
-                                                                                <strong>{{ $primaryResults->first()->tr07_result ?? '-' }}</strong>
+                                                                                <strong>{!! $primaryResults->first()->tr07_result ?? '-' !!}</strong>
                                                                             </div>
                                                                         @endif
                                                                     @endforeach
@@ -288,7 +287,7 @@
                                                                             class="d-flex justify-content-between border-bottom pb-1 mb-1 bg-light px-2 rounded">
                                                                             <span>{{ $custom->tr08_field_name }}:</span>
                                                                             <strong>
-                                                                                {{ $custom->tr08_field_value }}
+                                                                                {!! $custom->tr08_field_value !!}
                                                                                 @if ($custom->tr08_field_unit)
                                                                                     ({{ $custom->tr08_field_unit }})
                                                                                 @endif

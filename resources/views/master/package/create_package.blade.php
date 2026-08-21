@@ -17,37 +17,54 @@
                     <div class="nk-block nk-block-lg">
                         <div class="card">
                             <div class="card-inner">
-                                <form action="{{ route('create_package') }}" method="POST">
+                                @if ($errors->any())
+                                    <div class="alert alert-danger alert-dismissible fade show mb-4" role="alert">
+                                        <strong><em class="icon ni ni-alert-circle"></em> Please fix the following errors:</strong>
+                                        <ul class="mb-0 mt-1 ps-3">
+                                            @foreach ($errors->all() as $error)
+                                                <li>{{ $error }}</li>
+                                            @endforeach
+                                        </ul>
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                    </div>
+                                @endif
+                                <form action="{{ route('create_package') }}" class="form-validate is-alter" method="POST">
                                     @csrf
                                     <div class="row g-gs">
                                         {{-- Package Name --}}
                                         <div class="col-md-4">
                                             <div class="form-group">
-                                                <label class="form-label">Package Name<b class="text-danger">*</b></label>
-                                                <input type="text" class="form-control" name="txt_name" required>
+                                                <label class="form-label" for="txt_name">Package Name <b class="text-danger">*</b></label>
+                                                <div class="form-control-wrap">
+                                                    <input type="text" class="form-control @error('txt_name') is-invalid @enderror"
+                                                        id="txt_name" name="txt_name" value="{{ old('txt_name') }}" required>
+                                                </div>
+                                                @error('txt_name')
+                                                    <span class="text-danger small">{{ $message }}</span>
+                                                @enderror
                                             </div>
                                         </div>
 
-                                        {{-- Exclusive Azo Charge --}}
+                                        {{-- Charge --}}
                                         <div class="col-md-4">
                                             <div class="form-group">
-                                                <label class="form-label">Charge</label>
-                                                <input type="number" class="form-control" name="txt_charges">
+                                                <label class="form-label" for="txt_charges">Charge <b class="text-danger">*</b></label>
+                                                <div class="form-control-wrap">
+                                                    <input type="number" step="0.01" min="0" class="form-control @error('txt_charges') is-invalid @enderror"
+                                                        id="txt_charges" name="txt_charges" value="{{ old('txt_charges') }}" required>
+                                                </div>
+                                                @error('txt_charges')
+                                                    <span class="text-danger small">{{ $message }}</span>
+                                                @enderror
                                             </div>
                                         </div>
-
-
-                                        {{-- Description --}}
-                                        {{-- <div class="col-md-12">
-                                            <div class="form-group">
-                                                <label class="form-label">Description</label>
-                                                <textarea class="form-control" name="m19_description"></textarea>
-                                            </div>
-                                        </div> --}}
                                     </div>
 
                                     {{-- Dynamic Tests + Standards --}}
                                     <h5 class="mt-4">Tests & Standards</h5>
+                                    @error('tests')
+                                        <span class="text-danger small d-block mb-2">{{ $message }}</span>
+                                    @enderror
                                     <table class="table table-bordered mt-1" id="test-standard-table">
                                         <thead>
                                             <tr>
@@ -59,20 +76,24 @@
                                         <tbody>
                                             <tr>
                                                 <td>
-                                                    <select name="tests[0][test_id]" class="form-select js-select2 test-select" data-search="on"
-                                                        required>
-                                                        <option value="">-- Select Test --</option>
-                                                        @foreach ($tests as $test)
-                                                            <option value="{{ $test->m12_test_id }}">{{ $test->m12_name }}
-                                                            </option>
-                                                        @endforeach
-                                                    </select>
+                                                    <div class="form-control-wrap">
+                                                        <select name="tests[0][test_id]" class="form-control form-select js-select2 test-select" data-search="on"
+                                                            required>
+                                                            <option value="">-- Select Test --</option>
+                                                            @foreach ($tests as $test)
+                                                                <option value="{{ $test->m12_test_id }}">{{ $test->m12_name }}
+                                                                </option>
+                                                            @endforeach
+                                                        </select>
+                                                    </div>
                                                 </td>
                                                 <td>
-                                                    <select name="tests[0][standard_id]"
-                                                        class="form-control standard-select" required>
-                                                        <option value="">-- Select Standard --</option>
-                                                    </select>
+                                                    <div class="form-control-wrap">
+                                                        <select name="tests[0][standard_id]"
+                                                            class="form-control standard-select" required>
+                                                            <option value="">-- Select Standard --</option>
+                                                        </select>
+                                                    </div>
                                                 </td>
                                                 <td>
                                                     <button type="button"
@@ -99,21 +120,48 @@
         $(document).ready(function() {
             let rowIndex = 1;
 
+            function updateTestOptions() {
+                let selectedTestIds = [];
+                $('.test-select').each(function() {
+                    let val = $(this).val();
+                    if (val) selectedTestIds.push(String(val));
+                });
+
+                $('.test-select').each(function() {
+                    let currentVal = String($(this).val() || '');
+                    $(this).find('option').each(function() {
+                        let optionVal = String($(this).attr('value') || '');
+                        if (optionVal && optionVal !== currentVal && selectedTestIds.includes(optionVal)) {
+                            $(this).prop('disabled', true);
+                        } else {
+                            $(this).prop('disabled', false);
+                        }
+                    });
+                    if ($(this).hasClass('select2-hidden-accessible')) {
+                        $(this).select2();
+                    }
+                });
+            }
+
             // Add new row
             $('#add-row').click(function() {
                 let newRow = `<tr>
         <td>
-            <select name="tests[${rowIndex}][test_id]" class="form-select js-select2 test-select" data-search="on" required>
-                <option value="">-- Select Test --</option>
-                @foreach ($tests as $test)
-                    <option value="{{ $test->m12_test_id }}">{{ $test->m12_name }}</option>
-                @endforeach
-            </select>
+            <div class="form-control-wrap">
+                <select name="tests[${rowIndex}][test_id]" class="form-control form-select js-select2 test-select" data-search="on" required>
+                    <option value="">-- Select Test --</option>
+                    @foreach ($tests as $test)
+                        <option value="{{ $test->m12_test_id }}">{{ $test->m12_name }}</option>
+                    @endforeach
+                </select>
+            </div>
         </td>
         <td>
-            <select name="tests[${rowIndex}][standard_id]" class="form-control standard-select" required>
-                <option value="">-- Select Standard --</option>
-            </select>
+            <div class="form-control-wrap">
+                <select name="tests[${rowIndex}][standard_id]" class="form-control standard-select" required>
+                    <option value="">-- Select Standard --</option>
+                </select>
+            </div>
         </td>
         <td><button type="button" class="btn btn-sm btn-danger remove-row">X</button></td>
     </tr>`;
@@ -123,9 +171,12 @@
             $('#test-standard-table tbody tr:last-child .js-select2').select2();
             
             rowIndex++;
+            updateTestOptions();
         });
+
         $(document).on('click', '.remove-row', function() {
             $(this).closest('tr').remove();
+            updateTestOptions();
         });
 
         // Handle standard loading for all test dropdowns (initial & dynamic)
@@ -148,8 +199,10 @@
             } else {
                 $standardSelect.empty().append('<option value="">-- Select Standard --</option>');
             }
+            updateTestOptions();
         });
-        
+
+        updateTestOptions();
         });
     </script>
 @endsection

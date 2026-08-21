@@ -218,15 +218,16 @@ class AuthController extends Controller
     private function setUserSession(User $user): void
     {
         if ($user->tr01_type == 'EMPLOYEE') {
-            $employee = Employee::with('role')->where('tr01_user_id', $user->tr01_user_id)->first();
+            $employee = Employee::with(['role', 'ro'])->where('tr01_user_id', $user->tr01_user_id)->first();
             $sessionData = [
                 'user_id' => $employee->m06_employee_id,
                 'tr01_user_id' => $user->tr01_user_id, // Added this for easier access
                 'name' => $employee->m06_name,
                 'email' => $employee->m06_email,
                 'role_id' => $employee->m03_role_id,
-                'role' => $employee->role->m03_name,
-                'ro_id' => $employee->m04_ro_id
+                'role' => $employee->role ? $employee->role->m03_name : 'Employee',
+                'ro_id' => $employee->m04_ro_id,
+                'ro_name' => $employee->ro ? $employee->ro->m04_name : null,
             ];
         } else {
             $ro = Ro::with('role')->where('tr01_user_id', $user->tr01_user_id)->first();
@@ -236,8 +237,9 @@ class AuthController extends Controller
                 'name' => $ro->m04_name,
                 'email' => $ro->m04_email,
                 'role_id' => $ro->m03_role_id,
-                'role' => $ro->role->m03_name,
-                'ro_id' => $ro->m04_ro_id
+                'role' => $ro->role ? $ro->role->m03_name : 'RO Admin',
+                'ro_id' => $ro->m04_ro_id,
+                'ro_name' => $ro->m04_name,
             ];
         }
 

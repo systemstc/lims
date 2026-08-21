@@ -80,9 +80,10 @@
                                                             <span class="input-group-text"
                                                                 id="txt_edit_phone_addon">+91</span>
                                                         </div>
-                                                        <input type="text" class="form-control" id="txt_edit_phone"
+                                                        <input type="tel" class="form-control" id="txt_edit_phone"
                                                             name="txt_edit_phone"
-                                                            value="{{ old('txt_edit_phone', $customer['m07_phone']) }}">
+                                                            value="{{ old('txt_edit_phone', $customer['m07_phone']) }}"
+                                                            maxlength="10" pattern="[6-9][0-9]{9}">
                                                     </div>
                                                 </div>
                                                 @error('txt_edit_phone')
@@ -96,7 +97,8 @@
                                                 <div class="form-control-wrap">
                                                     <input type="text" class="form-control" id="txt_edit_gst"
                                                         name="txt_edit_gst"
-                                                        value="{{ old('txt_edit_gst', $customer['m07_gst']) }}">
+                                                        value="{{ old('txt_edit_gst', $customer['m07_gst']) }}"
+                                                        maxlength="15">
                                                 </div>
                                                 @error('txt_edit_gst')
                                                     <span class="text-danger">{{ $message }}</span>
@@ -109,7 +111,8 @@
                                                 <div class="form-control-wrap">
                                                     <input type="text" class="form-control" id="txt_edit_iec"
                                                         name="txt_edit_iec"
-                                                        value="{{ old('txt_edit_iec', $customer['m07_iec_code']) }}">
+                                                        value="{{ old('txt_edit_iec', $customer['m07_iec_code']) }}"
+                                                        maxlength="10">
                                                 </div>
                                                 @error('txt_edit_iec')
                                                     <span class="text-danger">{{ $message }}</span>
@@ -177,7 +180,7 @@
                                                     <input type="text" class="form-control" id="txt_edit_pincode"
                                                         name="txt_edit_pincode"
                                                         value="{{ old('txt_edit_pincode', $customer['m07_pincode']) }}"
-                                                        required>
+                                                        maxlength="6" required>
                                                 </div>
                                                 @error('txt_edit_pincode')
                                                     <span class="text-danger">{{ $message }}</span>
@@ -263,7 +266,8 @@
                                                         <label class="form-label">GST</label>
                                                         <input type="text" class="form-control"
                                                             name="locations[{{ $index }}][gst]"
-                                                            value="{{ old("locations.$index.gst", $location['m08_gst'] ?? '') }}">
+                                                            value="{{ old("locations.$index.gst", $location['m08_gst'] ?? '') }}"
+                                                            maxlength="15">
                                                         @error("locations.$index.gst")
                                                             <span class="text-danger">{{ $message }}</span>
                                                         @enderror
@@ -307,7 +311,8 @@
                                                         <label class="form-label">Pincode</label>
                                                         <input type="text" class="form-control"
                                                             name="locations[{{ $index }}][pincode]"
-                                                            value="{{ old("locations.$index.pincode", $location['m08_pincode'] ?? '') }}">
+                                                            value="{{ old("locations.$index.pincode", $location['m08_pincode'] ?? '') }}"
+                                                            maxlength="6">
                                                         @error("locations.$index.pincode")
                                                             <span class="text-danger">{{ $message }}</span>
                                                         @enderror
@@ -379,7 +384,7 @@
             <div class="col-md-3">
                 <div class="form-group">
                     <label class="form-label">GST</label>
-                    <input type="text" class="form-control" name="locations[__INDEX__][gst]">
+                    <input type="text" class="form-control" name="locations[__INDEX__][gst]" maxlength="15">
                     <span class="text-danger error-message" data-field="gst"></span>
                 </div>
             </div>
@@ -407,7 +412,7 @@
             <div class="col-md-3">
                 <div class="form-group">
                     <label class="form-label">Pincode<b class="text-danger">*</b></label>
-                    <input type="text" class="form-control" name="locations[__INDEX__][pincode]" required>
+                    <input type="text" class="form-control" name="locations[__INDEX__][pincode]" maxlength="6" required>
                     <span class="text-danger error-message" data-field="pincode"></span>
                 </div>
             </div>

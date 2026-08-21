@@ -31,10 +31,9 @@
                                                 <label class="form-label" for="txt_customer_type_id">Customer Type<b
                                                         class="text-danger">*</b></label>
                                                 <div class="form-control-wrap">
-                                                    <select name="txt_customer_type_id" class="form-select"
-                                                        id="txt_customer_type_id" required
-                                                        data-placeholder="-- Select Customer Type --">
-                                                        <option value=""></option>
+                                                    <select name="txt_customer_type_id" class="form-control"
+                                                        id="txt_customer_type_id" required>
+                                                        <option value="">-- Select Customer Type --</option>
                                                         @foreach ($customerTypes as $customerType)
                                                             <option value="{{ $customerType->m09_customer_type_id }}"
                                                                 {{ old('txt_customer_type_id') == $customerType->m09_customer_type_id ? 'selected' : '' }}>
@@ -54,7 +53,7 @@
                                                     <label class="form-label" for="txt_ro_id">Select Regional Office<b
                                                             class="text-danger">*</b></label>
                                                     <div class="form-control-wrap">
-                                                        <select name="txt_ro_id" id="txt_ro_id" class="form-select"
+                                                        <select name="txt_ro_id" id="txt_ro_id" class="form-control"
                                                             required>
                                                             <option value="">-- Select RO --</option>
                                                             @foreach ($ros as $ro)
@@ -107,8 +106,9 @@
                                                         <div class="input-group-prepend">
                                                             <span class="input-group-text" id="txt_phone_addon">+91</span>
                                                         </div>
-                                                        <input type="text" name="txt_phone" class="form-control"
-                                                            id="txt_phone" value="{{ old('txt_phone') }}">
+                                                        <input type="tel" name="txt_phone" class="form-control"
+                                                            id="txt_phone" value="{{ old('txt_phone') }}"
+                                                            maxlength="10" pattern="[6-9][0-9]{9}">
                                                     </div>
                                                 </div>
                                                 <span id="txt_phone-msg" class="text-danger"></span>
@@ -123,7 +123,7 @@
                                                 <label class="form-label" for="txt_gst">GST Number</label>
                                                 <div class="form-control-wrap">
                                                     <input type="text" class="form-control" id="txt_gst" name="txt_gst"
-                                                        value="{{ old('txt_gst') }}">
+                                                        value="{{ old('txt_gst') }}" maxlength="15">
                                                 </div>
                                                 <span id="txt_gst-msg" class="text-danger"></span>
                                                 @error('txt_gst')
@@ -137,7 +137,7 @@
                                                 <label class="form-label" for="txt_iec">IEC Code</label>
                                                 <div class="form-control-wrap">
                                                     <input type="text" class="form-control" id="txt_iec"
-                                                        name="txt_iec" value="{{ old('txt_iec') }}">
+                                                        name="txt_iec" value="{{ old('txt_iec') }}" maxlength="10">
                                                 </div>
                                                 @error('txt_iec')
                                                     <span class="text-danger">{{ $message }}</span>
@@ -166,9 +166,9 @@
                                                 <label class="form-label" for="txt_state_id">State<b
                                                         class="text-danger">*</b></label>
                                                 <div class="form-control-wrap">
-                                                    <select name="txt_state_id" class="form-select" id="txt_state_id"
-                                                        required data-placeholder="-- Select State --">
-                                                        <option value=""></option>
+                                                    <select name="txt_state_id" class="form-control" id="txt_state_id"
+                                                        required>
+                                                        <option value="">-- Select State --</option>
                                                         @foreach ($states as $state)
                                                             <option value="{{ $state->m01_state_id }}"
                                                                 {{ old('txt_state_id') == $state->m01_state_id ? 'selected' : '' }}>
@@ -188,10 +188,9 @@
                                                 <label class="form-label" for="txt_district_id">District<b
                                                         class="text-danger">*</b></label>
                                                 <div class="form-control-wrap">
-                                                    <select name="txt_district_id" class="form-select"
-                                                        id="txt_district_id" required
-                                                        data-placeholder="-- Select District --">
-                                                        <option value=""></option>
+                                                    <select name="txt_district_id" class="form-control"
+                                                        id="txt_district_id" required>
+                                                        <option value="">-- Select District --</option>
                                                     </select>
                                                 </div>
                                                 @error('txt_district_id')
@@ -206,7 +205,7 @@
                                                         class="text-danger">*</b></label>
                                                 <div class="form-control-wrap">
                                                     <input type="text" class="form-control" id="txt_pincode"
-                                                        name="txt_pincode" value="{{ old('txt_pincode') }}" required>
+                                                        name="txt_pincode" value="{{ old('txt_pincode') }}" maxlength="6" required>
                                                 </div>
                                                 @error('txt_pincode')
                                                     <span class="text-danger">{{ $message }}</span>
@@ -312,7 +311,7 @@
                                                                     name="contacts[{{ $index }}][state_id]"
                                                                     data-index="{{ $index }}"
                                                                     data-placeholder="-- Select State --">
-                                                                    <option value=""></option>
+                                                                    <option value="">-- Select State --</option>
                                                                     @foreach ($states as $state)
                                                                         <option value="{{ $state->m01_state_id }}"
                                                                             {{ isset($contact['state_id']) && $contact['state_id'] == $state->m01_state_id ? 'selected' : '' }}>
@@ -333,7 +332,7 @@
                                                                     data-index="{{ $index }}"
                                                                     data-old-district="{{ $contact['district_id'] ?? '' }}"
                                                                     data-placeholder="-- Select District --">
-                                                                    <option value=""></option>
+                                                                    <option value="">-- Select District --</option>
                                                                 </select>
                                                                 @error('contacts.' . $index . '.district_id')
                                                                     <span class="text-danger">{{ $message }}</span>
@@ -430,7 +429,7 @@
                         <label class="form-label">State</label>
                         <select class="form-select contact-state-select" name="contacts[__INDEX__][state_id]"
                             data-index="__INDEX__" data-placeholder="-- Select State --">
-                            <option value=""></option>
+                            <option value="">-- Select State --</option>
                             @foreach ($states as $state)
                                 <option value="{{ $state->m01_state_id }}">{{ $state->m01_name }}</option>
                             @endforeach
@@ -443,7 +442,7 @@
                         <label class="form-label">District</label>
                         <select class="form-select contact-district-select" name="contacts[__INDEX__][district_id]"
                             data-index="__INDEX__" data-placeholder="-- Select District --">
-                            <option value=""></option>
+                            <option value="">-- Select District --</option>
                         </select>
                         <span class="text-danger error-message" data-field="district_id"></span>
                     </div>

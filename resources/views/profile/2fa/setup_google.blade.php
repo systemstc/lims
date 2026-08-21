@@ -1,7 +1,7 @@
 @extends('layouts.app_back')
 
 @section('content')
-    <div class="nk-content ">
+    <div class="nk-content-xxl">
         <div class="container-fluid">
             <div class="nk-content-inner">
                 <div class="nk-content-body">
@@ -10,81 +10,76 @@
                         <div class="nk-block-between">
                             <div class="nk-block-head-content">
                                 <h3 class="nk-block-title page-title">Setup Authenticator App</h3>
-                                <div class="nk-block-des text-soft">
-                                    <p>Secure your account with Google Authenticator or Authy.</p>
+                                <div class="nk-block-des text-soft fs-6">
+                                    <p>Secure your account with Google Authenticator, Authy, or Microsoft Authenticator.</p>
                                 </div>
                             </div>
                             <div class="nk-block-head-content">
                                 <a href="{{ route('profile.2fa.index') }}"
-                                    class="btn btn-outline-light bg-white d-none d-sm-inline-flex">
+                                    class="btn btn-outline-primary d-none d-sm-inline-flex fs-6">
                                     <em class="icon ni ni-arrow-left"></em><span>Back</span>
                                 </a>
                             </div>
                         </div>
                     </div>
 
-                    @if (session('success'))
-                        <div class="alert alert-success alert-dismissible fade show">
-                            {{ session('success') }}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                        </div>
-                    @endif
-                    @if (session('error'))
-                        <div class="alert alert-danger alert-dismissible fade show">
-                            {{ session('error') }}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                        </div>
-                    @endif
 
                     <div class="nk-block">
                         <div class="card card-bordered">
-                            <div class="card-inner">
-                                <div class="row no-gutters">
-                                    <div class="col-md-6 text-center pt-4 pb-4">
-                                        <h5 class="title mb-3">Scan this QR Code</h5>
-                                        <p class="text-soft mb-4">Open your Authenticator app and scan the QR code below.
-                                        </p>
+                            <div class="card-inner p-4 p-md-5">
+                                <div class="row g-4 align-items-center">
+                                    <div class="col-md-6 text-center border-end-md pb-4 pb-md-0">
+                                        <div class="badge bg-primary mb-3 fs-6">Step 1: Scan QR Code</div>
+                                        <h5 class="title mb-2">Scan with Authenticator App</h5>
+                                        <p class="text-soft mb-4 fs-6">Open Google Authenticator, Authy, or your preferred TOTP app and scan the QR code below.</p>
 
-                                        <div class="d-inline-block border p-3 rounded bg-white">
+                                        <div class="d-inline-block border p-3 rounded-lg bg-white shadow-sm">
                                             {!! $qrCodeUrl !!}
                                         </div>
 
                                         <div class="mt-4">
-                                            <p class="text-muted small">Can't scan the code? Enter this key manually:</p>
-                                            <code
-                                                class="fs-18px bg-light p-2 rounded d-inline-block">{{ $secret }}</code>
+                                            <p class="text-muted mb-1">Can't scan the QR code? Enter key manually:</p>
+                                            <div class="d-inline-flex align-items-center gap-2 bg-lighter p-2 px-3 rounded border">
+                                                <code class="fs-16px font-weight-bold text-dark" id="secret-key">{{ $secret }}</code>
+                                                <button type="button" class="btn btn-xs btn-icon btn-light" onclick="copySecretKey()" title="Copy Key">
+                                                    <em class="icon ni ni-copy"></em>
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
-                                    <div class="col-md-6 pl-md-5 pt-4 pb-4 border-left">
-                                        <h5 class="title mb-3">Verify Code</h5>
-                                        <p class="text-soft mb-4">Enter the 6-digit code generated by your app to verify
-                                            setup.</p>
+
+                                    <div class="col-md-6 ps-md-5">
+                                        <div class="badge badge-pill bg-success mb-3 fs-6">Step 2: Verify Setup</div>
+                                        <h5 class="title mb-2">Verify Verification Code</h5>
+                                        <p class="text-soft mb-4 fs-6">Enter the 6-digit passcode generated by your app to finalize 2FA setup.</p>
 
                                         <form action="{{ route('profile.2fa.confirm_google') }}" method="POST">
                                             @csrf
                                             <div class="form-group">
-                                                <label class="form-label" for="code">Authentication Code</label>
+                                                <label class="form-label font-weight-bold fs-6" for="code">6-Digit Authenticator Code</label>
                                                 <div class="form-control-wrap">
                                                     <input type="text"
-                                                        class="form-control form-control-lg text-center font-weight-bold fs-20px"
+                                                        class="form-control form-control-lg text-center font-weight-bold fs-22px font-monospace"
                                                         id="code" name="code" placeholder="000000" maxlength="6"
+                                                        style="letter-spacing: 4px;"
                                                         oninput="this.value = this.value.replace(/[^0-9]/g, '');" required
                                                         autofocus>
                                                 </div>
                                                 @error('code')
-                                                    <span class="text-danger small">{{ $message }}</span>
+                                                    <span class="text-danger small mt-1 d-block">{{ $message }}</span>
                                                 @enderror
                                             </div>
                                             <div class="form-group mt-4">
-                                                <button type="submit" class="btn btn-lg btn-primary btn-block">Verify &
-                                                    Enable</button>
+                                                <button type="submit" class="btn btn-lg btn-primary btn-block fs-6">
+                                                    <em class="icon ni ni-shield-check"></em>
+                                                    <span>Verify &amp; Enable 2FA</span>
+                                                </button>
                                             </div>
                                         </form>
 
-                                        <div class="alert alert-info mt-4">
+                                        <div class="alert alert-info alert-icon mt-4 mb-0">
                                             <em class="icon ni ni-info-fill"></em>
-                                            <small>You will need your device every time you log in to enter the code
-                                                generated by the app.</small>
+                                            <small class="fs-6">You will need your authenticator app every time you sign into your account.</small>
                                         </div>
                                     </div>
                                 </div>
@@ -96,4 +91,15 @@
             </div>
         </div>
     </div>
+
+    <script>
+        function copySecretKey() {
+            const secret = document.getElementById('secret-key').innerText.trim();
+            navigator.clipboard.writeText(secret).then(() => {
+                alert('Secret key copied to clipboard!');
+            }).catch(err => {
+                console.error('Failed to copy key: ', err);
+            });
+        }
+    </script>
 @endsection

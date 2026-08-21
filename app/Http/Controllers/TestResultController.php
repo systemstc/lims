@@ -224,7 +224,7 @@ class TestResultController extends Controller
         } else {
             $sampleTests = SampleTest::with([
                 'test',
-                'test.formula', // Added eager load
+                'test.formula',
                 'test.standard',
                 'registration',
                 'registration.labSample',
@@ -238,30 +238,10 @@ class TestResultController extends Controller
             $route = 'view_analyst_dashboard';
         }
 
-        $registrationId = $sampleTests->first()->registration->tr04_reference_id ?? null;
+        $registrationId = $sampleTests->first()?->registration?->tr04_reference_id ?? null;
 
-        // Check if results exist and are not in DRAFT or SUBMITTED status
+        // Filter out tests that are already submitted/resulted
         if ($registrationId) {
-            $existingFinalResults = TestResult::where('tr04_reference_id', $registrationId)
-                ->whereNotIn('tr07_result_status', ['DRAFT', 'SUBMITTED'])
-                ->exists();
-
-            $existingFinalCustomFields = CustomField::where('tr04_reference_id', $registrationId)
-                ->whereNotIn('tr08_result_status', ['DRAFT', 'SUBMITTED'])
-                ->exists();
-
-            // Blocking check removed to allow partial entry
-            /*
-            if ($existingFinalResults || $existingFinalCustomFields) {
-                Session::flash('type', 'warning');
-                Session::flash('message', 'Test results have already been finalized and cannot be modified.');
-                return to_route($route);
-            }
-            */
-        }
-
-        // Filter out tests that are already submitted/resulted (for DEO)
-        if (Session::get('role') === 'DEO' && $registrationId) {
             $completedTestNumbers = TestResult::where('tr04_reference_id', $registrationId)
                 ->whereIn('tr07_result_status', ['SUBMITTED', 'RESULTED', 'REPORTED', 'FINALIZED', 'VERIFIED'])
                 ->pluck('m12_test_number')
@@ -269,10 +249,16 @@ class TestResultController extends Controller
                 ->toArray();
 
             $sampleTests = $sampleTests->filter(function ($sampleTest) use ($completedTestNumbers) {
-                // Ensure sampleTest has 'test' relation loaded and check tr05_status just in case
                 if (!$sampleTest->test) return false;
                 return !in_array((string)$sampleTest->test->m12_test_number, $completedTestNumbers);
             })->values();
+        }
+
+        if ($sampleTests->isEmpty()) {
+            Session::flash('swal_title', 'All Tests Completed');
+            Session::flash('swal_icon', 'error');
+            Session::flash('swal_message', 'All assigned tests for this sample have already been completed or submitted. No pending tests require result entry at this time.');
+            return redirect()->back();
         }
 
         // Prepare test data with associated primary and secondary tests
@@ -379,19 +365,26 @@ class TestResultController extends Controller
                 ->whereIn('tr05_status', ['ALLOTED', 'IN_PROGRESS', 'COMPLETED'])
                 ->get();
         }
-        $registrationId = $manuscripts->first()->registration->tr04_reference_id ?? null;
+        $registrationId = $manuscripts->first()?->registration?->tr04_reference_id ?? null;
 
-        // Filter out tests that are already submitted/resulted (for DEO)
-        if (Session::get('role') === 'DEO' && $registrationId) {
+        // Filter out tests that are already submitted/resulted
+        if ($registrationId) {
             $completedTestNumbers = TestResult::where('tr04_reference_id', $registrationId)
-                ->whereIn('tr07_result_status', ['SUBMITTED', 'RESULTED', 'REPORTED', 'FINALIZED']) // Add statuses as appropriate
+                ->whereIn('tr07_result_status', ['SUBMITTED', 'RESULTED', 'REPORTED', 'FINALIZED', 'VERIFIED'])
                 ->pluck('m12_test_number')
                 ->map(fn($num) => (string)$num)
                 ->toArray();
 
             $manuscripts = $manuscripts->filter(function ($manuscript) use ($completedTestNumbers) {
-                return !in_array((string)$manuscript->test->m12_test_number, $completedTestNumbers);
+                return !in_array((string)$manuscript->test?->m12_test_number, $completedTestNumbers);
             })->values();
+        }
+
+        if ($manuscripts->isEmpty()) {
+            Session::flash('swal_title', 'All Tests Completed');
+            Session::flash('swal_icon', 'error');
+            Session::flash('swal_message', 'All assigned tests for this sample registration have already been completed or submitted. No pending tests require result entry at this time.');
+            return redirect()->back();
         }
 
         // Attach corresponding manuscript template content based on standard ID
@@ -469,22 +462,65 @@ class TestResultController extends Controller
 
     public function uploadDocument(Request $request, $id)
     {
-        $request->validate([
-            'result_file' => 'required|mimes:pdf,jpg,jpeg,png,doc,docx|max:2048',
-        ]);
-        $file = $request->file('result_file');
-        $originalExtension = $file->getClientOriginalExtension();
-        $fileName = 'manuscript_' . $id . '_' . now()->timestamp . '.' . $originalExtension;
-        $folderPath = 'test_results';
+        try {
+            if (!$request->hasFile('result_file')) {
+                Session::flash('swal_icon', 'error');
+                Session::flash('swal_title', 'Upload Failed');
+                Session::flash('swal_message', 'No file was received. The file size may exceed the PHP server upload limit (upload_max_filesize in php.ini).');
+                return back();
+            }
 
-        $filePath = $file->storeAs($folderPath, $fileName, 'public');
+            $file = $request->file('result_file');
+            if (!$file->isValid()) {
+                $errorMsg = $file->getErrorMessage();
+                if ($file->getError() === UPLOAD_ERR_INI_SIZE || $file->getError() === UPLOAD_ERR_FORM_SIZE) {
+                    $errorMsg = 'File size exceeds server upload limit (php.ini upload_max_filesize). Please choose a smaller file or increase upload_max_filesize in php.ini.';
+                }
+                Session::flash('swal_icon', 'error');
+                Session::flash('swal_title', 'Upload Failed');
+                Session::flash('swal_message', 'File upload error: ' . $errorMsg);
+                return back();
+            }
 
-        SampleRegistration::where('tr04_reference_id', $id)->update([
-            'tr04_manuscript' => $fileName,
-        ]);
-        Session::flash('type', 'success');
-        Session::flash('message', 'Document uploaded successfully.');
-        return back();
+            $originalExtension = strtolower($file->getClientOriginalExtension());
+            $allowedExtensions = ['pdf', 'jpg', 'jpeg', 'png', 'webp', 'doc', 'docx'];
+            if (!in_array($originalExtension, $allowedExtensions)) {
+                Session::flash('swal_icon', 'error');
+                Session::flash('swal_title', 'Invalid File Type');
+                Session::flash('swal_message', 'Only PDF, JPG, PNG, WEBP, DOC, and DOCX files are allowed.');
+                return back();
+            }
+
+            // Find registration by reference ID or registration ID
+            $registration = SampleRegistration::where('tr04_reference_id', $id)
+                ->orWhere('tr04_sample_registration_id', $id)
+                ->first();
+
+            $refId = $registration ? $registration->tr04_reference_id : $id;
+            $fileName = 'manuscript_' . $refId . '_' . now()->timestamp . '.' . $originalExtension;
+            $folderPath = 'test_results';
+
+            $filePath = $file->storeAs($folderPath, $fileName, 'public');
+
+            if ($registration) {
+                $registration->update([
+                    'tr04_manuscript' => $fileName,
+                ]);
+            }
+
+            Session::flash('type', 'success');
+            Session::flash('message', 'Manuscript document uploaded successfully.');
+            Session::flash('swal_icon', 'success');
+            Session::flash('swal_title', 'Uploaded Successfully');
+            Session::flash('swal_message', 'Manuscript document has been uploaded successfully.');
+
+            return back();
+        } catch (\Exception $e) {
+            Session::flash('swal_icon', 'error');
+            Session::flash('swal_title', 'Upload Error');
+            Session::flash('swal_message', 'Failed to upload document: ' . $e->getMessage());
+            return back();
+        }
     }
 
 
@@ -596,10 +632,13 @@ class TestResultController extends Controller
         $processedTestIds = []; // Initialize array to track processed tests
 
 
+        $minDate = now()->subDays(15)->format('Y-m-d');
+        $today = now()->format('Y-m-d');
+
         $rules = [
             'registration_id' => 'required|string',
-            'test_date' => 'required|date',
-            'performance_date' => 'required|date',
+            'test_date' => 'required|date|after_or_equal:' . $minDate . '|before_or_equal:' . $today,
+            'performance_date' => 'required|date|after_or_equal:' . $minDate . '|before_or_equal:' . $today,
             'results' => 'nullable|array',
             'manuscript_data' => 'nullable|array',
             'test_data' => 'nullable|array',
@@ -623,6 +662,11 @@ class TestResultController extends Controller
         ];
 
         $messages = [
+            'test_date.before_or_equal' => 'Test Date cannot be in the future.',
+            'test_date.after_or_equal' => 'Test Date cannot be older than 15 days.',
+            'performance_date.before_or_equal' => 'Date of Performance of Tests cannot be in the future.',
+            'performance_date.after_or_equal' => 'Date of Performance of Tests cannot be older than 15 days.',
+
             'results.*.test.result.required_with' => 'Main test result value cannot be empty.',
             'results.*.primary_tests.*.result.required_with' => 'Primary test result value cannot be empty.',
             'results.*.primary_tests.*.secondary_tests.*.result.required_with' => 'Secondary test result value cannot be empty.',
@@ -1115,12 +1159,11 @@ class TestResultController extends Controller
 
     public function viewCompletedTests()
     {
-        $samples = SampleTest::with(['registration', 'test', 'registration.testResult', 'registration.sampleTests'])
+        $allSamplesRaw = SampleTest::with(['registration', 'test', 'registration.testResult', 'registration.sampleTests'])
             ->whereNotIn('tr05_status', ['TRANSFERRED'])
             ->when(Session::get('role') !== 'ADMIN', function ($query) {
                 $query->where('m04_ro_id', Session::get('ro_id'));
             })
-            // ->whereDoesntHave('registration.testResult') // fetch only those without test results -- COMMENTED OUT FOR PARTIAL ENTRY
             ->select('tr04_sample_registration_id')
             ->selectRaw("
             COUNT(*) as total_tests,
@@ -1133,13 +1176,13 @@ class TestResultController extends Controller
                 $registration = $sample->registration;
                 $sample->reference_id = $registration?->tr04_reference_id ?? '-';
                 $sample->sample_id = $registration?->tr04_sample_registration_id ?? '-';
+                $sample->manuscript = $registration?->tr04_manuscript ?? null;
                 $sample->priority = $registration?->tr04_sample_type ?? 'NORMAL';
                 $sample->created_at = $registration?->created_at;
                 $sample->delay_days = $registration
                     ? round(abs(now()->floatDiffInDays($registration->created_at)), 2)
                     : null;
 
-                // Calculate actionable tests count (Completed but not yet Resulted/Submitted/Verified)
                 if ($registration) {
                     $resultedTestNumbers = $registration->testResult
                         ->whereIn('tr07_result_status', ['SUBMITTED', 'RESULTED', 'REPORTED', 'FINALIZED', 'VERIFIED'])
@@ -1147,13 +1190,9 @@ class TestResultController extends Controller
                         ->map(fn($n) => (string)$n)
                         ->toArray();
 
-                    // Get completed sample tests from the relation
                     $actionableTests = $registration->sampleTests
                         ->where('tr05_status', 'COMPLETED')
                         ->filter(function ($st) use ($resultedTestNumbers) {
-                            // Assuming test relation is loaded on sampleTests via SampleRegistration->sampleTests definition?
-                            // SampleRegistration might NOT accept .sampleTests.test in `with` above if relationship is not complex.
-                            // But we added registration.sampleTests. We might need registration.sampleTests.test?
                             return !in_array((string)($st->m12_test_number ?? $st->test?->m12_test_number), $resultedTestNumbers);
                         });
 
@@ -1165,8 +1204,14 @@ class TestResultController extends Controller
                 return $sample;
             })
             ->filter(function ($sample) {
-                return $sample->actionable_tests_count > 0;
+                return $sample->reference_id !== '-';
             })
+            ->values();
+
+        // Default table contains only completed / ready samples
+        $samples = $allSamplesRaw->filter(function ($sample) {
+            return $sample->completed_tests > 0 || $sample->actionable_tests_count > 0;
+        })
             ->sortByDesc(function ($s) {
                 return [
                     $s->pending_tests == 0 ? 1 : 0,
@@ -1176,7 +1221,10 @@ class TestResultController extends Controller
             })
             ->values();
 
-        return view('measurement.simple.measurements', compact('samples'));
+        // All samples for search dropdown
+        $allSamples = $allSamplesRaw->sortByDesc('created_at')->values();
+
+        return view('measurement.simple.measurements', compact('samples', 'allSamples'));
     }
 
 
@@ -1334,7 +1382,9 @@ class TestResultController extends Controller
             ->get();
 
         // Group results
-        $groupedResults = $sample->testResult->unique('tr07_test_result_id')->groupBy('m12_test_number');
+        $groupedResults = $sample->testResult->unique(function ($item) {
+            return $item->m12_test_number . '-' . $item->m16_primary_test_id . '-' . $item->m17_secondary_test_id;
+        })->groupBy('m12_test_number');
         $groupedCustomFields = $customFields->unique('tr08_custom_field_id')->groupBy('m12_test_number');
         // dd($groupedCustomFields);
         // Get or create order from session
@@ -1432,14 +1482,17 @@ class TestResultController extends Controller
                         $sampleTest = $sampleTestMap[(string)$item['test_number']] ?? null;
                         $standardId = $sampleTest->m15_standard_id ?? $results->first()->test->m15_standard_id ?? null;
                         $testId = $results->first()->test->m12_test_id ?? null;
-                        $item['is_accredited'] = $accreditations->contains(function ($acc) use ($testId, $standardId) {
-                            return $acc->m12_test_id == $testId && $acc->m15_standard_id == $standardId;
+                        $testName = $results->first()->test->m12_name ?? '';
+                        $isAryl = (strpos(strtolower($testName), 'banned amines') !== false || strpos(strtolower($testName), 'aryl amine') !== false || strpos(strtolower($testName), 'azo') !== false);
+                        $item['is_accredited'] = $isAryl || $accreditations->contains(function ($acc) use ($testId, $standardId) {
+                            return $acc->m12_test_id == $testId && ($acc->m15_standard_id == $standardId || empty($acc->m15_standard_id) || empty($standardId));
                         });
                     }
                 } else {
                     $item['is_accredited'] = false;
                 }
             }
+            unset($item);
         }
 
         // Update session with potentially new items
@@ -1716,18 +1769,58 @@ class TestResultController extends Controller
 
             // Step 4: Generate PDF
             Log::info("Generating PDF file...");
+
+            $reportParts = [];
+            $part1Items = [];
+            $part2Items = [];
+            $hasPart1Accredited = false;
+
+            foreach ($orderedItems as $item) {
+                $isArylAminesTest = false;
+                if ($item['type'] === 'test') {
+                    $results = $groupedResults[$item['test_number']] ?? collect();
+                    $parent = $results->first();
+                    $testName = $parent ? ($parent->test->m12_name ?? '') : '';
+                    $isArylAminesTest = (strpos(strtolower($testName), 'banned amines') !== false || strpos(strtolower($testName), 'aryl amine') !== false || strpos(strtolower($testName), 'azo') !== false);
+                }
+
+                if ($isArylAminesTest || !empty($item['is_accredited'])) {
+                    $part1Items[] = $item;
+                    $hasPart1Accredited = true;
+                } else {
+                    $part2Items[] = $item;
+                }
+            }
+
+            if (count($part1Items) > 0) {
+                $reportParts[] = [
+                    'title' => 'Accredited tests',
+                    'items' => $part1Items,
+                    'has_accredited_tests' => $hasPart1Accredited,
+                    'is_aryl_amines_part' => false
+                ];
+            }
+            if (count($part2Items) > 0) {
+                $reportParts[] = [
+                    'title' => 'Non-accredited tests',
+                    'items' => $part2Items,
+                    'has_accredited_tests' => false,
+                    'is_aryl_amines_part' => false
+                ];
+            }
+
             $pdf = Pdf::loadView('reports.final_report_pdf', compact(
                 'sample',
                 'groupedResults',
                 'groupedCustomFields',
-                'orderedItems',
+                'reportParts',
                 'meta',
                 'report',
                 'hasAccreditedTests',
                 'isPartial'
             ))->setPaper('A4', 'portrait');
 
-            $pdf->setOptions(['isPhpEnabled' => true]);
+            $pdf->setOptions(['isPhpEnabled' => true, 'isRemoteEnabled' => true]);
             $fileName = ($isPartial ? 'partial_' : '') . 'report_' . $sample->tr04_reference_id . '_' . now()->timestamp . '.pdf';
             $pdfPath = 'reports/' . $fileName;
             $fullPath = storage_path('app/public/' . $pdfPath);
@@ -2076,12 +2169,52 @@ class TestResultController extends Controller
 
         $orderedItems = $this->normalizeReportOrder($orderedItems);
 
-        // Update sort_order
+        // Update sort_order and ensure is_accredited flag is set correctly on all items
         foreach ($orderedItems as $index => &$item) {
             $item['sort_order'] = $index;
+            if ($item['type'] === 'test') {
+                $results = $groupedResults[$item['test_number']] ?? collect();
+                if ($results->isNotEmpty()) {
+                    $sampleTest = $sampleTestMap[(string)$item['test_number']] ?? null;
+                    $standardId = $sampleTest->m15_standard_id ?? $results->first()->test->m15_standard_id ?? null;
+                    $testId = $results->first()->test->m12_test_id ?? null;
+                    $testName = $results->first()->test->m12_name ?? '';
+                    $isAryl = (strpos(strtolower($testName), 'banned amines') !== false || strpos(strtolower($testName), 'aryl amine') !== false || strpos(strtolower($testName), 'azo') !== false);
+                    $item['is_accredited'] = $isAryl || $accreditations->contains(function ($acc) use ($testId, $standardId) {
+                        return $acc->m12_test_id == $testId && ($acc->m15_standard_id == $standardId || empty($acc->m15_standard_id) || empty($standardId));
+                    });
+                }
+            } else {
+                $item['is_accredited'] = false;
+            }
         }
+        unset($item);
 
         $hasAccreditedTests = collect($orderedItems)->contains(fn($item) => !empty($item['is_accredited']));
+
+        // Generate ULR Number if it's missing and we have accredited tests
+        if ($hasAccreditedTests && empty($sample->tr04_ulr_no)) {
+            $ro = \App\Models\Ro::find($roId);
+            if ($ro && $ro->certificate_no) {
+                $currentYear = date('y');
+                $prefix = 'ULR-' . $ro->certificate_no . $currentYear;
+                
+                $latestUlr = SampleRegistration::where('tr04_ulr_no', 'like', $prefix . '%')
+                    ->orderBy('tr04_ulr_no', 'desc')
+                    ->value('tr04_ulr_no');
+                
+                $sequence = 1;
+                if ($latestUlr) {
+                    $seqString = substr($latestUlr, strlen($prefix), 9);
+                    $sequence = intval($seqString) + 1;
+                }
+                
+                $ulrNo = $prefix . str_pad($sequence, 9, '0', STR_PAD_LEFT) . 'F';
+                
+                $sample->tr04_ulr_no = $ulrNo;
+                $sample->save();
+            }
+        }
 
         $meta = [
             'customer_name'     => $sample->parties['customer']['name'],
@@ -2114,12 +2247,52 @@ class TestResultController extends Controller
         }
 
         $isPartial = false;
+
+        $reportParts = [];
+        $part1Items = [];
+        $part2Items = [];
+        $hasPart1Accredited = false;
+
+        foreach ($orderedItems as $item) {
+            $isArylAminesTest = false;
+            if ($item['type'] === 'test') {
+                $results = $groupedResults[$item['test_number']] ?? collect();
+                $parent = $results->first();
+                $testName = $parent ? ($parent->test->m12_name ?? '') : '';
+                $isArylAminesTest = (strpos(strtolower($testName), 'banned amines') !== false || strpos(strtolower($testName), 'aryl amine') !== false || strpos(strtolower($testName), 'azo') !== false);
+            }
+
+            if ($isArylAminesTest || !empty($item['is_accredited'])) {
+                $part1Items[] = $item;
+                $hasPart1Accredited = true;
+            } else {
+                $part2Items[] = $item;
+            }
+        }
+
+        if (count($part1Items) > 0) {
+            $reportParts[] = [
+                'title' => 'Accredited tests',
+                'items' => $part1Items,
+                'has_accredited_tests' => $hasPart1Accredited,
+                'is_aryl_amines_part' => false
+            ];
+        }
+        if (count($part2Items) > 0) {
+            $reportParts[] = [
+                'title' => 'Non-accredited tests',
+                'items' => $part2Items,
+                'has_accredited_tests' => false,
+                'is_aryl_amines_part' => false
+            ];
+        }
+
         // Generate PDF for preview (don't save)
         $pdf = Pdf::loadView('reports.final_report_pdf', compact(
             'sample',
             'groupedResults',
             'groupedCustomFields',
-            'orderedItems',
+            'reportParts',
             'meta',
             'report',
             'isPartial',

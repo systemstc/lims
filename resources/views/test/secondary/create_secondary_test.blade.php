@@ -168,6 +168,10 @@
 
                 $('#txt_group_id').on('change', function() {
                     let groupId = $(this).val();
+                    if (!groupId) {
+                        $('#txt_primary_test_id').html('<option value="">-- Select Primary Test --</option>');
+                        return;
+                    }
                     $('#txt_primary_test_id').html('<option value="">Loading...</option>');
 
                     $.get("{{ route('get_primary_tests') }}", {
@@ -179,6 +183,8 @@
                                 `<option value="${test.m16_primary_test_id}">${test.m16_name}</option>`;
                         });
                         $('#txt_primary_test_id').html(options);
+                    }).fail(function() {
+                        $('#txt_primary_test_id').html('<option value="">-- Select Primary Test --</option>');
                     });
                 });
 

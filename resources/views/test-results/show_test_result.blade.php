@@ -183,7 +183,7 @@
                                                                                                 <span
                                                                                                     class="text-muted fs-12">Result:</span>
                                                                                                 <strong
-                                                                                                    class="text-primary">{{ $resultData['testResult']->tr07_result ?? 'N/A' }}</strong>
+                                                                                                    class="text-primary">{!! $resultData['testResult']->tr07_result ?? 'N/A' !!}</strong>
                                                                                             </div>
                                                                                         @else
                                                                                             <div
@@ -193,7 +193,7 @@
                                                                                                     Result</span>
                                                                                                 <div>
                                                                                                     <strong
-                                                                                                        class="text-primary me-2">{{ $resultData['testResult']->tr07_result ?? 'N/A' }}</strong>
+                                                                                                        class="text-primary me-2">{!! $resultData['testResult']->tr07_result ?? 'N/A' !!}</strong>
                                                                                                     <strong
                                                                                                         class="text-success fw-bold">Verified</strong>
                                                                                                 </div>

@@ -17,16 +17,32 @@
                     <div class="nk-block nk-block-lg">
                         <div class="card">
                             <div class="card-inner">
-                                <form action="{{ route('update_custom', $custom->m19_package_id) }}" method="POST">
+                                @if ($errors->any())
+                                    <div class="alert alert-danger alert-dismissible fade show mb-4" role="alert">
+                                        <strong><em class="icon ni ni-alert-circle"></em> Please fix the following errors:</strong>
+                                        <ul class="mb-0 mt-1 ps-3">
+                                            @foreach ($errors->all() as $error)
+                                                <li>{{ $error }}</li>
+                                            @endforeach
+                                        </ul>
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                    </div>
+                                @endif
+                                <form action="{{ route('update_custom', $custom->m19_package_id) }}" class="form-validate is-alter" method="POST">
                                     @csrf
                                     <div class="row g-gs">
                                         {{-- Contract Name --}}
                                         <div class="col-md-3">
                                             <div class="form-group">
-                                                <label class="form-label" for="txt_name">Contract Name<b
+                                                <label class="form-label" for="txt_name">Custom Contract Name <b
                                                         class="text-danger">*</b></label>
-                                                <input type="text" class="form-control" id="txt_name" name="txt_name"
-                                                    value="{{ old('txt_name', $custom->m19_name) }}" required>
+                                                <div class="form-control-wrap">
+                                                    <input type="text" class="form-control @error('txt_name') is-invalid @enderror" id="txt_name" name="txt_name"
+                                                        value="{{ old('txt_name', $custom->m19_name) }}" required>
+                                                </div>
+                                                @error('txt_name')
+                                                    <span class="text-danger small">{{ $message }}</span>
+                                                @enderror
                                             </div>
                                         </div>
 
@@ -38,9 +54,11 @@
                                             <div class="form-group">
                                                 <label class="form-label" for="txt_contract_with">Custom Name<b
                                                         class="text-danger">*</b></label>
-                                                <input type="text" class="form-control" autocomplete="off"
-                                                    id="txt_contract_with" name="txt_contract_with"
-                                                    value="{{ old('txt_contract_with', $custom->customer->m07_name ?? '') }}">
+                                                <div class="form-control-wrap">
+                                                    <input type="text" class="form-control" autocomplete="off"
+                                                        id="txt_contract_with" name="txt_contract_with"
+                                                        value="{{ old('txt_contract_with', $custom->customer->m07_name ?? '') }}">
+                                                </div>
                                                 <div class="custom-dropdown" id="customer-dropdown"></div>
                                             </div>
                                         </div>
@@ -50,9 +68,11 @@
                                             <div class="form-group">
                                                 <label class="form-label" for="txt_exp_date">Expiry Date<b
                                                         class="text-danger">*</b></label>
-                                                <input type="date" class="form-control" id="txt_exp_date"
-                                                    name="txt_exp_date"
-                                                    value="{{ old('txt_exp_date', $custom->m19_expiry_date) }}">
+                                                <div class="form-control-wrap">
+                                                    <input type="date" class="form-control" id="txt_exp_date"
+                                                        name="txt_exp_date"
+                                                        value="{{ old('txt_exp_date', $custom->m19_exp_date) }}">
+                                                </div>
                                             </div>
                                         </div>
 
@@ -61,9 +81,11 @@
                                             <div class="form-group">
                                                 <label class="form-label" for="txt_charges">Charge<b
                                                         class="text-danger">*</b></label>
-                                                <input type="number" class="form-control" id="txt_charges"
-                                                    name="txt_charges"
-                                                    value="{{ old('txt_charges', $custom->m19_charges) }}">
+                                                <div class="form-control-wrap">
+                                                    <input type="number" class="form-control" id="txt_charges"
+                                                        name="txt_charges"
+                                                        value="{{ old('txt_charges', $custom->m19_charges) }}">
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -83,11 +105,11 @@
                                                 <tr>
                                                     <td>
                                                         <select name="tests[{{ $index }}][test_id]"
-                                                            class="form-control test-select" required>
+                                                            class="form-control form-select js-select2 test-select" data-search="on" required>
                                                             <option value="">-- Select Test --</option>
                                                             @foreach ($tests as $test)
                                                                 <option value="{{ $test->m12_test_id }}"
-                                                                    {{ $pkgTest->test->m12_test_id == $test->m12_test_id ? 'selected' : '' }}>
+                                                                    {{ $pkgTest->test && $pkgTest->test->m12_test_id == $test->m12_test_id ? 'selected' : '' }}>
                                                                     {{ $test->m12_name }}
                                                                 </option>
                                                             @endforeach
@@ -96,7 +118,7 @@
                                                     <td>
                                                         <select name="tests[{{ $index }}][standard_id]"
                                                             class="form-control standard-select" required>
-                                                            <option value="{{ $pkgTest->standard->m15_standard_id }}">
+                                                            <option value="{{ $pkgTest->standard->m15_standard_id ?? '' }}">
                                                                 {{ $pkgTest->standard->m15_method ?? 'Current Standard' }}
                                                             </option>
                                                         </select>
@@ -168,62 +190,68 @@
             const CUSTOMER_URL = "{{ route('search_customer') }}";
             let searchTimeout;
 
+            function updateTestOptions() {
+                let selectedTestIds = [];
+                $('.test-select, .test-id-field').each(function() {
+                    let val = $(this).val();
+                    if (val) selectedTestIds.push(String(val));
+                });
+
+                $('.test-select').each(function() {
+                    let currentVal = String($(this).val() || '');
+                    $(this).find('option').each(function() {
+                        let optionVal = String($(this).attr('value') || '');
+                        if (optionVal && optionVal !== currentVal && selectedTestIds.includes(optionVal)) {
+                            $(this).prop('disabled', true);
+                        } else {
+                            $(this).prop('disabled', false);
+                        }
+                    });
+                    if ($(this).hasClass('select2-hidden-accessible')) {
+                        $(this).select2();
+                    }
+                });
+            }
+
             /** Add / Remove Rows **/
             $('#add-row').on('click', function() {
                 const row = `
                 <tr>
-                    <td class="position-relative">
-                        <input type="text" class="form-control test-search-input" placeholder="Search Test..." autocomplete="off">
-                        <input type="hidden" name="tests[${rowIndex}][test_id]" class="test-id-field">
-                        <div class="custom-dropdown test-dropdown"></div>
+                    <td>
+                        <div class="form-control-wrap">
+                            <select name="tests[${rowIndex}][test_id]" class="form-control form-select js-select2 test-select" data-search="on" required>
+                                <option value="">-- Select Test --</option>
+                                @foreach ($tests as $test)
+                                    <option value="{{ $test->m12_test_id }}">{{ $test->m12_name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
                     </td>
                     <td>
-                        <select name="tests[${rowIndex}][standard_id]" class="form-control standard-select" required>
-                            <option value="">-- Select Standard --</option>
-                        </select>
+                        <div class="form-control-wrap">
+                            <select name="tests[${rowIndex}][standard_id]" class="form-control standard-select" required>
+                                <option value="">-- Select Standard --</option>
+                            </select>
+                        </div>
                     </td>
                     <td><button type="button" class="btn btn-sm btn-danger remove-row">X</button></td>
                 </tr>`;
                 $('#test-standard-table tbody').append(row);
+                $('#test-standard-table tbody tr:last-child .js-select2').select2();
                 rowIndex++;
+                updateTestOptions();
             });
 
             $(document).on('click', '.remove-row', function() {
                 $(this).closest('tr').remove();
-            });
-
-            /** Search Tests **/
-            $(document).on('input', '.test-search-input', function() {
-                const query = $(this).val().trim();
-                const $input = $(this);
-                const $dropdown = $input.siblings('.test-dropdown');
-                clearTimeout(searchTimeout);
-
-                if (query.length < 2) return $dropdown.hide().empty();
-
-                searchTimeout = setTimeout(() => {
-                    $dropdown.html('<div class="dropdown-message">Searching...</div>').show();
-                    $.getJSON(TEST_URL, {
-                        query
-                    }, tests => {
-                        $dropdown.empty();
-                        if (!tests.length) {
-                            return $dropdown.html(
-                                '<div class="dropdown-message">No tests found.</div>');
-                        }
-                        tests.forEach(t => $('<div>')
-                            .addClass('custom-dropdown-item')
-                            .text(t.test_name)
-                            .data('test', t)
-                            .appendTo($dropdown));
-                    });
-                }, 300);
+                updateTestOptions();
             });
 
             /** On change of test dropdown (for already loaded rows) **/
             $(document).on('change', '.test-select', function() {
                 const testId = $(this).val();
                 const $standard = $(this).closest('tr').find('.standard-select');
+                updateTestOptions();
 
                 if (!testId) {
                     $standard.html('<option value="">-- Select Standard --</option>');
@@ -241,6 +269,8 @@
                     });
                 });
             });
+
+            updateTestOptions();
 
             /** Customer Search **/
             $('#txt_contract_with').on('input', function() {

@@ -75,6 +75,8 @@
                                                     <input type="date"
                                                         class="form-control form-control-sm bg-light border-danger"
                                                         name="test_date"
+                                                        min="{{ date('Y-m-d', strtotime('-15 days')) }}"
+                                                        max="{{ date('Y-m-d') }}"
                                                         value="{{ old('test_date', $testDate ?? date('Y-m-d')) }}" required>
                                                 </td>
                                             </tr>
@@ -94,7 +96,9 @@
                                                     <input type="date"
                                                         class="form-control form-control-sm bg-light border-danger"
                                                         name="performance_date"
-                                                        value="{{ old('performance_date', $performanceDate ?? '') }}"
+                                                        min="{{ date('Y-m-d', strtotime('-15 days')) }}"
+                                                        max="{{ date('Y-m-d') }}"
+                                                        value="{{ old('performance_date', $performanceDate ?? date('Y-m-d')) }}"
                                                         required>
                                                 </td>
                                                 <td class="fw-bold text-muted">Original Allotment Date:</td>

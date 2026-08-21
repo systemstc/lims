@@ -521,9 +521,12 @@ class AnalystController extends Controller
 
         // POST: Save the revised results
         if ($request->isMethod('post')) {
+            $minDate = now()->subDays(15)->format('Y-m-d');
+            $today = now()->format('Y-m-d');
+
             $validated = $request->validate([
-                'test_date' => 'required|date',
-                'performance_date' => 'required|date',
+                'test_date' => 'required|date|after_or_equal:' . $minDate . '|before_or_equal:' . $today,
+                'performance_date' => 'required|date|after_or_equal:' . $minDate . '|before_or_equal:' . $today,
                 'results' => 'nullable|array',
                 'test_calculation' => 'nullable|array',
                 'custom_fields' => 'nullable|array',

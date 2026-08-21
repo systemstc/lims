@@ -148,7 +148,7 @@ class CustomerController extends Controller
                 ],
                 "txt_phone" => [
                     "nullable",
-                    "digits:10",
+                    "regex:/^[6-9][0-9]{9}$/",
                     Rule::unique('m07_customers', 'm07_phone')->where(function ($query) use ($request) {
                         $roId = Session::get('role') === 'ADMIN' ? $request->txt_ro_id : Session::get('ro_id');
                         return $query->where('m04_ro_id', $roId ?? -1);
@@ -167,18 +167,18 @@ class CustomerController extends Controller
                         $roId = Session::get('role') === 'ADMIN' ? $request->txt_ro_id : Session::get('ro_id');
                         return $query->where('m04_ro_id', $roId ?? -1);
                     }),
-                    "regex:/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/"
+                    "regex:/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/i"
                 ],
-                "txt_iec" => "nullable|string|max:10|regex:/^[A-Z0-9]{10}$/",
-                // "txt_be" => "required|string|max:20",
-                // contact and loactions                 
+                "txt_iec" => "nullable|string|max:10|regex:/^[A-Z0-9]{10}$/i",
+                // contact and locations
                 'contacts' => 'nullable|array',
                 'contacts.*.name' => 'nullable|string|max:255',
                 'contacts.*.email' => 'nullable|email|max:255',
-                'contacts.*.phone' => 'nullable|string|max:15',
+                'contacts.*.phone' => 'nullable|string|max:15|regex:/^[6-9][0-9]{9}$/',
+                'contacts.*.gst' => 'nullable|string|max:15|regex:/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/i',
                 'contacts.*.state_id' => 'required|integer|exists:m01_states,m01_state_id',
                 'contacts.*.district_id' => 'required|integer|exists:m02_districts,m02_district_id',
-                'contacts.*.pincode' => 'required|string|max:10',
+                'contacts.*.pincode' => 'required|digits:6',
                 'contacts.*.address' => 'required|string|max:500',
             ], [
                 'txt_customer_type_id.required' => 'Customer Type is required.',
@@ -186,19 +186,16 @@ class CustomerController extends Controller
                 'txt_customer_type_id.exists' => 'Selected Customer Type does not exist.',
 
                 'txt_ro_id.integer' => 'RO ID must be a number.',
-                // 'txt_ro_id.exists' => 'Selected RO ID does not exist.',
 
                 'txt_name.required' => 'Name is required.',
                 'txt_name.string' => 'Name must be a string.',
                 'txt_name.max' => 'Name must not exceed 255 characters.',
 
-                'txt_email.required' => 'Email is required.',
                 'txt_email.email' => 'Enter a valid email address.',
                 'txt_email.max' => 'Email must not exceed 255 characters.',
                 'txt_email.unique' => 'This email is already registered.',
 
-                'txt_phone.required' => 'Phone number is required.',
-                'txt_phone.digits' => 'Phone number must be exactly 10 digits.',
+                'txt_phone.regex' => 'Phone number must be a valid 10-digit mobile number starting with 6-9.',
                 'txt_phone.unique' => 'This phone number is already registered.',
 
                 'txt_contact_person.required' => 'Contact person name is required.',
@@ -220,20 +217,16 @@ class CustomerController extends Controller
                 'txt_pincode.required' => 'Pincode is required.',
                 'txt_pincode.digits' => 'Pincode must be exactly 6 digits.',
 
-                // 'txt_gst.required' => 'GST number is required.',
                 'txt_gst.unique' => 'This GST number is already registered.',
                 'txt_gst.regex' => 'Enter a valid GST number.',
                 'txt_gst.max' => 'GST number must not exceed 15 characters.',
 
-                // 'txt_iec.required' => 'IEC code is required.',
                 'txt_iec.regex' => 'Enter a valid IEC code (10 alphanumeric characters).',
                 'txt_iec.max' => 'IEC code must not exceed 10 characters.',
 
-                // 'txt_be.required' => 'Branch/Business Entity name is required.',
-                // 'txt_be.string' => 'Branch/Business Entity must be a string.',
-                // 'txt_be.max' => 'Branch/Business Entity must not exceed 20 characters.',
-
-
+                'contacts.*.phone.regex' => 'Location phone number must be a valid 10-digit mobile number starting with 6-9.',
+                'contacts.*.gst.regex' => 'Enter a valid GST number for the location.',
+                'contacts.*.pincode.digits' => 'The pincode must be exactly 6 digits for all locations.',
                 'contacts.*.state_id.required' => 'The state is required for all locations.',
                 'contacts.*.district_id.required' => 'The district is required for all locations.',
                 'contacts.*.pincode.required' => 'The pincode is required for all locations.',
@@ -280,6 +273,7 @@ class CustomerController extends Controller
                                 'm08_contact_person' => $contactData['name'] ?? null,
                                 'm08_email' => $contactData['email'] ?? null,
                                 'm08_phone' => $contactData['phone'] ?? null,
+                                'm08_gst' => $contactData['gst'] ?? null,
                                 'm01_state_id' => $contactData['state_id'],
                                 'm02_district_id' => $contactData['district_id'],
                                 'm08_pincode' => $contactData['pincode'],
@@ -332,25 +326,46 @@ class CustomerController extends Controller
             $validator = Validator::make($request->all(), [
                 'txt_edit_customer_type_id' => 'required|integer|exists:m09_customer_types,m09_customer_type_id',
                 'txt_edit_name'             => 'required|string|max:255',
-                'txt_edit_email'            => 'nullable|email|max:255',
-                'txt_edit_phone'            => 'nullable|string|max:15',
-                'txt_edit_gst'              => 'nullable|string|max:15',
-                'txt_edit_iec'              => 'nullable|string|max:20',
+                'txt_edit_email'            => [
+                    'nullable',
+                    'email',
+                    'max:255',
+                    Rule::unique('m07_customers', 'm07_email')->ignore($id, 'm07_customer_id')->where(function ($query) use ($customer) {
+                        return $query->where('m04_ro_id', $customer->m04_ro_id);
+                    })
+                ],
+                'txt_edit_phone'            => [
+                    'nullable',
+                    'regex:/^[6-9][0-9]{9}$/',
+                    Rule::unique('m07_customers', 'm07_phone')->ignore($id, 'm07_customer_id')->where(function ($query) use ($customer) {
+                        return $query->where('m04_ro_id', $customer->m04_ro_id);
+                    })
+                ],
+                'txt_edit_gst'              => [
+                    'nullable',
+                    'string',
+                    'max:15',
+                    Rule::unique('m07_customers', 'm07_gst')->ignore($id, 'm07_customer_id')->where(function ($query) use ($customer) {
+                        return $query->where('m04_ro_id', $customer->m04_ro_id);
+                    }),
+                    'regex:/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/i'
+                ],
+                'txt_edit_iec'              => 'nullable|string|max:10|regex:/^[A-Z0-9]{10}$/i',
                 'txt_edit_contact_person'   => 'required|string|max:255',
                 'txt_edit_state_id'         => 'required|integer|exists:m01_states,m01_state_id',
                 'txt_edit_district_id'      => 'required|integer|exists:m02_districts,m02_district_id',
-                'txt_edit_pincode'          => 'required|string|max:10',
+                'txt_edit_pincode'          => 'required|digits:6',
                 'txt_edit_address'          => 'required|string|max:500',
 
                 'locations'                 => 'nullable|array',
                 'locations.*.id'            => 'nullable|integer|exists:m08_customer_locations,m08_customer_location_id',
                 'locations.*.contact_person' => 'nullable|string|max:255',
                 'locations.*.email'         => 'nullable|email|max:255',
-                'locations.*.phone'         => 'nullable|string|max:15',
-                'locations.*.gst'           => 'nullable|string|max:15',
+                'locations.*.phone'         => 'nullable|string|max:15|regex:/^[6-9][0-9]{9}$/',
+                'locations.*.gst'           => 'nullable|string|max:15|regex:/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/i',
                 'locations.*.state_id'      => 'required|integer|exists:m01_states,m01_state_id',
                 'locations.*.district_id'   => 'required|integer|exists:m02_districts,m02_district_id',
-                'locations.*.pincode'       => 'required|string|max:10',
+                'locations.*.pincode'       => 'required|digits:6',
                 'locations.*.address'       => 'required|string|max:500',
             ], [
                 'txt_edit_customer_type_id.required' => 'The customer type field is required.',
@@ -361,17 +376,19 @@ class CustomerController extends Controller
                 'txt_edit_name.string' => 'The name must be a string.',
                 'txt_edit_name.max' => 'The name may not be greater than :max characters.',
 
-                'txt_edit_email.required' => 'The email field is required.',
                 'txt_edit_email.email' => 'Please enter a valid email address.',
                 'txt_edit_email.max' => 'The email may not be greater than :max characters.',
+                'txt_edit_email.unique' => 'This email is already registered to another customer in this RO.',
 
-                'txt_edit_phone.required' => 'The phone field is required.',
-                'txt_edit_phone.string' => 'The phone must be a string.',
-                'txt_edit_phone.max' => 'The phone may not be greater than :max characters.',
+                'txt_edit_phone.regex' => 'Phone number must be a valid 10-digit mobile number starting with 6-9.',
+                'txt_edit_phone.unique' => 'This phone number is already registered to another customer in this RO.',
 
+                'txt_edit_gst.unique' => 'This GST number is already registered to another customer in this RO.',
+                'txt_edit_gst.regex' => 'Enter a valid GST number.',
                 'txt_edit_gst.string' => 'The GST must be a string.',
                 'txt_edit_gst.max' => 'The GST may not be greater than :max characters.',
 
+                'txt_edit_iec.regex' => 'Enter a valid IEC code (10 alphanumeric characters).',
                 'txt_edit_iec.string' => 'The IEC must be a string.',
                 'txt_edit_iec.max' => 'The IEC may not be greater than :max characters.',
 
@@ -388,8 +405,7 @@ class CustomerController extends Controller
                 'txt_edit_district_id.exists' => 'The selected district is invalid.',
 
                 'txt_edit_pincode.required' => 'The pincode field is required.',
-                'txt_edit_pincode.string' => 'The pincode must be a string.',
-                'txt_edit_pincode.max' => 'The pincode may not be greater than :max characters.',
+                'txt_edit_pincode.digits' => 'The pincode must be exactly 6 digits.',
 
                 'txt_edit_address.required' => 'The address field is required.',
                 'txt_edit_address.string' => 'The address must be a string.',
@@ -406,9 +422,11 @@ class CustomerController extends Controller
                 'locations.*.email.email' => 'Please enter a valid email address for the location.',
                 'locations.*.email.max' => 'A location email may not be greater than :max characters.',
 
+                'locations.*.phone.regex' => 'Location phone number must be a valid 10-digit mobile number starting with 6-9.',
                 'locations.*.phone.string' => 'A location phone must be a string.',
                 'locations.*.phone.max' => 'A location phone may not be greater than :max characters.',
 
+                'locations.*.gst.regex' => 'Enter a valid GST number for the location.',
                 'locations.*.gst.string' => 'A location GST must be a string.',
                 'locations.*.gst.max' => 'A location GST may not be greater than :max characters.',
 
@@ -421,8 +439,7 @@ class CustomerController extends Controller
                 'locations.*.district_id.exists' => 'The selected location district is invalid.',
 
                 'locations.*.pincode.required' => 'The location pincode field is required.',
-                'locations.*.pincode.string' => 'A location pincode must be a string.',
-                'locations.*.pincode.max' => 'A location pincode may not be greater than :max characters.',
+                'locations.*.pincode.digits' => 'A location pincode must be exactly 6 digits.',
 
                 'locations.*.address.required' => 'The location address field is required.',
                 'locations.*.address.string' => 'A location address must be a string.',
@@ -508,10 +525,10 @@ class CustomerController extends Controller
             'txt_loc_customer_id' => 'required|exists:m07_customers,m07_customer_id',
             'txt_loc_contact_person' => 'nullable|string|max:255',
             'txt_loc_email' => 'nullable|email',
-            'txt_loc_phone' => 'nullable|string|max:20',
+            'txt_loc_phone' => 'nullable|string|max:20|regex:/^[6-9][0-9]{9}$/',
             'txt_loc_state_id' => 'required|exists:m01_states,m01_state_id',
             'txt_loc_district_id' => 'required|exists:m02_districts,m02_district_id',
-            'txt_loc_pincode' => 'nullable|string|max:10',
+            'txt_loc_pincode' => 'nullable|digits:6',
             'txt_loc_address' => 'required|string',
         ]);
         $data = [

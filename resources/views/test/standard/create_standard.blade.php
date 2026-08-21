@@ -17,6 +17,17 @@
                     <div class="nk-block nk-block-lg">
                         <div class="card">
                             <div class="card-inner">
+                                @if ($errors->any())
+                                    <div class="alert alert-danger alert-dismissible fade show mb-4" role="alert">
+                                        <strong><em class="icon ni ni-alert-circle"></em> Please fix the following errors:</strong>
+                                        <ul class="mb-0 mt-1 ps-3">
+                                            @foreach ($errors->all() as $error)
+                                                <li>{{ $error }}</li>
+                                            @endforeach
+                                        </ul>
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                    </div>
+                                @endif
                                 <form action="{{ route('create_standard_main') }}" class="form-validate is-alter"
                                     method="POST">
                                     @csrf

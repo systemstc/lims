@@ -17,16 +17,32 @@
                     <div class="nk-block nk-block-lg">
                         <div class="card">
                             <div class="card-inner">
-                                <form action="{{ route('create_custom') }}" method="POST">
+                                @if ($errors->any())
+                                    <div class="alert alert-danger alert-dismissible fade show mb-4" role="alert">
+                                        <strong><em class="icon ni ni-alert-circle"></em> Please fix the following errors:</strong>
+                                        <ul class="mb-0 mt-1 ps-3">
+                                            @foreach ($errors->all() as $error)
+                                                <li>{{ $error }}</li>
+                                            @endforeach
+                                        </ul>
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                    </div>
+                                @endif
+                                <form action="{{ route('create_custom') }}" class="form-validate is-alter" method="POST">
                                     @csrf
                                     <div class="row g-gs">
                                         {{-- Contract Name --}}
                                         <div class="col-md-3">
                                             <div class="form-group">
-                                                <label class="form-label" for="txt_name">Contract Name<b
+                                                <label class="form-label" for="txt_name">Custom Contract Name <b
                                                         class="text-danger">*</b></label>
-                                                <input type="text" class="form-control" id="txt_name" name="txt_name"
-                                                    required>
+                                                <div class="form-control-wrap">
+                                                    <input type="text" class="form-control @error('txt_name') is-invalid @enderror" id="txt_name" name="txt_name"
+                                                        value="{{ old('txt_name') }}" required>
+                                                </div>
+                                                @error('txt_name')
+                                                    <span class="text-danger small">{{ $message }}</span>
+                                                @enderror
                                             </div>
                                         </div>
 
@@ -76,17 +92,23 @@
                                         </thead>
                                         <tbody>
                                             <tr>
-                                                <td class="position-relative">
-                                                    <input type="text" class="form-control test-search-input"
-                                                        placeholder="Search Test..." autocomplete="off">
-                                                    <input type="hidden" name="tests[0][test_id]" class="test-id-field">
-                                                    <div class="custom-dropdown test-dropdown"></div>
+                                                <td>
+                                                    <div class="form-control-wrap">
+                                                        <select name="tests[0][test_id]" class="form-control form-select js-select2 test-select" data-search="on" required>
+                                                            <option value="">-- Select Test --</option>
+                                                            @foreach ($tests as $test)
+                                                                <option value="{{ $test->m12_test_id }}">{{ $test->m12_name }}</option>
+                                                            @endforeach
+                                                        </select>
+                                                    </div>
                                                 </td>
                                                 <td>
-                                                    <select name="tests[0][standard_id]"
-                                                        class="form-control standard-select" required>
-                                                        <option value="">-- Select Standard --</option>
-                                                    </select>
+                                                    <div class="form-control-wrap">
+                                                        <select name="tests[0][standard_id]"
+                                                            class="form-control standard-select" required>
+                                                            <option value="">-- Select Standard --</option>
+                                                        </select>
+                                                    </div>
                                                 </td>
                                                 <td>
                                                     <button type="button"
@@ -150,85 +172,87 @@
     <script>
         $(function() {
             let rowIndex = 1;
-            const TEST_URL = "{{ route('search_test') }}";
             const STANDARD_URL = "{{ route('get_standards_by_test') }}";
             const CUSTOMER_URL = "{{ route('search_customer') }}";
             let searchTimeout;
 
-            /** ========================
-             * Add / Remove Rows
-             ======================== */
+            function updateTestOptions() {
+                let selectedTestIds = [];
+                $('.test-select').each(function() {
+                    let val = $(this).val();
+                    if (val) selectedTestIds.push(String(val));
+                });
+
+                $('.test-select').each(function() {
+                    let currentVal = String($(this).val() || '');
+                    $(this).find('option').each(function() {
+                        let optionVal = String($(this).attr('value') || '');
+                        if (optionVal && optionVal !== currentVal && selectedTestIds.includes(optionVal)) {
+                            $(this).prop('disabled', true);
+                        } else {
+                            $(this).prop('disabled', false);
+                        }
+                    });
+                    if ($(this).hasClass('select2-hidden-accessible')) {
+                        $(this).select2();
+                    }
+                });
+            }
+
+            /** Add / Remove Rows **/
             $('#add-row').on('click', function() {
                 const row = `
         <tr>
-            <td class="position-relative">
-                <input type="text" class="form-control test-search-input" placeholder="Search Test..." autocomplete="off">
-                <input type="hidden" name="tests[${rowIndex}][test_id]" class="test-id-field">
-                <div class="custom-dropdown test-dropdown"></div>
+            <td>
+                <div class="form-control-wrap">
+                    <select name="tests[${rowIndex}][test_id]" class="form-control form-select js-select2 test-select" data-search="on" required>
+                        <option value="">-- Select Test --</option>
+                        @foreach ($tests as $test)
+                            <option value="{{ $test->m12_test_id }}">{{ $test->m12_name }}</option>
+                        @endforeach
+                    </select>
+                </div>
             </td>
             <td>
-                <select name="tests[${rowIndex}][standard_id]" class="form-control standard-select" required>
-                    <option value="">-- Select Standard --</option>
-                </select>
+                <div class="form-control-wrap">
+                    <select name="tests[${rowIndex}][standard_id]" class="form-control standard-select" required>
+                        <option value="">-- Select Standard --</option>
+                    </select>
+                </div>
             </td>
             <td><button type="button" class="btn btn-sm btn-danger remove-row">X</button></td>
         </tr>`;
                 $('#test-standard-table tbody').append(row);
+                $('#test-standard-table tbody tr:last-child .js-select2').select2();
                 rowIndex++;
+                updateTestOptions();
             });
+
             $(document).on('click', '.remove-row', function() {
                 $(this).closest('tr').remove();
+                updateTestOptions();
             });
 
-            /** ========================
-             * Search Tests
-             ======================== */
-            $(document).on('input', '.test-search-input', function() {
-                const query = $(this).val().trim();
-                const $input = $(this);
-                const $dropdown = $input.siblings('.test-dropdown');
-                clearTimeout(searchTimeout);
+            $(document).on('change', '.test-select', function() {
+                let testId = $(this).val();
+                let $standardSelect = $(this).closest('tr').find('.standard-select');
+                $standardSelect.empty().append('<option value="">Loading...</option>');
 
-                if (query.length < 2) return $dropdown.hide().empty();
-
-                searchTimeout = setTimeout(() => {
-                    $dropdown.html('<div class="dropdown-message">Searching...</div>').show();
-                    $.getJSON(TEST_URL, {
-                        query
-                    }, tests => {
-                        $dropdown.empty();
-                        if (!tests.length) {
-                            return $dropdown.html(
-                                '<div class="dropdown-message">No tests found.</div>');
-                        }
-                        tests.forEach(t => $('<div>')
-                            .addClass('custom-dropdown-item')
-                            .text(t.test_name)
-                            .data('test', t)
-                            .appendTo($dropdown));
+                if (testId) {
+                    $.get(STANDARD_URL, {
+                        test_id: testId
+                    }, function(data) {
+                        $standardSelect.empty().append('<option value="">-- Select Standard --</option>');
+                        $.each(data, function(key, standard) {
+                            $standardSelect.append(
+                                `<option value="${standard.id}">${standard.name}</option>`
+                            );
+                        });
                     });
-                }, 300);
-            });
-
-            /** Select Test **/
-            $(document).on('click', '.test-dropdown .custom-dropdown-item', function() {
-                const t = $(this).data('test');
-                const $row = $(this).closest('td');
-                $row.find('.test-search-input').val(t.test_name);
-                $row.find('.test-id-field').val(t.id);
-
-                const $standard = $row.closest('tr').find('.standard-select');
-                $standard.html('<option>Loading...</option>');
-
-                $.getJSON(STANDARD_URL, {
-                    test_id: t.id
-                }, data => {
-                    $standard.html('<option value="">-- Select Standard --</option>');
-                    data.forEach(s => $standard.append(
-                        `<option value="${s.id}">${s.name}</option>`));
-                });
-
-                $(this).parent().hide();
+                } else {
+                    $standardSelect.empty().append('<option value="">-- Select Standard --</option>');
+                }
+                updateTestOptions();
             });
 
             /** ========================

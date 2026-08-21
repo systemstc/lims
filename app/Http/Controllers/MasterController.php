@@ -31,6 +31,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 use Yajra\DataTables\Facades\DataTables;
 
 class MasterController extends Controller
@@ -934,18 +935,26 @@ class MasterController extends Controller
     public function viewGroups()
     {
         $groups = Group::all();
-        $samples = Sample::get(['m10_sample_id', 'm10_name']);
+        $samples = Sample::where('m10_status', 'ACTIVE')->get(['m10_sample_id', 'm10_name']);
         return view('master.groups', compact('groups', 'samples'));
     }
 
     public function createGroup(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'txt_sample_id' => 'required|integer|exists:m10_samples,m10_sample_id',
+            'txt_sample_id' => [
+                'required',
+                'integer',
+                Rule::exists('m10_samples', 'm10_sample_id')->where(function ($query) {
+                    $query->where('m10_status', 'ACTIVE');
+                }),
+            ],
             'txt_group_name' => 'required|string|max:255|unique:m11_groups,m11_name',
             'txt_group_charge' => 'required|integer',
             'txt_remark' => 'nullable|string',
         ], [
+            'txt_sample_id.required' => 'Please select a sample.',
+            'txt_sample_id.exists' => 'The selected sample is invalid or inactive.',
             'txt_group_name.required' => 'Group name is required.',
             'txt_group_name.unique' => 'Group name must be unique.',
         ]);
@@ -2098,7 +2107,7 @@ class MasterController extends Controller
 
     public function viewStandards()
     {
-        $standards = Standard::with('sample', 'user')->get();
+        $standards = Standard::with('sample', 'group', 'user')->get();
         return view('test.standard.standards', compact('standards'));
     }
 
@@ -2180,18 +2189,19 @@ class MasterController extends Controller
             $validator = Validator::make($request->all(), [
                 "txt_edit_id" => "required|exists:m15_standards,m15_standard_id",
                 "txt_edit_sample_id" => "required|exists:m10_samples,m10_sample_id",
-                "txt_edit_group_id" => "required|exists:m11_groups,m11_group_id",
+                "txt_edit_group_id" => "required|exists:m11_groups,m11_group_code",
                 "txt_edit_method" => "required|string|max:255",
                 "txt_edit_description" => "nullable|string",
                 "txt_edit_unit" => "nullable|string",
                 "txt_edit_detection_limit" => "nullable|string",
                 "txt_edit_requirement" => "nullable|string",
-                "txt_edit_remark" => "required|string|max:500",
+                "txt_edit_remark" => "nullable|string|max:500",
             ], [
                 "txt_edit_sample_id.required" => "Sample selection is required.",
+                "txt_edit_sample_id.exists" => "Selected sample is invalid.",
                 "txt_edit_group_id.required" => "Group selection is required.",
-                "txt_edit_method.required" => "Method is required.",
-                "txt_edit_remark.required" => "Remark is required.",
+                "txt_edit_group_id.exists" => "The selected group is invalid.",
+                "txt_edit_method.required" => "Method (Standard) is required.",
             ]);
 
             if ($validator->fails()) {
@@ -2340,7 +2350,7 @@ class MasterController extends Controller
     public function getPrimaryTests(Request $request)
     {
         $groupId = $request->group_id;
-        $primaryTests = PrimaryTest::where('m11_group_id', $groupId)
+        $primaryTests = PrimaryTest::where('m11_group_code', $groupId)
             ->where('m16_status', 'ACTIVE')
             ->orderBy('m16_name')
             ->get(['m16_primary_test_id', 'm16_name']);
@@ -2357,7 +2367,7 @@ class MasterController extends Controller
         if ($request->isMethod('post')) {
             $validator = Validator::make($request->all(), [
                 'txt_sample_id'       => 'required|exists:m10_samples,m10_sample_id',
-                'txt_group_id'        => 'required|exists:m11_groups,m11_group_id',
+                'txt_group_id'        => 'required|exists:m11_groups,m11_group_code',
                 'txt_primary_test_id' => 'required|exists:m16_primary_tests,m16_primary_test_id',
                 'txt_name'            => 'required|string|max:255',
                 'txt_unit'            => 'nullable|string|max:50',
@@ -2403,7 +2413,7 @@ class MasterController extends Controller
         if ($request->isMethod('post')) {
             $validator = Validator::make($request->all(), [
                 'txt_edit_sample_id'       => 'required|exists:m10_samples,m10_sample_id',
-                'txt_edit_group_id'        => 'required|exists:m11_groups,m11_group_id',
+                'txt_edit_group_id'        => 'required|exists:m11_groups,m11_group_code',
                 'txt_edit_primary_test_id' => 'required|exists:m16_primary_tests,m16_primary_test_id',
                 'txt_edit_name'            => 'required|string|max:255',
                 'txt_edit_unit'            => 'nullable|string|max:50',
@@ -2446,8 +2456,10 @@ class MasterController extends Controller
             }
             return to_route('view_secondary_tests');
         }
-        $samples = Sample::where('m10_status', 'ACTIVE')->get(['m10_sample_id', 'm10_name']);
-        $editData = SecondaryTest::findOrFail($id);
+        $editData = SecondaryTest::with(['primaryTest', 'group'])->findOrFail($id);
+        $samples = Sample::where('m10_status', 'ACTIVE')
+            ->orWhere('m10_sample_id', $editData->m10_sample_id)
+            ->get(['m10_sample_id', 'm10_name']);
         return view('test.secondary.edit_secondary_test', compact('samples', 'editData'));
     }
 
@@ -2478,15 +2490,18 @@ class MasterController extends Controller
         if ($request->isMethod('POST')) {
 
             $validator = Validator::make($request->all(), [
-                'txt_name' => 'required|string|max:255|unique:m19_packages,m19_name',
+                'txt_name' => ['required', 'string', 'max:255', Rule::unique('m19_packages', 'm19_name')->where('m19_type', 'PACKAGE')],
                 'txt_description' => 'nullable|string',
-                'txt_charges' => 'nullable|numeric|min:0',
+                'txt_charges' => 'required|numeric|min:0',
                 'tests' => 'required|array|min:1',
                 'tests.*.test_id' => 'required|integer|exists:m12_tests,m12_test_id',
                 'tests.*.standard_id' => 'required|integer|exists:m15_standards,m15_standard_id',
             ], [
                 'txt_name.required' => 'Package name is required.',
                 'txt_name.unique' => 'This package name already exists.',
+                'txt_charges.required' => 'Package charge is required.',
+                'txt_charges.numeric' => 'Package charge must be a number.',
+                'txt_charges.min' => 'Package charge cannot be negative.',
                 'tests.required' => 'At least one test is required.',
                 'tests.*.test_id.required' => 'Please select a test.',
                 'tests.*.test_id.exists' => 'Selected test is invalid.',
@@ -2531,17 +2546,26 @@ class MasterController extends Controller
     public function updatePackage(Request $request, $id)
     {
         if ($request->isMethod('POST')) {
-            $request->validate([
-                'txt_name' => 'required|string|max:255',
+            $validator = Validator::make($request->all(), [
+                'txt_name' => ['required', 'string', 'max:255', Rule::unique('m19_packages', 'm19_name')->where('m19_type', 'PACKAGE')->ignore($id, 'm19_package_id')],
+                'txt_charges' => 'required|numeric|min:0',
                 'tests' => 'required|array|min:1',
                 'tests.*.test_id' => 'required|exists:m12_tests,m12_test_id',
                 'tests.*.standard_id' => 'required|exists:m15_standards,m15_standard_id',
             ], [
                 'txt_name.required' => 'Package name is required.',
+                'txt_name.unique' => 'This package name already exists.',
+                'txt_charges.required' => 'Package charge is required.',
+                'txt_charges.numeric' => 'Package charge must be a number.',
+                'txt_charges.min' => 'Package charge cannot be negative.',
                 'tests.required' => 'At least one test is required.',
                 'tests.*.test_id.required' => 'Please select a test.',
                 'tests.*.standard_id.required' => 'Please select a standard.'
             ]);
+
+            if ($validator->fails()) {
+                return redirect()->back()->withErrors($validator)->withInput();
+            }
 
             DB::beginTransaction();
             try {
@@ -2607,20 +2631,38 @@ class MasterController extends Controller
     {
         if ($request->isMethod('POST')) {
             $validator = Validator::make($request->all(), [
-                'txt_name' => 'required|string|max:255|unique:m19_packages,m19_name',
-                'txt_charges' => 'nullable|numeric|min:0',
+                'txt_name' => ['required', 'string', 'max:255', Rule::unique('m19_packages', 'm19_name')->where('m19_type', 'CONTRACT')],
+                'txt_charges' => 'required|numeric|min:0',
                 'txt_exp_date' => 'required|date',
-                'txt_customer_id' => 'required|exists:m07_customers,m07_customer_id',
+                'txt_customer_id' => 'required|integer|exists:m07_customers,m07_customer_id',
                 'tests' => 'required|array|min:1',
                 'tests.*.test_id' => 'required|integer|exists:m12_tests,m12_test_id',
                 'tests.*.standard_id' => 'required|integer|exists:m15_standards,m15_standard_id',
             ], [
                 'txt_name.required' => 'Contract name is required.',
-                'txt_name.unique' => 'This contract name already exists.',
-                'tests.required' => 'At least one test is required.',
-                'tests.*.test_id.required' => 'Please select a test.',
+                'txt_name.string' => 'Contract name must be a valid text string.',
+                'txt_name.max' => 'Contract name must not exceed 255 characters.',
+                'txt_name.unique' => 'A contract with this name already exists.',
+
+                'txt_customer_id.required' => 'Please search and select a valid customer for the contract.',
+                'txt_customer_id.integer' => 'Selected customer ID is invalid.',
+                'txt_customer_id.exists' => 'Selected customer does not exist.',
+
+                'txt_exp_date.required' => 'Expiry date is required.',
+                'txt_exp_date.date' => 'Please select a valid expiry date.',
+
+                'txt_charges.required' => 'Contract charge amount is required.',
+                'txt_charges.numeric' => 'Charge must be a valid numeric amount.',
+                'txt_charges.min' => 'Charge cannot be a negative amount.',
+
+                'tests.required' => 'At least one test with a standard is required.',
+                'tests.array' => 'Tests data must be a valid array.',
+                'tests.min' => 'At least one test with a standard is required.',
+                'tests.*.test_id.required' => 'Please select a test for all rows.',
+                'tests.*.test_id.integer' => 'Selected test ID is invalid.',
                 'tests.*.test_id.exists' => 'Selected test is invalid.',
-                'tests.*.standard_id.required' => 'Please select a standard for the chosen test.',
+                'tests.*.standard_id.required' => 'Please select a standard for all rows.',
+                'tests.*.standard_id.integer' => 'Selected standard ID is invalid.',
                 'tests.*.standard_id.exists' => 'Selected standard is invalid.',
             ]);
 
@@ -2651,9 +2693,10 @@ class MasterController extends Controller
                 return to_route('view_contract');
             } catch (\Exception $e) {
                 DB::rollBack();
+                Log::error('Contract Creation Failed: ' . $e->getMessage());
                 Session::flash('type', 'error');
                 Session::flash('message', 'Failed to create contract. Error: ' . $e->getMessage());
-                return redirect()->back();
+                return redirect()->back()->withInput();
             }
         }
         $tests = Test::all();
@@ -2665,18 +2708,39 @@ class MasterController extends Controller
     {
         if ($request->isMethod('POST')) {
             $validator = Validator::make($request->all(), [
-                'txt_name' => 'required|string|max:255|unique:m19_packages,m19_name,' . $id . ',m19_package_id',
-                'txt_charges' => 'nullable|numeric|min:0',
+                'txt_name' => ['required', 'string', 'max:255', Rule::unique('m19_packages', 'm19_name')->where('m19_type', 'CONTRACT')->ignore($id, 'm19_package_id')],
+                'txt_charges' => 'required|numeric|min:0',
                 'txt_exp_date' => 'required|date',
-                'txt_customer_id' => 'required|exists:m07_customers,m07_customer_id',
+                'txt_customer_id' => 'required|integer|exists:m07_customers,m07_customer_id',
                 'tests' => 'required|array|min:1',
-                'tests.*.test_id' => 'required|exists:m12_tests,m12_test_id',
-                'tests.*.standard_id' => 'required|exists:m15_standards,m15_standard_id',
+                'tests.*.test_id' => 'required|integer|exists:m12_tests,m12_test_id',
+                'tests.*.standard_id' => 'required|integer|exists:m15_standards,m15_standard_id',
             ], [
-                'txt_name.required' => 'Package name is required.',
-                'tests.required' => 'At least one test is required.',
-                'tests.*.test_id.required' => 'Please select a test.',
-                'tests.*.standard_id.required' => 'Please select a standard.'
+                'txt_name.required' => 'Contract name is required.',
+                'txt_name.string' => 'Contract name must be a valid text string.',
+                'txt_name.max' => 'Contract name must not exceed 255 characters.',
+                'txt_name.unique' => 'A contract with this name already exists.',
+
+                'txt_customer_id.required' => 'Please search and select a valid customer for the contract.',
+                'txt_customer_id.integer' => 'Selected customer ID is invalid.',
+                'txt_customer_id.exists' => 'Selected customer does not exist.',
+
+                'txt_exp_date.required' => 'Expiry date is required.',
+                'txt_exp_date.date' => 'Please select a valid expiry date.',
+
+                'txt_charges.required' => 'Contract charge amount is required.',
+                'txt_charges.numeric' => 'Charge must be a valid numeric amount.',
+                'txt_charges.min' => 'Charge cannot be a negative amount.',
+
+                'tests.required' => 'At least one test with a standard is required.',
+                'tests.array' => 'Tests data must be a valid array.',
+                'tests.min' => 'At least one test with a standard is required.',
+                'tests.*.test_id.required' => 'Please select a test for all rows.',
+                'tests.*.test_id.integer' => 'Selected test ID is invalid.',
+                'tests.*.test_id.exists' => 'Selected test is invalid.',
+                'tests.*.standard_id.required' => 'Please select a standard for all rows.',
+                'tests.*.standard_id.integer' => 'Selected standard ID is invalid.',
+                'tests.*.standard_id.exists' => 'Selected standard is invalid.',
             ]);
 
             if ($validator->fails()) {
@@ -2710,9 +2774,10 @@ class MasterController extends Controller
                 return to_route('view_contract');
             } catch (\Exception $e) {
                 DB::rollBack();
+                Log::error('Contract Update Failed: ' . $e->getMessage());
                 Session::flash('type', 'error');
                 Session::flash('message', 'Something went wrong. ' . $e->getMessage());
-                return back();
+                return back()->withInput();
             }
         }
         $package = Package::with('packageTests.test', 'customer')->findOrFail($id);
@@ -2742,14 +2807,17 @@ class MasterController extends Controller
     {
         if ($request->isMethod('POST')) {
             $validator = Validator::make($request->all(), [
-                'txt_name' => 'required|string|max:255|unique:m19_packages,m19_name',
-                'txt_charges' => 'nullable|numeric|min:0',
+                'txt_name' => ['required', 'string', 'max:255', Rule::unique('m19_packages', 'm19_name')->where('m19_type', 'SPECIFICATION')],
+                'txt_charges' => 'required|numeric|min:0',
                 'tests' => 'required|array|min:1',
                 'tests.*.test_id' => 'required|integer|exists:m12_tests,m12_test_id',
                 'tests.*.standard_id' => 'required|integer|exists:m15_standards,m15_standard_id',
             ], [
                 'txt_name.required' => 'Specification name is required.',
                 'txt_name.unique' => 'This specification name already exists.',
+                'txt_charges.required' => 'Charge is required.',
+                'txt_charges.numeric' => 'Charge must be a number.',
+                'txt_charges.min' => 'Charge cannot be negative.',
                 'tests.required' => 'At least one test is required.',
                 'tests.*.test_id.required' => 'Please select a test.',
                 'tests.*.test_id.exists' => 'Selected test is invalid.',
@@ -2766,7 +2834,8 @@ class MasterController extends Controller
                 $specification = Package::create([
                     'm19_name' => $request->txt_name,
                     'm19_charges' => $request->txt_charges,
-                    'tr01_created_by' => Session::get('user_id'),
+                    'tr01_created_by' => Session::get('user_id') ?? -1,
+                    'm04_ro_id' => Session::get('role') === 'ADMIN' ? -1 : (Session::get('ro_id') ?? -1),
                     'm19_type' => 'SPECIFICATION',
                 ]);
 
@@ -2798,13 +2867,17 @@ class MasterController extends Controller
     {
         if ($request->isMethod('POST')) {
             $validator = Validator::make($request->all(), [
-                'txt_name' => 'required|string|max:255|unique:m19_packages,m19_name,' . $id . ',m19_package_id',
-                'txt_charges' => 'nullable|numeric|min:0',
+                'txt_name' => ['required', 'string', 'max:255', Rule::unique('m19_packages', 'm19_name')->where('m19_type', 'SPECIFICATION')->ignore($id, 'm19_package_id')],
+                'txt_charges' => 'required|numeric|min:0',
                 'tests' => 'required|array|min:1',
                 'tests.*.test_id' => 'required|exists:m12_tests,m12_test_id',
                 'tests.*.standard_id' => 'required|exists:m15_standards,m15_standard_id',
             ], [
-                'txt_name.required' => 'Package name is required.',
+                'txt_name.required' => 'Specification name is required.',
+                'txt_name.unique' => 'This specification name already exists.',
+                'txt_charges.required' => 'Charge is required.',
+                'txt_charges.numeric' => 'Charge must be a number.',
+                'txt_charges.min' => 'Charge cannot be negative.',
                 'tests.required' => 'At least one test is required.',
                 'tests.*.test_id.required' => 'Please select a test.',
                 'tests.*.standard_id.required' => 'Please select a standard.'
@@ -2860,16 +2933,19 @@ class MasterController extends Controller
     {
         if ($request->isMethod('POST')) {
             $validator = Validator::make($request->all(), [
-                'txt_name' => 'required|string|max:255|unique:m19_packages,m19_name',
-                'txt_charges' => 'nullable|numeric|min:0',
+                'txt_name' => ['required', 'string', 'max:255', Rule::unique('m19_packages', 'm19_name')->where('m19_type', 'CUSTOM')],
+                'txt_charges' => 'required|numeric|min:0',
                 'txt_exp_date' => 'required|date',
                 'txt_customer_id' => 'required|exists:m07_customers,m07_customer_id',
                 'tests' => 'required|array|min:1',
                 'tests.*.test_id' => 'required|integer|exists:m12_tests,m12_test_id',
                 'tests.*.standard_id' => 'required|integer|exists:m15_standards,m15_standard_id',
             ], [
-                'txt_name.required' => 'Contract name is required.',
-                'txt_name.unique' => 'This contract name already exists.',
+                'txt_name.required' => 'Custom contract name is required.',
+                'txt_name.unique' => 'This custom contract name already exists.',
+                'txt_charges.required' => 'Charge is required.',
+                'txt_charges.numeric' => 'Charge must be a number.',
+                'txt_charges.min' => 'Charge cannot be negative.',
                 'tests.required' => 'At least one test is required.',
                 'tests.*.test_id.required' => 'Please select a test.',
                 'tests.*.test_id.exists' => 'Selected test is invalid.',
@@ -2917,8 +2993,8 @@ class MasterController extends Controller
     {
         if ($request->isMethod('POST')) {
             $validator = Validator::make($request->all(), [
-                'txt_name' => 'required|string|max:255|unique:m19_packages,m19_name,' . $id . ',m19_package_id',
-                'txt_charges' => 'nullable|numeric|min:0',
+                'txt_name' => ['required', 'string', 'max:255', Rule::unique('m19_packages', 'm19_name')->where('m19_type', 'CUSTOM')->ignore($id, 'm19_package_id')],
+                'txt_charges' => 'required|numeric|min:0',
                 'tests' => 'required|array|min:1',
                 'tests.*.test_id' => 'required|exists:m12_tests,m12_test_id',
                 'tests.*.standard_id' => 'required|exists:m15_standards,m15_standard_id',
@@ -2939,6 +3015,8 @@ class MasterController extends Controller
                 $package->update([
                     'm19_name' => $request->txt_name,
                     'm19_charges' => $request->txt_charges,
+                    'm19_exp_date' => $request->txt_exp_date,
+                    'm07_contract_with' => $request->txt_customer_id,
                 ]);
 
                 // Delete old tests and re-insert
@@ -2997,7 +3075,7 @@ class MasterController extends Controller
                 'm12_test_id'            => $request->dd_test,
                 'm15_standard_id'        => $request->dd_standard,
                 'm04_ro_id'              => Session::get('ro_id') ?? -1,
-                'm21_is_accredited'      => $request->txt_accredited,
+                'm21_is_accredited'      => strtoupper($request->txt_accredited),
                 'm21_accreditation_date' => $request->txt_acc_date,
                 'm21_valid_till'         => $request->txt_accredited_till,
                 'm06_created_by'         => Session::get('user_id') ?? -1,
@@ -3008,6 +3086,25 @@ class MasterController extends Controller
         }
         Session::flash('type', 'error');
         Session::flash('message', 'Invalid request method.');
+    }
+
+    public function deleteAccreditation(Request $request)
+    {
+        $accreditation = Accreditation::find($request->id);
+        if (!$accreditation) {
+            return response()->json(['status' => 'error', 'message' => 'Accreditation record not found.'], 404);
+        }
+
+        $currentStatus = strtoupper($accreditation->m21_is_accredited ?? 'NO');
+        $newStatus = ($currentStatus === 'YES') ? 'NO' : 'YES';
+
+        $accreditation->m21_is_accredited = $newStatus;
+        $accreditation->save();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Accreditation status changed to ' . $newStatus
+        ]);
     }
     public function viewACM()
     {

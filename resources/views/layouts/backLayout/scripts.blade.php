@@ -48,7 +48,7 @@
                     state_id: stateId
                 },
                 success: function(response) {
-                    let options = '<option value=""></option>';
+                    let options = '<option value="">-- Select District --</option>';
                     $.each(response, function(index, district) {
                         const isSelected = selectedDistrictId == district
                             .m02_district_id ? 'selected' : '';
@@ -62,7 +62,7 @@
                 }
             });
         } else {
-            districtSelect.html('<option value=""></option>');
+            districtSelect.html('<option value="">-- Select District --</option>');
         }
     }
 

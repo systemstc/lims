@@ -22,13 +22,13 @@
 
             @if ($historical && $current && (string)$historical->tr07_result !== (string)$current->tr07_result)
                 <div class="comparison-box">
-                    <span class="text-danger text-decoration-line-through me-1">{{ $historical->tr07_result ?? 'N/A' }}</span>
+                    <span class="text-danger text-decoration-line-through me-1">{!! $historical->tr07_result ?? 'N/A' !!}</span>
                     <em class="icon ni ni-arrow-right small text-muted"></em>
-                    <span class="text-success fw-bold ms-1">{{ $current->tr07_result ?? 'N/A' }}</span>
+                    <span class="text-success fw-bold ms-1">{!! $current->tr07_result ?? 'N/A' !!}</span>
                     @if ($current->tr07_unit) <small class="text-muted">({{ $current->tr07_unit }})</small> @endif
                 </div>
             @else
-                <span class="fw-bold">{{ $current->tr07_result ?? 'N/A' }}</span>
+                <span class="fw-bold">{!! $current->tr07_result ?? 'N/A' !!}</span>
                 @if ($current && $current->tr07_unit) <small class="text-muted">({{ $current->tr07_unit }})</small> @endif
             @endif
         @else
@@ -57,13 +57,13 @@
             <td class="text-center">
                 @if ($historicalSecondary && (string)$historicalSecondary->tr07_result !== (string)$currentSecondary->tr07_result)
                     <div class="comparison-box">
-                        <span class="text-danger text-decoration-line-through me-1">{{ $historicalSecondary->tr07_result ?? 'N/A' }}</span>
+                        <span class="text-danger text-decoration-line-through me-1">{!! $historicalSecondary->tr07_result ?? 'N/A' !!}</span>
                         <em class="icon ni ni-arrow-right small text-muted"></em>
-                        <span class="text-success fw-bold ms-1">{{ $currentSecondary->tr07_result ?? 'N/A' }}</span>
+                        <span class="text-success fw-bold ms-1">{!! $currentSecondary->tr07_result ?? 'N/A' !!}</span>
                         @if ($currentSecondary->tr07_unit) <small class="text-muted">({{ $currentSecondary->tr07_unit }})</small> @endif
                     </div>
                 @else
-                    <span class="fw-bold">{{ $currentSecondary->tr07_result ?? 'N/A' }}</span>
+                    <span class="fw-bold">{!! $currentSecondary->tr07_result ?? 'N/A' !!}</span>
                     @if ($currentSecondary->tr07_unit) <small class="text-muted">({{ $currentSecondary->tr07_unit }})</small> @endif
                 @endif
             </td>
@@ -85,12 +85,12 @@
                 <td class="text-center">
                     @if ($hCf && (string)$hCf->tr08_field_value !== (string)$cf->tr08_field_value)
                         <div class="comparison-box">
-                            <span class="text-danger text-decoration-line-through me-1">{{ $hCf->tr08_field_value ?? 'N/A' }}</span>
+                            <span class="text-danger text-decoration-line-through me-1">{!! $hCf->tr08_field_value ?? 'N/A' !!}</span>
                             <em class="icon ni ni-arrow-right small text-muted"></em>
-                            <span class="text-success fw-bold ms-1">{{ $cf->tr08_field_value ?? 'N/A' }}</span>
+                            <span class="text-success fw-bold ms-1">{!! $cf->tr08_field_value ?? 'N/A' !!}</span>
                         </div>
                     @else
-                        {{ $cf->tr08_field_value }}
+                        {!! $cf->tr08_field_value !!}
                     @endif
                 </td>
                 <td class="text-center small text-muted">Custom</td>
@@ -110,12 +110,12 @@
         <td class="text-center">
             @if ($hCf && (string)$hCf->tr08_field_value !== (string)$cf->tr08_field_value)
                 <div class="comparison-box">
-                    <span class="text-danger text-decoration-line-through me-1">{{ $hCf->tr08_field_value ?? 'N/A' }}</span>
+                    <span class="text-danger text-decoration-line-through me-1">{!! $hCf->tr08_field_value ?? 'N/A' !!}</span>
                     <em class="icon ni ni-arrow-right small text-muted"></em>
-                    <span class="text-success fw-bold ms-1">{{ $cf->tr08_field_value ?? 'N/A' }}</span>
+                    <span class="text-success fw-bold ms-1">{!! $cf->tr08_field_value ?? 'N/A' !!}</span>
                 </div>
             @else
-                {{ $cf->tr08_field_value }}
+                {!! $cf->tr08_field_value !!}
             @endif
         </td>
         <td class="text-center small text-muted">Custom</td>
