@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>60-Second Sample Journey Simulator | LIMS 2.0 – Ministry of Textiles</title>
+  <title>30-Second Sample Journey Simulator | LIMS 2.0 – Ministry of Textiles</title>
   <link rel="shortcut icon" href="{{ asset('frontAssets/textiles_logo_200.png') }}">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&family=Cinzel:wght@700;800;900&display=swap" rel="stylesheet">
@@ -152,7 +152,7 @@
     .sim-container {
       position: relative;
       z-index: 10;
-      max-width: 1350px;
+      max-width: 1850px;
       margin: 2rem auto 4rem;
       padding: 0 2rem;
     }
@@ -1018,12 +1018,12 @@
       <img src="{{ asset('frontAssets/logo_lg.png') }}" alt="Textiles Committee Logo">
       <div class="sim-brand-text">
         <h1>TEXTILES COMMITTEE · LIMS 2.0</h1>
-        <p>60-Second Interactive Sample Journey Simulator</p>
+        <p>30-Second Interactive Sample Journey Simulator</p>
       </div>
     </div>
     <div class="sim-header-actions">
       <button class="btn-sim-hdr" id="btnVoiceToggle" onclick="toggleVoice()"><i class="bi bi-megaphone-fill"></i> Voice Narration: ON</button>
-      <button class="btn-sim-hdr" id="btnAutoPlayToggle" onclick="toggleAutoPlay()"><i class="bi bi-play-circle-fill"></i> Auto Play (60s)</button>
+      <button class="btn-sim-hdr" id="btnAutoPlayToggle" onclick="toggleAutoPlay()"><i class="bi bi-play-circle-fill"></i> Auto Play (30s)</button>
       <a href="{{ route('launch.ceremony') }}" class="btn-sim-hdr"><i class="bi bi-house-door-fill"></i> Inauguration Stage</a>
     </div>
   </header>
@@ -1129,7 +1129,7 @@
         <!-- CONTROLS BAR -->
         <div class="sim-controls-bar">
           <button class="btn-stage-ctl" onclick="prevStep()"><i class="bi bi-arrow-left"></i> Previous Stage</button>
-          <button class="btn-stage-ctl" id="btnPausePlay" onclick="toggleAutoPlay()"><i class="bi bi-play-fill"></i> Auto Walkthrough (60s)</button>
+          <button class="btn-stage-ctl" id="btnPausePlay" onclick="toggleAutoPlay()"><i class="bi bi-play-fill"></i> Auto Walkthrough (30s)</button>
           <button class="btn-stage-ctl btn-stage-ctl-primary" onclick="nextStep()">Next Stage <i class="bi bi-arrow-right"></i></button>
         </div>
       </div>
@@ -1309,7 +1309,7 @@
     let timerProgressInterval = null;
     let voiceEnabled = true;
     let stageStartTime = Date.now();
-    const STAGE_DURATION_MS = 12000;
+    const STAGE_DURATION_MS = 6000;
 
     function renderStep(idx) {
       currentIdx = idx;
@@ -1455,7 +1455,7 @@
       }
     }
 
-    // ----- AUTO PLAY (60s TOTAL, 12s PER STAGE) -----
+    // ----- AUTO PLAY (30s TOTAL, 6s PER STAGE) -----
     function toggleAutoPlay() {
       const btnHdr = document.getElementById('btnAutoPlayToggle');
       const btnCtl = document.getElementById('btnPausePlay');
@@ -1466,8 +1466,8 @@
         autoPlayTimer = null;
         timerProgressInterval = null;
         document.getElementById('timerFillBar').style.width = '0%';
-        btnHdr.innerHTML = `<i class="bi bi-play-circle-fill"></i> Auto Play (60s)`;
-        btnCtl.innerHTML = `<i class="bi bi-play-fill"></i> Auto Walkthrough (60s)`;
+        btnHdr.innerHTML = `<i class="bi bi-play-circle-fill"></i> Auto Play (30s)`;
+        btnCtl.innerHTML = `<i class="bi bi-play-fill"></i> Auto Walkthrough (30s)`;
       } else {
         stageStartTime = Date.now();
         timerProgressInterval = setInterval(updateStageTimerBar, 100);

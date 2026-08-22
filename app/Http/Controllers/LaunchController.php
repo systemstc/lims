@@ -13,7 +13,7 @@ class LaunchController extends Controller
     public function ceremony()
     {
         $isLaunched = Cache::get('lims_launched_status', false);
-        $launchedAt = Cache::get('lims_launched_at', '22 August 2026');
+        $launchedAt = Cache::get('lims_launched_at', '22 August 2026, 06:30 PM IST');
 
         return view('launch.ceremony', compact('isLaunched', 'launchedAt'));
     }
@@ -23,7 +23,7 @@ class LaunchController extends Controller
      */
     public function triggerLaunch(Request $request)
     {
-        $timestamp = date('d F Y, h:i A');
+        $timestamp = date('d F Y, h:i A') . ' IST';
         Cache::put('lims_launched_status', true);
         Cache::put('lims_launched_at', $timestamp);
 
@@ -256,7 +256,7 @@ class LaunchController extends Controller
             ],
             [
                 'id' => 19,
-                'name' => 'Regional Laboratory, Odisha',
+                'name' => 'Regional Laboratory, Bhubaneswar',
                 'lat' => 20.2961,
                 'lng' => 85.8245,
                 'city' => 'Bhubaneswar, Odisha',
@@ -279,14 +279,14 @@ class LaunchController extends Controller
     }
 
     /**
-     * 60-Second Interactive Sample Journey Walkthrough
+     * 30-Second Interactive Sample Journey Walkthrough
      */
     public function simulator()
     {
         $steps = [
             [
                 'step' => 1,
-                'time_slot' => '00:00 - 00:12',
+                'time_slot' => '00:00 - 00:06',
                 'title' => 'Digital Sample Registration & QR Tagging',
                 'subtitle' => 'Exporter or customer files online test request via LIMS portal',
                 'icon' => 'ni-edit-doc',
@@ -309,7 +309,7 @@ class LaunchController extends Controller
             ],
             [
                 'step' => 2,
-                'time_slot' => '00:12 - 00:24',
+                'time_slot' => '00:06 - 00:12',
                 'title' => 'Blind Coding & Cryptographic Allocation',
                 'subtitle' => 'Zero-bias lab receipt with automated identity masking',
                 'icon' => 'ni-shield-check',
@@ -332,7 +332,7 @@ class LaunchController extends Controller
             ],
             [
                 'step' => 3,
-                'time_slot' => '00:24 - 00:36',
+                'time_slot' => '00:12 - 00:18',
                 'title' => 'Analyst Digital Workbench & Result Entry',
                 'subtitle' => 'Structured digital test recording with automated tolerance calculations',
                 'icon' => 'ni-flask',
@@ -355,7 +355,7 @@ class LaunchController extends Controller
             ],
             [
                 'step' => 4,
-                'time_slot' => '00:36 - 00:48',
+                'time_slot' => '00:18 - 00:24',
                 'title' => 'Two-Tier Quality Review & Digital Sign-Off',
                 'subtitle' => 'Senior Scientist validation & PKI digital signature',
                 'icon' => 'ni-check-circle-cut',
@@ -378,7 +378,7 @@ class LaunchController extends Controller
             ],
             [
                 'step' => 5,
-                'time_slot' => '00:48 - 01:00',
+                'time_slot' => '00:24 - 00:30',
                 'title' => 'QR-Authenticated PDF & Global Verification',
                 'subtitle' => 'Instant downloadable certificate with anti-counterfeit QR code',
                 'icon' => 'ni-file-docs',
@@ -395,7 +395,7 @@ class LaunchController extends Controller
                 'metrics' => [
                     ['label' => 'Report Delivery', 'val' => 'Instant Download'],
                     ['label' => 'QR Verification', 'val' => '1 Second Global'],
-                    ['label' => 'Total Journey TAT', 'val' => '60s Walkthrough']
+                    ['label' => 'Total Journey TAT', 'val' => '30s Walkthrough']
                 ],
                 'mock_type' => 'certificate'
             ]

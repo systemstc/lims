@@ -472,7 +472,7 @@
     </div>
     <div class="header-controls">
       <button class="btn-stage-hdr" id="btnVoiceToggle" onclick="toggleVoice()"><i class="bi bi-megaphone-fill"></i> Voice Narration: ON</button>
-      <a href="{{ route('launch.simulator') }}" class="btn-stage-hdr"><i class="bi bi-play-circle-fill"></i> 60-Sec Walkthrough</a>
+      <a href="{{ route('launch.simulator') }}" class="btn-stage-hdr"><i class="bi bi-play-circle-fill"></i> 30-Sec Walkthrough</a>
       <a href="{{ route('launch.qr_demo') }}" class="btn-stage-hdr"><i class="bi bi-qr-code"></i> QR Verify</a>
       <a href="{{ route('launch.ceremony') }}" class="btn-stage-hdr"><i class="bi bi-house-door-fill"></i> Inauguration Stage</a>
       <a href="{{ url('/') }}" class="btn-stage-hdr"><i class="bi bi-house-fill"></i> Main Portal</a>

@@ -101,6 +101,8 @@
       border-left: 4px solid var(--gold-main);
     }
 
+    .curtain-overlay.no-anim .curtain-panel { transition: none !important; }
+
     .curtain-overlay.closed .curtain-panel-left { transform: translateX(0); }
     .curtain-overlay.closed .curtain-panel-right { transform: translateX(0); }
 
@@ -632,7 +634,7 @@
       box-shadow: 0 30px 80px rgba(0,0,0,0.95), 0 0 60px var(--gold-glow);
       position: relative;
       backdrop-filter: blur(20px);
-      animation: plaqueRise 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      animation: plaqueRise 0s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
     @keyframes plaqueRise {
       from { opacity: 0; transform: translateY(50px) scale(0.94); }
@@ -821,7 +823,7 @@
   <!-- HEADER -->
   <header class="ceremony-header">
     <div class="header-brand">
-      <img src="{{ asset('frontAssets/logo_lg.png') }}" alt="Textiles Committee Logo">
+      <img src="{{ asset('frontAssets/logo_lg.png') }}" alt="Textiles Committee Logo" onclick="handleSecretLogoClick()" style="cursor: pointer;" title="Textiles Committee (5 clicks for Admin Reset)">
       <div class="header-brand-info">
         <h1>TEXTILES COMMITTEE · LIMS 2.0</h1>
         <p>Ministry of Textiles, Govt. of India</p>
@@ -829,9 +831,8 @@
     </div>
     <div class="header-controls">
       <button class="btn-stage-hdr" id="btnAudioToggle" onclick="toggleAudio()"><i class="bi bi-volume-up-fill"></i> Sound: ON</button>
-      <button class="btn-stage-hdr btn-reset-stage" onclick="resetStage()"><i class="bi bi-arrow-counterclockwise"></i> Re-Test Button 🔄</button>
       <a href="{{ route('launch.map') }}" class="btn-stage-hdr"><i class="bi bi-map-fill"></i> Pan-India Map</a>
-      <a href="{{ route('launch.simulator') }}" class="btn-stage-hdr"><i class="bi bi-play-circle-fill"></i> 60-Sec Walkthrough</a>
+      <a href="{{ route('launch.simulator') }}" class="btn-stage-hdr"><i class="bi bi-play-circle-fill"></i> 30-Sec Walkthrough</a>
       <a href="{{ route('launch.qr_demo') }}" class="btn-stage-hdr"><i class="bi bi-qr-code"></i> QR Verify</a>
       <a href="{{ url('/') }}" class="btn-stage-hdr"><i class="bi bi-house-fill"></i> Main Portal</a>
     </div>
@@ -839,7 +840,7 @@
 
   <!-- COUNTDOWN -->
   <div class="countdown-strip">
-    <span>🇮🇳 OFFICIAL LAUNCH CEREMONY: <strong>22 AUGUST 2026</strong></span>
+    <span>OFFICIAL LAUNCH CEREMONY: <strong>22 AUGUST 2026 · 06:30 PM IST (LAUNCH WINDOW: 06:30 PM - 06:35 PM)</strong></span>
     <div class="timer-box">
       <div class="timer-unit" id="timerDays">00d</div>
       <div class="timer-unit" id="timerHours">00h</div>
@@ -854,9 +855,8 @@
       <i class="bi bi-crown-fill"></i> National E-Inauguration · Ministry of Textiles
     </div>
 
-    <h1 class="hero-title">NATIONAL DIGITAL LAUNCH OF </br> LIMS 2.0</h1>
-    <p class="hero-sub">
-      Dedicated to the nation by <span class="minister-highlight">Shri Giriraj Singh Ji</span>, Hon’ble Union Minister of Textiles
+    <h1 class="hero-title">DIGITAL LAUNCH OF </br> LIMS 2.0</h1>
+    <p class="hero-sub">By <span class="minister-highlight">Shri Giriraj Singh Ji</span>, Hon’ble Union Minister of Textiles
     </p>
 
     <!-- LAUNCH PEDESTAL -->
@@ -872,18 +872,15 @@
     <!-- INAUGURATION PLAQUE (Second Screen - revealed post 2-sec curtain unveil) -->
     <div class="inauguration-plaque" id="inaugurationPlaque">
       <img src="{{ asset('frontAssets/logo_lg.png') }}" alt="Textiles Committee Emblem" class="plaque-emblem">
-      <h2 class="plaque-title">OFFICIALLY DEDICATED TO THE NATION</h2>
+      {{-- <h2 class="plaque-title">OFFICIALLY DEDICATED TO THE NATION</h2> --}}
       <p class="plaque-body-text">
-        The Next-Generation <strong>Laboratory Information Management System (LIMS 2.0)</strong> of the Textiles Committee, Ministry of Textiles, has been officially launched and dedicated to the nation by
+        The Next-Generation <strong>Laboratory Information Management System (LIMS 2.0)</strong> of the Textiles Committee, Ministry of Textiles, has been officially launched by
       </p>
       <h1 class="plaque-dignitary-title">SHRI GIRIRAJ SINGH JI</h1>
       <div class="plaque-dignitary-role">Hon’ble Union Minister of Textiles, Government of India</div>
-      <div style="margin-bottom: 2rem;">
+      <div style="margin-bottom: 1rem;">
         <span class="plaque-stamp-badge"><i class="bi bi-check-circle-fill"></i> Inaugurated on <span id="launchedAtDisplay">{{ $launchedAt }}</span></span>
       </div>
-      <button class="btn-stage-hdr" onclick="resetStage()" style="padding: 0.85rem 2.5rem; font-size: 1rem; background: linear-gradient(135deg, var(--gold-main), var(--gold-dark)); color: #000; border: none; font-weight: 800; border-radius: 40px;">
-        <i class="bi bi-arrow-counterclockwise"></i> Re-Test Button & Fireworks 🔄
-      </button>
     </div>
 
     <!-- NAV GRID -->
@@ -898,7 +895,7 @@
       <a href="{{ route('launch.simulator') }}" class="stage-card-link">
         <i class="bi bi-play-circle stage-card-icon"></i>
         <div class="stage-card-content">
-          <h3>60-Second Workflow</h3>
+          <h3>30-Second Workflow</h3>
           <p>Stage-ready 5-step sample lifecycle from QR receipt to digital certificate.</p>
         </div>
       </a>
@@ -1079,76 +1076,58 @@
       btn.innerHTML = audioEnabled ? '<i class="bi bi-volume-up-fill"></i> Sound: ON' : '<i class="bi bi-volume-mute-fill"></i> Sound: OFF';
     }
 
-    // ----- EXACT 6-SECOND TIMELINE SEQUENCE WITH CINEMATIC COUNTDOWN DISC -----
+    // ----- DIRECT 2-SECOND UNVEILING INAUGURATION SEQUENCE -----
     function executeInauguration() {
       playFanfare();
 
       const curtainOverlay = document.getElementById('curtainOverlay');
       const curtainBanner = document.getElementById('curtainTimerBanner');
-      const countNum = document.getElementById('curtainCountNumber');
+      if (curtainBanner) curtainBanner.style.display = 'none';
 
-      // PHASE 1 (0s to 1s): Close curtains over 1 second
+      // 1. Close curtains with closing time = 0 (instant shut)
+      curtainOverlay.classList.add('no-anim');
       curtainOverlay.classList.remove('unveiling');
       curtainOverlay.classList.add('closed');
+      void curtainOverlay.offsetWidth; // Force DOM reflow so closed state renders instantly
 
-      // After 1 second (curtain fully closed), reveal 3D Glass Countdown Disc
-      setTimeout(() => {
-        curtainBanner.style.display = 'block';
-        let count = 3;
-        countNum.innerText = count;
-        countNum.classList.add('pop-animate');
-        playTickSound();
+      // 2. Remove no-anim to restore 2-second transition for unveiling
+      curtainOverlay.classList.remove('no-anim');
+      void curtainOverlay.offsetWidth;
 
-        // PHASE 2 (1s to 4s): 3-second countdown tick with zoom pulse & audio tick
-        const countdownInterval = setInterval(() => {
-          count--;
-          if (count > 0) {
-            countNum.innerText = count;
-            countNum.classList.remove('pop-animate');
-            void countNum.offsetWidth; // Trigger DOM reflow for CSS animation restart
-            countNum.classList.add('pop-animate');
-            playTickSound();
-          } else {
-            clearInterval(countdownInterval);
-            curtainBanner.style.display = 'none';
+      // 3. Immediately unveil (open) curtains over 2 seconds (no 3s countdown timer animation)
+      curtainOverlay.classList.remove('closed');
+      curtainOverlay.classList.add('unveiling');
 
-            // PHASE 3 (4s to 6s): Open curtains over 2 seconds to reveal second screen
-            curtainOverlay.classList.remove('closed');
-            curtainOverlay.classList.add('unveiling');
+      // PLAY CROWD CLAPPING & APPLAUSE SOUND EFFECT RIGHT WHEN CURTAINS OPEN!
+      playApplauseSound();
+      playFanfare();
 
-            // PLAY CROWD CLAPPING & APPLAUSE SOUND EFFECT RIGHT WHEN CURTAINS OPEN!
-            playApplauseSound();
-            playFanfare();
+      // Switch stage view
+      document.getElementById('launchPedestal').style.display = 'none';
+      document.getElementById('indiaMapBg').style.opacity = '0';
+      document.getElementById('spotlightLeft').style.opacity = '0.85';
+      document.getElementById('spotlightRight').style.opacity = '0.85';
 
-            // Switch stage view
-            document.getElementById('launchPedestal').style.display = 'none';
-            document.getElementById('indiaMapBg').style.opacity = '0';
-            document.getElementById('spotlightLeft').style.opacity = '0.85';
-            document.getElementById('spotlightRight').style.opacity = '0.85';
+      const plaque = document.getElementById('inaugurationPlaque');
+      plaque.style.display = 'block';
 
-            const plaque = document.getElementById('inaugurationPlaque');
-            plaque.style.display = 'block';
+      // Fire COMBINED Side Fireworks Cannons AND Top Confetti Rain Drops!
+      fireRoyalFireworks();
+      fireTopConfettiPops();
 
-            // Fire COMBINED Side Fireworks Cannons AND Top Confetti Rain Drops!
-            fireRoyalFireworks();
-            fireTopConfettiPops();
-
-            // Save launch state via API
-            fetch("{{ route('launch.trigger') }}", {
-              method: "POST",
-              headers: {
-                "X-CSRF-TOKEN": "{{ csrf_token() }}",
-                "Content-Type": "application/json"
-              }
-            })
-            .then(res => res.json())
-            .then(data => {
-              document.getElementById('launchedAtDisplay').innerText = data.launched_at;
-            })
-            .catch(() => {});
-          }
-        }, 1000);
-      }, 1000);
+      // Save launch state via API
+      fetch("{{ route('launch.trigger') }}", {
+        method: "POST",
+        headers: {
+          "X-CSRF-TOKEN": "{{ csrf_token() }}",
+          "Content-Type": "application/json"
+        }
+      })
+      .then(res => res.json())
+      .then(data => {
+        document.getElementById('launchedAtDisplay').innerText = data.launched_at;
+      })
+      .catch(() => {});
     }
 
     // Side Fireworks Cannon Pops
@@ -1212,12 +1191,58 @@
       });
     }
 
-    // ----- COUNTDOWN TO LAUNCH -----
-    const targetDate = new Date('2026-08-22T11:00:00+05:30').getTime();
+    // ----- ADMIN SECRET RESET TRIGGERS -----
+    let secretLogoClicks = 0;
+    let secretClickTimer = null;
+
+    function handleSecretLogoClick() {
+      secretLogoClicks++;
+      if (secretClickTimer) clearTimeout(secretClickTimer);
+      if (secretLogoClicks >= 5) {
+        secretLogoClicks = 0;
+        if (confirm("Admin Secret Reset: Are you sure you want to reset the launch ceremony state?")) {
+          resetStage();
+        }
+      } else {
+        secretClickTimer = setTimeout(() => { secretLogoClicks = 0; }, 3000);
+      }
+    }
+
+    // Explicitly ignore Ctrl + Shift + R & Ctrl + R to prevent accidental refresh/reset during ceremony
+    document.addEventListener('keydown', function(e) {
+      const key = e.key.toLowerCase();
+
+      // Completely ignore Ctrl + Shift + R and Ctrl + R
+      if ((e.ctrlKey && e.shiftKey && key === 'r') || (e.ctrlKey && key === 'r')) {
+        e.preventDefault();
+        return;
+      }
+
+      // Admin Secret Reset Shortcuts: Ctrl + Alt + R  OR  Ctrl + Shift + X  OR  Alt + R
+      if ((e.ctrlKey && e.altKey && key === 'r') ||
+          (e.ctrlKey && e.shiftKey && key === 'x') ||
+          (e.altKey && !e.ctrlKey && key === 'r')) {
+        e.preventDefault();
+        if (confirm("Admin Secret Reset: Reset launch ceremony state?")) {
+          resetStage();
+        }
+      }
+    });
+
+    // Check URL query parameter (e.g. ceremony?reset=1 or #reset)
+    window.addEventListener('DOMContentLoaded', () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('reset') === '1' || window.location.hash === '#reset') {
+        resetStage();
+      }
+    });
+
+    // ----- COUNTDOWN TO LAUNCH (Target: 22 August 2026 at 18:30:00 IST / Window 6:30 PM - 6:35 PM) -----
+    const targetDate = new Date('2026-08-22T18:30:00+05:30').getTime();
     function updateCountdown() {
       const now = Date.now();
       const dist = targetDate - now;
-      if (dist < 0) {
+      if (dist <= 0) {
         document.getElementById('timerDays').innerText = '00d';
         document.getElementById('timerHours').innerText = '00h';
         document.getElementById('timerMins').innerText = '00m';
