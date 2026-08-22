@@ -424,12 +424,12 @@
             background: linear-gradient(135deg, rgba(30, 41, 59, 0.82), rgba(228, 56, 84, 0.45)),
                 url('{{ asset('frontAssets/header-image.jpeg') }}') center/cover no-repeat scroll;
             color: white;
-            min-height: 100svh;
+            min-height: calc(100vh - 120px);
             display: flex;
             align-items: center;
             position: relative;
-            padding-top: calc(var(--navbar-h) + 2.5rem);
-            padding-bottom: 3rem;
+            padding-top: 3rem;
+            padding-bottom: 3.5rem;
         }
 
         .hero-section::before {
@@ -447,20 +447,21 @@
         }
 
         .hero-content h1 {
-            font-size: clamp(1.6rem, 5vw, 3.2rem);
-            line-height: 1.2;
+            font-size: clamp(1.8rem, 5vw, 3.2rem);
+            line-height: 1.25;
             font-weight: 800;
         }
 
         .hero-content p.lead {
-            font-size: clamp(0.88rem, 2.2vw, 1.1rem);
+            font-size: clamp(0.95rem, 2.2vw, 1.15rem);
             opacity: 0.92;
+            max-width: 650px;
         }
 
         .hero-image {
             position: relative;
             display: inline-block;
-            width: 100%;
+            max-width: 100%;
         }
 
         .hero-image::before {
@@ -468,7 +469,7 @@
             position: absolute;
             inset: 0;
             background: linear-gradient(135deg, rgba(30, 41, 59, 0.5), rgba(228, 56, 84, 0.25));
-            border-radius: 0.5rem;
+            border-radius: 0.75rem;
             z-index: 1;
             pointer-events: none;
         }
@@ -476,9 +477,10 @@
         .hero-image img {
             width: 100%;
             height: auto;
-            max-width: 460px;
-            border-radius: 0.5rem;
+            max-width: 480px;
+            border-radius: 0.75rem;
             margin: 0 auto;
+            box-shadow: 0 12px 30px rgba(0,0,0,0.35);
         }
 
         /* Hero buttons — stack on very small screens */
@@ -1079,7 +1081,7 @@
                         </p>
                         <div class="hero-buttons">
                             <a href="{{ route('launch.ceremony') }}" class="btn-primary" style="background: linear-gradient(135deg, #d4af37, #b8860b); color: #000; font-weight: 800; border: none;">
-                                <em class="icon ni ni-power" style="margin-right:0.45rem;"></em>VIP Launch Portal
+                                <em class="icon ni ni-power" style="margin-right:0.45rem;"></em>Launch Portal
                             </a>
                             <a href="#features" class="btn-primary">
                                 <em class="icon ni ni-info" style="margin-right:0.45rem;"></em>System Overview
@@ -1092,7 +1094,7 @@
                 </div>
                 <div class="col-lg-6 order-1 order-lg-2 text-center">
                     <div class="hero-image">
-                        <img src="{{ asset('frontAssets/branding.jpeg') }}"
+                        <img src="{{ asset('frontAssets/labimg6.jpeg') }}"
                             alt="Government Textile Testing Laboratory" class="img-fluid rounded-3 shadow-lg"
                             style="max-width:420px; margin:0 auto;">
                     </div>
