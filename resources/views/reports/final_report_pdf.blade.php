@@ -491,8 +491,6 @@
             $sample->m09_customer_type_id == 4 ||
             ($sample->customerType && str_contains(strtolower($sample->customerType->m09_name), 'custom'));
         $totalParts = count($reportParts);
-        $romanMap = [1 => 'I', 2 => 'II', 3 => 'III', 4 => 'IV'];
-        $totalRoman = $romanMap[$totalParts] ?? $totalParts;
     @endphp
 
     @foreach ($reportParts as $pIndex => $partData)
@@ -500,13 +498,24 @@
             $orderedItems = $partData['items'];
             $partHasAccredited = $partData['has_accredited_tests'];
 
-            $currentRoman = $romanMap[$pIndex + 1] ?? $pIndex + 1;
-
-            $reportNoStr = $meta['report_no'] . ' Part ' . $currentRoman . ' of ' . $totalRoman;
+            $partCode = $partData['part_code'] ?? ($pIndex === 0 && !empty($partHasAccredited) ? 'A' : '');
+            $reportNoSuffix = !empty($partCode) ? ' ' . $partCode : '';
+            $reportNoStr = $meta['report_no'] . $reportNoSuffix;
 
             $swatchSrc = null;
             if (!empty($sample->tr04_attachment)) {
-                $pathsToCheck = [storage_path('app/public/' . $sample->tr04_attachment)];
+                $rawAttachment = $sample->tr04_attachment;
+                $cleanAttachment = ltrim(str_replace('\\', '/', $rawAttachment), '/');
+                $strippedAttachment = preg_replace('#^(public/|storage/)#', '', $cleanAttachment);
+
+                $pathsToCheck = [
+                    storage_path('app/public/' . $strippedAttachment),
+                    storage_path('app/' . $cleanAttachment),
+                    public_path('storage/' . $strippedAttachment),
+                    public_path($cleanAttachment),
+                    base_path('storage/app/public/' . $strippedAttachment),
+                    base_path('public/storage/' . $strippedAttachment),
+                ];
                 foreach ($pathsToCheck as $swatchPath) {
                     if (file_exists($swatchPath) && is_file($swatchPath)) {
                         $ext = strtolower(pathinfo($swatchPath, PATHINFO_EXTENSION));
@@ -598,126 +607,146 @@
         {{-- ===== FIRST PAGE CONTENT ===== --}}
 
         {{-- ===== FIRST PAGE DESCRIPTIVE HEADER ===== --}}
-@if ($pIndex == 0)
-<div class="first-page-header">
-    <table style="width: 100%; border-collapse: collapse;">
-        <tbody>
-            <!-- Header Row with Report No and Date -->
-            <tr>
-                <th colspan="4" style="width: 100%; text-align: left; border: 1px solid #000; padding: 5px; font-size: 12px;">
-                    <span style="float: right;">Date : {{ $meta['date'] }}</span>
-                    Test Report No : {{ $reportNoStr }}
-                </th>
-            </tr>
-            
-            <!-- Customer Name and Address -->
-            <tr>
-                <td style="width: 45%; border: 1px solid #000; padding: 5px; font-weight: bold; background-color: #f5f5f5;">Name &amp; Address of Customer :</td>
-                <td colspan="3" style="width: 50%; border: 1px solid #000; padding: 5px;">
-                    {{ $meta['customer_name'] }}<br>{{ $meta['customer_address'] }}
-                </td>
-            </tr>
+        @if ($pIndex == 0)
+            <div class="first-page-header">
+                <table style="width: 100%; border-collapse: collapse;">
+                    <tbody>
+                        <!-- Header Row with Report No and Date -->
+                        <tr>
+                            <th colspan="4"
+                                style="width: 100%; text-align: left; border: 1px solid #000; padding: 5px; font-size: 12px;">
+                                <span style="float: right;">Date : {{ $meta['date'] }}</span>
+                                Test Report No : {{ $reportNoStr }}
+                            </th>
+                        </tr>
 
-            <!-- Sample Forwarding Letter -->
-            <tr>
-                <td style="border: 1px solid #000; font-weight: bold; background-color: #f5f5f5;">Sample forwarding letter No. &amp; date :</td>
-                <td colspan="2" style="border: 1px solid #000;">
-                    Test Memo No. {{ $meta['reference'] }} dated {{ \Carbon\Carbon::parse($sample->tr04_reference_date)->format('d/m/Y') }}
-                </td>
-                <th rowspan="4" 
-                    style="vertical-align: middle; width: 10%; border: 1px solid #000; text-align: center; background-color: #f9f9f9; min-height: 150px;">
-                    <div style="border: 2px dashed #999; display: flex; align-items: center; justify-content: center; {{ $swatchSrc ? 'background: url(\'' . $swatchSrc . '\') no-repeat center center; background-size: contain;' : '' }}">
-                        @if (!$swatchSrc)
-                            <div style="color:#999; font-size:11px; text-align: center;">
-                                <div style="font-size: 24px; margin-bottom: 5px;">🖼️</div>
-                                <div>Sample<br>Swatch</div>
-                                <div style="font-size: 8px; color: #ccc;">(Placeholder)</div>
-                            </div>
+                        <!-- Customer Name and Address -->
+                        <tr>
+                            <td
+                                style="width: 35%; border: 1px solid #000; padding: 5px; font-weight: bold; background-color: #f5f5f5;">
+                                Name &amp; Address of Customer :</td>
+                            <td colspan="3" style="width: 65%; border: 1px solid #000; padding: 5px;">
+                                {{ $meta['customer_name'] }}<br>{{ $meta['customer_address'] }}
+                            </td>
+                        </tr>
+
+                        <!-- Sample Forwarding Letter -->
+                        <tr>
+                            <td style="border: 1px solid #000; font-weight: bold; background-color: #f5f5f5;">Sample
+                                forwarding letter No. &amp; date :</td>
+                            <td colspan="2" style="border: 1px solid #000;">
+                                Test Memo No. {{ $meta['reference'] }} dated
+                                {{ \Carbon\Carbon::parse($sample->tr04_reference_date)->format('d/m/Y') }}
+                            </td>
+                            <th rowspan="{{ $isCustom ? 7 : 6 }}"
+                                style="vertical-align: top; width: 25%; border: 1px solid #000; text-align: center; background-color: #f9f9f9; padding: 0 !important; margin: 0;">
+                                @if ($swatchSrc)
+                                    <img src="{{ $swatchSrc }}" alt="Sample Swatch" style="width: 100%; height: {{ $isCustom ? '180px' : '155px' }}; display: block; margin: 0; padding: 0; border: 0;">
+                                @else
+                                    <div style="border: 1px dashed #999; margin: 4px; padding: 15px 5px; color: #777; font-size: 10px; text-align: center; background: #fff;">
+                                        <strong>Sample<br>Swatch</strong><br>
+                                        <span style="font-size: 8px; color: #999;">(Not Attached)</span>
+                                    </div>
+                                @endif
+                            </th>
+                        </tr>
+
+                        <!-- Date of Receipt -->
+                        <tr>
+                            <td style="border: 1px solid #000; font-weight: bold; background-color: #f5f5f5;">Date of
+                                receipt of sample :</td>
+                            <td colspan="2" style="border: 1px solid #000;">
+                                {{ Carbon\Carbon::parse($sample->created_at)->format('d M Y') }}
+                            </td>
+                        </tr>
+
+                        <!-- Buyer Name (Customs Only) -->
+                        @if ($isCustom)
+                            <tr>
+                                <td style="border: 1px solid #000; font-weight: bold; background-color: #f5f5f5;">Buyers
+                                    Name &amp; address (Optional) :</td>
+                                <td colspan="2" style="border: 1px solid #000;">
+                                    {{ $meta['buyer'] }}
+                                </td>
+                            </tr>
                         @endif
-                    </div>
-                </th>
-            </tr>
 
-            <!-- Date of Receipt -->
-            <tr>
-                <td style="border: 1px solid #000; font-weight: bold; background-color: #f5f5f5;">Date of receipt of sample :</td>
-                <td colspan="2" style="border: 1px solid #000;">
-                    {{ Carbon\Carbon::parse($sample->created_at)->format('d M Y') }}
-                </td>
-            </tr>
+                        <!-- Customer Sample No / BE No -->
+                        <tr>
+                            <td style="border: 1px solid #000; font-weight: bold; background-color: #f5f5f5;">
+                                @if ($isCustom)
+                                    Customer's Sample Reference :
+                                @else
+                                    Customer Sample Reference :
+                                @endif
+                            </td>
+                            <td colspan="2" style="border: 1px solid #000;">
+                                BE No. {{ $meta['be_no'] }}
+                            </td>
+                        </tr>
 
-            <!-- Buyer Name (Customs Only) -->
-            @if ($isCustom)
-            <tr>
-                <td style="border: 1px solid #000; font-weight: bold; background-color: #f5f5f5;">Buyers Name &amp; address (Optional) :</td>
-                <td colspan="2" style="border: 1px solid #000;">
-                    {{ $meta['buyer'] }}
-                </td>
-            </tr>
-            @endif
+                        <!-- Sample Description and Lab Sample No -->
+                        <tr>
+                            <td style="border: 1px solid #000;  font-weight: bold; background-color: #f5f5f5;">
+                                Customer's Sample Description :</td>
+                            <td colspan="2" style="border: 1px solid #000;">
+                                {{ $meta['sample_description'] }}
+                            </td>
+                        </tr>
 
-            <!-- Customer Sample No / BE No -->
-            <tr>
-                <td style="border: 1px solid #000; font-weight: bold; background-color: #f5f5f5;">
-                    @if ($isCustom)
-                        Customer Sample No. :
-                    @else
-                        Customer Sample No :
-                    @endif
-                </td>
-                <td style="border: 1px solid #000; width: 50%;">
-                    BE No. {{ $meta['be_no'] }}
-                </td>
-            </tr>
+                        <!-- Sample Characteristics -->
+                        <tr>
+                            <td style="border: 1px solid #000; font-weight: bold; background-color: #f5f5f5;">Sample
+                                Characteristics:</td>
+                            <td colspan="2" style="border: 1px solid #000;">
+                                {{ $meta['sample_characteristics'] }}
+                            </td>
+                        </tr>
 
-            <!-- Sample Description and Lab Sample No -->
-            <tr>
-                <td style="border: 1px solid #000;  font-weight: bold; background-color: #f5f5f5;">Sample Description :</td>
-                <td style="border: 1px solid #000; ">
-                    {{ $meta['sample_description'] }}
-                </td>
-            </tr>
+                        <!-- Date of Performance of Tests -->
+                        <tr>
+                            <td
+                                style="border: 1px solid #000; padding: 5px; font-weight: bold; background-color: #f5f5f5;">
+                                Date of Performance of Tests:</td>
+                            <td colspan="2" style="border: 1px solid #000; padding: 5px;">
+                                {{ \Carbon\Carbon::parse($sample->created_at)->format('d.m.Y') }} to
+                                {{ $sample->testResult->first() && $sample->testResult->first()->tr07_performance_date ? \Carbon\Carbon::parse($sample->testResult->first()->tr07_performance_date)->format('d.m.Y') : \Carbon\Carbon::parse($sample->created_at)->format('d.m.Y') }}
+                            </td>
+                        </tr>
 
-            <!-- Sample Characteristics -->
-            <tr>
-                <td style="border: 1px solid #000; font-weight: bold; background-color: #f5f5f5;">Sample Characteristics:</td>
-                <td colspan="2" style="border: 1px solid #000;">
-                    {{ $meta['sample_characteristics'] }}
-                </td>
-                <td rowspan="2" style="border: 1px solid #000; padding: 5px; text-align: center; font-weight: bold; background-color: #f5f5f5; width: 30%;">
-                    Lab. Sample No. 
-                    {{ $meta['report_no'] }}
-                </td>
-            </tr>
+                        <!-- ULR No (Conditional) -->
+                        @if ($partHasAccredited && $sample->tr04_ulr_no)
+                            <tr>
+                                <td
+                                    style="width:30%; border: 1px solid #000; padding: 5px; font-weight: bold; background-color: #f5f5f5;">
+                                    ULR No.</td>
+                                <td colspan="3" style="border: 1px solid #000; padding: 5px;">
+                                    {{ $sample->tr04_ulr_no }}</td>
+                            </tr>
+                        @endif
+                        <tr>
+                            <td style="border: 1px solid #000; padding: 5px; font-weight: bold; background-color: #f5f5f5; width: 30%;">
+                                Laboratory Sample No.
+                            </td>
+                            <td colspan="3" style="border: 1px solid #000; padding: 5px; width: 70%;">
+                                {{ $meta['report_no'] }}   
+                            </td>
+                        </tr>
 
-            <!-- Date of Performance of Tests -->
-            <tr>
-                <td style="border: 1px solid #000; padding: 5px; font-weight: bold; background-color: #f5f5f5;">Date of Performance of Tests:</td>
-                <td colspan="2" style="border: 1px solid #000; padding: 5px;">
-                    {{ \Carbon\Carbon::parse($sample->created_at)->format('d.m.Y') }} to
-                    {{ $sample->testResult->first() && $sample->testResult->first()->tr07_performance_date ? \Carbon\Carbon::parse($sample->testResult->first()->tr07_performance_date)->format('d.m.Y') : \Carbon\Carbon::parse($sample->created_at)->format('d.m.Y') }}
-                </td>
-            </tr>
-
-            <!-- ULR No (Conditional) -->
-            @if ($partHasAccredited && $sample->tr04_ulr_no)
-            <tr>
-                <td style="width:30%; border: 1px solid #000; padding: 5px; font-weight: bold; background-color: #f5f5f5;">ULR No.</td>
-                <td colspan="3" style="border: 1px solid #000; padding: 5px;">{{ $sample->tr04_ulr_no }}</td>
-            </tr>
-            @endif
-
-            <!-- Sample Mark (Customs Only) -->
-            @if ($isCustom)
-            <tr>
-                <td style="width:30%; border: 1px solid #000; padding: 5px; font-weight: bold; background-color: #f5f5f5;">Sample Mark</td>
-                <td colspan="3" style="border: 1px solid #000; padding: 5px;">{{ $meta['sample_characteristics'] }}</td>
-            </tr>
-            @endif
-        </tbody>
-    </table>
-</div>
-@endif
+                        <!-- Sample Mark (Customs Only) -->
+                        @if ($isCustom)
+                            <tr>
+                                <td
+                                    style="width:30%; border: 1px solid #000; padding: 5px; font-weight: bold; background-color: #f5f5f5;">
+                                    Sample Mark</td>
+                                <td colspan="3" style="border: 1px solid #000; padding: 5px;">
+                                    {{ $meta['sample_characteristics'] }}</td>
+                            </tr>
+                        @endif
+                    </tbody>
+                </table>
+            </div>
+        @endif
 
 
         {{-- ===== MAIN BODY ===== --}}
@@ -1040,6 +1069,18 @@
         $jsBuyer = addslashes($meta['buyer'] ?? '_');
         $jsBeNo = addslashes($meta['be_no'] ?? '_');
         $jsIsCustom = $isCustom ? 1 : 0;
+        $jsPartCodes = json_encode(
+            array_values(
+                array_map(
+                    function ($p, $idx) {
+                        $code = $p['part_code'] ?? ($idx === 0 && !empty($p['has_accredited_tests']) ? 'A' : '');
+                        return !empty($code) ? ' ' . $code : '';
+                    },
+                    $reportParts,
+                    array_keys($reportParts),
+                ),
+            ),
+        );
     @endphp
     <script type="text/php">
         if (isset($pdf)) {
@@ -1069,12 +1110,8 @@
                 $partTotalPages = $partEndPage - $partStartPage + 1;
                 $partCurrentPage = $PAGE_NUM - $partStartPage + 1;
 
-                $numParts = count($GLOBALS["part_starts"] ?? [0 => 1]);
-                $romanMap = [1 => "I", 2 => "II", 3 => "III", 4 => "IV"];
-                $currentRoman = $romanMap[$currentPartIndex + 1] ?? ($currentPartIndex + 1);
-                $totalRoman = $romanMap[$numParts] ?? $numParts;
-
-                $partSuffix = " Part " . $currentRoman . " of " . $totalRoman;
+                $partCodes = {!! $jsPartCodes !!};
+                $partSuffix = $partCodes[$currentPartIndex] ?? "";
                 $fullReportNo = "{!! $jsReportNo !!}" . $partSuffix;
 
                 // Draw tabular header on all pages EXCEPT Part 1 Page 1

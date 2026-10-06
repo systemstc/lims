@@ -1797,7 +1797,8 @@ class TestResultController extends Controller
                     'title' => 'Accredited tests',
                     'items' => $part1Items,
                     'has_accredited_tests' => $hasPart1Accredited,
-                    'is_aryl_amines_part' => false
+                    'is_aryl_amines_part' => false,
+                    'part_code' => 'A'
                 ];
             }
             if (count($part2Items) > 0) {
@@ -1805,7 +1806,8 @@ class TestResultController extends Controller
                     'title' => 'Non-accredited tests',
                     'items' => $part2Items,
                     'has_accredited_tests' => false,
-                    'is_aryl_amines_part' => false
+                    'is_aryl_amines_part' => false,
+                    'part_code' => ''
                 ];
             }
 
@@ -2275,7 +2277,8 @@ class TestResultController extends Controller
                 'title' => 'Accredited tests',
                 'items' => $part1Items,
                 'has_accredited_tests' => $hasPart1Accredited,
-                'is_aryl_amines_part' => false
+                'is_aryl_amines_part' => false,
+                'part_code' => 'A'
             ];
         }
         if (count($part2Items) > 0) {
@@ -2283,7 +2286,8 @@ class TestResultController extends Controller
                 'title' => 'Non-accredited tests',
                 'items' => $part2Items,
                 'has_accredited_tests' => false,
-                'is_aryl_amines_part' => false
+                'is_aryl_amines_part' => false,
+                'part_code' => ''
             ];
         }
 
