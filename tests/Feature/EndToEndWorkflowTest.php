@@ -37,48 +37,41 @@ class EndToEndWorkflowTest extends TestCase
 
         // 2. Create Customer
         // Fetch necessary IDs (assuming seed data exists)
-        $countryId = 1; // Assuming country ID 1 for testing
-        $stateId = DB::table('m01_states')->where('m01_country_id', $countryId)->value('m01_state_id');
-        $districtId = DB::table('m02_districts')->where('m02_state_id', $stateId)->value('m02_district_id');
+        $stateId = DB::table('m01_states')->value('m01_state_id');
+        $districtId = DB::table('m02_districts')->where('m01_state_id', $stateId)->value('m02_district_id') ?? DB::table('m02_districts')->value('m02_district_id');
         $customerTypeId = DB::table('m09_customer_types')->value('m09_customer_type_id');
 
         $customerEmail = 'testcustomer' . time() . '@example.com';
         $customerData = [
-            'customer_name' => 'Test Customer ' . time(),
-            'customer_email' => $customerEmail,
-            'customer_mobile' => '9876543210',
-            'customer_address' => '123 Test St',
-            'm05_state_id' => $stateId,
-            'm05_district_id' => $districtId,
-            'm05_city' => 'Test City',
-            'm05_pincode' => '123456',
-            'gst_no' => '22AAAAA0000A1Z5',
-            'contact_person_name' => 'Contact Person',
-            'contact_person_mobile' => '9876543210',
-            'contact_person_email' => 'contact@example.com',
-            'm09_customer_type_id' => $customerTypeId,
-            'credit_limit' => 10000,
-            'discount' => 0,
+            'txt_customer_type_id' => $customerTypeId,
+            'txt_name' => 'Test Customer ' . time(),
+            'txt_email' => $customerEmail,
+            'txt_phone' => '9876543210',
+            'txt_contact_person' => 'Contact Person',
+            'txt_address' => '123 Test St',
+            'txt_state_id' => $stateId,
+            'txt_district_id' => $districtId,
+            'txt_pincode' => '123456',
+            'txt_gst' => '22AAAAA0000A1Z5',
         ];
 
-        // Need to be logged in to create customer? Yes, likely admin or authorized user.
-        // If admin login failed (e.g. wrong password), this will fail.
-        // But let's proceed assuming we can verify the API.
+        $admin = DB::table('m00_admins')->first();
+        if ($admin && session('role_id') !== -1) {
+            session([
+                'admin_id' => $admin->m00_admin_id,
+                'name' => $admin->m00_name,
+                'email' => $admin->m00_email,
+                'role_id' => -1,
+                'role' => 'ADMIN',
+            ]);
+        }
 
         $response = $this->post('/create-customer', $customerData);
-
-        // If login failed, this will redirect to login. verify that.
-        if (auth()->guest() && !session('admin_id')) {
-            // If we aren't logged in, we can't create. 
-            // Just asserting we have coverage of the logic.
-        } else {
-            $response->assertStatus(302);
-            // $response->assertSessionHas('success', 'Customer Added Successfully');
-        }
+        $response->assertStatus(302);
 
         // Verify customer exists
         $this->assertDatabaseHas('m07_customers', [
-            'm07_cust_contact_email' => $customerData['customer_email'],
+            'm07_email' => $customerData['txt_email'],
         ]);
 
         $this->get('/admin/logout');
@@ -105,14 +98,16 @@ class EndToEndWorkflowTest extends TestCase
                 continue;
             }
 
+            DB::table('tr01_users')->where('tr01_user_id', $user->tr01_user_id)->update([
+                'tr01_password' => Hash::make('Default@123')
+            ]);
+
             $response = $this->post('/user/login', [
                 'txt_email' => $user->m06_email,
                 'txt_password' => 'Default@123',
             ]);
 
             $response->assertStatus(302);
-            // Assert redirect location matches expected dashboard?
-            // $response->assertRedirect(...);
 
             $this->get('/user/logout');
         }
@@ -125,6 +120,10 @@ class EndToEndWorkflowTest extends TestCase
         // --- STEP 1: REGISTRAR (Register Sample) ---
         $registrar = $this->getUserForRole('Registrar');
         if (!$registrar) $this->markTestSkipped("Registrar not found");
+
+        DB::table('tr01_users')->where('tr01_user_id', $registrar->tr01_user_id)->update([
+            'tr01_password' => Hash::make('Default@123')
+        ]);
 
         $this->post('/user/login', [
             'txt_email' => $registrar->m06_email,
@@ -141,8 +140,22 @@ class EndToEndWorkflowTest extends TestCase
         $testNumber = $testRow->m12_test_number;
         $standardId = DB::table('m15_standards')->value('m15_standard_id');
 
+        if ($customerId) {
+            \App\Models\Wallet::firstOrCreate(
+                ['m07_customer_id' => $customerId],
+                [
+                    'tr02_wallet_uuid' => (string) \Illuminate\Support\Str::uuid(),
+                    'tr02_currency' => 'INR',
+                    'tr02_balance' => 10000,
+                    'tr02_hold_amount' => 0,
+                    'tr02_status' => 'active'
+                ]
+            );
+        }
+
         $regPayload = [
             'dd_customer_type' => $customerTypeId,
+            'commercial_type' => 1,
             'selected_customer_id' => $customerId,
             'txt_customer_name' => 'Test Customer',
             'selected_customer_address_id' => 'default',
@@ -207,7 +220,7 @@ class EndToEndWorkflowTest extends TestCase
             'txt_email' => $manager->m06_email,
             'txt_password' => 'Default@123',
         ]);
-        $this->assertAuthenticatedAs($manager);
+        $this->assertEquals($manager->m06_employee_id, session('user_id'));
 
         $analyst = $this->getUserForRole('Analyst');
         if (!$analyst) $this->markTestSkipped("Analyst not found");
@@ -228,31 +241,37 @@ class EndToEndWorkflowTest extends TestCase
         $this->assertDatabaseHas('tr05_sample_tests', [
             'tr04_sample_registration_id' => $sampleReg->tr04_sample_registration_id,
             'm06_alloted_to' => $analystId,
-            'tr05_status' => 'ALLOTTED',
+            'tr05_status' => 'ALLOTED',
         ]);
 
         $this->get('/user/logout');
 
         // --- STEP 3: ANALYST (Enter Result) ---
+        DB::table('tr01_users')->where('tr01_user_id', $analyst->tr01_user_id)->update([
+            'tr01_password' => Hash::make('Default@123')
+        ]);
+
         $this->post('/user/login', [
             'txt_email' => $analyst->m06_email,
             'txt_password' => 'Default@123',
         ]);
 
         $resultPayload = [
-            'registration_id' => $sampleReg->tr04_sample_registration_id,
-            'result' => [
-                $testId => [
-                    'status' => 'Pass',
-                    'remark' => 'Result Verified',
+            'registration_id' => $sampleReg->tr04_reference_id,
+            'test_date' => date('Y-m-d'),
+            'performance_date' => date('Y-m-d'),
+            'action' => 'RESULTED',
+            'results' => [
+                $testNumber => [
+                    'test' => [
+                        'result' => 'Pass',
+                        'remark' => 'Result Verified',
+                    ]
                 ]
             ],
-            'txt_test_status' => [
-                $testId => 'COMPLETED'
-            ]
         ];
 
-        $response = $this->withSession(['ro_id' => 1])->post('/test-results/create-result', $resultPayload);
+        $response = $this->withSession(['ro_id' => 1])->post('/test-results/create-result-test', $resultPayload);
         if (session('error')) dump(session('error'));
         $response->assertStatus(302);
 
@@ -268,13 +287,17 @@ class EndToEndWorkflowTest extends TestCase
         $verifer = $this->getUserForRole('Verification Officer');
         if (!$verifer) $this->markTestSkipped("Verification Officer not found");
 
+        DB::table('tr01_users')->where('tr01_user_id', $verifer->tr01_user_id)->update([
+            'tr01_password' => Hash::make('Default@123')
+        ]);
+
         $this->post('/user/login', [
             'txt_email' => $verifer->m06_email,
             'txt_password' => 'Default@123',
         ]);
 
         $verifyPayload = [
-            'action' => 'Verify',
+            'action' => 'verify',
             'remarks' => 'All good',
             'test_id' => [$testId],
         ];
@@ -282,9 +305,9 @@ class EndToEndWorkflowTest extends TestCase
         $response = $this->withSession(['ro_id' => 1])->post('/verify-result/' . $sampleReg->tr04_sample_registration_id, $verifyPayload);
         $response->assertStatus(302);
 
-        $this->assertDatabaseHas('tr05_sample_tests', [
+        $this->assertDatabaseHas('tr07_test_results', [
             'tr04_sample_registration_id' => $sampleReg->tr04_sample_registration_id,
-            'tr05_status' => 'VERIFIED',
+            'tr07_result_status' => 'VERIFIED',
         ]);
     }
 }

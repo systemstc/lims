@@ -21,7 +21,6 @@ use App\Http\Controllers\VerificationController;
 use App\Http\Controllers\WalletController;
 use App\Http\Controllers\TwoFactorController;
 use App\Http\Controllers\CustomerPortalController;
-use App\Http\Controllers\LaunchController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Session;
 
@@ -29,14 +28,6 @@ Route::get('/', function () {
     return view('welcome');
 });
 Route::post('contact-us', [FrontController::class, 'contactSupport'])->name('contact_support');
-
-// VIP Launch Ceremony & Interactive Presentation Suite Routes
-Route::get('launch', [LaunchController::class, 'ceremony'])->name('launch.ceremony');
-Route::post('launch/trigger', [LaunchController::class, 'triggerLaunch'])->name('launch.trigger');
-Route::post('launch/reset', [LaunchController::class, 'resetLaunch'])->name('launch.reset');
-Route::get('launch/map', [LaunchController::class, 'map'])->name('launch.map');
-Route::get('launch/simulator', [LaunchController::class, 'simulator'])->name('launch.simulator');
-Route::get('launch/qr-demo', [LaunchController::class, 'qrDemo'])->name('launch.qr_demo');
 
 // Customer Portal Routes
 Route::get('customer/login', [CustomerPortalController::class, 'showLogin'])->name('customer.login');

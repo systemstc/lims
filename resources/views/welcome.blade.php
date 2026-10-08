@@ -1007,7 +1007,7 @@
                     Go to Dashboard
                 </a>
             @else
-                <a href="#" class="btn-access" data-bs-toggle="modal" data-bs-target="#loginModal" data-drawer-link>
+                <a href="{{ route('user_login') }}" class="btn-access" data-drawer-link>
                     <em class="icon ni ni-signin"></em>
                     Access System
                 </a>
@@ -1045,7 +1045,7 @@
                             <em class="icon ni ni-arrow-right" style="margin-right:0.4rem;"></em>Go to Dashboard
                         </a>
                     @else
-                        <a href="#" class="btn-outline-light" data-bs-toggle="modal" data-bs-target="#loginModal">
+                        <a href="{{ route('user_login') }}" class="btn-outline-light">
                             <em class="icon ni ni-signin" style="margin-right:0.4rem;"></em>Access System
                         </a>
                     @endif
@@ -1053,19 +1053,6 @@
             </ul>
         </div>
     </nav>
-
-    <!-- VIP Launch Announcement Ticker -->
-    <div style="background: linear-gradient(90deg, #1e293b, #0f172a); border-bottom: 2px solid #d4af37; padding: 0.75rem 1rem; color: #fff; text-align: center;">
-        <div class="container d-flex justify-content-between align-items-center flex-wrap gap-2">
-            <div class="d-flex align-items-center gap-2">
-                <span class="badge" style="background: #d4af37; color: #000; font-size: 0.75rem; font-weight: 800; padding: 0.3rem 0.6rem;">OFFICIAL INAUGURATION</span>
-                <span style="font-size: 0.9rem; font-weight: 600;">LIMS 2.0 to be launched on <strong>22 August 2026</strong> by <strong>Shri Giriraj Singh</strong>, Hon’ble Union Minister of Textiles</span>
-            </div>
-            <a href="{{ route('launch.ceremony') }}" class="btn btn-sm btn-outline-warning fw-bold" style="border-color: #d4af37; color: #f6e05e;">
-                <em class="icon ni ni-spark-off" style="margin-right: 0.3rem;"></em> Launch Ceremony Stage
-            </a>
-        </div>
-    </div>
 
     <!-- Hero Section -->
     <section class="hero-section" id="home">
@@ -1080,9 +1067,6 @@
                             laboratories.
                         </p>
                         <div class="hero-buttons">
-                            <a href="{{ route('launch.ceremony') }}" class="btn-primary" style="background: linear-gradient(135deg, #d4af37, #b8860b); color: #000; font-weight: 800; border: none;">
-                                <em class="icon ni ni-power" style="margin-right:0.45rem;"></em>Launch Portal
-                            </a>
                             <a href="#features" class="btn-primary">
                                 <em class="icon ni ni-info" style="margin-right:0.45rem;"></em>System Overview
                             </a>
