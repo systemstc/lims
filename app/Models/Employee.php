@@ -19,7 +19,8 @@ class Employee extends Model
         'm01_state_id',
         'm02_district_id',
         'm06_status',
-        'm06_emp_id'
+        'm06_emp_id',
+        'm06_valid_upto'
     ];
 
     public function user(): BelongsTo
@@ -34,6 +35,12 @@ class Employee extends Model
     {
         return $this->belongsTo(Role::class, 'm03_role_id', 'm03_role_id');
     }
+    public function roles()
+    {
+        return $this->belongsToMany(Role::class, 'tr01_user_roles', 'tr01_user_id', 'm03_role_id', 'tr01_user_id', 'm03_role_id')
+            ->withPivot('is_primary')
+            ->withTimestamps();
+    }
     public function state(): BelongsTo
     {
         return $this->belongsTo(State::class, 'm01_state_id', 'm01_state_id');
@@ -41,5 +48,17 @@ class Employee extends Model
     public function district(): BelongsTo
     {
         return $this->belongsTo(District::class, 'm02_district_id', 'm02_district_id');
+    }
+
+    /**
+     * Check if the employee's contract/account validity has expired.
+     * Null means permanent / no expiration.
+     */
+    public function isExpired(): bool
+    {
+        if (empty($this->m06_valid_upto)) {
+            return false;
+        }
+        return \Carbon\Carbon::parse($this->m06_valid_upto)->endOfDay()->isPast();
     }
 }

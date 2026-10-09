@@ -92,10 +92,23 @@
         <div class="nk-sidebar-content">
             <div class="nk-sidebar-menu" data-simplebar>
                 <ul class="nk-menu">
+                    @php
+                        $isAdmin = Session::get('role_id') == -1 || Session::get('role') === 'ADMIN' || Session::has('admin_id');
+                    @endphp
                     @foreach ($menus as $menu)
+                        @php
+                            $routeView = $menu->m05_route_view;
+                            if ($isAdmin && in_array($routeView, ['profile.2fa.index', 'profile'])) {
+                                $menuUrl = route('admin.profile');
+                                $isActive = request()->routeIs('admin.profile');
+                            } else {
+                                $menuUrl = \Illuminate\Support\Facades\Route::has($routeView) ? route($routeView) : url($routeView);
+                                $isActive = request()->routeIs($routeView);
+                            }
+                        @endphp
                         @if ($menu->m05_has_submenu == 'NO')
-                            <li class="nk-menu-item">
-                                <a href="{{ route($menu->m05_route_view) }}" class="nk-menu-link">
+                            <li class="nk-menu-item {{ $isActive ? 'active current-page' : '' }}">
+                                <a href="{{ $menuUrl }}" class="nk-menu-link">
                                     <span class="nk-menu-icon"><em class="{{ $menu->m05_icon }}"></em></span>
                                     <span class="nk-menu-text">{{ $menu->m05_title }}</span>
                                 </a>
@@ -108,8 +121,18 @@
                                 </a>
                                 <ul class="nk-menu-sub">
                                     @foreach ($menu->children as $child)
-                                        <li class="nk-menu-item">
-                                            <a href="{{ route($child->m05_route_view) }}" class="nk-menu-link">
+                                        @php
+                                            $childRouteView = $child->m05_route_view;
+                                            if ($isAdmin && in_array($childRouteView, ['profile.2fa.index', 'profile'])) {
+                                                $childUrl = route('admin.profile');
+                                                $isChildActive = request()->routeIs('admin.profile');
+                                            } else {
+                                                $childUrl = \Illuminate\Support\Facades\Route::has($childRouteView) ? route($childRouteView) : url($childRouteView);
+                                                $isChildActive = request()->routeIs($childRouteView);
+                                            }
+                                        @endphp
+                                        <li class="nk-menu-item {{ $isChildActive ? 'active' : '' }}">
+                                            <a href="{{ $childUrl }}" class="nk-menu-link">
                                                 <span class="nk-menu-text">{{ $child->m05_title }}</span>
                                             </a>
                                         </li>

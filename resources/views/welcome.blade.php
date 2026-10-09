@@ -1440,7 +1440,7 @@
                     <p class="text-light mb-2" style="font-size:0.84rem;"><em
                             class="icon ni ni-map-pin me-1"></em>Mumbai, Maharashtra, India</p>
                     <p class="text-light mb-2" style="font-size:0.84rem;word-break:break-all;"><em
-                            class="icon ni ni-mail me-1"></em>lims@textilescommittee.gov.in</p>
+                            class="icon ni ni-mail me-1"></em>e***@***.com</p>
                     <p class="text-light mb-0" style="font-size:0.84rem;"><em
                             class="icon ni ni-call me-1"></em>+91-22-XXXX-XXXX</p>
                 </div>

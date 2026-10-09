@@ -39,4 +39,17 @@ return [
         'key' => env('RAZORPAY_KEY_ID'),
         'secret' => env('RAZORPAY_KEY_SECRET'),
     ],
+
+    'way2send' => [
+        'enabled'       => env('WAY2SEND_SMS_ENABLED', true),
+        'api_url'       => env('WAY2SEND_API_URL', 'https://cpaas.way2send.in/api/sendsms'),
+        'api_key'       => env('WAY2SEND_API_KEY', 'f88d8d80d5XX'),
+        'user_id'       => env('WAY2SEND_USER_ID', '1101458770000035349'),
+        'user_password' => env('WAY2SEND_USER_PASSWORD', ''),
+        'sender_id'     => env('WAY2SEND_SENDER_ID', 'TEXCOM'),
+        'template_id'   => env('WAY2SEND_TEMPLATE_ID', '1177179144024649608'),
+        'pe_id'         => env('WAY2SEND_PE_ID', '1101458770000035349'),
+        'verify_ssl'    => env('WAY2SEND_VERIFY_SSL', false),
+        'otp_message'   => env('WAY2SEND_OTP_MESSAGE', 'Use OTP :otp for TC-LIMS login. Valid for 5 mins. Keep it secure. -Textiles Committee'),
+    ],
 ];

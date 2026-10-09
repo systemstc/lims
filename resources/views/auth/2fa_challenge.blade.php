@@ -366,6 +366,14 @@
                                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
                                 <path d="m9 12 2 2 4-4"></path>
                             </svg>
+                        @elseif ($user->tr01_two_factor_method === 'mobile')
+                            <!-- Mobile SMS SVG Icon -->
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                                <path d="M8 10h.01"></path>
+                                <path d="M12 10h.01"></path>
+                                <path d="M16 10h.01"></path>
+                            </svg>
                         @else
                             <!-- Email Lock SVG Icon -->
                             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -389,6 +397,13 @@
                                     <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
                                     <line x1="12" y1="18" x2="12.01" y2="18"></line>
                                 </svg>
+                            @elseif ($user->tr01_two_factor_method === 'mobile')
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                                    <path d="M8 10h.01"></path>
+                                    <path d="M12 10h.01"></path>
+                                    <path d="M16 10h.01"></path>
+                                </svg>
                             @else
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
@@ -399,6 +414,8 @@
                         <div class="badge-text">
                             @if ($user->tr01_two_factor_method === 'google')
                                 Open your <strong>Authenticator App</strong> and enter the 6-digit verification code.
+                            @elseif($user->tr01_two_factor_method === 'mobile')
+                                We sent a 6-digit code via SMS to your registered mobile number: <strong>{{ $user->getMaskedPhoneNumber() }}</strong>
                             @elseif($user->tr01_two_factor_method === 'email')
                                 We sent a 6-digit code to <strong>{{ preg_replace('/(?<=...).(?=.*@)/', '*', $user->tr01_email) }}</strong>
                             @else
@@ -456,6 +473,16 @@
                             </svg>
                         </button>
                     </div>
+
+                    @if (in_array($user->tr01_two_factor_method, ['mobile', 'email']))
+                        <div class="text-center mt-3">
+                            <button type="button" id="btn-resend-otp" class="btn btn-link btn-sm text-primary text-decoration-none" style="font-weight: 600; font-size: 0.85rem;">
+                                <span id="resend-spinner" class="spinner-border spinner-border-sm me-1 d-none" role="status"></span>
+                                <span id="resend-text">Didn't receive code? Resend {{ $user->tr01_two_factor_method === 'mobile' ? 'SMS' : 'Email' }} OTP</span>
+                            </button>
+                            <div id="resend-status" class="small mt-1 d-none font-weight-bold"></div>
+                        </div>
+                    @endif
                 </form>
 
                 <div class="back-link-wrapper">
@@ -475,6 +502,62 @@
     <script src="{{ asset('backAssets/assets/js/bundle.js?ver=3.2.0') }}"></script>
     <script src="{{ asset('backAssets/assets/js/scripts.js?ver=3.2.0') }}"></script>
 
+    <script>
+        const btnResend = document.getElementById('btn-resend-otp');
+        if (btnResend) {
+            btnResend.addEventListener('click', function() {
+                const spinner = document.getElementById('resend-spinner');
+                const text = document.getElementById('resend-text');
+                const status = document.getElementById('resend-status');
+
+                btnResend.disabled = true;
+                spinner.classList.remove('d-none');
+                status.classList.add('d-none');
+
+                fetch('{{ route('auth.2fa.resend') }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    }
+                })
+                .then(res => res.json())
+                .then(data => {
+                    spinner.classList.add('d-none');
+                    status.classList.remove('d-none');
+
+                    if (data.success) {
+                        status.className = 'small mt-1 text-success font-weight-bold';
+                        status.innerText = data.message || 'OTP resent successfully!';
+                        
+                        // Start 30s countdown
+                        let countdown = 30;
+                        const originalText = text.innerText;
+                        const interval = setInterval(() => {
+                            text.innerText = `Resend in ${countdown}s`;
+                            countdown--;
+                            if (countdown < 0) {
+                                clearInterval(interval);
+                                text.innerText = originalText;
+                                btnResend.disabled = false;
+                            }
+                        }, 1000);
+                    } else {
+                        btnResend.disabled = false;
+                        status.className = 'small mt-1 text-danger font-weight-bold';
+                        status.innerText = data.message || 'Failed to resend code. Please try again.';
+                    }
+                })
+                .catch(err => {
+                    spinner.classList.add('d-none');
+                    btnResend.disabled = false;
+                    status.classList.remove('d-none');
+                    status.className = 'small mt-1 text-danger font-weight-bold';
+                    status.innerText = 'Network error. Please try again.';
+                });
+            });
+        }
+    </script>
 </body>
 
 </html>

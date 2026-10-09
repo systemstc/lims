@@ -21,6 +21,7 @@ use App\Http\Controllers\VerificationController;
 use App\Http\Controllers\WalletController;
 use App\Http\Controllers\TwoFactorController;
 use App\Http\Controllers\CustomerPortalController;
+use App\Http\Controllers\AdminProfileController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Session;
 
@@ -45,6 +46,7 @@ Route::prefix('customer')->name('customer.')->group(function () {
 // 2FA Challenge Routes - these must be accessible after password verify but before role assignment
 Route::get('auth/2fa/challenge', [TwoFactorController::class, 'showChallenge'])->name('auth.2fa.challenge');
 Route::post('auth/2fa/challenge', [TwoFactorController::class, 'verifyChallenge'])->name('auth.2fa.verify');
+Route::post('auth/2fa/resend', [TwoFactorController::class, 'resendLoginOtp'])->name('auth.2fa.resend');
 
 
 Route::middleware(['access_control'])->group(function () {
@@ -53,6 +55,7 @@ Route::middleware(['access_control'])->group(function () {
     Route::get('dashboard', [MasterController::class, 'adminDashboard'])->name('dashboard');
     Route::get('user/logout', [AuthController::class, 'logout'])->name('user_logout');
     Route::get('admin/logout', [AuthController::class, 'adminLogout'])->name('admin_logout');
+    Route::get('switch-role/{roleId}', [AuthController::class, 'switchRole'])->name('switch_role');
     Route::get('states', [MasterController::class, 'viewStates'])->name('view_states');
     Route::get('login-logs', [MasterController::class, 'viewLoginLogs'])->name('view_login_logs');
 
@@ -382,8 +385,18 @@ Route::middleware(['access_control'])->group(function () {
         Route::get('/setup-email', [TwoFactorController::class, 'setupEmail'])->name('setup_email');
         Route::post('/send-email-code', [TwoFactorController::class, 'sendEmailCode'])->name('send_email_code');
         Route::post('/setup-email', [TwoFactorController::class, 'confirmEmail'])->name('confirm_email');
+        Route::get('/setup-mobile', [TwoFactorController::class, 'setupMobile'])->name('setup_mobile');
+        Route::post('/send-mobile-code', [TwoFactorController::class, 'sendMobileCode'])->name('send_mobile_code');
+        Route::post('/setup-mobile', [TwoFactorController::class, 'confirmMobile'])->name('confirm_mobile');
         Route::post('/disable', [TwoFactorController::class, 'disable'])->name('disable');
         Route::post('/regenerate-recovery-codes', [TwoFactorController::class, 'regenerateRecoveryCodes'])->name('regenerate_recovery_codes');
+    });
+
+    // Admin Profile Routes
+    Route::prefix('admin')->name('admin.')->group(function () {
+        Route::get('profile', [AdminProfileController::class, 'show'])->name('profile');
+        Route::post('profile/update', [AdminProfileController::class, 'updateProfile'])->name('profile.update');
+        Route::post('profile/password', [AdminProfileController::class, 'updatePassword'])->name('profile.password');
     });
 });
 Route::get('customer-wallet/{id}', [WalletController::class, 'viewWallet'])->name('view_wallet');

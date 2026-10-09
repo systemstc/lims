@@ -6,10 +6,13 @@ use App\Models\Admin;
 use App\Models\Employee;
 use App\Models\LoginLog;
 use App\Models\Ro;
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Validator;
 
@@ -60,6 +63,53 @@ class AuthController extends Controller
             return redirect()->back()
                 ->withErrors(['txt_password' => 'Incorrect password.'])
                 ->withInput();
+        }
+
+        // Check Employee Status & Contract Validity Expiration
+        if ($user->tr01_type == 'EMPLOYEE') {
+            $employee = Employee::where('tr01_user_id', $user->tr01_user_id)->first();
+            if ($employee) {
+                if ($employee->m06_status !== 'ACTIVE') {
+                    LoginLog::create([
+                        'tr01_user_id' => $user->tr01_user_id,
+                        'tr00_ip_address' => $request->ip(),
+                        'tr00_user_agent' => $request->userAgent(),
+                        'tr00_email' => $request->txt_email,
+                        'tr00_login_at' => now(),
+                        'tr00_successful' => false,
+                        'tr00_failure_reason' => 'Account is inactive'
+                    ]);
+
+                    $inactiveMsg = 'Your account is currently inactive. Please contact your administrator.';
+                    if ($request->ajax()) {
+                        return response()->json(['errors' => ['txt_email' => [$inactiveMsg]]], 422);
+                    }
+                    return redirect()->back()
+                        ->withErrors(['txt_email' => $inactiveMsg])
+                        ->withInput();
+                }
+
+                if ($employee->isExpired()) {
+                    $formattedDate = \Carbon\Carbon::parse($employee->m06_valid_upto)->format('d M, Y');
+                    LoginLog::create([
+                        'tr01_user_id' => $user->tr01_user_id,
+                        'tr00_ip_address' => $request->ip(),
+                        'tr00_user_agent' => $request->userAgent(),
+                        'tr00_email' => $request->txt_email,
+                        'tr00_login_at' => now(),
+                        'tr00_successful' => false,
+                        'tr00_failure_reason' => 'Contract validity expired on ' . $formattedDate
+                    ]);
+
+                    $expiredMsg = "Your contract validity expired on {$formattedDate}. Login is no longer permitted. Please contact administration.";
+                    if ($request->ajax()) {
+                        return response()->json(['errors' => ['txt_email' => [$expiredMsg]]], 422);
+                    }
+                    return redirect()->back()
+                        ->withErrors(['txt_email' => $expiredMsg])
+                        ->withInput();
+                }
+            }
         }
 
         // Check for 2FA
@@ -219,31 +269,127 @@ class AuthController extends Controller
     {
         if ($user->tr01_type == 'EMPLOYEE') {
             $employee = Employee::with(['role', 'ro'])->where('tr01_user_id', $user->tr01_user_id)->first();
+
+            // Fetch all assigned roles from pivot table, fallback to employee's single role
+            $userRoles = [];
+            if (Schema::hasTable('tr01_user_roles')) {
+                $rolesQuery = DB::table('tr01_user_roles')
+                    ->join('m03_roles', 'tr01_user_roles.m03_role_id', '=', 'm03_roles.m03_role_id')
+                    ->where('tr01_user_roles.tr01_user_id', $user->tr01_user_id)
+                    ->where('m03_roles.m03_status', 'ACTIVE')
+                    ->select('m03_roles.m03_role_id', 'm03_roles.m03_name', 'tr01_user_roles.is_primary')
+                    ->orderByDesc('tr01_user_roles.is_primary')
+                    ->get();
+
+                foreach ($rolesQuery as $r) {
+                    $userRoles[] = [
+                        'role_id'   => (int) $r->m03_role_id,
+                        'role_name' => $r->m03_name,
+                    ];
+                }
+            }
+
+            if (empty($userRoles)) {
+                $userRoles[] = [
+                    'role_id'   => (int) $employee->m03_role_id,
+                    'role_name' => $employee->role ? $employee->role->m03_name : 'Employee',
+                ];
+            }
+
+            $activeRole = $userRoles[0];
+
             $sessionData = [
-                'user_id' => $employee->m06_employee_id,
+                'user_id'      => $employee->m06_employee_id,
                 'tr01_user_id' => $user->tr01_user_id, // Added this for easier access
-                'name' => $employee->m06_name,
-                'email' => $employee->m06_email,
-                'role_id' => $employee->m03_role_id,
-                'role' => $employee->role ? $employee->role->m03_name : 'Employee',
-                'ro_id' => $employee->m04_ro_id,
-                'ro_name' => $employee->ro ? $employee->ro->m04_name : null,
+                'name'         => $employee->m06_name,
+                'email'        => $employee->m06_email,
+                'role_id'      => $activeRole['role_id'],
+                'role'         => $activeRole['role_name'],
+                'user_roles'   => $userRoles,
+                'ro_id'        => $employee->m04_ro_id,
+                'ro_name'      => $employee->ro ? $employee->ro->m04_name : null,
+                'valid_upto'   => $employee->m06_valid_upto,
             ];
         } else {
             $ro = Ro::with('role')->where('tr01_user_id', $user->tr01_user_id)->first();
+            $userRoles = [
+                [
+                    'role_id'   => (int) $ro->m03_role_id,
+                    'role_name' => $ro->role ? $ro->role->m03_name : 'RO Admin',
+                ]
+            ];
             $sessionData = [
-                'user_id' => $ro->m04_ro_id,
+                'user_id'      => $ro->m04_ro_id,
                 'tr01_user_id' => $user->tr01_user_id, // Added this for easier access
-                'name' => $ro->m04_name,
-                'email' => $ro->m04_email,
-                'role_id' => $ro->m03_role_id,
-                'role' => $ro->role ? $ro->role->m03_name : 'RO Admin',
-                'ro_id' => $ro->m04_ro_id,
-                'ro_name' => $ro->m04_name,
+                'name'         => $ro->m04_name,
+                'email'        => $ro->m04_email,
+                'role_id'      => $ro->m03_role_id,
+                'role'         => $ro->role ? $ro->role->m03_name : 'RO Admin',
+                'user_roles'   => $userRoles,
+                'ro_id'        => $ro->m04_ro_id,
+                'ro_name'      => $ro->m04_name,
             ];
         }
 
         session($sessionData);
+    }
+
+    /**
+     * Switch user's active role context
+     */
+    public function switchRole(Request $request, $roleId)
+    {
+        $userId = Session::get('tr01_user_id');
+        if (!$userId) {
+            return redirect()->route('user_login')->with('error', 'Please login first.');
+        }
+
+        $userRoles = Session::get('user_roles', []);
+        $matched = collect($userRoles)->firstWhere('role_id', (int) $roleId);
+
+        if (!$matched) {
+            // Also check DB in case session needs refresh
+            if (Schema::hasTable('tr01_user_roles')) {
+                $roleRecord = DB::table('tr01_user_roles')
+                    ->join('m03_roles', 'tr01_user_roles.m03_role_id', '=', 'm03_roles.m03_role_id')
+                    ->where('tr01_user_roles.tr01_user_id', $userId)
+                    ->where('tr01_user_roles.m03_role_id', $roleId)
+                    ->where('m03_roles.m03_status', 'ACTIVE')
+                    ->select('m03_roles.m03_role_id', 'm03_roles.m03_name')
+                    ->first();
+
+                if ($roleRecord) {
+                    $matched = [
+                        'role_id'   => (int) $roleRecord->m03_role_id,
+                        'role_name' => $roleRecord->m03_name,
+                    ];
+                }
+            }
+        }
+
+        if (!$matched) {
+            Session::flash('type', 'error');
+            Session::flash('message', 'Unauthorized role switch requested.');
+            return redirect()->back();
+        }
+
+        // Update active role in session
+        Session::put('role_id', (int) $matched['role_id']);
+        Session::put('role', $matched['role_name']);
+
+        Session::flash('type', 'success');
+        Session::flash('message', 'Active role switched to: ' . $matched['role_name']);
+
+        $roleRoutes = [
+            'Manager'              => 'dashboard',
+            'DEO'                  => 'view_completed_camples',
+            'Analyst'              => 'view_analyst_dashboard',
+            'Verification Officer' => 'view_result_verification',
+            'Registrar'            => 'register_sample'
+        ];
+
+        $targetRoute = $roleRoutes[$matched['role_name']] ?? 'dashboard';
+        return redirect()->route($targetRoute);
     }
 
     /**

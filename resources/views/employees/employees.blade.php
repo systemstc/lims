@@ -24,7 +24,8 @@
                                             <th>Emp Govt ID</th>
                                             <th>Name</th>
                                             <th>Email</th>
-                                            <th>Role</th>
+                                            <th>Role(s)</th>
+                                            <th>Validity</th>
                                             <th>RO</th>
                                             <th>Status</th>
                                             <th>Action</th>
@@ -37,8 +38,31 @@
                                                 <td>{{ $employee->m06_emp_id ?? 'N/A' }}</td>
                                                 <td>{{ $employee->m06_name }}</td>
                                                 <td>{{ $employee->m06_email }}</td>
-                                                <td>{{ $employee->role->m03_name ?? 'N/A' }}</td>
-                                                <td>{{ $employee->ro->m04_name }}</td>
+                                                <td>
+                                                    @if ($employee->user && $employee->user->roles && $employee->user->roles->count() > 0)
+                                                        @foreach($employee->user->roles as $r)
+                                                            <span class="badge {{ $r->pivot->is_primary ? 'bg-primary' : 'bg-outline-primary' }} mb-1" style="font-size: 0.72rem;">{{ $r->m03_name }}</span>
+                                                        @endforeach
+                                                    @else
+                                                        <span class="badge bg-primary" style="font-size: 0.72rem;">{{ $employee->role->m03_name ?? 'N/A' }}</span>
+                                                    @endif
+                                                </td>
+                                                <td>
+                                                    @if (!empty($employee->m06_valid_upto))
+                                                        @php
+                                                            $isExp = \Carbon\Carbon::parse($employee->m06_valid_upto)->endOfDay()->isPast();
+                                                            $formattedDate = \Carbon\Carbon::parse($employee->m06_valid_upto)->format('d M, Y');
+                                                        @endphp
+                                                        @if ($isExp)
+                                                            <span class="badge bg-danger" title="Contract expired" style="font-size: 0.72rem;"><em class="icon ni ni-alert-circle me-1"></em>Expired ({{ $formattedDate }})</span>
+                                                        @else
+                                                            <span class="badge bg-success" title="Active contract" style="font-size: 0.72rem;"><em class="icon ni ni-calendar-check me-1"></em>Till {{ $formattedDate }}</span>
+                                                        @endif
+                                                    @else
+                                                        <span class="badge bg-light text-muted border" style="font-size: 0.72rem;">Permanent</span>
+                                                    @endif
+                                                </td>
+                                                <td>{{ $employee->ro->m04_name ?? 'N/A' }}</td>
                                                 <td
                                                     class="text-{{ $employee->m06_status == 'ACTIVE' ? 'success' : 'danger' }}">
                                                     <strong>{{ $employee->m06_status }}</strong>

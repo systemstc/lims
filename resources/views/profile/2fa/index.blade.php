@@ -37,6 +37,13 @@
                                                         <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
                                                         <path d="m9 12 2 2 4-4"></path>
                                                     </svg>
+                                                @elseif ($user->tr01_two_factor_method === 'mobile')
+                                                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                                                        <path d="M8 10h.01"></path>
+                                                        <path d="M12 10h.01"></path>
+                                                        <path d="M16 10h.01"></path>
+                                                    </svg>
                                                 @else
                                                     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                                         <rect x="2" y="4" width="20" height="16" rx="2"></rect>
@@ -53,7 +60,15 @@
                                                 </span>
                                             </div>
                                             <p class="mt-3" style="margin: 0; font-size: 0.95rem; color: #64748b; line-height: 1.5;">
-                                                Primary Method: <strong style="color: #0f172a;">{{ $user->tr01_two_factor_method === 'google' ? 'Authenticator App (TOTP)' : 'Email OTP Passcode' }}</strong>
+                                                Primary Method: <strong style="color: #0f172a;">
+                                                    @if ($user->tr01_two_factor_method === 'google')
+                                                        Authenticator App (TOTP)
+                                                    @elseif ($user->tr01_two_factor_method === 'mobile')
+                                                        Mobile SMS OTP ({{ $user->getMaskedPhoneNumber() }})
+                                                    @else
+                                                        Email OTP ({{ $user->tr01_email }})
+                                                    @endif
+                                                </strong>
                                                 <span style="margin: 0 6px;">&bull;</span> Enabled on {{ \Carbon\Carbon::parse($user->tr01_two_factor_confirmed_at)->format('M d, Y \a\t h:i A') }}
                                             </p>
                                         </div>
@@ -74,9 +89,9 @@
                                         Your account is protected with multi-factor authentication. Every sign-in attempt requires a unique 6-digit verification code.
                                     </p>
 
-                                    <div class="d-flex align-items-center justify-content-between flex-wrap">
+                                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
                                         <span style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: #94a3b8; letter-spacing: 0.05em;">Switch Method</span>
-                                        <div>
+                                        <div class="d-flex flex-wrap gap-2">
                                             @if ($user->tr01_two_factor_method !== 'google')
                                                 <a href="{{ route('profile.2fa.setup_google') }}" class="btn btn-dim btn-outline-primary" style="border-radius: 10px; font-weight: 600;">
                                                     <em class="icon ni ni-smartphone"></em> Switch to Authenticator App
@@ -85,6 +100,11 @@
                                             @if ($user->tr01_two_factor_method !== 'email')
                                                 <a href="{{ route('profile.2fa.setup_email') }}" class="btn btn-dim btn-outline-primary" style="border-radius: 10px; font-weight: 600;">
                                                     <em class="icon ni ni-mail"></em> Switch to Email OTP
+                                                </a>
+                                            @endif
+                                            @if ($user->tr01_two_factor_method !== 'mobile')
+                                                <a href="{{ route('profile.2fa.setup_mobile') }}" class="btn btn-dim btn-outline-success" style="border-radius: 10px; font-weight: 600;">
+                                                    <em class="icon ni ni-chat-circle"></em> Switch to Mobile SMS OTP
                                                 </a>
                                             @endif
                                         </div>
@@ -205,7 +225,7 @@
                             <h4 style="font-size: 1.25rem; font-weight: 700; color: #0f172a; margin-bottom: 1rem;">Choose a Two-Factor Authentication Method</h4>
                             <div class="row g-4">
                                 <!-- Option 1: Authenticator App -->
-                                <div class="col-md-6">
+                                <div class="col-lg-4 col-md-6">
                                     <div class="card card-bordered h-100 shadow-sm" style="border-radius: 16px; border: 1px solid #e2e8f0; background: #ffffff;">
                                         <div class="card-inner p-4 d-flex flex-column justify-content-between h-100">
                                             <div>
@@ -219,7 +239,7 @@
                                                     <span style="background: #e0e7ff; color: #4338ca; border: 1px solid #c7d2fe; font-size: 0.825rem; font-weight: 700; padding: 4px 10px; border-radius: 20px; text-transform: uppercase;">Recommended</span>
                                                 </div>
                                                 <h5 style="font-size: 1.1rem; font-weight: 700; color: #0f172a; margin-bottom: 0.5rem;">Authenticator App (TOTP)</h5>
-                                                <p style="font-size: 0.975rem; color: #64748b; line-height: 1.5; margin: 0;">Use a security app like <strong>Google Authenticator</strong>, <strong>Authy</strong>, <strong>Microsoft Authenticator</strong>, or 1Password to generate 6-digit verification passcodes. Works offline without SMS/cellular signals.</p>
+                                                <p style="font-size: 0.975rem; color: #64748b; line-height: 1.5; margin: 0;">Use a security app like <strong>Google Authenticator</strong>, <strong>Authy</strong>, <strong>Microsoft Authenticator</strong>, or 1Password to generate 6-digit verification passcodes. Works offline without cellular signals.</p>
                                             </div>
                                             <div class="pt-4 mt-auto">
                                                 <a href="{{ route('profile.2fa.setup_google') }}" class="btn btn-primary btn-block fs-6" style="border-radius: 10px; height: 44px; font-weight: 600;">
@@ -231,7 +251,7 @@
                                 </div>
 
                                 <!-- Option 2: Email OTP -->
-                                <div class="col-md-6">
+                                <div class="col-lg-4 col-md-6">
                                     <div class="card card-bordered h-100 shadow-sm" style="border-radius: 16px; border: 1px solid #e2e8f0; background: #ffffff;">
                                         <div class="card-inner p-4 d-flex flex-column justify-content-between h-100">
                                             <div>
@@ -250,6 +270,34 @@
                                             <div class="pt-4 mt-auto">
                                                 <a href="{{ route('profile.2fa.setup_email') }}" class="btn btn-outline-primary btn-block fs-6" style="border-radius: 10px; height: 44px; font-weight: 600;">
                                                     <span>Setup Email OTP</span>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Option 3: Mobile SMS OTP -->
+                                <div class="col-lg-4 col-md-6">
+                                    <div class="card card-bordered h-100 shadow-sm" style="border-radius: 16px; border: 1px solid #e2e8f0; background: #ffffff;">
+                                        <div class="card-inner p-4 d-flex flex-column justify-content-between h-100">
+                                            <div>
+                                                <div class="d-flex align-items-center justify-content-between mb-3">
+                                                    <div style="width: 46px; height: 46px; border-radius: 12px; background: #ecfdf5; color: #059669; display: flex; align-items: center; justify-content: center;">
+                                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                                                            <path d="M8 10h.01"></path>
+                                                            <path d="M12 10h.01"></path>
+                                                            <path d="M16 10h.01"></path>
+                                                        </svg>
+                                                    </div>
+                                                    <span style="background: #d1fae5; color: #047857; border: 1px solid #a7f3d0; font-size: 0.825rem; font-weight: 700; padding: 4px 10px; border-radius: 20px; text-transform: uppercase;">SMS Gateway</span>
+                                                </div>
+                                                <h5 style="font-size: 1.1rem; font-weight: 700; color: #0f172a; margin-bottom: 0.5rem;">Mobile SMS OTP (Way2Send)</h5>
+                                                <p style="font-size: 0.975rem; color: #64748b; line-height: 1.5; margin: 0;">Receive an instant single-use 6-digit security code directly via SMS to your registered mobile number <strong>({{ $user->getMaskedPhoneNumber() }})</strong> using the high-speed Way2Send gateway.</p>
+                                            </div>
+                                            <div class="pt-4 mt-auto">
+                                                <a href="{{ route('profile.2fa.setup_mobile') }}" class="btn btn-outline-success btn-block fs-6" style="border-radius: 10px; height: 44px; font-weight: 600;">
+                                                    <span>Setup Mobile SMS OTP</span>
                                                 </a>
                                             </div>
                                         </div>

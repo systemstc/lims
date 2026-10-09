@@ -230,14 +230,31 @@ class VerificationController extends Controller
             }
         }
 
-        // Get analysts for reassignment dropdown
+        // Get analysts for reassignment dropdown (supporting multi-role & validity)
         $roId = Session::get('ro_id');
-        $analysts = Employee::join('m03_roles', 'm06_employees.m03_role_id', '=', 'm03_roles.m03_role_id')
-            ->where('m06_employees.m04_ro_id', $roId)
-            ->whereIn('m03_roles.m03_name', ['Analyst'])
-            ->select('m06_employees.m06_employee_id', 'm06_employees.m06_name', 'm03_roles.m03_name as role')
+        $analysts = Employee::where('m06_employees.m04_ro_id', $roId)
+            ->where('m06_employees.m06_status', 'Active')
+            ->where(function ($q) {
+                $q->whereHas('role', function ($sub) {
+                    $sub->where('m03_name', 'Analyst');
+                });
+                if (\Illuminate\Support\Facades\Schema::hasTable('tr01_user_roles')) {
+                    $q->orWhereHas('roles', function ($sub) {
+                        $sub->where('m03_name', 'Analyst');
+                    });
+                }
+            })
+            ->select('m06_employees.m06_employee_id', 'm06_employees.m06_name', 'm06_employees.m06_valid_upto')
             ->orderBy('m06_employees.m06_name')
-            ->get();
+            ->get()
+            ->filter(function ($emp) {
+                return !$emp->isExpired();
+            })
+            ->map(function ($emp) {
+                $emp->role = 'Analyst';
+                return $emp;
+            })
+            ->values();
 
         return view('verification.view_result', compact(
             'sample', 

@@ -37,11 +37,20 @@ class AccessControl
             return $next($request);
         }
 
+        // 3b. CONTRACT VALIDITY EXPIRY CHECK (For logged-in employees)
+        if (Session::has('valid_upto') && Session::get('valid_upto')) {
+            if (\Carbon\Carbon::parse(Session::get('valid_upto'))->endOfDay()->isPast()) {
+                Session::flush();
+                return to_route('user_login')->with('error', 'Your contract validity has expired. Login is no longer permitted. Please contact administration.');
+            }
+        }
+
         // 4. DEFINE ROUTES THAT SHOULD SKIP DB CHECK (but still need login)
         $skipPermissionRoutes = [
             // AJAX/helper routes that all logged-in users can access
             'dashboard',
             'user_logout',
+            'switch_role',
             'get_districts',
             'get_groups',
             'get_tests',
@@ -115,7 +124,15 @@ class AccessControl
             'profile.2fa.setup_email',
             'profile.2fa.send_email_code',
             'profile.2fa.confirm_email',
+            'profile.2fa.setup_mobile',
+            'profile.2fa.send_mobile_code',
+            'profile.2fa.confirm_mobile',
             'profile.2fa.disable',
+            'profile.2fa.regenerate_recovery_codes',
+            // Admin Profile Routes
+            'admin.profile',
+            'admin.profile.update',
+            'admin.profile.password',
 
             // manual payment
             'payment.sample_checkout',

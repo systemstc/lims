@@ -39,19 +39,24 @@
                                         </div>
                                         <div class="col-md-6">
                                             <div class="form-group">
-                                                <label class="form-label" for="txt_role_id">Role</label>
+                                                <label class="form-label" for="txt_role_ids">Assigned Role(s) <span class="text-danger">*</span></label>
                                                 <div class="form-control-wrap">
-                                                    <select name="txt_role_id" class="form-control" id="txt_role_id"
-                                                        required>
-                                                        <option value="">-- Select Role --</option>
+                                                    <select name="txt_role_ids[]" class="form-select js-select2" id="txt_role_ids"
+                                                        multiple data-placeholder="-- Select Role(s) (First is Primary) --" required>
                                                         @foreach ($roles as $role)
-                                                            <option value="{{ $role->m03_role_id }}" {{ $role->m03_role_id == old('txt_role_id', $employee->m03_role_id) ? 'selected' : '' }}>
+                                                            @php
+                                                                $isSelected = is_array(old('txt_role_ids'))
+                                                                    ? in_array($role->m03_role_id, old('txt_role_ids'))
+                                                                    : in_array($role->m03_role_id, $assignedRoleIds ?? [$employee->m03_role_id]);
+                                                            @endphp
+                                                            <option value="{{ $role->m03_role_id }}" {{ $isSelected ? 'selected' : '' }}>
                                                                 {{ $role->m03_name }}
                                                             </option>
                                                         @endforeach
                                                     </select>
-                                                    @error('txt_role_id')
-                                                        <span class="text-danger">{{ $message }}</span>
+                                                    <small class="text-muted">You can select more than one role. First role acts as primary.</small>
+                                                    @error('txt_role_ids')
+                                                        <span class="text-danger d-block">{{ $message }}</span>
                                                     @enderror
                                                 </div>
                                             </div>
@@ -148,8 +153,21 @@
                                             </div>
                                         </div>
                                         <div class="col-md-6">
-                                            <div class="form-group mt-4">
-                                                <button type="submit" class="btn btn btn-primary">Update</button>
+                                            <div class="form-group">
+                                                <label class="form-label" for="txt_valid_upto">Contract Validity / Expiry Date</label>
+                                                <div class="form-control-wrap">
+                                                    <input type="date" class="form-control" id="txt_valid_upto"
+                                                        name="txt_valid_upto" value="{{ old('txt_valid_upto', $employee->m06_valid_upto) }}">
+                                                </div>
+                                                <small class="text-muted">Leave empty for permanent employees. Once expired, employee cannot log in.</small>
+                                                @error('txt_valid_upto')
+                                                    <span class="text-danger d-block">{{ $message }}</span>
+                                                @enderror
+                                            </div>
+                                        </div>
+                                        <div class="col-md-12">
+                                            <div class="form-group mt-3">
+                                                <button type="submit" class="btn btn-primary">Update Employee</button>
                                             </div>
                                         </div>
                                     </div>
