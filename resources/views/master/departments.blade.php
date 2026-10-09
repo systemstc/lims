@@ -39,7 +39,7 @@
                                                 <td>{{ $department->m13_name }}</td>
                                                 <td>{{ $department->m13_sample_no }}</td>
                                                 <td>{{ $department->m13_remark }}</td>
-                                                <td>{{ $department->user->tr01_name }}</td>
+                                                <td>{{ $department->user?->tr01_name }}</td>
                                                 <td>{{ $department->created_at }}</td>
                                                 <td
                                                     class="text-{{ $department->m13_status == 'ACTIVE' ? 'success' : 'danger' }}">
