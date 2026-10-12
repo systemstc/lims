@@ -8,6 +8,7 @@ use App\Models\CustomerType;
 use App\Models\Ro;
 use App\Models\State;
 use App\Models\Wallet;
+use App\Services\SwipeGstService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -129,12 +130,30 @@ class CustomerController extends Controller
         return view('customers', compact('customers'));
     }
 
+    /**
+     * Fetch customer and business details using GST number via Swipe Partner API.
+     */
+    public function fetchGstDetails(Request $request, SwipeGstService $swipeGstService)
+    {
+        $gst = $request->input('gst') ?? $request->input('gstin');
+
+        if (empty($gst)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Please provide a GST number.'
+            ], 422);
+        }
+
+        $result = $swipeGstService->getGstDetails($gst);
+        return response()->json($result);
+    }
+
     public function createCustomer(Request $request)
     {
         if ($request->isMethod('post')) {
             // dd($request->query('from'));
             $validator = Validator::make($request->all(), [
-                "txt_customer_type_id" => "required|integer|exists:m09_customer_types,m09_customer_type_id",
+                "txt_customer_type_id" => "nullable|integer|exists:m09_customer_types,m09_customer_type_id",
                 "txt_ro_id" => "nullable|integer",
                 "txt_name" => "required|string|max:255",
                 "txt_email" => [
@@ -241,7 +260,7 @@ class CustomerController extends Controller
                 DB::transaction(function () use ($request) {
                     // 1. Create Customer
                     $customer = Customer::create([
-                        'm09_customer_type_id' => $request->txt_customer_type_id,
+                        'm09_customer_type_id' => $request->txt_customer_type_id ?? null,
                         'm04_ro_id' => Session::get('role') === 'ADMIN' ? $request->txt_ro_id : Session::get('ro_id'),
                         'm07_name' => $request->txt_name,
                         'm07_email' => $request->txt_email,
@@ -324,7 +343,7 @@ class CustomerController extends Controller
 
         if ($request->isMethod('post')) {
             $validator = Validator::make($request->all(), [
-                'txt_edit_customer_type_id' => 'required|integer|exists:m09_customer_types,m09_customer_type_id',
+                'txt_edit_customer_type_id' => 'nullable|integer|exists:m09_customer_types,m09_customer_type_id',
                 'txt_edit_name'             => 'required|string|max:255',
                 'txt_edit_email'            => [
                     'nullable',
@@ -453,7 +472,7 @@ class CustomerController extends Controller
             DB::beginTransaction();
             try {
                 $customer->update([
-                    'm09_customer_type_id' => $request->txt_edit_customer_type_id,
+                    'm09_customer_type_id' => $request->txt_edit_customer_type_id ?? $customer->m09_customer_type_id ?? null,
                     'm07_name'             => $request->txt_edit_name,
                     'm07_email'            => $request->txt_edit_email,
                     'm07_phone'            => $request->txt_edit_phone,

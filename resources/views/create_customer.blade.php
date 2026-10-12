@@ -22,27 +22,30 @@
                     <div class="nk-block nk-block-lg">
                         <div class="card">
                             <div class="card-inner">
-                                <form action="{{ route('create_customer') }}" class="form-validate is-alter" method="POST">
+                                <form action="{{ route('create_customer', request()->query()) }}" class="form-validate is-alter" method="POST">
                                     @csrf
                                     <div class="row g-gs">
                                         {{-- Primary Customer Details --}}
                                         <div class="col-md-4">
                                             <div class="form-group">
-                                                <label class="form-label" for="txt_customer_type_id">Customer Type<b
-                                                        class="text-danger">*</b></label>
+                                                <label class="form-label" for="txt_gst">GST Number</label>
                                                 <div class="form-control-wrap">
-                                                    <select name="txt_customer_type_id" class="form-control"
-                                                        id="txt_customer_type_id" required>
-                                                        <option value="">-- Select Customer Type --</option>
-                                                        @foreach ($customerTypes as $customerType)
-                                                            <option value="{{ $customerType->m09_customer_type_id }}"
-                                                                {{ old('txt_customer_type_id') == $customerType->m09_customer_type_id ? 'selected' : '' }}>
-                                                                {{ $customerType->m09_name }}
-                                                            </option>
-                                                        @endforeach
-                                                    </select>
+                                                    <div class="input-group">
+                                                        <input type="text" class="form-control text-uppercase" id="txt_gst" name="txt_gst"
+                                                            value="{{ old('txt_gst') }}" maxlength="15" placeholder="e.g. 27AAAAA0000A1Z5"
+                                                            autocomplete="off" style="text-transform: uppercase;">
+                                                        <div class="input-group-append">
+                                                            <button type="button" class="btn btn-primary" id="btn-fetch-gst" title="Fetch details using GST Number">
+                                                                <span class="spinner-border spinner-border-sm d-none" id="fetch-gst-spinner" role="status" aria-hidden="true"></span>
+                                                                <em class="icon ni ni-search" id="fetch-gst-icon"></em>
+                                                                <span id="fetch-gst-btn-text" class="d-none d-sm-inline ms-1">Fetch</span>
+                                                            </button>
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                                @error('txt_customer_type_id')
+                                                <div id="gst-fetch-status" class="mt-1 small"></div>
+                                                <span id="txt_gst-msg" class="text-danger"></span>
+                                                @error('txt_gst')
                                                     <span class="text-danger">{{ $message }}</span>
                                                 @enderror
                                             </div>
@@ -113,20 +116,6 @@
                                                 </div>
                                                 <span id="txt_phone-msg" class="text-danger"></span>
                                                 @error('txt_phone')
-                                                    <span class="text-danger">{{ $message }}</span>
-                                                @enderror
-                                            </div>
-                                        </div>
-
-                                        <div class="col-md-4">
-                                            <div class="form-group">
-                                                <label class="form-label" for="txt_gst">GST Number</label>
-                                                <div class="form-control-wrap">
-                                                    <input type="text" class="form-control" id="txt_gst" name="txt_gst"
-                                                        value="{{ old('txt_gst') }}" maxlength="15">
-                                                </div>
-                                                <span id="txt_gst-msg" class="text-danger"></span>
-                                                @error('txt_gst')
                                                     <span class="text-danger">{{ $message }}</span>
                                                 @enderror
                                             </div>
@@ -555,11 +544,130 @@
                 validateField("m07_name", $(this).val(), "txt_name", 'Customer', getCurrentRoId());
             });
 
-            $("#txt_gst").on("input", function() {
-                validateField("m07_gst", $(this).val(), "txt_gst", 'Customer', getCurrentRoId());
+            let isFetchingGst = false;
+            let lastFetchedGst = '';
+
+            function performGstFetch() {
+                const gstInput = $('#txt_gst');
+                const rawGst = gstInput.val() ? gstInput.val().trim().toUpperCase() : '';
+                gstInput.val(rawGst);
+
+                const statusDiv = $('#gst-fetch-status');
+
+                if (!rawGst) {
+                    statusDiv.html('<span class="text-danger"><em class="icon ni ni-alert-circle"></em> Please enter a GST number.</span>');
+                    return;
+                }
+
+                if (rawGst.length !== 15) {
+                    statusDiv.html('<span class="text-danger"><em class="icon ni ni-alert-circle"></em> GST Number must be exactly 15 characters.</span>');
+                    return;
+                }
+
+                if (isFetchingGst) return;
+
+                isFetchingGst = true;
+                lastFetchedGst = rawGst;
+
+                const btn = $('#btn-fetch-gst');
+                const spinner = $('#fetch-gst-spinner');
+                const icon = $('#fetch-gst-icon');
+
+                btn.prop('disabled', true);
+                spinner.removeClass('d-none');
+                icon.addClass('d-none');
+                statusDiv.html('<span class="text-primary"><span class="spinner-border spinner-border-sm" role="status"></span> Fetching details from GST portal...</span>');
+
+                $.ajax({
+                    url: "{{ route('fetch_gst_details') }}",
+                    type: "GET",
+                    data: { gst: rawGst },
+                    success: function(res) {
+                        if (res.success && res.data) {
+                            const d = res.data;
+                            statusDiv.html('<span class="text-success fw-bold"><em class="icon ni ni-check-circle"></em> Details fetched successfully!</span>');
+
+                            // Set Customer Name
+                            if (d.name) {
+                                $('#txt_name').val(d.name).trigger('input');
+                            }
+
+                            // Set Contact Person if empty
+                            if (d.contact_person && !$('#txt_contact_person').val()) {
+                                $('#txt_contact_person').val(d.contact_person);
+                            }
+
+                            // Set Address
+                            if (d.address) {
+                                $('#txt_address').val(d.address);
+                            }
+
+                            // Set Pincode
+                            if (d.pincode) {
+                                $('#txt_pincode').val(d.pincode);
+                            }
+
+                            // Set State and District
+                            if (d.state_id) {
+                                $('#txt_state_id').val(d.state_id);
+
+                                if (d.districts && d.districts.length > 0) {
+                                    let options = '<option value="">-- Select District --</option>';
+                                    $.each(d.districts, function(index, dist) {
+                                        const isSelected = d.district_id == dist.m02_district_id ? 'selected' : '';
+                                        options += `<option value="${dist.m02_district_id}" ${isSelected}>${dist.m02_name}</option>`;
+                                    });
+                                    $('#txt_district_id').html(options);
+                                } else {
+                                    fetchDistricts(d.state_id, $('#txt_district_id'), d.district_id);
+                                }
+                            }
+
+                            // Validate field existence against this RO
+                            validateField("m07_gst", rawGst, "txt_gst", 'Customer', getCurrentRoId());
+                            if (d.name) {
+                                validateField("m07_name", d.name, "txt_name", 'Customer', getCurrentRoId());
+                            }
+                        } else {
+                            statusDiv.html('<span class="text-warning"><em class="icon ni ni-alert-circle"></em> ' + (res.message || 'Could not fetch GST details.') + '</span>');
+                        }
+                    },
+                    error: function(xhr) {
+                        let msg = 'Failed to fetch GST details. You can enter details manually.';
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            msg = xhr.responseJSON.message;
+                        }
+                        statusDiv.html('<span class="text-danger"><em class="icon ni ni-cross-circle"></em> ' + msg + '</span>');
+                    },
+                    complete: function() {
+                        isFetchingGst = false;
+                        btn.prop('disabled', false);
+                        spinner.addClass('d-none');
+                        icon.removeClass('d-none');
+                    }
+                });
+            }
+
+            $('#btn-fetch-gst').on('click', function() {
+                performGstFetch();
             });
 
+            $("#txt_gst").on("input", function() {
+                const val = $(this).val().trim().toUpperCase();
+                $(this).val(val);
+                validateField("m07_gst", val, "txt_gst", 'Customer', getCurrentRoId());
 
+                if (val.length === 15 && val !== lastFetchedGst) {
+                    performGstFetch();
+                }
+            });
+
+            $("#txt_gst").on("keypress", function(e) {
+                if (e.which === 13) {
+                    e.preventDefault();
+                    performGstFetch();
+                }
+            });
 
             // Re-validate if ADMIN changes the RO
             @if (Session::get('role') === 'ADMIN')

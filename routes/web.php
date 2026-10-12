@@ -28,6 +28,8 @@ use Illuminate\Support\Facades\Session;
 Route::get('/', function () {
     return view('welcome');
 });
+
+
 Route::post('contact-us', [FrontController::class, 'contactSupport'])->name('contact_support');
 
 // Customer Portal Routes
@@ -76,8 +78,6 @@ Route::middleware(['access_control'])->group(function () {
     Route::post('user/{user}/toggle-2fa', [MasterController::class, 'toggleTwoFactorAccess'])->name('toggle_2fa_access');
 
 
-    Route::get('sample-registration', [SampleController::class, 'registerSample'])->name('sample_registration');
-
     Route::get('payment/sample-checkout', [RazorpayController::class, 'sampleCheckout'])->name('payment.sample_checkout');
     Route::post('payment/create-sample-order', [RazorpayController::class, 'createSampleOrder'])->name('payment.create_sample_order');
     Route::post('payment/verify-sample', [RazorpayController::class, 'verifySamplePayment'])->name('payment.verify_sample');
@@ -95,6 +95,7 @@ Route::middleware(['access_control'])->group(function () {
     Route::match(['get', 'post'], 'create-customer', [CustomerController::class, 'createCustomer'])->name('create_customer');
     Route::match(['get', 'post'], 'update-customer/{id}', [CustomerController::class, 'updateCustomer'])->name('update_customer');
     Route::post('delete-customer', [CustomerController::class, 'deleteCustomer'])->name('delet_customer');
+    Route::match(['get', 'post'], 'fetch-gst-details', [CustomerController::class, 'fetchGstDetails'])->name('fetch_gst_details');
     // Customer types 
     Route::get('view-customer-types', [CustomerController::class, 'viewCustomerTypes'])->name('view_customer_type');
     Route::post('create-customer-type', [CustomerController::class, 'createCustomerType'])->name('create_customer_type');
@@ -180,7 +181,7 @@ Route::middleware(['access_control'])->group(function () {
     Route::match(['get', 'post'], 'update-custom/{id}', [MasterController::class, 'updateCustom'])->name('update_custom');
 
     //Sample Registration
-    Route::match(['get', 'post'], 'sample-regsitration', [RegistrationController::class, 'preRegistration'])->name('register_sample');
+    Route::match(['get', 'post'], 'sample-registration', [RegistrationController::class, 'preRegistration'])->name('register_sample');
     Route::get('registered-samples', [RegistrationController::class, 'viewRegSamples'])->name('view_registered_samples');
 
     // Blank Registration

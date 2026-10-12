@@ -198,9 +198,10 @@
                         $dropdown.empty();
                         if (customers.length) {
                             customers.forEach((c, index) => {
+                                const label = c.name + (c.gst ? ' (' + c.gst + ')' : '');
                                 $('<div>')
                                     .addClass('custom-dropdown-item')
-                                    .text(c.name)
+                                    .text(label)
                                     .data('customer', c)
                                     .appendTo($dropdown);
                             });

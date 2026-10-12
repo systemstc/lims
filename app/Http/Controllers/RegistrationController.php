@@ -392,50 +392,89 @@ class RegistrationController extends Controller
         ]);
 
         try {
-            $query = $request->input('query');
+            $query = trim((string) $request->input('query', ''));
             $type  = $request->input('type');
             $roId  = Session::get('ro_id');
-            if ($query) {
-                $customers = Customer::with(['locations', 'state', 'district'])
-                    ->where('m04_ro_id', $roId)
-                    ->where('m07_name', 'like', "%{$query}%")
-                    ->take(10)
-                    ->take(10)
-                    ->get()
-                    ->map(function ($customer) {
-                        return [
-                            'id' => $customer->m07_customer_id,
-                            'name' => $customer->m07_name,
-                            'default_address' => [
-                                'id' => 'default_' . $customer->m07_customer_id,
+
+            if ($query !== '') {
+                $matchedIds = [];
+                try {
+                    // Execute fuzzy logic stored procedure to match by Name and GST
+                    $results = DB::select('CALL find_similar_names(?)', [$query]);
+                    if (!empty($results)) {
+                        if ($roId) {
+                            $results = array_filter($results, function ($item) use ($roId) {
+                                return empty($item->ro_id) || $item->ro_id == $roId;
+                            });
+                        }
+                        $matchedIds = array_values(array_unique(array_filter(array_column($results, 'id'))));
+                    }
+                } catch (\Exception $procEx) {
+                    Log::warning('find_similar_names failed, falling back to standard query', [
+                        'error' => $procEx->getMessage()
+                    ]);
+                }
+
+                if (!empty($matchedIds)) {
+                    // Fetch customers while preserving stored procedure relevance order
+                    $customerModels = Customer::with(['locations', 'state', 'district'])
+                        ->whereIn('m07_customer_id', array_slice($matchedIds, 0, 15))
+                        ->get()
+                        ->keyBy('m07_customer_id');
+
+                    $customers = collect();
+                    foreach ($matchedIds as $cid) {
+                        if (isset($customerModels[$cid])) {
+                            $customers->push($customerModels[$cid]);
+                        }
+                    }
+                } else {
+                    // Fallback to standard LIKE search across name and gst
+                    $customers = Customer::with(['locations', 'state', 'district'])
+                        ->when($roId, fn($q) => $q->where('m04_ro_id', $roId))
+                        ->where(function ($q) use ($query) {
+                            $q->where('m07_name', 'like', "%{$query}%")
+                              ->orWhere('m07_gst', 'like', "%{$query}%");
+                        })
+                        ->take(10)
+                        ->get();
+                }
+
+                $customers = $customers->take(10)->map(function ($customer) {
+                    return [
+                        'id' => $customer->m07_customer_id,
+                        'name' => $customer->m07_name,
+                        'gst' => $customer->m07_gst,
+                        'default_address' => [
+                            'id' => 'default_' . $customer->m07_customer_id,
+                            'customer_id' => $customer->m07_customer_id,
+                            'address' => $customer->m07_address,
+                            'state' => $customer->state?->m01_state_name,
+                            'district' => $customer->district?->m02_district_name,
+                            'pincode' => $customer->m07_pincode,
+                            'contact_person' => $customer->m07_contact_person,
+                            'email' => $customer->m07_email,
+                            'phone' => $customer->m07_phone,
+                            'gst' => $customer->m07_gst,
+                            'is_default' => true
+                        ],
+                        'other_addresses' => $customer->locations->map(function ($loc) use ($customer) {
+                            return [
+                                'id' => $loc->m08_customer_location_id,
                                 'customer_id' => $customer->m07_customer_id,
-                                'address' => $customer->m07_address,
-                                'state' => $customer->state?->m01_state_name,
-                                'district' => $customer->district?->m02_district_name,
-                                'pincode' => $customer->m07_pincode,
-                                'contact_person' => $customer->m07_contact_person,
-                                'email' => $customer->m07_email,
-                                'phone' => $customer->m07_phone,
-                                'gst' => $customer->m07_gst,
-                                'is_default' => true
-                            ],
-                            'other_addresses' => $customer->locations->map(function ($loc) use ($customer) {
-                                return [
-                                    'id' => $loc->m08_customer_location_id,
-                                    'customer_id' => $customer->m07_customer_id,
-                                    'address' => $loc->m08_address,
-                                    'state' => $loc->state?->m01_state_name,
-                                    'district' => $loc->district?->m02_district_name,
-                                    'pincode' => $loc->m08_pincode,
-                                    'contact_person' => $loc->m08_contact_person,
-                                    'email' => $loc->m08_email,
-                                    'phone' => $loc->m08_phone,
-                                    'gst' => $loc->m08_gst,
-                                    'is_default' => false
-                                ];
-                            })->values(),
-                        ];
-                    });
+                                'address' => $loc->m08_address,
+                                'state' => $loc->state?->m01_state_name,
+                                'district' => $loc->district?->m02_district_name,
+                                'pincode' => $loc->m08_pincode,
+                                'contact_person' => $loc->m08_contact_person,
+                                'email' => $loc->m08_email,
+                                'phone' => $loc->m08_phone,
+                                'gst' => $loc->m08_gst,
+                                'is_default' => false
+                            ];
+                        })->values(),
+                    ];
+                });
             } else {
                 $customers = collect();
             }

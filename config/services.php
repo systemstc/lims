@@ -52,4 +52,10 @@ return [
         'verify_ssl'    => env('WAY2SEND_VERIFY_SSL', false),
         'otp_message'   => env('WAY2SEND_OTP_MESSAGE', 'Use OTP :otp for TC-LIMS login. Valid for 5 mins. Keep it secure. -Textiles Committee'),
     ],
+
+    'swipe' => [
+        'api_key'    => env('SWIPE_API_KEY'),
+        'base_url'   => env('SWIPE_BASE_URL', 'https://app.getswipe.in/api/partner'),
+        'verify_ssl' => env('SWIPE_VERIFY_SSL', false),
+    ],
 ];

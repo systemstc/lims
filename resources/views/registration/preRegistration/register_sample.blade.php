@@ -1678,11 +1678,14 @@ function initializeCustomerEvents() {
             }, function(customers) {
                 $customerDropdown.empty();
                 if (customers.length) {
-                    customers.forEach(c => $('<div>')
-                        .addClass('custom-dropdown-item')
-                        .data('customer', c)
-                        .text(c.name)
-                        .appendTo($customerDropdown));
+                    customers.forEach(c => {
+                        const label = c.name + (c.gst ? ' (' + c.gst + ')' : '');
+                        $('<div>')
+                            .addClass('custom-dropdown-item')
+                            .data('customer', c)
+                            .text(label)
+                            .appendTo($customerDropdown);
+                    });
                 } else {
                     $customerDropdown.html(
                         '<div class="dropdown-message">No customers found.</div>'
