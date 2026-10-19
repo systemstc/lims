@@ -73,6 +73,8 @@ Route::middleware(['access_control'])->group(function () {
     Route::get('employees', [EmployeeController::class, 'viewEmployee'])->name('view_employees');
     Route::match(['get', 'post'], 'create-employee', [EmployeeController::class, 'createEmployee'])->name('create_employee');
     Route::match(['get', 'post'], 'update-employee/{id}', [EmployeeController::class, 'updateEmployee'])->name('update_employee');
+    Route::post('employees/import', [EmployeeController::class, 'importEmployees'])->name('import_employees');
+    Route::get('employees/sample-csv', [EmployeeController::class, 'downloadSampleCsv'])->name('employee_sample_csv');
 
     // User 2FA Control
     Route::post('user/{user}/toggle-2fa', [MasterController::class, 'toggleTwoFactorAccess'])->name('toggle_2fa_access');

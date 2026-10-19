@@ -369,7 +369,16 @@
                                     </div>
 
                                     {{-- Signatory Section Preview --}}
-                                    <div class="mt-4 pt-3 border-top text-end">
+                                    <div class="mt-4 pt-3 border-top d-flex justify-content-between align-items-end">
+                                        <div class="text-start">
+                                            @php
+                                                $qrTrackerId = $sample->tr04_tracker_id ?? $sample->tr04_reference_id;
+                                                $qrUrl = $qrTrackerId ? route('track_sample', ['trackerId' => $qrTrackerId]) : url('/');
+                                                $qrCodeSvg = \SimpleSoftwareIO\QrCode\Facades\QrCode::size(70)->margin(0)->generate($qrUrl);
+                                            @endphp
+                                            <img src="data:image/svg+xml;base64,{{ base64_encode($qrCodeSvg) }}"
+                                                style="width: 70px; height: 70px; display: block;" alt="QR Code">
+                                        </div>
                                         <div class="d-inline-block text-center">
                                             <div class="border-top border-dark pt-1" style="width: 200px;"></div>
                                             <div class="fw-bold mt-1">

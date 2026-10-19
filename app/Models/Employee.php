@@ -20,7 +20,8 @@ class Employee extends Model
         'm02_district_id',
         'm06_status',
         'm06_emp_id',
-        'm06_valid_upto'
+        'm06_valid_upto',
+        'm06_designation'
     ];
 
     public function user(): BelongsTo

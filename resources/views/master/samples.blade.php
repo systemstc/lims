@@ -35,7 +35,7 @@
                                                 <td>{{ $key + 1 }}</td>
                                                 <td>{{ $sample->m10_name }}</td>
                                                 <td>{{ $sample->m10_remark }}</td>
-                                                <td>{{ $sample->user->tr01_name }}</td>
+                                                <td>{{ $sample->user?->tr01_name }}</td>
                                                 <td>{{ $sample->created_at }}</td>
                                                 <td
                                                     class="text-{{ $sample->m10_status == 'ACTIVE' ? 'success' : 'danger' }}">

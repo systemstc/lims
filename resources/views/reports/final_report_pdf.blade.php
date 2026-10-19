@@ -438,10 +438,29 @@
         /* End of Report */
         .end-of-report {
             text-align: center;
-            margin-top: 25px;
+            margin-top: 15px;
             margin-bottom: 2px;
             font-weight: bold;
             font-size: 12px;
+        }
+
+        /* Signature and QR Code layout */
+        .signature-qr-container {
+            margin-top: 25px;
+            page-break-inside: avoid;
+        }
+
+        .signature-qr-table {
+            width: 100%;
+            border-collapse: collapse;
+            border: none !important;
+            margin-bottom: 5px;
+        }
+
+        .signature-qr-table tr,
+        .signature-qr-table td {
+            border: none !important;
+            padding: 0 !important;
         }
 
         /* Page number */
@@ -1046,15 +1065,31 @@
                 </table>
             @endif
 
-            {{-- ===== SIGNATURE PART ===== --}}
-            <div class="signature-part"
-                style="text-align: right; margin-top: 40px; margin-right: 15px; page-break-inside: avoid;">
-                <div style="font-weight: bold; font-size: 14px;">{{ $report->generator->m06_name ?? 'Manager' }}</div>
-                <div style="font-size: 13px; color: #333;">Authorized Signatory</div>
-            </div>
+            {{-- ===== SIGNATURE & QR CODE + END OF REPORT ===== --}}
+            <div class="signature-qr-container">
+                <table class="signature-qr-table">
+                    <tr>
+                        <td style="width: 50%; vertical-align: bottom; text-align: left; padding-left: 5px !important;">
+                            @php
+                                $qrTrackerId = $sample->tr04_tracker_id ?? $sample->tr04_reference_id;
+                                $qrUrl = $qrTrackerId ? route('track_sample', ['trackerId' => $qrTrackerId]) : url('/');
+                                $qrCodeSvg = \SimpleSoftwareIO\QrCode\Facades\QrCode::size(70)->margin(0)->generate($qrUrl);
+                            @endphp
+                            <div style="display: inline-block; text-align: left;">
+                                <img src="data:image/svg+xml;base64,{{ base64_encode($qrCodeSvg) }}"
+                                    style="width: 70px; height: 70px; display: block; border: none;" alt="QR Code">
+                            </div>
+                        </td>
+                        <td style="width: 50%; vertical-align: bottom; text-align: right; padding-right: 15px !important;">
+                            <div style="font-weight: bold; font-size: 14px;">{{ $report->generator->m06_name ?? 'Manager' }}</div>
+                            <div style="font-size: 13px; color: #333;">Authorized Signatory</div>
+                        </td>
+                    </tr>
+                </table>
 
-            {{-- ===== END OF REPORT (after last table row on every/last page) ===== --}}
-            <div class="end-of-report">----------End of Report ----------</div>
+                {{-- ===== END OF REPORT (after last table row on every/last page) ===== --}}
+                <div class="end-of-report">----------End of Report ----------</div>
+            </div>
 
         </div>
     @endforeach

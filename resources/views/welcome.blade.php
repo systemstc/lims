@@ -1021,7 +1021,7 @@
             <a class="navbar-brand" href="#">
                 <img src="{{ asset('frontAssets/textiles_logo_200.png') }}" alt="Textile Committee of India">
                 <div class="navbar-brand-text">
-                    <span class="brand-name">Textile Committee</span>
+                    <span class="brand-name">Laboratories of Textile Committee</span>
                     <span class="brand-sub">Laboratory Information Management System</span>
                 </div>
             </a>
@@ -1406,7 +1406,7 @@
                         <img src="{{ asset('frontAssets/textiles_logo_200.png') }}" alt="Logo"
                             style="height:52px;width:52px;flex-shrink:0;border-radius:6px;">
                         <div>
-                            <div class="fw-bold text-white" style="font-size:0.92rem;line-height:1.2;">Textile
+                            <div class="fw-bold text-white" style="font-size:0.92rem;line-height:1.2;">Laboratories of Textile
                                 Committee</div>
                             <small class="text-light" style="opacity:0.7;font-size:0.75rem;">LIMS</small>
                         </div>
