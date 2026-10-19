@@ -22,7 +22,7 @@
             --text-dark: #334155;
             --textile-red: #c41e3a;
             --textile-gold: #d4af37;
-            --navbar-h: 68px;
+            --navbar-h: 72px;
         }
 
         /* =========================================
@@ -60,10 +60,11 @@
         ========================================= */
         .navbar {
             background: linear-gradient(135deg, var(--textile-red), var(--textile-gold));
-            box-shadow: 0 2px 15px rgba(196, 30, 58, 0.25);
+            box-shadow: 0 4px 20px rgba(196, 30, 58, 0.28);
             padding: 0;
             height: var(--navbar-h);
             z-index: 1030;
+            transition: all 0.3s ease;
         }
 
         .navbar .container {
@@ -73,39 +74,123 @@
             justify-content: space-between;
         }
 
+        .navbar-brand-group {
+            display: flex;
+            align-items: center;
+            flex-shrink: 0;
+            max-width: calc(100% - 58px);
+        }
+
         .navbar-brand {
             display: flex;
             align-items: center;
-            gap: 0.6rem;
+            gap: 0.65rem;
             text-decoration: none;
             flex-shrink: 0;
-            max-width: calc(100% - 56px);
+            padding: 0;
+            margin: 0;
         }
 
-        .navbar-brand img {
-            width: 46px;
-            height: 46px;
+        /* Enhanced Textile Committee Logo Badge */
+        .tc-logo-wrap {
+            width: 48px;
+            height: 48px;
             border-radius: 50%;
-            background: white;
-            object-fit: contain;
+            background: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 3.5px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.16);
+            border: 2px solid rgba(255, 255, 255, 0.9);
             flex-shrink: 0;
+            transition: transform 0.25s ease, box-shadow 0.25s ease;
+        }
+
+        .tc-logo-wrap img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+        }
+
+        .navbar-brand:hover .tc-logo-wrap {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.22);
+        }
+
+        /* Elegant Vertical Brand Divider */
+        .brand-divider {
+            width: 1px;
+            height: 32px;
+            background: linear-gradient(to bottom, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0.15));
+            margin: 0 0.2rem;
+            flex-shrink: 0;
+        }
+
+        /* 3TS Logo on Right Side of Navbar */
+        .tts-logo-wrap {
+            height: 38px;
+            width: auto;
+            max-width: 76px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            background: transparent;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.22);
+            flex-shrink: 0;
+            overflow: hidden;
+            transition: transform 0.25s ease, box-shadow 0.25s ease;
+        }
+
+        .tts-logo-wrap img {
+            height: 100%;
+            width: auto;
+            max-height: 38px;
+            object-fit: contain;
+            display: block;
+            border-radius: 4px;
+        }
+
+        .tts-logo-wrap:hover {
+            transform: scale(1.06);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.32);
+        }
+
+        .navbar-right-group {
+            display: flex;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .navbar-brand-text {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            min-width: 0;
         }
 
         .navbar-brand-text .brand-name {
             display: block;
             font-weight: 700;
-            font-size: 0.95rem;
-            color: white;
-            line-height: 1.2;
+            font-size: 0.98rem;
+            color: #ffffff;
+            line-height: 1.25;
+            letter-spacing: 0.2px;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
         }
 
         .navbar-brand-text .brand-sub {
             display: block;
-            font-size: 0.65rem;
-            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.68rem;
+            color: rgba(255, 255, 255, 0.88);
+            font-weight: 500;
+            letter-spacing: 0.3px;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -114,10 +199,10 @@
         .navbar-toggler {
             border: none;
             padding: 0.4rem;
-            background: rgba(255, 255, 255, 0.15);
+            background: rgba(255, 255, 255, 0.18);
             border-radius: 8px;
             cursor: pointer;
-            transition: background 0.2s;
+            transition: all 0.2s ease;
             flex-shrink: 0;
             width: 44px;
             height: 44px;
@@ -128,7 +213,7 @@
 
         .navbar-toggler:focus {
             box-shadow: none;
-            background: rgba(255, 255, 255, 0.25);
+            background: rgba(255, 255, 255, 0.28);
         }
 
         .navbar-toggler-icon {
@@ -142,14 +227,14 @@
         .desktop-nav {
             display: flex;
             align-items: center;
-            gap: 0.25rem;
+            gap: 0.35rem;
             list-style: none;
             margin: 0;
             padding: 0;
         }
 
         .desktop-nav .nav-link {
-            color: rgba(255, 255, 255, 0.9) !important;
+            color: rgba(255, 255, 255, 0.92) !important;
             font-weight: 500;
             font-size: 0.9rem;
             padding: 0.45rem 0.85rem !important;
@@ -159,25 +244,31 @@
         }
 
         .desktop-nav .nav-link:hover {
-            color: white !important;
-            background: rgba(255, 255, 255, 0.15);
+            color: #ffffff !important;
+            background: rgba(255, 255, 255, 0.18);
         }
 
         .desktop-nav .btn-outline-light {
-            color: white;
-            border: 1.5px solid rgba(255, 255, 255, 0.7);
-            padding: 0.4rem 1rem;
-            border-radius: 6px;
-            font-size: 0.85rem;
-            font-weight: 500;
+            color: #ffffff;
+            border: 1.5px solid rgba(255, 255, 255, 0.85);
+            padding: 0.42rem 1.15rem;
+            border-radius: 50px;
+            font-size: 0.86rem;
+            font-weight: 600;
             text-decoration: none;
-            transition: all 0.2s;
+            transition: all 0.22s ease;
             white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
         }
 
         .desktop-nav .btn-outline-light:hover {
-            background: white;
+            background: #ffffff;
             color: var(--textile-red);
+            border-color: #ffffff;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+            transform: translateY(-1px);
         }
 
         /* =========================================
@@ -420,16 +511,15 @@
            HERO
         ========================================= */
         .hero-section {
-            /* background-attachment:fixed breaks on iOS — use scroll */
-            background: linear-gradient(135deg, rgba(30, 41, 59, 0.82), rgba(228, 56, 84, 0.45)),
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.84), rgba(196, 30, 58, 0.5)),
                 url('{{ asset('frontAssets/header-image.jpeg') }}') center/cover no-repeat scroll;
             color: white;
-            min-height: calc(100vh - 120px);
+            min-height: calc(100vh - 72px);
             display: flex;
             align-items: center;
             position: relative;
-            padding-top: 3rem;
-            padding-bottom: 3.5rem;
+            padding-top: calc(var(--navbar-h) + 2.5rem);
+            padding-bottom: 4rem;
         }
 
         .hero-section::before {
@@ -446,16 +536,27 @@
             z-index: 1;
         }
 
-        .hero-content h1 {
+        .hero-content h1#typewriter {
             font-size: clamp(1.8rem, 5vw, 3.2rem);
             line-height: 1.25;
             font-weight: 800;
+            min-height: 2.5em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        @media (min-width: 992px) {
+            .hero-content h1#typewriter {
+                justify-content: flex-start;
+            }
         }
 
         .hero-content p.lead {
             font-size: clamp(0.95rem, 2.2vw, 1.15rem);
-            opacity: 0.92;
+            opacity: 0.94;
             max-width: 650px;
+            line-height: 1.7;
         }
 
         .hero-image {
@@ -468,8 +569,8 @@
             content: '';
             position: absolute;
             inset: 0;
-            background: linear-gradient(135deg, rgba(30, 41, 59, 0.5), rgba(228, 56, 84, 0.25));
-            border-radius: 0.75rem;
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.4), rgba(196, 30, 58, 0.2));
+            border-radius: 1rem;
             z-index: 1;
             pointer-events: none;
         }
@@ -477,18 +578,26 @@
         .hero-image img {
             width: 100%;
             height: auto;
-            max-width: 480px;
-            border-radius: 0.75rem;
+            max-width: 460px;
+            border-radius: 1rem;
             margin: 0 auto;
-            box-shadow: 0 12px 30px rgba(0,0,0,0.35);
+            box-shadow: 0 16px 36px rgba(0,0,0,0.35);
+            border: 2px solid rgba(255, 255, 255, 0.22);
+            transition: transform 0.35s ease, box-shadow 0.35s ease;
+        }
+
+        .hero-image:hover img {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 42px rgba(0,0,0,0.42);
         }
 
         /* Hero buttons — stack on very small screens */
         .hero-buttons {
             display: flex;
             flex-wrap: wrap;
-            gap: 0.75rem;
+            gap: 1rem;
             justify-content: center;
+            align-items: center;
         }
 
         @media (min-width: 992px) {
@@ -501,30 +610,44 @@
            STATS
         ========================================= */
         .stats-section {
-            background: linear-gradient(135deg, var(--light-gray), #fff);
-            padding: 2.5rem 0;
+            background: linear-gradient(135deg, var(--light-gray), #ffffff);
+            padding: 2.75rem 0;
+            border-bottom: 1px solid var(--medium-gray);
         }
 
         .stat-item {
             text-align: center;
             padding: 1rem 0.5rem;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        @media (min-width: 768px) {
+            .stat-item-border {
+                border-right: 1px solid var(--medium-gray);
+            }
         }
 
         .stat-number {
-            font-size: clamp(1.8rem, 6vw, 3.2rem);
+            font-size: clamp(1.8rem, 5.5vw, 3.2rem);
             font-weight: 800;
             background: linear-gradient(135deg, var(--textile-red), var(--textile-gold));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
             display: block;
-            line-height: 1.1;
-            margin-bottom: 0.35rem;
+            line-height: 1.15;
+            margin-bottom: 0.4rem;
         }
 
         .stat-item p {
-            font-size: clamp(0.78rem, 2vw, 0.95rem);
+            font-size: clamp(0.82rem, 2vw, 0.95rem);
             margin: 0;
+            color: #475569;
+            font-weight: 600;
+            letter-spacing: 0.2px;
         }
 
         /* =========================================
@@ -549,11 +672,13 @@
 
         .feature-card {
             background: white;
-            border-radius: 18px;
-            padding: 2rem 1.5rem;
+            border-radius: 16px;
+            padding: 2.25rem 1.6rem 2rem;
             box-shadow: 0 8px 24px rgba(37, 99, 235, 0.07);
-            transition: transform 0.35s ease, box-shadow 0.35s ease;
+            transition: transform 0.35s ease, box-shadow 0.35s ease, border-color 0.35s ease;
             height: 100%;
+            display: flex;
+            flex-direction: column;
             border: 1px solid var(--medium-gray);
             position: relative;
             overflow: hidden;
@@ -572,6 +697,7 @@
         .feature-card:hover {
             transform: translateY(-6px);
             box-shadow: 0 20px 40px rgba(196, 30, 58, 0.13);
+            border-color: rgba(196, 30, 58, 0.3);
         }
 
         .feature-icon {
@@ -585,6 +711,21 @@
             margin: 0 auto 1.5rem;
             color: white;
             font-size: 1.6rem;
+            box-shadow: 0 4px 14px rgba(196, 30, 58, 0.25);
+            flex-shrink: 0;
+        }
+
+        .feature-card h5 {
+            font-size: 1.12rem;
+            margin-bottom: 0.85rem;
+        }
+
+        .feature-card p {
+            flex-grow: 1;
+            margin-bottom: 0;
+            line-height: 1.65;
+            color: #475569;
+            font-size: 0.92rem;
         }
 
         /* =========================================
@@ -593,18 +734,23 @@
         .process-step {
             background: white;
             border-radius: 14px;
-            padding: 1.75rem 1.25rem 1.25rem;
+            padding: 2rem 1.25rem 1.5rem;
             text-align: center;
             box-shadow: 0 6px 20px rgba(37, 99, 235, 0.07);
             position: relative;
             margin-top: 1.5rem;
             border: 1px solid var(--medium-gray);
-            transition: transform 0.28s ease, box-shadow 0.28s ease;
+            transition: transform 0.28s ease, box-shadow 0.28s ease, border-color 0.28s ease;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
         }
 
         .process-step:hover {
             transform: translateY(-4px);
-            box-shadow: 0 14px 30px rgba(196, 30, 58, 0.11);
+            box-shadow: 0 14px 30px rgba(196, 30, 58, 0.12);
+            border-color: rgba(196, 30, 58, 0.3);
         }
 
         .process-number {
@@ -622,6 +768,25 @@
             justify-content: center;
             font-weight: 700;
             font-size: 1rem;
+            box-shadow: 0 4px 10px rgba(196, 30, 58, 0.3);
+        }
+
+        .process-body {
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+            margin-top: 0.75rem;
+        }
+
+        .process-body h6 {
+            margin-bottom: 0.65rem;
+            font-size: 0.98rem;
+        }
+
+        .process-body p {
+            margin-top: auto;
+            margin-bottom: 0;
+            line-height: 1.55;
         }
 
         /* =========================================
@@ -638,7 +803,6 @@
             border-radius: 12px;
             box-shadow: 0 12px 30px rgba(0, 0, 0, 0.1);
             touch-action: pan-y;
-            /* allow vertical scroll, handle horizontal swipe in JS */
         }
 
         .slider {
@@ -662,7 +826,7 @@
             bottom: 0;
             left: 0;
             right: 0;
-            background: linear-gradient(transparent, rgba(0, 0, 0, 0.72));
+            background: linear-gradient(transparent, rgba(0, 0, 0, 0.75));
             color: white;
             padding: clamp(0.75rem, 3vw, 1.75rem);
             text-align: center;
@@ -672,7 +836,7 @@
             font-size: clamp(1rem, 3.5vw, 1.75rem);
             font-weight: 800;
             margin-bottom: 0.3rem;
-            background: linear-gradient(135deg, rgba(247, 62, 38, 0.85), rgba(243, 177, 53, 0.85));
+            background: linear-gradient(135deg, rgba(247, 62, 38, 0.95), rgba(243, 177, 53, 0.95));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
@@ -704,11 +868,13 @@
             justify-content: center;
             cursor: pointer;
             flex-shrink: 0;
-            transition: transform 0.2s ease;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            box-shadow: 0 4px 12px rgba(196, 30, 58, 0.25);
         }
 
         .slider-btn:hover {
             transform: scale(1.08);
+            box-shadow: 0 6px 16px rgba(196, 30, 58, 0.35);
         }
 
         .slider-dots {
@@ -741,25 +907,36 @@
         .lab-card {
             background: white;
             border: 1px solid var(--medium-gray);
-            border-radius: 10px;
-            padding: 1rem;
+            border-radius: 12px;
+            padding: 1.25rem 1rem;
             text-align: center;
-            transition: box-shadow 0.2s;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 92px;
+            transition: all 0.25s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
         }
 
         .lab-card:hover {
-            box-shadow: 0 6px 18px rgba(196, 30, 58, 0.1);
+            transform: translateY(-3px);
+            border-color: rgba(196, 30, 58, 0.35);
+            box-shadow: 0 10px 24px rgba(196, 30, 58, 0.12);
         }
 
         .lab-card h6 {
-            font-size: 0.88rem;
-            margin-bottom: 0.2rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
         }
 
         .lab-card small {
-            font-size: 0.75rem;
+            font-size: 0.78rem;
             color: var(--text-dark);
-            opacity: 0.6;
+            opacity: 0.65;
+            font-weight: 500;
         }
 
         /* =========================================
@@ -790,22 +967,29 @@
         .form-control {
             border: 1px solid var(--medium-gray);
             border-radius: 8px;
-            padding: 0.7rem 0.9rem;
+            padding: 0.75rem 1rem;
             background: white;
             width: 100%;
-            font-size: 0.9rem;
+            font-size: 0.92rem;
+            height: 48px;
             transition: border-color 0.25s, box-shadow 0.25s;
+        }
+
+        textarea.form-control {
+            height: auto;
+            min-height: 120px;
         }
 
         .form-control:focus {
             border-color: var(--textile-red);
-            box-shadow: 0 0 0 3px rgba(196, 30, 58, 0.13);
+            box-shadow: 0 0 0 3px rgba(196, 30, 58, 0.15);
             outline: none;
         }
 
         .form-label {
             font-size: 0.88rem;
-            margin-bottom: 0.35rem;
+            font-weight: 500;
+            margin-bottom: 0.4rem;
         }
 
         /* =========================================
@@ -827,7 +1011,8 @@
             text-decoration: none;
             display: inline-flex;
             align-items: center;
-            min-height: 44px;
+            justify-content: center;
+            min-height: 46px;
         }
 
         .btn-primary:hover {
@@ -839,15 +1024,16 @@
         .btn-outline-light-hero {
             display: inline-flex;
             align-items: center;
-            min-height: 44px;
+            justify-content: center;
+            min-height: 46px;
             padding: 0.8rem 2rem;
-            border: 1.5px solid rgba(255, 255, 255, 0.75);
+            border: 1.5px solid rgba(255, 255, 255, 0.8);
             border-radius: 50px;
             color: white;
             font-weight: 600;
             font-size: clamp(0.8rem, 2vw, 0.9rem);
             text-decoration: none;
-            transition: background 0.22s, color 0.22s;
+            transition: background 0.22s, color 0.22s, border-color 0.22s;
             text-transform: uppercase;
             letter-spacing: 0.4px;
         }
@@ -855,6 +1041,7 @@
         .btn-outline-light-hero:hover {
             background: white;
             color: var(--textile-red);
+            border-color: white;
         }
 
         /* =========================================
@@ -863,7 +1050,7 @@
         .footer {
             background: var(--secondary-color);
             color: white;
-            padding: 2.5rem 0 1rem;
+            padding: 3rem 0 1.25rem;
         }
 
         .footer a {
@@ -876,7 +1063,7 @@
 
         .footer-divider {
             border-color: rgba(255, 255, 255, 0.12);
-            margin: 1.25rem 0 1rem;
+            margin: 1.5rem 0 1rem;
         }
 
         .footer-copy {
@@ -905,19 +1092,58 @@
             max-width: 100vw;
         }
 
+        @media (max-width: 991.98px) {
+            .navbar-brand-group {
+                max-width: calc(100% - 135px);
+            }
+
+            .navbar-brand-text .brand-name {
+                font-size: 0.9rem;
+            }
+
+            .navbar-brand-text .brand-sub {
+                font-size: 0.64rem;
+            }
+        }
+
         /* Better tap spacing on small touchscreens */
         @media (max-width: 575.98px) {
+            .navbar-brand {
+                gap: 0.45rem;
+            }
+
+            .tc-logo-wrap {
+                width: 38px;
+                height: 38px;
+                padding: 2.5px;
+            }
+
+            .tts-logo-wrap {
+                height: 30px;
+                max-width: 60px;
+            }
+
+            .brand-divider {
+                height: 22px;
+                margin: 0;
+            }
+
+            .navbar-brand-text .brand-name {
+                font-size: 0.82rem;
+                max-width: 180px;
+            }
+
             .hero-section {
                 padding-top: calc(var(--navbar-h) + 1.5rem);
-                padding-bottom: 2rem;
+                padding-bottom: 2.5rem;
             }
 
             .stats-section {
-                padding: 1.75rem 0;
+                padding: 2rem 0;
             }
 
             .stat-item {
-                padding: 0.6rem 0.25rem;
+                padding: 0.75rem 0.25rem;
             }
 
             .slider-section {
@@ -929,15 +1155,15 @@
             }
 
             .feature-card {
-                padding: 1.5rem 1.1rem;
+                padding: 1.75rem 1.25rem;
             }
 
             .process-step {
-                padding: 1.5rem 1rem 1rem;
+                padding: 1.75rem 1rem 1.25rem;
             }
 
             .footer {
-                padding: 2rem 0 1rem;
+                padding: 2.5rem 0 1rem;
             }
 
             .navbar-brand-text .brand-sub {
@@ -967,7 +1193,9 @@
     <div class="mobile-nav-drawer" id="mobileNavDrawer" role="dialog" aria-modal="true" aria-label="Navigation Menu">
         <div class="drawer-header">
             <div class="drawer-brand">
-                <img src="{{ asset('frontAssets/textiles_logo_200.png') }}" alt="Textile Committee">
+                <div class="tc-logo-wrap" style="width:38px;height:38px;padding:3px;box-shadow:none;border-color:rgba(255,255,255,0.7);">
+                    <img src="{{ asset('frontAssets/textiles_logo_200.png') }}" alt="Textile Committee">
+                </div>
                 <div class="drawer-brand-text">
                     <strong>Textile Committee</strong>
                     <small>LIMS Portal</small>
@@ -1018,39 +1246,52 @@
     <!-- ======= NAVBAR ======= -->
     <nav class="navbar fixed-top">
         <div class="container">
-            <a class="navbar-brand" href="#">
-                <img src="{{ asset('frontAssets/textiles_logo_200.png') }}" alt="Textile Committee of India">
-                <div class="navbar-brand-text">
-                    <span class="brand-name">Laboratories of Textile Committee</span>
-                    <span class="brand-sub">Laboratory Information Management System</span>
+            <div class="navbar-brand-group">
+                <a class="navbar-brand" href="#home">
+                    <div class="tc-logo-wrap" title="Laboratories of Textile Committee">
+                        <img src="{{ asset('frontAssets/textiles_logo_200.png') }}" alt="Textile Committee of India">
+                    </div>
+                    <div class="brand-divider"></div>
+                    <div class="navbar-brand-text">
+                        <span class="brand-name">Laboratories of Textile Committee</span>
+                        <span class="brand-sub">Laboratory Information Management System</span>
+                    </div>
+                </a>
+            </div>
+
+            <!-- Right section: Desktop nav + 3TS logo + Mobile toggle -->
+            <div class="navbar-right-group">
+                <!-- Desktop nav -->
+                <ul class="desktop-nav">
+                    <li><a class="nav-link" href="#home">Home</a></li>
+                    <li><a class="nav-link" href="#features">Features</a></li>
+                    <li><a class="nav-link" href="#process">Process</a></li>
+                    <li><a class="nav-link" href="#labs">Laboratories</a></li>
+                    <li><a class="nav-link" href="#contact">Contact</a></li>
+                    <li style="margin-left:0.5rem; margin-right: 0.75rem;">
+                        @if (session()->has('admin_id') || session()->has('user_id'))
+                            <a href="{{ route('dashboard') }}" class="btn-outline-light">
+                                <em class="icon ni ni-arrow-right" style="margin-right:0.4rem;"></em>Go to Dashboard
+                            </a>
+                        @else
+                            <a href="{{ route('user_login') }}" class="btn-outline-light">
+                                <em class="icon ni ni-signin" style="margin-right:0.4rem;"></em>Access System
+                            </a>
+                        @endif
+                    </li>
+                </ul>
+
+                <!-- 3TS Logo aligned at right side of navbar (borderless, compact) -->
+                <div class="tts-logo-wrap" title="3TS - Textile Testing & Technical Services">
+                    <img src="{{ asset('backAssets/images/3TS.png') }}" alt="3TS - Textile Testing & Technical Services">
                 </div>
-            </a>
 
-            <!-- Mobile hamburger -->
-            <button class="navbar-toggler" type="button" id="mobileMenuToggle" aria-label="Open navigation menu"
-                aria-expanded="false" aria-controls="mobileNavDrawer">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-
-            <!-- Desktop nav -->
-            <ul class="desktop-nav">
-                <li><a class="nav-link" href="#home">Home</a></li>
-                <li><a class="nav-link" href="#features">Features</a></li>
-                <li><a class="nav-link" href="#process">Process</a></li>
-                <li><a class="nav-link" href="#labs">Laboratories</a></li>
-                <li><a class="nav-link" href="#contact">Contact</a></li>
-                <li style="margin-left:0.5rem;">
-                    @if (session()->has('admin_id') || session()->has('user_id'))
-                        <a href="{{ route('dashboard') }}" class="btn-outline-light">
-                            <em class="icon ni ni-arrow-right" style="margin-right:0.4rem;"></em>Go to Dashboard
-                        </a>
-                    @else
-                        <a href="{{ route('user_login') }}" class="btn-outline-light">
-                            <em class="icon ni ni-signin" style="margin-right:0.4rem;"></em>Access System
-                        </a>
-                    @endif
-                </li>
-            </ul>
+                <!-- Mobile hamburger -->
+                <button class="navbar-toggler ms-2" type="button" id="mobileMenuToggle" aria-label="Open navigation menu"
+                    aria-expanded="false" aria-controls="mobileNavDrawer">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+            </div>
         </div>
     </nav>
 
@@ -1090,21 +1331,21 @@
     <!-- Stats Section -->
     <section class="stats-section">
         <div class="container">
-            <div class="row">
+            <div class="row g-3">
                 <div class="col-md-3 col-6">
-                    <div class="stat-item">
+                    <div class="stat-item stat-item-border">
                         <span class="stat-number" data-target="15" data-suffix="+">0+</span>
                         <p class="mb-0 fw-semibold">Textile Labs</p>
                     </div>
                 </div>
                 <div class="col-md-3 col-6">
-                    <div class="stat-item">
+                    <div class="stat-item stat-item-border">
                         <span class="stat-number" data-target="25000" data-suffix="+">0+</span>
                         <p class="mb-0 fw-semibold">Tests Processed</p>
                     </div>
                 </div>
                 <div class="col-md-3 col-6">
-                    <div class="stat-item">
+                    <div class="stat-item stat-item-border">
                         <span class="stat-number" data-target="75" data-suffix="+">0+</span>
                         <p class="mb-0 fw-semibold">Standard Methods</p>
                     </div>
@@ -1196,7 +1437,7 @@
                 <div class="col-lg-3 col-md-6">
                     <div class="process-step">
                         <div class="process-number">1</div>
-                        <div class="mt-3">
+                        <div class="process-body mt-3">
                             <em class="icon ni ni-list-check fs-1 text-primary mb-3"></em>
                             <h6 class="fw-bold">Sample Registration</h6>
                             <p class="text-muted small mb-0">Register samples with unique IDs and test requirements
@@ -1207,7 +1448,7 @@
                 <div class="col-lg-3 col-md-6">
                     <div class="process-step">
                         <div class="process-number">2</div>
-                        <div class="mt-3">
+                        <div class="process-body mt-3">
                             <em class="icon ni ni-task fs-1 text-primary mb-3"></em>
                             <h6 class="fw-bold">Test Assignment</h6>
                             <p class="text-muted small mb-0">Automatic assignment based on sample type and standardized
@@ -1218,7 +1459,7 @@
                 <div class="col-lg-3 col-md-6">
                     <div class="process-step">
                         <div class="process-number">3</div>
-                        <div class="mt-3">
+                        <div class="process-body mt-3">
                             <em class="icon ni ni-activity fs-1 text-primary mb-3"></em>
                             <h6 class="fw-bold">Test Execution</h6>
                             <p class="text-muted small mb-0">Guided testing procedures with real-time data capture and
@@ -1229,7 +1470,7 @@
                 <div class="col-lg-3 col-md-6">
                     <div class="process-step">
                         <div class="process-number">4</div>
-                        <div class="mt-3">
+                        <div class="process-body mt-3">
                             <em class="icon ni ni-award fs-1 text-primary mb-3"></em>
                             <h6 class="fw-bold">Report Generation</h6>
                             <p class="text-muted small mb-0">Official report generation with certification and digital
@@ -1403,16 +1644,15 @@
             <div class="row g-4">
                 <div class="col-12 col-sm-6 col-lg-4">
                     <div class="d-flex align-items-center gap-2 mb-3">
-                        <img src="{{ asset('frontAssets/textiles_logo_200.png') }}" alt="Logo"
-                            style="height:52px;width:52px;flex-shrink:0;border-radius:6px;">
-                        <div>
-                            <div class="fw-bold text-white" style="font-size:0.92rem;line-height:1.2;">Laboratories of Textile
-                                Committee</div>
-                            <small class="text-light" style="opacity:0.7;font-size:0.75rem;">LIMS</small>
+                        <div class="tc-logo-wrap" style="width:46px;height:46px;padding:3px;box-shadow:0 2px 8px rgba(0,0,0,0.25);border:none;">
+                            <img src="{{ asset('frontAssets/textiles_logo_200.png') }}" alt="Textiles Committee Logo">
+                        </div>
+                        <div class="ms-1">
+                            <div class="fw-bold text-white" style="font-size:0.92rem;line-height:1.25;">Laboratories of Textile Committee</div>
+                            <small class="text-light" style="opacity:0.8;font-size:0.75rem;">LIMS Portal</small>
                         </div>
                     </div>
-                    <p class="text-light mb-0" style="font-size:0.84rem;">Laboratory information management system for
-                        textile testing facilities.</p>
+                    <p class="text-light mb-0" style="font-size:0.84rem;line-height:1.6;opacity:0.85;">Official Laboratory Information Management System developed by the Textiles Committee for standardized testing and quality assurance across textile laboratories.</p>
                 </div>
                 <div class="col-6 col-sm-3 col-lg-2">
                     <h6 class="fw-bold mb-3 text-white" style="font-size:0.87rem;">Quick Links</h6>
@@ -1549,7 +1789,7 @@
                 const target = document.querySelector(href);
                 if (target) {
                     e.preventDefault();
-                    const offset = 70; // navbar height
+                    const offset = 74; // navbar height + breathing room
                     const top = target.getBoundingClientRect().top + window.pageYOffset - offset;
                     window.scrollTo({
                         top,
