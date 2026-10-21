@@ -493,12 +493,18 @@ class AnalystController extends Controller
                             ->whereIn('m16_primary_test_id', $allPrimaryTestIds)
                             ->get();
 
-                        // Load secondary tests for each primary test
+                        // Load secondary tests for each primary test (only those selected in the main test)
+                        $selectedSecIds = array_filter(explode(',', $test->m17_secondary_test_id ?? ''));
                         foreach ($primaryTests as $primaryTest) {
-                            $secondaryTests = \DB::table('m17_secondary_tests')
-                                ->where('m16_primary_test_id', $primaryTest->m16_primary_test_id)
-                                ->get();
-                            $primaryTest->secondaryTests = collect($secondaryTests);
+                            if (!empty($selectedSecIds)) {
+                                $secondaryTests = \DB::table('m17_secondary_tests')
+                                    ->where('m16_primary_test_id', $primaryTest->m16_primary_test_id)
+                                    ->whereIn('m17_secondary_test_id', $selectedSecIds)
+                                    ->get();
+                                $primaryTest->secondaryTests = collect($secondaryTests);
+                            } else {
+                                $primaryTest->secondaryTests = collect();
+                            }
                         }
                     }
                     $test->primaryTests = $primaryTests;

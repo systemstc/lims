@@ -7,6 +7,7 @@ use App\Models\PrimaryTest;
 use App\Models\SampleRegistration;
 use App\Models\SampleTest;
 use App\Models\SecondaryTest;
+use App\Models\Test;
 use App\Models\TestReport;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -196,6 +197,72 @@ class TestResultController extends Controller
     //     ));
     // }
 
+    /**
+     * Load secondary tests for a primary test, restricted to only those selected in the main test.
+     */
+    private function getSelectedSecondaryTestsForPrimary($test, $primaryTest)
+    {
+        $selectedSecondaryIds = !empty($test->m17_secondary_test_id)
+            ? array_values(array_filter(array_map('trim', explode(',', (string)$test->m17_secondary_test_id))))
+            : [];
+
+        if (empty($selectedSecondaryIds)) {
+            return collect();
+        }
+
+        $associations = [];
+        if (!empty($test->m17_secondary_test_associations)) {
+            $decoded = is_array($test->m17_secondary_test_associations)
+                ? $test->m17_secondary_test_associations
+                : json_decode($test->m17_secondary_test_associations, true);
+            if (is_array($decoded) && !empty($decoded)) {
+                $associations = $decoded;
+            }
+        }
+
+        $secIdsForPrimary = [];
+        if (!empty($associations)) {
+            $secIdsForPrimary = collect($associations)
+                ->filter(function ($a) use ($primaryTest, $selectedSecondaryIds) {
+                    return (string)($a['primary_test_id'] ?? '') === (string)$primaryTest->m16_primary_test_id
+                        && in_array((string)($a['secondary_test_id'] ?? ''), array_map('strval', $selectedSecondaryIds));
+                })
+                ->pluck('secondary_test_id')
+                ->map(fn($id) => (string)$id)
+                ->filter()
+                ->unique()
+                ->values()
+                ->toArray();
+        }
+
+        if (!empty($secIdsForPrimary)) {
+            return SecondaryTest::with('formula')
+                ->whereIn('m17_secondary_test_id', $secIdsForPrimary)
+                ->get();
+        }
+
+        // If associations exist, check if any selected secondary IDs were unassociated and belong to this primary test
+        $associatedAnySecIds = !empty($associations)
+            ? collect($associations)->pluck('secondary_test_id')->map(fn($id) => (string)$id)->toArray()
+            : [];
+        $unassociatedSecIds = array_diff(array_map('strval', $selectedSecondaryIds), $associatedAnySecIds);
+
+        if (!empty($unassociatedSecIds)) {
+            return SecondaryTest::with('formula')
+                ->where('m16_primary_test_id', $primaryTest->m16_primary_test_id)
+                ->whereIn('m17_secondary_test_id', $unassociatedSecIds)
+                ->get();
+        }
+
+        if (empty($associations)) {
+            return SecondaryTest::with('formula')
+                ->where('m16_primary_test_id', $primaryTest->m16_primary_test_id)
+                ->whereIn('m17_secondary_test_id', $selectedSecondaryIds)
+                ->get();
+        }
+
+        return collect();
+    }
 
     public function templateTestResult(Request $request, $id)
     {
@@ -282,9 +349,9 @@ class TestResultController extends Controller
                         })->values();
                     }
 
-                    // Load secondary tests for each primary test
+                    // Load secondary tests for each primary test (only those selected in the main test)
                     foreach ($primaryTests as $primaryTest) {
-                        $secondaryTests = SecondaryTest::with('formula')->where('m16_primary_test_id', $primaryTest->m16_primary_test_id)->get();
+                        $secondaryTests = $this->getSelectedSecondaryTestsForPrimary($test, $primaryTest);
                         $primaryTest->setRelation('secondaryTests', $secondaryTests);
                     }
 
@@ -418,9 +485,9 @@ class TestResultController extends Controller
                         })->values();
                     }
 
-                    // Load secondary tests for each primary test
+                    // Load secondary tests for each primary test (only those selected in the main test)
                     foreach ($primaryTests as $primaryTest) {
-                        $secondaryTests = SecondaryTest::with('formula')->where('m16_primary_test_id', $primaryTest->m16_primary_test_id)->get();
+                        $secondaryTests = $this->getSelectedSecondaryTestsForPrimary($test, $primaryTest);
                         $primaryTest->setRelation('secondaryTests', $secondaryTests);
                     }
                     $test->setRelation('primaryTests', $primaryTests);
@@ -521,6 +588,190 @@ class TestResultController extends Controller
             Session::flash('swal_message', 'Failed to upload document: ' . $e->getMessage());
             return back();
         }
+    }
+
+    public function downloadManuscript(Request $request, $id)
+    {
+        // Find registration by reference ID or registration ID
+        $registration = SampleRegistration::with([
+            'labSample',
+            'ro',
+            'sampleTests.test',
+            'sampleTests.standard',
+            'sampleTests.allotedTo',
+            'sampleTests.allotedBy'
+        ])
+            ->where('tr04_sample_registration_id', $id)
+            ->orWhere('tr04_reference_id', $id)
+            ->firstOrFail();
+
+        // Get RO Name
+        $roName = 'MUMBAI';
+        if ($registration->ro) {
+            $roName = strtoupper(str_replace('RO ', '', $registration->ro->m04_name));
+        } elseif (Session::has('ro_id')) {
+            $ro = \App\Models\Ro::find(Session::get('ro_id'));
+            if ($ro) {
+                $roName = strtoupper(str_replace('RO ', '', $ro->m04_name));
+            }
+        }
+
+        // Resolve sample characteristics
+        $sampleCharacteristics = $registration->labSample->m14_name ?? 'Fabric';
+
+        // Dates and names
+        $allotmentDate = null;
+        $testDate = null;
+        $performanceDate = null;
+        $analystName = null;
+        $managerName = null;
+
+        // Check existing test results for dates
+        $existingResults = TestResult::where('tr04_reference_id', $registration->tr04_reference_id)->get();
+        if ($existingResults->isNotEmpty()) {
+            $firstResult = $existingResults->first();
+            if ($firstResult->tr07_test_date) {
+                $testDate = Carbon::parse($firstResult->tr07_test_date)->format('d F Y');
+            }
+            if ($firstResult->tr07_performance_date) {
+                $performanceDate = Carbon::parse($firstResult->tr07_performance_date)->format('d F Y');
+            }
+        }
+
+        // Get sample tests
+        $sampleTests = $registration->sampleTests->sortBy('tr05_sample_test_id')->values();
+        $uniqueSampleTests = $sampleTests->unique('m12_test_number')->values();
+
+        if ($sampleTests->isNotEmpty()) {
+            $firstSampleTest = $sampleTests->first();
+            if ($firstSampleTest->tr05_alloted_at) {
+                $allotmentDate = Carbon::parse($firstSampleTest->tr05_alloted_at)->format('d F Y');
+            } elseif ($registration->created_at) {
+                $allotmentDate = Carbon::parse($registration->created_at)->format('d F Y');
+            }
+
+            // Analyst name
+            $allotedTo = $firstSampleTest->allotedTo;
+            if ($allotedTo) {
+                $analystName = $allotedTo->m06_name;
+            }
+
+            // Technical Manager name
+            $allotedBy = $firstSampleTest->allotedBy;
+            if ($allotedBy) {
+                $managerName = $allotedBy->m06_name;
+            } elseif (Session::get('role') === 'Manager') {
+                $managerName = Session::get('name');
+            }
+        }
+
+        // Build list of tests with Summernote manuscript or blank line
+        $testsList = [];
+        foreach ($uniqueSampleTests as $sampleTest) {
+            $testName = $sampleTest->test->m12_name ?? 'Test';
+            $standardMethod = $sampleTest->standard->m15_method ?? '';
+
+            // Check if existing result has manuscript content
+            $existingResult = $existingResults->where('m12_test_number', $sampleTest->m12_test_number)
+                ->whereNull('m16_primary_test_id')
+                ->whereNull('m17_secondary_test_id')
+                ->first();
+
+            $content = $existingResult->tr07_manuscript_content ?? null;
+
+            if (empty($content)) {
+                $applicableTemplate = \App\Models\Manuscript::where('m12_test_number', $sampleTest->m12_test_number)
+                    ->where('m22_status', 'ACTIVE')
+                    ->get()
+                    ->first(function ($t) use ($sampleTest) {
+                        if (!$t->m15_standard_ids) return true;
+                        $standardIdsArray = explode(',', $t->m15_standard_ids);
+                        return in_array((string)$sampleTest->m15_standard_id, $standardIdsArray);
+                    });
+
+                $content = $applicableTemplate ? $applicableTemplate->m22_content : '';
+            }
+
+            // Check if manuscript has meaningful content
+            $cleanContent = trim(strip_tags($content));
+            $hasManuscript = !empty($cleanContent) || str_contains($content, '<img') || str_contains($content, '<table');
+
+            // Resolve units
+            $units = [];
+            if (!empty($sampleTest->test->m12_unit)) {
+                $units[] = $sampleTest->test->m12_unit;
+            }
+            if (!empty($sampleTest->test->m16_primary_test_id)) {
+                $primaryIds = explode(',', $sampleTest->test->m16_primary_test_id);
+                $primaries = PrimaryTest::whereIn('m16_primary_test_id', $primaryIds)->get();
+                foreach ($primaries as $pt) {
+                    if (!empty($pt->m16_unit) && !in_array($pt->m16_unit, $units)) {
+                        $units[] = $pt->m16_unit;
+                    }
+                }
+            }
+
+            $testsList[] = [
+                'test_number' => $sampleTest->m12_test_number,
+                'test_name' => $testName,
+                'standard_method' => $standardMethod,
+                'manuscript_content' => $hasManuscript ? $content : null,
+                'units' => implode('   ', $units),
+            ];
+        }
+
+        // Fallback to test_details if sampleTests table had no entries
+        if (empty($testsList) && !empty($registration->test_details)) {
+            foreach ($registration->test_details as $detail) {
+                $test = $detail['test'] ?? null;
+                $standard = $detail['standard'] ?? null;
+                if (!$test) continue;
+
+                $applicableTemplate = \App\Models\Manuscript::where('m12_test_number', $test->m12_test_number)
+                    ->where('m22_status', 'ACTIVE')
+                    ->first();
+
+                $content = $applicableTemplate ? $applicableTemplate->m22_content : '';
+                $cleanContent = trim(strip_tags($content));
+                $hasManuscript = !empty($cleanContent) || str_contains($content, '<img') || str_contains($content, '<table');
+
+                $units = [];
+                if (!empty($test->m12_unit)) {
+                    $units[] = $test->m12_unit;
+                }
+
+                $testsList[] = [
+                    'test_number' => $test->m12_test_number,
+                    'test_name' => $test->m12_name ?? 'Test',
+                    'standard_method' => $standard->m15_method ?? '',
+                    'manuscript_content' => $hasManuscript ? $content : null,
+                    'units' => implode('   ', $units),
+                ];
+            }
+        }
+
+        $numberOfSamples = $registration->tr04_number_of_samples ?? '1';
+        $sampleMark = $registration->tr04_sample_mark ?? '-';
+
+        $pdf = Pdf::loadView('manuscript.manuscript_pdf', compact(
+            'registration',
+            'roName',
+            'sampleCharacteristics',
+            'allotmentDate',
+            'testDate',
+            'performanceDate',
+            'analystName',
+            'managerName',
+            'numberOfSamples',
+            'sampleMark',
+            'testsList'
+        ))->setPaper('A4', 'portrait');
+
+        $pdf->setOptions(['isPhpEnabled' => true, 'isRemoteEnabled' => true]);
+
+        $safeRef = preg_replace('/[^A-Za-z0-9_\-]/', '_', $registration->tr04_reference_id);
+        $fileName = 'manuscript_' . $safeRef . '.pdf';
+        return $pdf->stream($fileName);
     }
 
 

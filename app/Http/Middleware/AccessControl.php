@@ -101,6 +101,7 @@ class AccessControl
             'move_test_down',
             'bulk_update_analysis',
             'manuscript_template',
+            'download_manuscript',
             'update_test_order',
             'reset_test_order',
             'generate_report_preview',

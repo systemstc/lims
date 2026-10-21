@@ -1902,6 +1902,28 @@ class MasterController extends Controller
                     'tr01_updated_by' => Session::get('user_id') ?? -1,
                 ]);
 
+                // Store secondary test associations if present
+                if ($request->has('secondary_test_ids') && $request->has('secondary_test_primary_ids')) {
+                    $secondaryIds = $request->secondary_test_ids;
+                    $primaryIds = $request->secondary_test_primary_ids;
+                    $associations = [];
+                    for ($j = 0; $j < count($secondaryIds); $j++) {
+                        if (isset($primaryIds[$j])) {
+                            $associations[] = [
+                                'secondary_test_id' => $secondaryIds[$j],
+                                'primary_test_id' => $primaryIds[$j]
+                            ];
+                        }
+                    }
+                    $test->update([
+                        'm17_secondary_test_associations' => !empty($associations) ? json_encode($associations) : null
+                    ]);
+                } else {
+                    $test->update([
+                        'm17_secondary_test_associations' => null
+                    ]);
+                }
+
                 DB::commit();
                 Session::flash('type', 'success');
                 Session::flash('message', 'Test updated successfully.');

@@ -362,6 +362,7 @@ Route::middleware(['access_control'])->group(function () {
     Route::post('/manuscripts/{id}/update', [MasterController::class, 'updateManuscript'])->name('update_manuscript');
     Route::get('manuscript-template/{id}', [TestResultController::class, 'templateTestResult'])->name('template_manuscript');
     Route::get('manuscript-dd-template/{id}', [TestResultController::class, 'templateManuscript'])->name('manuscript_template');
+    Route::get('manuscript-download/{id}', [TestResultController::class, 'downloadManuscript'])->name('download_manuscript');
     Route::get('completed-tests', [TestResultController::class, 'viewCompletedTests'])->name('view_completed_camples');
     Route::post('/test-result/upload/{id}', [TestResultController::class, 'uploadDocument'])->name('testresult_upload');
 

@@ -1,28 +1,77 @@
 @extends('layouts.app_back')
 
 @section('content')
-    <div class="container-fluid">
+    @php
+        $manuscriptFile = $sampleTests->first()?->registration?->tr04_manuscript ?? null;
+        $refId = $sampleTests->first()?->registration?->tr04_reference_id ?? '';
+        $regPkId = $sampleTests->first()?->tr04_sample_registration_id ?? optional($sampleTests->first()?->registration)->tr04_sample_registration_id;
+        $ext = $manuscriptFile ? strtolower(pathinfo($manuscriptFile, PATHINFO_EXTENSION)) : '';
+        $isImage = in_array($ext, ['jpg', 'jpeg', 'png', 'webp', 'gif']);
+        $fileUrl = '';
+        $downloadUrl = '';
+
+        if ($manuscriptFile) {
+            $fullLocalPath = storage_path('app/public/test_results/' . $manuscriptFile);
+            $publicLocalPath = public_path('storage/test_results/' . $manuscriptFile);
+
+            if ($isImage) {
+                if (file_exists($fullLocalPath)) {
+                    $fileUrl = 'data:image/' . ($ext === 'jpg' ? 'jpeg' : $ext) . ';base64,' . base64_encode(file_get_contents($fullLocalPath));
+                } elseif (file_exists($publicLocalPath)) {
+                    $fileUrl = 'data:image/' . ($ext === 'jpg' ? 'jpeg' : $ext) . ';base64,' . base64_encode(file_get_contents($publicLocalPath));
+                } else {
+                    $fileUrl = asset('public/storage/test_results/' . $manuscriptFile);
+                }
+            } elseif ($ext === 'pdf') {
+                if (file_exists($fullLocalPath)) {
+                    $fileUrl = 'data:application/pdf;base64,' . base64_encode(file_get_contents($fullLocalPath));
+                } elseif (file_exists($publicLocalPath)) {
+                    $fileUrl = 'data:application/pdf;base64,' . base64_encode(file_get_contents($publicLocalPath));
+                } else {
+                    $fileUrl = asset('public/storage/test_results/' . $manuscriptFile);
+                }
+            } else {
+                $fileUrl = asset('public/storage/test_results/' . $manuscriptFile);
+            }
+            $downloadUrl = asset('public/storage/test_results/' . $manuscriptFile);
+        }
+    @endphp
+
+    <div class="container-fluid px-2 px-md-3">
         <div class="nk-content-inner">
             <div class="nk-content-body">
-                <div class="components-preview wide-xxl mx-auto">
+                <div class="components-preview mx-auto" id="mainContainerWrapper">
                     <div class="nk-block nk-block-lg">
 
                         <!-- Header Section -->
-                        <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+                        <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2 flex-wrap gap-2">
                             <div>
                                 <h4 class="fw-bold text-uppercase mb-0">Test Result Entry</h4>
                                 <small class="text-muted">Laboratory Information Management System</small>
                             </div>
-                            <div>
-                                <a href="{{ url()->previous() }}" class="btn btn-outline-primary btn-sm">
+                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                @if ($regPkId)
+                                    <a href="{{ route('download_manuscript', $regPkId) }}" target="_blank"
+                                        class="btn btn-outline-primary btn-sm fw-bold">
+                                        <em class="icon ni ni-download me-1"></em> Download Manuscript
+                                    </a>
+                                @endif
+                                <button type="button" class="btn btn-primary btn-sm fw-bold" id="toggleManuscriptSplitBtn">
+                                    <em class="icon ni ni-layout-split me-1"></em> <span id="splitBtnLabel">Hide Manuscript Preview</span>
+                                </button>
+                                <a href="{{ url()->previous() }}" class="btn btn-outline-secondary btn-sm">
                                     <em class="icon ni ni-caret-left-fill"></em> Back
                                 </a>
                             </div>
                         </div>
 
-                        <!-- Form -->
-                        <form action="{{ route('create_test_result') }}" method="POST" enctype="multipart/form-data"
-                            id="testResultForm">
+                        <!-- Split View Row: Form (left) + Manuscript Preview (right) -->
+                        <div class="row g-3" id="splitViewRow">
+                            <div class="col-12 col-lg-6" id="resultFormCol">
+
+                                <!-- Form -->
+                                <form action="{{ route('create_test_result') }}" method="POST" enctype="multipart/form-data"
+                                    id="testResultForm">
                             @csrf
                             <input type="hidden" name="action" id="formAction" value="">
 
@@ -37,198 +86,205 @@
                                     <h6 class="mb-0 text-uppercase"><em class="icon ni ni-clipboard"></em> Test Report
                                         Details</h6>
                                 </div>
-                                <div class="card-body px-4 py-3">
-                                    <table class="table table-sm table-borderless align-middle mb-0 small w-100">
-                                        <tbody>
-                                            <tr>
-                                                <td class="fw-bold text-muted w-25">Test Report No:</td>
-                                                <td class="text-dark fw-semibold w-25">
-                                                    {{ optional($sampleTests->first()?->registration)->tr04_reference_id ?? 'N/A' }}
-                                                </td>
-                                                <td class="fw-bold text-muted w-25">Date:</td>
-                                                <td class="w-25">
-                                                    <input type="date"
-                                                        class="form-control form-control-sm bg-light border-0 shadow-none @error('test_date') is-invalid @enderror"
-                                                        name="test_date"
-                                                        min="{{ date('Y-m-d', strtotime('-15 days')) }}"
-                                                        max="{{ date('Y-m-d') }}"
-                                                        value="{{ old('test_date', $testDate ?? date('Y-m-d')) }}" required>
-                                                    @error('test_date')
-                                                        <span class="text-danger small">{{ $message }}</span>
-                                                    @enderror
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <td class="fw-bold text-muted">No. of Samples:</td>
-                                                <td class="text-dark fw-semibold">
-                                                    {{ optional($sampleTests->first()?->registration)->tr04_number_of_samples ?? 'N/A' }}
-                                                </td>
-                                                <td class="fw-bold text-muted">Sample Characteristics:</td>
-                                                <td class="text-dark fw-semibold">
-                                                    {{ optional($sampleTests->first()?->registration->labSample)->m14_name ?? 'N/A' }}
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <td class="fw-bold text-muted">Date of Performance of Tests:</td>
-                                                <td>
-                                                    <input type="date"
-                                                        class="form-control form-control-sm bg-light border-0 shadow-none @error('performance_date') is-invalid @enderror"
-                                                        name="performance_date"
-                                                        min="{{ date('Y-m-d', strtotime('-15 days')) }}"
-                                                        max="{{ date('Y-m-d') }}"
-                                                        value="{{ old('performance_date', $performanceDate ?? date('Y-m-d')) }}"
-                                                        required>
-                                                    @error('performance_date')
-                                                        <span class="text-danger small">{{ $message }}</span>
-                                                    @enderror
-                                                </td>
-                                                <td class="fw-bold text-muted">Date of Allotment of Sample:</td>
-                                                <td class="text-dark fw-semibold">
-                                                    {{ $sampleTests->first()->tr05_alloted_at ?? 'N/A' }}
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <td class="fw-bold text-muted">QAO / JQAO / Analyst:</td>
-                                                <td class="text-dark fw-semibold">
-                                                    {{ optional($sampleTests->first()?->allotedTo)->m06_name ?? 'N/A' }}
-                                                </td>
-                                                <td class="fw-bold text-muted">Technical Manager:</td>
-                                                <td class="text-dark fw-semibold">
-                                                    {{ Session::get('role') === 'Manager' ? Session::get('name') : optional($sampleTests->first()?->allotedBy)->m06_name ?? 'N/A' }}
-                                                </td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
+                                <div class="card-body px-3 py-3">
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-borderless align-middle mb-0 small w-100">
+                                            <tbody>
+                                                <tr>
+                                                    <td class="fw-bold text-muted" style="width: 25%; min-width: 130px;">Test Report No:</td>
+                                                    <td class="text-dark fw-semibold" style="width: 25%; min-width: 140px;">
+                                                        {{ optional($sampleTests->first()?->registration)->tr04_reference_id ?? 'N/A' }}
+                                                    </td>
+                                                    <td class="fw-bold text-muted" style="width: 25%; min-width: 130px;">Date:</td>
+                                                    <td style="width: 25%; min-width: 140px;">
+                                                        <input type="date"
+                                                            class="form-control form-control-sm bg-light border-0 shadow-none @error('test_date') is-invalid @enderror"
+                                                            name="test_date"
+                                                            min="{{ date('Y-m-d', strtotime('-15 days')) }}"
+                                                            max="{{ date('Y-m-d') }}"
+                                                            value="{{ old('test_date', $testDate ?? date('Y-m-d')) }}" required>
+                                                        @error('test_date')
+                                                            <span class="text-danger small">{{ $message }}</span>
+                                                        @enderror
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="fw-bold text-muted">No. of Samples:</td>
+                                                    <td class="text-dark fw-semibold">
+                                                        {{ optional($sampleTests->first()?->registration)->tr04_number_of_samples ?? 'N/A' }}
+                                                    </td>
+                                                    <td class="fw-bold text-muted">Sample Characteristics:</td>
+                                                    <td class="text-dark fw-semibold">
+                                                        {{ optional($sampleTests->first()?->registration->labSample)->m14_name ?? 'N/A' }}
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="fw-bold text-muted">Date of Performance of Tests:</td>
+                                                    <td>
+                                                        <input type="date"
+                                                            class="form-control form-control-sm bg-light border-0 shadow-none @error('performance_date') is-invalid @enderror"
+                                                            name="performance_date"
+                                                            min="{{ date('Y-m-d', strtotime('-15 days')) }}"
+                                                            max="{{ date('Y-m-d') }}"
+                                                            value="{{ old('performance_date', $performanceDate ?? date('Y-m-d')) }}"
+                                                            required>
+                                                        @error('performance_date')
+                                                            <span class="text-danger small">{{ $message }}</span>
+                                                        @enderror
+                                                    </td>
+                                                    <td class="fw-bold text-muted">Date of Allotment of Sample:</td>
+                                                    <td class="text-dark fw-semibold">
+                                                        {{ $sampleTests->first()->tr05_alloted_at ?? 'N/A' }}
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="fw-bold text-muted">QAO / JQAO / Analyst:</td>
+                                                    <td class="text-dark fw-semibold">
+                                                        {{ optional($sampleTests->first()?->allotedTo)->m06_name ?? 'N/A' }}
+                                                    </td>
+                                                    <td class="fw-bold text-muted">Technical Manager:</td>
+                                                    <td class="text-dark fw-semibold">
+                                                        {{ Session::get('role') === 'Manager' ? Session::get('name') : optional($sampleTests->first()?->allotedBy)->m06_name ?? 'N/A' }}
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </div>
                             </div>
 
                             <!-- Test Results -->
                             <div class="card border-0 shadow-sm mb-4">
-                                <div class="card border-0 shadow-sm mb-4">
-                                    <div
-                                        class="card-header bg-primary text-white py-2 px-3 d-flex justify-content-between align-items-center rounded-top">
-                                        <h6 class="mb-0 text-uppercase"><em class="icon ni ni-layers"></em> Test Results
-                                        </h6>
+                                <div class="card-header bg-primary text-white py-2 px-3 d-flex justify-content-between align-items-center rounded-top">
+                                    <h6 class="mb-0 text-uppercase"><em class="icon ni ni-layers me-1"></em> Test Results</h6>
 
-                                        @php
-                                            $manuscriptFile = $sampleTests->first()?->registration?->tr04_manuscript;
-                                            $refId = $sampleTests->first()?->registration?->tr04_reference_id;
-                                        @endphp
-                                        <div class="d-flex align-items-center gap-2">
-                                            @if ($manuscriptFile)
-                                                <button type="button" class="btn btn-success btn-sm fw-bold"
-                                                    data-bs-toggle="modal" data-bs-target="#pdfModal">
-                                                    <em class="icon ni ni-eye me-1"></em> View Manuscript
-                                                </button>
-                                                <button type="button" class="btn btn-outline-primary btn-sm fw-bold"
-                                                    data-bs-toggle="modal" data-bs-target="#uploadManuscriptDirectModal">
-                                                    <em class="icon ni ni-upload me-1"></em> Upload New Copy
-                                                </button>
-                                            @else
-                                                <button type="button" class="btn btn-primary btn-sm fw-bold"
-                                                    data-bs-toggle="modal" data-bs-target="#uploadManuscriptDirectModal">
-                                                    <em class="icon ni ni-upload me-1"></em> Upload Manuscript
-                                                </button>
-                                            @endif
-                                        </div>
+                                    @php
+                                        $manuscriptFile = $sampleTests->first()?->registration?->tr04_manuscript;
+                                        $refId = $sampleTests->first()?->registration?->tr04_reference_id;
+                                    @endphp
+                                    <div class="d-flex align-items-center gap-2">
+                                        <button type="button" class="btn btn-light btn-xs fw-bold text-primary shadow-sm" id="quickToggleSplitBtn">
+                                            <em class="icon ni ni-layout-split me-1"></em> Toggle Preview
+                                        </button>
+                                        @if ($manuscriptFile)
+                                            <button type="button" class="btn btn-success btn-xs fw-bold"
+                                                data-bs-toggle="modal" data-bs-target="#pdfModal">
+                                                <em class="icon ni ni-eye me-1"></em> View
+                                            </button>
+                                            <button type="button" class="btn btn-outline-light btn-xs fw-bold"
+                                                data-bs-toggle="modal" data-bs-target="#uploadManuscriptDirectModal">
+                                                <em class="icon ni ni-upload me-1"></em> Upload New
+                                            </button>
+                                        @else
+                                            <button type="button" class="btn btn-warning btn-xs fw-bold text-dark"
+                                                data-bs-toggle="modal" data-bs-target="#uploadManuscriptDirectModal">
+                                                <em class="icon ni ni-upload me-1"></em> Upload Manuscript
+                                            </button>
+                                        @endif
                                     </div>
-                                    <div class="">
-                                        <table class="table table-bordered align-middle mb-0">
-                                            <thead class="table-light">
-                                                <tr>
-                                                    <th style="width: 10%">Sr. No.</th>
-                                                    <th>Test Name</th>
-                                                    <th style="width: 35%">Result / Entry</th>
-                                                    <th style="width: 15%">Action</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody id="testResultsBody">
-                                                @foreach ($sampleTests as $key => $sampleTest)
-                                                    @php
-                                                        $test = $sampleTest->test;
-                                                        $primaryTests = $test->primaryTests ?? collect();
-                                                        $existingTestResults = $existingResults->where(
-                                                            'm12_test_number',
-                                                            $test->m12_test_number,
-                                                        );
-                                                        $existingMainTestResult = $existingTestResults
-                                                            ->whereNull('m16_primary_test_id')
-                                                            ->whereNull('m17_secondary_test_id')
-                                                            ->first();
-                                                    @endphp
+                                </div>
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-hover align-middle mb-0" id="testResultsTable">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th style="width: 55px; text-align: center;">#</th>
+                                                <th style="min-width: 170px;">Test Name</th>
+                                                <th style="min-width: 280px;">Result / Entry</th>
+                                                <th style="width: 140px; text-align: center;">Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="testResultsBody">
+                                            @foreach ($sampleTests as $key => $sampleTest)
+                                                @php
+                                                    $test = $sampleTest->test;
+                                                    $primaryTests = $test->primaryTests ?? collect();
+                                                    $existingTestResults = $existingResults->where(
+                                                        'm12_test_number',
+                                                        $test->m12_test_number,
+                                                    );
+                                                    $existingMainTestResult = $existingTestResults
+                                                        ->whereNull('m16_primary_test_id')
+                                                        ->whereNull('m17_secondary_test_id')
+                                                        ->first();
+                                                @endphp
 
-                                                    <!-- Main Test Row -->
-                                                    <tr class="bg-light fw-bold test-main-row"
-                                                        data-test-id="{{ $test->m12_test_id }}"
-                                                        data-test-number="{{ $test->m12_test_number }}">
-                                                        <td>{{ $key + 1 }}</td>
-                                                        <td>
-                                                            <strong>{{ $test->m12_name ?? 'N/A' }}</strong>
-                                                            @if ($sampleTest->standard)
-                                                                - ( {{ $sampleTest->standard->m15_method ?? 'N/A' }} )
-                                                            @endif
-                                                        </td>
-                                                        <td>
-                                                            @if ($primaryTests->isEmpty())
-                                                                <!-- Input field for main test when no primary tests -->
-                                                                <div class="input-group input-group-sm">
-                                                                    <input type="hidden"
-                                                                        name="results[{{ $test->m12_test_number }}][test][test_id]"
-                                                                        value="{{ $test->m12_test_number }}">
-                                                                    <input type="hidden"
-                                                                        name="results[{{ $test->m12_test_number }}][test][result]"
-                                                                        class="wysiwyg-hidden-val"
-                                                                        value="{{ old('results.' . $test->m12_test_number . '.test.result', $existingMainTestResult->tr07_result ?? '') }}">
-                                                                    <div class="form-control form-control-sm bg-light wysiwyg-editor-input @error('results.' . $test->m12_test_number . '.test.result') is-invalid @enderror"
-                                                                        contenteditable="true"
-                                                                        data-placeholder="Enter result value">{!! old('results.' . $test->m12_test_number . '.test.result', $existingMainTestResult->tr07_result ?? '') !!}</div>
-                                                                    <button type="button" class="btn btn-outline-light btn-sm btn-wysiwyg-cmd" data-cmd="superscript" title="Superscript (Ctrl + .)"><span style="font-weight:bold; font-size:11px;">x<sup>2</sup></span></button>
-                                                                    <button type="button" class="btn btn-outline-light btn-sm btn-wysiwyg-cmd" data-cmd="subscript" title="Subscript (Ctrl + ,)"><span style="font-weight:bold; font-size:11px;">x<sub>2</sub></span></button>
-                                                                    <button type="button" class="btn btn-outline-light btn-sm btn-open-symbols" title="Insert Symbol"><span style="font-weight:bold; font-size:11px;">Ω</span></button>
-                                                                    @if ($test->m23_formula_id)
-                                                                        <button type="button"
-                                                                            class="btn btn-outline-light btn-sm open-raw-entry"
-                                                                            data-target-name="results[{{ $test->m12_test_number }}][test][result]"
-                                                                            data-label="{{ $test->m12_name ?? 'Final Result' }}"
-                                                                            title="Formula / Raw Entry">
-                                                                            <em class="icon ni ni-calc"></em>
-                                                                        </button>
-                                                                    @endif
-                                                                    <input type="text"
-                                                                        class="form-control form-control-sm bg-light"
-                                                                        style="max-width: 80px;"
-                                                                        name="results[{{ $test->m12_test_number }}][test][unit]"
-                                                                        value="{{ old('results.' . $test->m12_test_number . '.test.unit', $existingMainTestResult->tr07_unit ?? ($test->m12_unit ?? '')) }}"
-                                                                        placeholder="Unit">
-                                                                    <input type="hidden"
-                                                                        name="results[{{ $test->m12_test_number }}][test][result_id]"
-                                                                        value="{{ $existingMainTestResult->tr07_test_result_id ?? '' }}">
-                                                                </div>
-                                                                @error('results.' . $test->m12_test_number . '.test.result')
-                                                                    <span class="text-danger small">{{ $message }}</span>
-                                                                @enderror
-                                                            @endif
-                                                        </td>
-                                                        <td>
+                                                <!-- Main Test Row -->
+                                                <tr class="bg-light fw-bold test-main-row"
+                                                    data-test-id="{{ $test->m12_test_id }}"
+                                                    data-test-number="{{ $test->m12_test_number }}">
+                                                    <td class="text-center align-middle">{{ $key + 1 }}</td>
+                                                    <td class="align-middle">
+                                                        <strong class="text-dark">{{ $test->m12_name ?? 'N/A' }}</strong>
+                                                        @if ($sampleTest->standard)
+                                                            <div class="small text-muted fw-normal">Method: {{ $sampleTest->standard->m15_method ?? 'N/A' }}</div>
+                                                        @endif
+                                                    </td>
+                                                    <td>
+                                                        @if ($primaryTests->isEmpty())
+                                                            <!-- Input field for main test when no primary tests -->
+                                                            <div class="input-group input-group-sm flex-nowrap align-items-stretch" style="min-width: 250px;">
+                                                                <input type="hidden"
+                                                                    name="results[{{ $test->m12_test_number }}][test][test_id]"
+                                                                    value="{{ $test->m12_test_number }}">
+                                                                <input type="hidden"
+                                                                    name="results[{{ $test->m12_test_number }}][test][result]"
+                                                                    class="wysiwyg-hidden-val"
+                                                                    value="{{ old('results.' . $test->m12_test_number . '.test.result', $existingMainTestResult->tr07_result ?? '') }}">
+                                                                <div class="form-control form-control-sm bg-light wysiwyg-editor-input @error('results.' . $test->m12_test_number . '.test.result') is-invalid @enderror"
+                                                                    contenteditable="true"
+                                                                    data-placeholder="Enter result value">{!! old('results.' . $test->m12_test_number . '.test.result', $existingMainTestResult->tr07_result ?? '') !!}</div>
+                                                                <button type="button" class="btn btn-outline-light btn-xs btn-wysiwyg-cmd px-2" data-cmd="superscript" title="Superscript (Ctrl + .)"><span style="font-weight:bold; font-size:11px;">x<sup>2</sup></span></button>
+                                                                <button type="button" class="btn btn-outline-light btn-xs btn-wysiwyg-cmd px-2" data-cmd="subscript" title="Subscript (Ctrl + ,)"><span style="font-weight:bold; font-size:11px;">x<sub>2</sub></span></button>
+                                                                <button type="button" class="btn btn-outline-light btn-xs btn-open-symbols px-2" title="Insert Symbol"><span style="font-weight:bold; font-size:11px;">Ω</span></button>
+                                                                @if ($test->m23_formula_id)
+                                                                    <button type="button"
+                                                                        class="btn btn-outline-light btn-xs open-raw-entry px-2"
+                                                                        data-target-name="results[{{ $test->m12_test_number }}][test][result]"
+                                                                        data-label="{{ $test->m12_name ?? 'Final Result' }}"
+                                                                        title="Formula / Raw Entry">
+                                                                        <em class="icon ni ni-calc"></em>
+                                                                    </button>
+                                                                @endif
+                                                                <input type="text"
+                                                                    class="form-control form-control-sm bg-light text-center px-1"
+                                                                    style="max-width: 75px; min-width: 55px;"
+                                                                    name="results[{{ $test->m12_test_number }}][test][unit]"
+                                                                    value="{{ old('results.' . $test->m12_test_number . '.test.unit', $existingMainTestResult->tr07_unit ?? ($test->m12_unit ?? '')) }}"
+                                                                    placeholder="Unit">
+                                                                <input type="hidden"
+                                                                    name="results[{{ $test->m12_test_number }}][test][result_id]"
+                                                                    value="{{ $existingMainTestResult->tr07_test_result_id ?? '' }}">
+                                                            </div>
+                                                            @error('results.' . $test->m12_test_number . '.test.result')
+                                                                <span class="text-danger small d-block mt-1">{{ $message }}</span>
+                                                            @enderror
+                                                        @else
+                                                            <span class="badge bg-light text-secondary border px-2 py-1"><em class="icon ni ni-layers me-1"></em> Primary Tests Configured</span>
+                                                        @endif
+                                                    </td>
+                                                    <td class="text-center align-middle" style="width: 140px;">
+                                                        <div class="d-inline-flex gap-1 align-items-center justify-content-center flex-nowrap">
                                                             @if ($primaryTests->isNotEmpty())
                                                                 <button type="button"
-                                                                    class="btn btn-outline-primary btn-sm add-primary-test"
+                                                                    class="btn btn-outline-primary btn-xs py-1 px-2 fw-semibold add-primary-test text-nowrap"
                                                                     data-test-id="{{ $test->m12_test_id }}"
                                                                     data-test-number="{{ $test->m12_test_number }}"
-                                                                    data-primary-tests="{{ $primaryTests->toJson() }}">
+                                                                    data-primary-tests="{{ $primaryTests->toJson() }}"
+                                                                    title="Add Primary Tests">
                                                                     <em class="icon ni ni-plus"></em> Primary
                                                                 </button>
-                                                            @else
-                                                                <button type="button"
-                                                                    class="btn btn-outline-warning btn-sm add-custom-field"
-                                                                    data-test-id="{{ $test->m12_test_id }}"
-                                                                    data-test-number="{{ $test->m12_test_number }}"
-                                                                    data-type="test">
-                                                                    <em class="icon ni ni-plus"></em> Custom
-                                                                </button>
                                                             @endif
-                                                        </td>
-                                                    </tr>
+                                                            <button type="button"
+                                                                class="btn btn-outline-warning btn-xs py-1 px-2 fw-semibold add-custom-field text-nowrap"
+                                                                data-test-id="{{ $test->m12_test_id }}"
+                                                                data-test-number="{{ $test->m12_test_number }}"
+                                                                data-type="test"
+                                                                title="Add Custom Field">
+                                                                <em class="icon ni ni-plus"></em> Custom
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
 
                                                     <!-- Existing Primary Tests from Database -->
                                                     @foreach ($existingTestResults->whereNotNull('m16_primary_test_id')->whereNull('m17_secondary_test_id') as $existingPrimaryResult)
@@ -242,7 +298,8 @@
                                                         @endphp
                                                         @if ($primaryTest)
                                                             <!-- Primary Test Row -->
-                                                            <tr class="primary-test-row"
+                                                            <tr id="primary_test_{{ $test->m12_test_number }}_{{ $primaryTest->m16_primary_test_id }}"
+                                                                class="primary-test-row"
                                                                 data-test-id="{{ $test->m12_test_id }}"
                                                                 data-test-number="{{ $test->m12_test_number }}"
                                                                 data-primary-test-id="{{ $primaryTest->m16_primary_test_id }}">
@@ -255,7 +312,7 @@
                                                                     @endif
                                                                 </td>
                                                                 <td>
-                                                                    <div class="input-group input-group-sm">
+                                                                    <div class="input-group input-group-sm flex-nowrap align-items-stretch" style="min-width: 250px;">
                                                                         <input type="hidden"
                                                                             name="results[{{ $test->m12_test_number }}][primary_tests][{{ $primaryTest->m16_primary_test_id }}][test_id]"
                                                                             value="{{ $test->m12_test_number }}">
@@ -277,12 +334,12 @@
                                                                         <div class="form-control form-control-sm border-0 bg-light wysiwyg-editor-input @error('results.' . $test->m12_test_number . '.primary_tests.' . $primaryTest->m16_primary_test_id . '.result') is-invalid @enderror"
                                                                             contenteditable="true"
                                                                             data-placeholder="Enter result value">{!! $primaryDefaultVal !!}</div>
-                                                                        <button type="button" class="btn btn-outline-light btn-sm btn-wysiwyg-cmd" data-cmd="superscript" title="Superscript (Ctrl + .)"><span style="font-weight:bold; font-size:11px;">x<sup>2</sup></span></button>
-                                                                        <button type="button" class="btn btn-outline-light btn-sm btn-wysiwyg-cmd" data-cmd="subscript" title="Subscript (Ctrl + ,)"><span style="font-weight:bold; font-size:11px;">x<sub>2</sub></span></button>
-                                                                        <button type="button" class="btn btn-outline-light btn-sm btn-open-symbols" title="Insert Symbol"><span style="font-weight:bold; font-size:11px;">Ω</span></button>
+                                                                        <button type="button" class="btn btn-outline-light btn-xs btn-wysiwyg-cmd px-2" data-cmd="superscript" title="Superscript (Ctrl + .)"><span style="font-weight:bold; font-size:11px;">x<sup>2</sup></span></button>
+                                                                        <button type="button" class="btn btn-outline-light btn-xs btn-wysiwyg-cmd px-2" data-cmd="subscript" title="Subscript (Ctrl + ,)"><span style="font-weight:bold; font-size:11px;">x<sub>2</sub></span></button>
+                                                                        <button type="button" class="btn btn-outline-light btn-xs btn-open-symbols px-2" title="Insert Symbol"><span style="font-weight:bold; font-size:11px;">Ω</span></button>
                                                                         @if ($primaryTest->m23_formula_id)
                                                                             <button type="button"
-                                                                                class="btn btn-outline-light btn-sm open-raw-entry"
+                                                                                class="btn btn-outline-light btn-xs open-raw-entry px-2"
                                                                                 data-target-name="results[{{ $test->m12_test_number }}][primary_tests][{{ $primaryTest->m16_primary_test_id }}][result]"
                                                                                 data-label="{{ $primaryTest->m16_name ?? 'Primary Result' }}"
                                                                                 title="Formula / Raw Entry">
@@ -290,8 +347,8 @@
                                                                             </button>
                                                                         @endif
                                                                         <input type="text"
-                                                                            class="form-control form-control-sm border-0 bg-light"
-                                                                            style="max-width: 80px;"
+                                                                            class="form-control form-control-sm border-0 bg-light text-center px-1"
+                                                                            style="max-width: 75px; min-width: 55px;"
                                                                             name="results[{{ $test->m12_test_number }}][primary_tests][{{ $primaryTest->m16_primary_test_id }}][unit]"
                                                                             value="{{ old('results.' . $test->m12_test_number . '.primary_tests.' . $primaryTest->m16_primary_test_id . '.unit', $existingPrimaryResult->tr07_unit ?? ($primaryTest->m16_unit ?? '')) }}"
                                                                             placeholder="Unit">
@@ -300,35 +357,40 @@
                                                                         '.primary_tests.' . $primaryTest->m16_primary_test_id .
                                                                         '.result')
                                                                         <span
-                                                                            class="text-danger small">{{ $message }}</span>
+                                                                            class="text-danger small d-block mt-1">{{ $message }}</span>
                                                                     @enderror
                                                                 </td>
-                                                                <td>
-                                                                    <button type="button"
-                                                                        class="btn btn-outline-danger btn-sm remove-test-row"
-                                                                        data-type="primary"
-                                                                        data-test-number="{{ $test->m12_test_number }}"
-                                                                        data-id="{{ $primaryTest->m16_primary_test_id }}">
-                                                                        <em class="icon ni ni-trash"></em>
-                                                                    </button>
-                                                                    @if ($primaryTest->secondaryTests && $primaryTest->secondaryTests->isNotEmpty())
+                                                                <td class="text-center align-middle" style="width: 140px;">
+                                                                    <div class="d-inline-flex gap-1 align-items-center justify-content-center flex-nowrap">
                                                                         <button type="button"
-                                                                            class="btn btn-outline-success btn-sm add-secondary-test"
+                                                                            class="btn btn-outline-danger btn-xs py-1 px-2 remove-test-row"
+                                                                            data-type="primary"
                                                                             data-test-number="{{ $test->m12_test_number }}"
-                                                                            data-test-id="{{ $test->m12_test_id }}"
-                                                                            data-primary-test-id="{{ $primaryTest->m16_primary_test_id }}"
-                                                                            data-secondary-tests='{{ $primaryTest->secondaryTests->toJson() }}'>
-                                                                            <em class="icon ni ni-plus"></em> Secondary
+                                                                            data-id="{{ $primaryTest->m16_primary_test_id }}"
+                                                                            title="Remove Primary Test">
+                                                                            <em class="icon ni ni-trash"></em>
                                                                         </button>
-                                                                    @endif
-                                                                    <button type="button"
-                                                                        class="btn btn-outline-primary btn-sm add-custom-field"
-                                                                        data-test-id="{{ $test->m12_test_id }}"
-                                                                        data-test-number="{{ $test->m12_test_number }}"
-                                                                        data-primary-test-id="{{ $primaryTest->m16_primary_test_id }}"
-                                                                        data-type="primary">
-                                                                        <em class="icon ni ni-plus"></em> Custom
-                                                                    </button>
+                                                                        @if ($primaryTest->secondaryTests && $primaryTest->secondaryTests->isNotEmpty())
+                                                                            <button type="button"
+                                                                                class="btn btn-outline-success btn-xs py-1 px-2 fw-semibold add-secondary-test text-nowrap"
+                                                                                data-test-number="{{ $test->m12_test_number }}"
+                                                                                data-test-id="{{ $test->m12_test_id }}"
+                                                                                data-primary-test-id="{{ $primaryTest->m16_primary_test_id }}"
+                                                                                data-secondary-tests='{{ $primaryTest->secondaryTests->toJson() }}'
+                                                                                title="Add Secondary Tests">
+                                                                                <em class="icon ni ni-plus"></em> Sec
+                                                                            </button>
+                                                                        @endif
+                                                                        <button type="button"
+                                                                            class="btn btn-outline-warning btn-xs py-1 px-2 fw-semibold add-custom-field text-nowrap"
+                                                                            data-test-id="{{ $test->m12_test_id }}"
+                                                                            data-test-number="{{ $test->m12_test_number }}"
+                                                                            data-primary-test-id="{{ $primaryTest->m16_primary_test_id }}"
+                                                                            data-type="primary"
+                                                                            title="Add Custom Field">
+                                                                            <em class="icon ni ni-plus"></em> Custom
+                                                                        </button>
+                                                                    </div>
                                                                 </td>
                                                             </tr>
 
@@ -347,11 +409,11 @@
                                                                         data-test-number="{{ $test->m12_test_number }}"
                                                                         data-primary-test-id="{{ $primaryTest->m16_primary_test_id }}"
                                                                         data-secondary-test-id="{{ $secondaryTest->m17_secondary_test_id }}">
-                                                                        <td>{{ $key + 1 }}.{{ $loop->parent->index + 1 }}.{{ $loop->index + 1 }}
+                                                                        <td class="text-center align-middle">{{ $key + 1 }}.{{ $loop->parent->index + 1 }}.{{ $loop->index + 1 }}
                                                                         </td>
-                                                                        <td>{{ $secondaryTest->m17_name ?? 'N/A' }}</td>
+                                                                        <td class="align-middle">{{ $secondaryTest->m17_name ?? 'N/A' }}</td>
                                                                         <td>
-                                                                            <div class="input-group input-group-sm">
+                                                                            <div class="input-group input-group-sm flex-nowrap align-items-stretch" style="min-width: 250px;">
                                                                                 <input type="hidden"
                                                                                     name="results[{{ $test->m12_test_number }}][primary_tests][{{ $primaryTest->m16_primary_test_id }}][secondary_tests][{{ $secondaryTest->m17_secondary_test_id }}][test_id]"
                                                                                     value="{{ $test->m12_test_number }}">
@@ -376,12 +438,12 @@
                                                                                 <div class="form-control form-control-sm border-0 bg-light wysiwyg-editor-input @error('results.' . $test->m12_test_number . '.primary_tests.' . $primaryTest->m16_primary_test_id . '.secondary_tests.' . $secondaryTest->m17_secondary_test_id . '.result') is-invalid @enderror"
                                                                                     contenteditable="true"
                                                                                     data-placeholder="Enter result value">{!! $secondaryDefaultVal !!}</div>
-                                                                                <button type="button" class="btn btn-outline-light btn-sm btn-wysiwyg-cmd" data-cmd="superscript" title="Superscript (Ctrl + .)"><span style="font-weight:bold; font-size:11px;">x<sup>2</sup></span></button>
-                                                                                <button type="button" class="btn btn-outline-light btn-sm btn-wysiwyg-cmd" data-cmd="subscript" title="Subscript (Ctrl + ,)"><span style="font-weight:bold; font-size:11px;">x<sub>2</sub></span></button>
-                                                                                <button type="button" class="btn btn-outline-light btn-sm btn-open-symbols" title="Insert Symbol"><span style="font-weight:bold; font-size:11px;">Ω</span></button>
+                                                                                <button type="button" class="btn btn-outline-light btn-xs btn-wysiwyg-cmd px-2" data-cmd="superscript" title="Superscript (Ctrl + .)"><span style="font-weight:bold; font-size:11px;">x<sup>2</sup></span></button>
+                                                                                <button type="button" class="btn btn-outline-light btn-xs btn-wysiwyg-cmd px-2" data-cmd="subscript" title="Subscript (Ctrl + ,)"><span style="font-weight:bold; font-size:11px;">x<sub>2</sub></span></button>
+                                                                                <button type="button" class="btn btn-outline-light btn-xs btn-open-symbols px-2" title="Insert Symbol"><span style="font-weight:bold; font-size:11px;">Ω</span></button>
                                                                                 @if ($secondaryTest->m23_formula_id)
                                                                                     <button type="button"
-                                                                                        class="btn btn-outline-light btn-sm open-raw-entry"
+                                                                                        class="btn btn-outline-light btn-xs open-raw-entry px-2"
                                                                                         data-target-name="results[{{ $test->m12_test_number }}][primary_tests][{{ $primaryTest->m16_primary_test_id }}][secondary_tests][{{ $secondaryTest->m17_secondary_test_id }}][result]"
                                                                                         data-label="{{ $secondaryTest->m17_name ?? 'Secondary Result' }}"
                                                                                         title="Formula / Raw Entry">
@@ -389,8 +451,9 @@
                                                                                     </button>
                                                                                 @endif
                                                                                 <input type="text"
-                                                                                    class="form-control form-control-sm border-0 bg-light"
-                                                                                    style="max-width: 80px;"
+                                                                                    class="form-control form-control-sm border-0 bg-light text-center px-1"
+                                                                                    style="max-width: 75px; min-width: 55px;"
+                                                                                    name="results[{{ $test->m12_test_number }}][primary_tests][{{ $primaryTest->m16_primary_test_id }}][secondary_tests][{{ $secondaryTest->m17_secondary_test_id }}][unit]"
                                                                                     value="{{ old('results.' . $test->m12_test_number . '.primary_tests.' . $primaryTest->m16_primary_test_id . '.secondary_tests.' . $secondaryTest->m17_secondary_test_id . '.unit', $existingSecondaryResult->tr07_unit ?? ($secondaryTest->m17_unit ?? '')) }}"
                                                                                     placeholder="Unit">
                                                                             </div>
@@ -401,27 +464,31 @@
                                                                                 $secondaryTest->m17_secondary_test_id .
                                                                                 '.result')
                                                                                 <span
-                                                                                    class="text-danger small">{{ $message }}</span>
+                                                                                    class="text-danger small d-block mt-1">{{ $message }}</span>
                                                                             @enderror
                                                                         </td>
-                                                                        <td>
-                                                                            <button type="button"
-                                                                                class="btn btn-outline-danger btn-sm remove-test-row"
-                                                                                data-type="secondary"
-                                                                                data-test-number="{{ $test->m12_test_number }}"
-                                                                                data-primary-test-id="{{ $primaryTest->m16_primary_test_id }}"
-                                                                                data-id="{{ $secondaryTest->m17_secondary_test_id }}">
-                                                                                <em class="icon ni ni-trash"></em>
-                                                                            </button>
-                                                                            <button type="button"
-                                                                                class="btn btn-outline-primary btn-sm add-custom-field"
-                                                                                data-test-id="{{ $test->m12_test_id }}"
-                                                                                data-test-number="{{ $test->m12_test_number }}"
-                                                                                data-primary-test-id="{{ $primaryTest->m16_primary_test_id }}"
-                                                                                data-secondary-test-id="{{ $secondaryTest->m17_secondary_test_id }}"
-                                                                                data-type="secondary">
-                                                                                <em class="icon ni ni-plus"></em> Custom
-                                                                            </button>
+                                                                        <td class="text-center align-middle" style="width: 140px;">
+                                                                            <div class="d-inline-flex gap-1 align-items-center justify-content-center flex-nowrap">
+                                                                                <button type="button"
+                                                                                    class="btn btn-outline-danger btn-xs py-1 px-2 remove-test-row"
+                                                                                    data-type="secondary"
+                                                                                    data-test-number="{{ $test->m12_test_number }}"
+                                                                                    data-primary-test-id="{{ $primaryTest->m16_primary_test_id }}"
+                                                                                    data-id="{{ $secondaryTest->m17_secondary_test_id }}"
+                                                                                    title="Remove Secondary Test">
+                                                                                    <em class="icon ni ni-trash"></em>
+                                                                                </button>
+                                                                                <button type="button"
+                                                                                    class="btn btn-outline-warning btn-xs py-1 px-2 fw-semibold add-custom-field text-nowrap"
+                                                                                    data-test-id="{{ $test->m12_test_id }}"
+                                                                                    data-test-number="{{ $test->m12_test_number }}"
+                                                                                    data-primary-test-id="{{ $primaryTest->m16_primary_test_id }}"
+                                                                                    data-secondary-test-id="{{ $secondaryTest->m17_secondary_test_id }}"
+                                                                                    data-type="secondary"
+                                                                                    title="Add Custom Field">
+                                                                                    <em class="icon ni ni-plus"></em> Custom
+                                                                                </button>
+                                                                            </div>
                                                                         </td>
                                                                     </tr>
                                                                 @endif
@@ -534,11 +601,89 @@
                                 </script>
 
                         </form>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+                            </div> <!-- /#resultFormCol -->
+
+                            <!-- RIGHT SIDE: Uploaded Manuscript Live Preview -->
+                            <div class="col-12 col-lg-6" id="manuscriptPreviewCol">
+                                <div class="card shadow-sm border-0 sticky-top manuscript-preview-card" style="top: 75px; z-index: 1020; max-height: calc(100vh - 90px); display: flex; flex-direction: column;">
+                                    <!-- Header of Preview Panel -->
+                                    <div class="card-header bg-dark text-white py-2 px-3 d-flex justify-content-between align-items-center rounded-top">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <em class="icon ni ni-file-docs text-primary fs-5"></em>
+                                            <span class="fw-bold text-uppercase fs-12px">Uploaded Manuscript Preview</span>
+                                            @if ($manuscriptFile)
+                                                <span class="badge bg-success-dim text-success ms-1"><em class="icon ni ni-check-circle me-1"></em> {{ strtoupper($ext) }}</span>
+                                            @else
+                                                <span class="badge bg-warning-dim text-warning ms-1">No File</span>
+                                            @endif
+                                        </div>
+                                        <div class="d-flex align-items-center gap-1">
+                                            @if ($manuscriptFile)
+                                                <a href="{{ $downloadUrl }}" target="_blank" download class="btn btn-xs btn-outline-light" title="Download">
+                                                    <em class="icon ni ni-download"></em>
+                                                </a>
+                                                <button type="button" class="btn btn-xs btn-outline-light" data-bs-toggle="modal" data-bs-target="#pdfModal" title="Open in Full Modal">
+                                                    <em class="icon ni ni-expand"></em>
+                                                </button>
+                                            @endif
+                                            <button type="button" class="btn btn-xs btn-outline-light" data-bs-toggle="modal" data-bs-target="#uploadManuscriptDirectModal" title="Upload New Copy">
+                                                <em class="icon ni ni-upload"></em>
+                                            </button>
+                                            <button type="button" class="btn btn-xs btn-icon btn-outline-danger ms-1" id="closeSplitPreviewBtn" title="Close Preview (Full Width Form)">
+                                                <em class="icon ni ni-cross"></em>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Preview Body -->
+                                    <div class="card-body p-0 bg-light flex-grow-1" style="overflow: hidden; display: flex; flex-direction: column;">
+                                        @if ($manuscriptFile)
+                                            @if ($isImage)
+                                                <!-- Toolbar for image: Zoom In, Zoom Out, Rotate, Reset -->
+                                                <div class="bg-white border-bottom px-3 py-1 d-flex justify-content-between align-items-center small">
+                                                    <span class="text-muted fw-bold"><em class="icon ni ni-img me-1"></em> Photo Viewer</span>
+                                                    <div class="btn-group btn-group-sm">
+                                                        <button type="button" class="btn btn-outline-secondary btn-xs" id="imgZoomInBtn" title="Zoom In"><em class="icon ni ni-plus"></em></button>
+                                                        <button type="button" class="btn btn-outline-secondary btn-xs" id="imgZoomOutBtn" title="Zoom Out"><em class="icon ni ni-minus"></em></button>
+                                                        <button type="button" class="btn btn-outline-secondary btn-xs" id="imgRotateBtn" title="Rotate 90°"><em class="icon ni ni-reload"></em></button>
+                                                        <button type="button" class="btn btn-outline-secondary btn-xs" id="imgResetBtn" title="Reset"><em class="icon ni ni-undo"></em></button>
+                                                    </div>
+                                                </div>
+                                                <div class="p-2 text-center" style="flex: 1; overflow: auto; background: #23272b; height: calc(100vh - 175px); min-height: 550px;">
+                                                    <img id="manuscriptSideImg" src="{{ $fileUrl }}" alt="Uploaded Manuscript" class="img-fluid rounded shadow-sm mx-auto d-block" style="max-width: 100%; transition: transform 0.2s ease; transform-origin: center center; cursor: grab;">
+                                                </div>
+                                            @elseif ($ext === 'pdf')
+                                                <div class="p-0 flex-grow-1" style="height: calc(100vh - 145px); min-height: 550px;">
+                                                    <iframe src="{{ $fileUrl }}#toolbar=1&navpanes=0" width="100%" height="100%" style="border: 0; min-height: 550px; height: 100%;"></iframe>
+                                                </div>
+                                            @else
+                                                <div class="p-4 text-center my-auto">
+                                                    <em class="icon ni ni-file-text display-4 text-muted mb-2"></em>
+                                                    <p class="text-muted">Document (.{{ $ext }}) cannot be embedded directly.</p>
+                                                    <a href="{{ $downloadUrl }}" target="_blank" download class="btn btn-primary btn-sm">
+                                                        <em class="icon ni ni-download me-1"></em> Download Document
+                                                    </a>
+                                                </div>
+                                            @endif
+                                        @else
+                                            <div class="text-center py-5 px-3 my-auto">
+                                                <em class="icon ni ni-file-text display-4 text-muted mb-3 d-block"></em>
+                                                <h6 class="text-dark fw-bold mb-1">No Manuscript Uploaded Yet</h6>
+                                                <p class="text-muted small mb-3">Analyst paper manuscript has not been uploaded for this sample registration.</p>
+                                                <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#uploadManuscriptDirectModal">
+                                                    <em class="icon ni ni-upload me-1"></em> Upload Manuscript Now
+                                                </button>
+                                            </div>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+                        </div> <!-- /#splitViewRow -->
+                    </div> <!-- /.nk-block -->
+                </div> <!-- /#mainContainerWrapper -->
+            </div> <!-- /.nk-content-body -->
+        </div> <!-- /.nk-content-inner -->
+    </div> <!-- /.container-fluid -->
 
     <!-- Primary Test Selection Modal -->
     <div class="modal fade" id="primaryTestModal" tabindex="-1" aria-labelledby="primaryTestModalLabel"
@@ -1146,13 +1291,19 @@
     </script>
 
     <style>
+        #mainContainerWrapper {
+            max-width: 100% !important;
+            width: 100% !important;
+        }
+
         .wysiwyg-editor-input {
-            min-width: 120px;
-            min-height: 31px;
-            white-space: pre-wrap;
-            overflow-x: auto;
-            border-top-right-radius: 0;
-            border-bottom-right-radius: 0;
+            min-width: 110px !important;
+            min-height: 31px !important;
+            white-space: nowrap !important;
+            overflow-x: auto !important;
+            border-top-right-radius: 0 !important;
+            border-bottom-right-radius: 0 !important;
+            flex: 1 1 auto !important;
         }
         .wysiwyg-editor-input:focus {
             outline: 2px solid #0965f1;
@@ -1162,6 +1313,18 @@
             content: attr(data-placeholder);
             color: #94a3b8;
         }
+
+        #testResultsTable .input-group {
+            flex-wrap: nowrap !important;
+        }
+
+        .btn-xs {
+            padding: 0.22rem 0.45rem !important;
+            font-size: 0.72rem !important;
+            line-height: 1.2 !important;
+            border-radius: 4px !important;
+        }
+
         .symbol-grid {
             display: flex;
             flex-wrap: wrap;
@@ -1211,7 +1374,7 @@
 
         .table td,
         .table th {
-            padding: 0.55rem 0.75rem;
+            padding: 0.5rem 0.65rem;
             vertical-align: middle;
         }
 
@@ -1258,11 +1421,18 @@
             border-left: 3px solid #6c757d;
         }
 
+        .manuscript-preview-card {
+            border-radius: 8px !important;
+            box-shadow: 0 4px 18px rgba(0,0,0,0.08) !important;
+        }
+
         @media print {
 
             .btn,
             .nk-header,
             .nk-footer,
+            #manuscriptPreviewCol,
+            #floatingShowPreviewBtn,
             .card:last-child {
                 display: none !important;
             }
@@ -1366,13 +1536,97 @@
                 });
             });
 
-            // Add Custom Field for Main Test
-            document.querySelectorAll('.add-custom-field[data-type="test"]').forEach(button => {
-                button.addEventListener('click', function() {
-                    const testNumber = this.getAttribute('data-test-number');
-                    addCustomField(testNumber, null, null, 'test');
-                });
+            // Delegated click handler for adding custom field on any row (test, primary, secondary)
+            $(document).on('click', '.add-custom-field', function(e) {
+                e.preventDefault();
+                const testNumber = $(this).attr('data-test-number');
+                const primaryTestId = $(this).attr('data-primary-test-id') || null;
+                const secondaryTestId = $(this).attr('data-secondary-test-id') || null;
+                const type = $(this).attr('data-type') || (secondaryTestId ? 'secondary' : (primaryTestId ? 'primary' : 'test'));
+
+                addCustomField(testNumber, primaryTestId, secondaryTestId, type);
             });
+
+            // --- Side-by-Side Manuscript Preview Toggle ---
+            function setSplitPreview(show) {
+                const $formCol = $('#resultFormCol');
+                const $previewCol = $('#manuscriptPreviewCol');
+                const $btn = $('#toggleManuscriptSplitBtn');
+                const $quickBtn = $('#quickToggleSplitBtn');
+                const $wrapper = $('#mainContainerWrapper');
+
+                if (show) {
+                    $previewCol.removeClass('d-none');
+                    $formCol.removeClass('col-12').addClass('col-12 col-lg-6');
+                    $wrapper.addClass('split-active');
+                    $('#splitBtnLabel').text('Hide Manuscript Preview');
+                    $btn.removeClass('btn-outline-primary').addClass('btn-primary');
+                    if ($quickBtn.length) {
+                        $quickBtn.removeClass('btn-light text-primary').addClass('btn-secondary text-white');
+                    }
+                    localStorage.setItem('lims_manuscript_split_preview', 'show');
+                } else {
+                    $previewCol.addClass('d-none');
+                    $formCol.removeClass('col-lg-6').addClass('col-12');
+                    $wrapper.removeClass('split-active');
+                    $('#splitBtnLabel').text('Show Manuscript Preview');
+                    $btn.removeClass('btn-primary').addClass('btn-outline-primary');
+                    if ($quickBtn.length) {
+                        $quickBtn.removeClass('btn-secondary text-white').addClass('btn-light text-primary');
+                    }
+                    localStorage.setItem('lims_manuscript_split_preview', 'hide');
+                }
+            }
+
+            $(document).on('click', '#toggleManuscriptSplitBtn, #quickToggleSplitBtn', function(e) {
+                e.preventDefault();
+                const isCurrentlyHidden = $('#manuscriptPreviewCol').hasClass('d-none');
+                setSplitPreview(isCurrentlyHidden);
+            });
+
+            $(document).on('click', '#closeSplitPreviewBtn', function(e) {
+                e.preventDefault();
+                setSplitPreview(false);
+            });
+
+            // Initial Split View State
+            const hasManuscriptFile = {{ !empty($manuscriptFile) ? 'true' : 'false' }};
+            const savedSplitState = localStorage.getItem('lims_manuscript_split_preview');
+            if (savedSplitState === 'hide') {
+                setSplitPreview(false);
+            } else if (savedSplitState === 'show' || hasManuscriptFile) {
+                setSplitPreview(true);
+            } else {
+                setSplitPreview(false);
+            }
+
+            // Image Zoom and Rotate Controls
+            let imgZoomLevel = 1;
+            let imgRotationDeg = 0;
+            $(document).on('click', '#imgZoomInBtn', function() {
+                imgZoomLevel = Math.min(imgZoomLevel + 0.25, 4.0);
+                updateImgTransform();
+            });
+            $(document).on('click', '#imgZoomOutBtn', function() {
+                imgZoomLevel = Math.max(imgZoomLevel - 0.25, 0.5);
+                updateImgTransform();
+            });
+            $(document).on('click', '#imgRotateBtn', function() {
+                imgRotationDeg = (imgRotationDeg + 90) % 360;
+                updateImgTransform();
+            });
+            $(document).on('click', '#imgResetBtn', function() {
+                imgZoomLevel = 1;
+                imgRotationDeg = 0;
+                updateImgTransform();
+            });
+
+            function updateImgTransform() {
+                $('#manuscriptSideImg').css({
+                    'transform': `scale(${imgZoomLevel}) rotate(${imgRotationDeg}deg)`,
+                    'transition': 'transform 0.2s ease'
+                });
+            }
 
             let currentPrimaryModalData = [];
             let currentSecondaryModalData = [];
@@ -1495,12 +1749,12 @@
                     data-test-id="${testId}"
                     data-test-number="${testNumber}"
                     data-primary-test-id="${primaryTestId}">
-                    <td>${getNextSerialNumber(testNumber)}</td>
-                    <td>
+                    <td class="text-center align-middle">${getNextSerialNumber(testNumber)}</td>
+                    <td class="align-middle">
                         <strong>${primaryTestName}</strong>
                     </td>
                     <td>
-                        <div class="input-group input-group-sm">
+                        <div class="input-group input-group-sm flex-nowrap align-items-stretch" style="min-width: 250px;">
                             <input type="hidden"
                                 name="results[${testNumber}][primary_tests][${primaryTestId}][test_id]"
                                 value="${testNumber}">
@@ -1514,12 +1768,12 @@
                             <div class="form-control form-control-sm border-0 bg-light wysiwyg-editor-input"
                                 contenteditable="true"
                                 data-placeholder="Enter result value">${defaultResultVal}</div>
-                            <button type="button" class="btn btn-outline-light btn-sm btn-wysiwyg-cmd" data-cmd="superscript" title="Superscript (Ctrl + .)"><span style="font-weight:bold; font-size:11px;">x<sup>2</sup></span></button>
-                            <button type="button" class="btn btn-outline-light btn-sm btn-wysiwyg-cmd" data-cmd="subscript" title="Subscript (Ctrl + ,)"><span style="font-weight:bold; font-size:11px;">x<sub>2</sub></span></button>
-                            <button type="button" class="btn btn-outline-light btn-sm btn-open-symbols" title="Insert Symbol"><span style="font-weight:bold; font-size:11px;">Ω</span></button>
+                            <button type="button" class="btn btn-outline-light btn-xs btn-wysiwyg-cmd px-2" data-cmd="superscript" title="Superscript (Ctrl + .)"><span style="font-weight:bold; font-size:11px;">x<sup>2</sup></span></button>
+                            <button type="button" class="btn btn-outline-light btn-xs btn-wysiwyg-cmd px-2" data-cmd="subscript" title="Subscript (Ctrl + ,)"><span style="font-weight:bold; font-size:11px;">x<sub>2</sub></span></button>
+                            <button type="button" class="btn btn-outline-light btn-xs btn-open-symbols px-2" title="Insert Symbol"><span style="font-weight:bold; font-size:11px;">Ω</span></button>
                             ${formulaId ? `
                                 <button type="button"
-                                    class="btn btn-outline-light btn-sm open-raw-entry"
+                                    class="btn btn-outline-light btn-xs open-raw-entry px-2"
                                     data-target-name="results[${testNumber}][primary_tests][${primaryTestId}][result]"
                                     data-label="${primaryTestName}"
                                     title="Formula / Raw Entry">
@@ -1527,39 +1781,44 @@
                                 </button>
                             ` : ''}
                             <input type="text"
-                                class="form-control form-control-sm border-0 bg-light"
-                                style="max-width: 80px;"
+                                class="form-control form-control-sm border-0 bg-light text-center px-1"
+                                style="max-width: 75px; min-width: 55px;"
                                 name="results[${testNumber}][primary_tests][${primaryTestId}][unit]"
                                 value="${primaryTestUnit}"
                                 placeholder="Unit">
                         </div>
                     </td>
-                    <td>
-                        <button type="button"
-                            class="btn btn-outline-danger btn-sm remove-test-row"
-                            data-type="primary"
-                            data-test-number="${testNumber}"
-                            data-id="${primaryTestId}">
-                            <em class="icon ni ni-trash"></em>
-                        </button>
-                        ${hasSecondaryTests ? `
+                    <td class="text-center align-middle" style="width: 140px;">
+                        <div class="d-inline-flex gap-1 align-items-center justify-content-center flex-nowrap">
                             <button type="button"
-                                class="btn btn-outline-success btn-sm add-secondary-test"
+                                class="btn btn-outline-danger btn-xs py-1 px-2 remove-test-row"
+                                data-type="primary"
                                 data-test-number="${testNumber}"
-                                data-test-id="${testId}"
-                                data-primary-test-id="${primaryTestId}"
-                                data-secondary-tests='${JSON.stringify(secondaryTests)}'>
-                                <em class="icon ni ni-plus"></em> Secondary
+                                data-id="${primaryTestId}"
+                                title="Remove Primary Test">
+                                <em class="icon ni ni-trash"></em>
                             </button>
-                        ` : ''}
-                        <button type="button"
-                            class="btn btn-outline-warning btn-sm add-custom-field"
-                            data-test-id="${testId}"
-                            data-test-number="${testNumber}"
-                            data-primary-test-id="${primaryTestId}"
-                            data-type="primary">
-                            <em class="icon ni ni-plus"></em> Custom
-                        </button>
+                            ${hasSecondaryTests ? `
+                                <button type="button"
+                                    class="btn btn-outline-success btn-xs py-1 px-2 fw-semibold add-secondary-test text-nowrap"
+                                    data-test-number="${testNumber}"
+                                    data-test-id="${testId}"
+                                    data-primary-test-id="${primaryTestId}"
+                                    data-secondary-tests='${JSON.stringify(secondaryTests)}'
+                                    title="Add Secondary Tests">
+                                    <em class="icon ni ni-plus"></em> Sec
+                                </button>
+                            ` : ''}
+                            <button type="button"
+                                class="btn btn-outline-warning btn-xs py-1 px-2 fw-semibold add-custom-field text-nowrap"
+                                data-test-id="${testId}"
+                                data-test-number="${testNumber}"
+                                data-primary-test-id="${primaryTestId}"
+                                data-type="primary"
+                                title="Add Custom Field">
+                                <em class="icon ni ni-plus"></em> Custom
+                            </button>
+                        </div>
                     </td>
                 </tr>
                 `;
@@ -1702,10 +1961,10 @@
                     data-test-number="${testNumber}"
                     data-primary-test-id="${primaryTestId}"
                     data-secondary-test-id="${secondaryTestId}">
-                    <td>${serialNumber}</td>
-                    <td>${secondaryTest.m17_name}</td>
+                    <td class="text-center align-middle">${serialNumber}</td>
+                    <td class="align-middle">${secondaryTest.m17_name}</td>
                     <td>
-                        <div class="input-group input-group-sm">
+                        <div class="input-group input-group-sm flex-nowrap align-items-stretch" style="min-width: 250px;">
                             <input type="hidden"
                                 name="results[${testNumber}][primary_tests][${primaryTestId}][secondary_tests][${secondaryTestId}][test_id]"
                                 value="${testNumber}">
@@ -1722,12 +1981,12 @@
                             <div class="form-control form-control-sm border-0 bg-light wysiwyg-editor-input"
                                 contenteditable="true"
                                 data-placeholder="Enter result value">${finalResultVal}</div>
-                            <button type="button" class="btn btn-outline-light btn-sm btn-wysiwyg-cmd" data-cmd="superscript" title="Superscript (Ctrl + .)"><span style="font-weight:bold; font-size:11px;">x<sup>2</sup></span></button>
-                            <button type="button" class="btn btn-outline-light btn-sm btn-wysiwyg-cmd" data-cmd="subscript" title="Subscript (Ctrl + ,)"><span style="font-weight:bold; font-size:11px;">x<sub>2</sub></span></button>
-                            <button type="button" class="btn btn-outline-light btn-sm btn-open-symbols" title="Insert Symbol"><span style="font-weight:bold; font-size:11px;">Ω</span></button>
+                            <button type="button" class="btn btn-outline-light btn-xs btn-wysiwyg-cmd px-2" data-cmd="superscript" title="Superscript (Ctrl + .)"><span style="font-weight:bold; font-size:11px;">x<sup>2</sup></span></button>
+                            <button type="button" class="btn btn-outline-light btn-xs btn-wysiwyg-cmd px-2" data-cmd="subscript" title="Subscript (Ctrl + ,)"><span style="font-weight:bold; font-size:11px;">x<sub>2</sub></span></button>
+                            <button type="button" class="btn btn-outline-light btn-xs btn-open-symbols px-2" title="Insert Symbol"><span style="font-weight:bold; font-size:11px;">Ω</span></button>
                             ${formulaId ? `
                                 <button type="button"
-                                    class="btn btn-outline-light btn-sm open-raw-entry"
+                                    class="btn btn-outline-light btn-xs open-raw-entry px-2"
                                     data-target-name="results[${testNumber}][primary_tests][${primaryTestId}][secondary_tests][${secondaryTestId}][result]"
                                     data-label="${secondaryTest.m17_name}"
                                     title="Formula / Raw Entry">
@@ -1735,31 +1994,35 @@
                                 </button>
                             ` : ''}
                             <input type="text"
-                                class="form-control form-control-sm border-0 bg-light"
-                                style="max-width: 80px;"
+                                class="form-control form-control-sm border-0 bg-light text-center px-1"
+                                style="max-width: 75px; min-width: 55px;"
                                 name="results[${testNumber}][primary_tests][${primaryTestId}][secondary_tests][${secondaryTestId}][unit]"
                                 value="${unitValue}"
                                 placeholder="Unit">
                         </div>
                     </td>
-                    <td>
-                        <button type="button"
-                            class="btn btn-outline-danger btn-sm remove-test-row"
-                            data-type="secondary"
-                            data-test-number="${testNumber}"
-                            data-primary-test-id="${primaryTestId}"
-                            data-id="${secondaryTestId}">
-                            <em class="icon ni ni-trash"></em>
-                        </button>
-                        <button type="button"
-                            class="btn btn-outline-warning btn-sm add-custom-field"
-                            data-test-id="${currentTestId}"
-                            data-test-number="${testNumber}"
-                            data-primary-test-id="${primaryTestId}"
-                            data-secondary-test-id="${secondaryTestId}"
-                            data-type="secondary">
-                            <em class="icon ni ni-plus"></em> Custom
-                        </button>
+                    <td class="text-center align-middle" style="width: 140px;">
+                        <div class="d-inline-flex gap-1 align-items-center justify-content-center flex-nowrap">
+                            <button type="button"
+                                class="btn btn-outline-danger btn-xs py-1 px-2 remove-test-row"
+                                data-type="secondary"
+                                data-test-number="${testNumber}"
+                                data-primary-test-id="${primaryTestId}"
+                                data-id="${secondaryTestId}"
+                                title="Remove Secondary Test">
+                                <em class="icon ni ni-trash"></em>
+                            </button>
+                            <button type="button"
+                                class="btn btn-outline-warning btn-xs py-1 px-2 fw-semibold add-custom-field text-nowrap"
+                                data-test-id="${currentTestId}"
+                                data-test-number="${testNumber}"
+                                data-primary-test-id="${primaryTestId}"
+                                data-secondary-test-id="${secondaryTestId}"
+                                data-type="secondary"
+                                title="Add Custom Field">
+                                <em class="icon ni ni-plus"></em> Custom
+                            </button>
+                        </div>
                     </td>
                 </tr>
                 `;
@@ -1784,27 +2047,29 @@
                 let serialNumber = '';
                 let insertAfter = null;
 
-                if (type === 'secondary' && secondaryTestId) {
-                    const secondaryTestRow = document.querySelector(
-                        `[data-secondary-test-id="${secondaryTestId}"]`);
+                if (type === 'secondary' && secondaryTestId && secondaryTestId !== 'NULL' && secondaryTestId !== '') {
+                    const secondaryTestRow = document.querySelector(`[data-secondary-test-id="${secondaryTestId}"]`);
                     if (secondaryTestRow) {
-                        const currentSerial = secondaryTestRow.cells[0].textContent;
-                        serialNumber = currentSerial + '.C';
-                        insertAfter = secondaryTestRow;
+                        const currentSerial = secondaryTestRow.cells[0].textContent.trim();
+                        const existingCfs = document.querySelectorAll(`.custom-field-row[data-secondary-test-id="${secondaryTestId}"]`);
+                        serialNumber = `${currentSerial}.C${existingCfs.length + 1}`;
+                        insertAfter = existingCfs.length > 0 ? existingCfs[existingCfs.length - 1] : secondaryTestRow;
                     }
-                } else if (type === 'primary' && primaryTestId) {
+                } else if (type === 'primary' && primaryTestId && primaryTestId !== 'NULL' && primaryTestId !== '') {
                     const primaryTestRow = document.querySelector(`[data-primary-test-id="${primaryTestId}"]`);
                     if (primaryTestRow) {
-                        const currentSerial = primaryTestRow.cells[0].textContent;
-                        serialNumber = currentSerial + '.C';
-                        insertAfter = primaryTestRow;
+                        const currentSerial = primaryTestRow.cells[0].textContent.trim();
+                        const existingCfs = document.querySelectorAll(`.custom-field-row[data-primary-test-id="${primaryTestId}"]:not([data-secondary-test-id])`);
+                        serialNumber = `${currentSerial}.C${existingCfs.length + 1}`;
+                        insertAfter = existingCfs.length > 0 ? existingCfs[existingCfs.length - 1] : primaryTestRow;
                     }
                 } else {
                     const testRow = document.querySelector(`.test-main-row[data-test-number="${testNumber}"]`);
                     if (testRow) {
-                        const currentSerial = testRow.cells[0].textContent;
-                        serialNumber = currentSerial + '.C';
-                        insertAfter = testRow;
+                        const currentSerial = testRow.cells[0].textContent.trim();
+                        const existingCfs = document.querySelectorAll(`.custom-field-row[data-test-number="${testNumber}"]:not([data-primary-test-id]):not([data-secondary-test-id])`);
+                        serialNumber = `${currentSerial}.C${existingCfs.length + 1}`;
+                        insertAfter = existingCfs.length > 0 ? existingCfs[existingCfs.length - 1] : testRow;
                     }
                 }
 
@@ -1822,10 +2087,10 @@
                     data-test-number="${testNumber}" 
                     ${primaryTestId && primaryTestId !== 'NULL' && primaryTestId !== '' ? `data-primary-test-id="${primaryTestId}"` : ''}
                     ${secondaryTestId && secondaryTestId !== 'NULL' && secondaryTestId !== '' ? `data-secondary-test-id="${secondaryTestId}"` : ''}>
-                    <td>
-                        <small>${serialNumber}</small>
+                    <td class="text-center align-middle">
+                        <small class="fw-bold">${serialNumber}</small>
                     </td>
-                    <td>
+                    <td class="align-middle">
                         <input type="text" 
                             class="form-control form-control-sm custom-field-input" 
                             name="${namePrefix}[name]" 
@@ -1836,7 +2101,7 @@
                             value="${customFieldId}">
                     </td>
                     <td>
-                        <div class="input-group input-group-sm">
+                        <div class="input-group input-group-sm flex-nowrap align-items-stretch" style="min-width: 250px;">
                             <input type="hidden" 
                                 name="${namePrefix}[value]" 
                                 class="wysiwyg-hidden-val"
@@ -1844,21 +2109,23 @@
                             <div class="form-control form-control-sm custom-field-input wysiwyg-editor-input"
                                 contenteditable="true"
                                 data-placeholder="Enter value">${fieldValue || ''}</div>
-                            <button type="button" class="btn btn-outline-light btn-sm btn-wysiwyg-cmd" data-cmd="superscript" title="Superscript (Ctrl + .)"><span style="font-weight:bold; font-size:11px;">x<sup>2</sup></span></button>
-                            <button type="button" class="btn btn-outline-light btn-sm btn-wysiwyg-cmd" data-cmd="subscript" title="Subscript (Ctrl + ,)"><span style="font-weight:bold; font-size:11px;">x<sub>2</sub></span></button>
-                            <button type="button" class="btn btn-outline-light btn-sm btn-open-symbols" title="Insert Symbol"><span style="font-weight:bold; font-size:11px;">Ω</span></button>
+                            <button type="button" class="btn btn-outline-light btn-xs btn-wysiwyg-cmd px-2" data-cmd="superscript" title="Superscript (Ctrl + .)"><span style="font-weight:bold; font-size:11px;">x<sup>2</sup></span></button>
+                            <button type="button" class="btn btn-outline-light btn-xs btn-wysiwyg-cmd px-2" data-cmd="subscript" title="Subscript (Ctrl + ,)"><span style="font-weight:bold; font-size:11px;">x<sub>2</sub></span></button>
+                            <button type="button" class="btn btn-outline-light btn-xs btn-open-symbols px-2" title="Insert Symbol"><span style="font-weight:bold; font-size:11px;">Ω</span></button>
                             <input type="text" 
-                                class="form-control form-control-sm custom-field-input" 
-                                style="max-width: 80px;"
+                                class="form-control form-control-sm custom-field-input text-center px-1" 
+                                style="max-width: 75px; min-width: 55px;"
                                 name="${namePrefix}[unit]" 
                                 value="${fieldUnit || ''}"
                                 placeholder="Unit">
                         </div>
                     </td>
-                    <td>
-                        <button type="button" class="btn btn-sm btn-outline-danger remove-custom-field" data-field-id="${fieldId}">
-                            <em class="icon ni ni-trash"></em>
-                        </button>
+                    <td class="text-center align-middle" style="width: 140px;">
+                        <div class="d-inline-flex gap-1 align-items-center justify-content-center flex-nowrap">
+                            <button type="button" class="btn btn-xs py-1 px-2 btn-outline-danger remove-custom-field" data-field-id="${fieldId}" title="Remove Custom Field">
+                                <em class="icon ni ni-trash"></em>
+                            </button>
+                        </div>
                     </td>
                 </tr>
                 `;
@@ -1886,26 +2153,28 @@
                 let insertAfter = null;
 
                 if (type === 'secondary' && secondaryTestId) {
-                    const secondaryTestRow = document.querySelector(
-                        `[data-secondary-test-id="${secondaryTestId}"]`);
+                    const secondaryTestRow = document.querySelector(`[data-secondary-test-id="${secondaryTestId}"]`);
                     if (secondaryTestRow) {
-                        const currentSerial = secondaryTestRow.cells[0].textContent;
-                        serialNumber = currentSerial + '.C';
-                        insertAfter = secondaryTestRow;
+                        const currentSerial = secondaryTestRow.cells[0].textContent.trim();
+                        const existingCfs = document.querySelectorAll(`.custom-field-row[data-secondary-test-id="${secondaryTestId}"]`);
+                        serialNumber = `${currentSerial}.C${existingCfs.length + 1}`;
+                        insertAfter = existingCfs.length > 0 ? existingCfs[existingCfs.length - 1] : secondaryTestRow;
                     }
                 } else if (type === 'primary' && primaryTestId) {
                     const primaryTestRow = document.querySelector(`[data-primary-test-id="${primaryTestId}"]`);
                     if (primaryTestRow) {
-                        const currentSerial = primaryTestRow.cells[0].textContent;
-                        serialNumber = currentSerial + '.C';
-                        insertAfter = primaryTestRow;
+                        const currentSerial = primaryTestRow.cells[0].textContent.trim();
+                        const existingCfs = document.querySelectorAll(`.custom-field-row[data-primary-test-id="${primaryTestId}"]:not([data-secondary-test-id])`);
+                        serialNumber = `${currentSerial}.C${existingCfs.length + 1}`;
+                        insertAfter = existingCfs.length > 0 ? existingCfs[existingCfs.length - 1] : primaryTestRow;
                     }
                 } else {
                     const testRow = document.querySelector(`.test-main-row[data-test-number="${testNumber}"]`);
                     if (testRow) {
-                        const currentSerial = testRow.cells[0].textContent;
-                        serialNumber = currentSerial + '.C';
-                        insertAfter = testRow;
+                        const currentSerial = testRow.cells[0].textContent.trim();
+                        const existingCfs = document.querySelectorAll(`.custom-field-row[data-test-number="${testNumber}"]:not([data-primary-test-id]):not([data-secondary-test-id])`);
+                        serialNumber = `${currentSerial}.C${existingCfs.length + 1}`;
+                        insertAfter = existingCfs.length > 0 ? existingCfs[existingCfs.length - 1] : testRow;
                     }
                 }
 
@@ -1923,17 +2192,17 @@
                     data-test-number="${testNumber}" 
                     ${primaryTestId ? `data-primary-test-id="${primaryTestId}"` : ''}
                     ${secondaryTestId ? `data-secondary-test-id="${secondaryTestId}"` : ''}>
-                    <td>
-                        <small>${serialNumber}</small>
+                    <td class="text-center align-middle">
+                        <small class="fw-bold">${serialNumber}</small>
                     </td>
-                    <td>
+                    <td class="align-middle">
                         <input type="text" 
                             class="form-control form-control-sm custom-field-input" 
                             name="${namePrefix}[name]" 
                             placeholder="Custom Field Name" required>
                     </td>
                     <td>
-                        <div class="input-group input-group-sm">
+                        <div class="input-group input-group-sm flex-nowrap align-items-stretch" style="min-width: 250px;">
                             <input type="hidden" 
                                 name="${namePrefix}[value]" 
                                 class="wysiwyg-hidden-val"
@@ -1941,20 +2210,22 @@
                             <div class="form-control form-control-sm custom-field-input wysiwyg-editor-input"
                                 contenteditable="true"
                                 data-placeholder="Enter value"></div>
-                            <button type="button" class="btn btn-outline-light btn-sm btn-wysiwyg-cmd" data-cmd="superscript" title="Superscript (Ctrl + .)"><span style="font-weight:bold; font-size:11px;">x<sup>2</sup></span></button>
-                            <button type="button" class="btn btn-outline-light btn-sm btn-wysiwyg-cmd" data-cmd="subscript" title="Subscript (Ctrl + ,)"><span style="font-weight:bold; font-size:11px;">x<sub>2</sub></span></button>
-                            <button type="button" class="btn btn-outline-light btn-sm btn-open-symbols" title="Insert Symbol"><span style="font-weight:bold; font-size:11px;">Ω</span></button>
+                            <button type="button" class="btn btn-outline-light btn-xs btn-wysiwyg-cmd px-2" data-cmd="superscript" title="Superscript (Ctrl + .)"><span style="font-weight:bold; font-size:11px;">x<sup>2</sup></span></button>
+                            <button type="button" class="btn btn-outline-light btn-xs btn-wysiwyg-cmd px-2" data-cmd="subscript" title="Subscript (Ctrl + ,)"><span style="font-weight:bold; font-size:11px;">x<sub>2</sub></span></button>
+                            <button type="button" class="btn btn-outline-light btn-xs btn-open-symbols px-2" title="Insert Symbol"><span style="font-weight:bold; font-size:11px;">Ω</span></button>
                             <input type="text" 
-                                class="form-control form-control-sm custom-field-input" 
-                                style="max-width: 80px;"
+                                class="form-control form-control-sm custom-field-input text-center px-1" 
+                                style="max-width: 75px; min-width: 55px;"
                                 name="${namePrefix}[unit]" 
                                 placeholder="Unit">
                         </div>
                     </td>
-                    <td>
-                        <button type="button" class="btn btn-sm btn-outline-danger remove-custom-field" data-field-id="${fieldId}">
-                            <em class="icon ni ni-trash"></em>
-                        </button>
+                    <td class="text-center align-middle" style="width: 140px;">
+                        <div class="d-inline-flex gap-1 align-items-center justify-content-center flex-nowrap">
+                            <button type="button" class="btn btn-xs py-1 px-2 btn-outline-danger remove-custom-field" data-field-id="${fieldId}" title="Remove Custom Field">
+                                <em class="icon ni ni-trash"></em>
+                            </button>
+                        </div>
                     </td>
                 </tr>
                 `;

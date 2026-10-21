@@ -121,6 +121,15 @@
                                             $manuscriptFile = $manuscripts->first()?->registration?->tr04_manuscript;
                                         @endphp
                                         <div class="d-flex gap-2 align-items-center">
+                                            @php
+                                                $regIdForDownload = $manuscripts->first()?->tr04_sample_registration_id ?? $manuscripts->first()?->registration?->tr04_sample_registration_id;
+                                            @endphp
+                                            @if ($regIdForDownload)
+                                                <a href="{{ route('download_manuscript', $regIdForDownload) }}" target="_blank"
+                                                    class="btn btn-outline-primary btn-sm fw-bold">
+                                                    <em class="icon ni ni-download me-1"></em> Download Manuscript
+                                                </a>
+                                            @endif
                                             @if ($manuscriptFile)
                                                 <button type="button" class="btn btn-success btn-sm fw-bold" data-bs-toggle="modal"
                                                     data-bs-target="#pdfModal">
