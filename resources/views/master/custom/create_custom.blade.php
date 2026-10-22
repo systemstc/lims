@@ -85,8 +85,8 @@
                                     <table class="table table-bordered mt-1" id="test-standard-table">
                                         <thead>
                                             <tr>
-                                                <th>Test</th>
-                                                <th>Standard</th>
+                                                <th>Test <b class="text-danger">*</b></th>
+                                                <th>Standard <small class="text-muted">(Optional)</small></th>
                                                 <th width="80px">Action</th>
                                             </tr>
                                         </thead>
@@ -105,8 +105,8 @@
                                                 <td>
                                                     <div class="form-control-wrap">
                                                         <select name="tests[0][standard_id]"
-                                                            class="form-control standard-select" required>
-                                                            <option value="">-- Select Standard --</option>
+                                                            class="form-control standard-select">
+                                                            <option value="">-- Select Standard (Optional) --</option>
                                                         </select>
                                                     </div>
                                                 </td>
@@ -215,8 +215,8 @@
             </td>
             <td>
                 <div class="form-control-wrap">
-                    <select name="tests[${rowIndex}][standard_id]" class="form-control standard-select" required>
-                        <option value="">-- Select Standard --</option>
+                    <select name="tests[${rowIndex}][standard_id]" class="form-control standard-select">
+                        <option value="">-- Select Standard (Optional) --</option>
                     </select>
                 </div>
             </td>
@@ -242,7 +242,7 @@
                     $.get(STANDARD_URL, {
                         test_id: testId
                     }, function(data) {
-                        $standardSelect.empty().append('<option value="">-- Select Standard --</option>');
+                        $standardSelect.empty().append('<option value="">-- Select Standard (Optional) --</option>');
                         $.each(data, function(key, standard) {
                             $standardSelect.append(
                                 `<option value="${standard.id}">${standard.name}</option>`
@@ -250,7 +250,7 @@
                         });
                     });
                 } else {
-                    $standardSelect.empty().append('<option value="">-- Select Standard --</option>');
+                    $standardSelect.empty().append('<option value="">-- Select Standard (Optional) --</option>');
                 }
                 updateTestOptions();
             });

@@ -803,8 +803,9 @@
 
             <!-- Top Stacked Logo & Title -->
             <div class="brand-top">
-                <div class="logo-box">
+                <div class="logo-box" style="position: relative;">
                     <img src="{{ asset('frontAssets/logo_lg.png') }}" alt="Textiles Committee Logo">
+                    <span class="badge bg-warning text-dark fw-bold" style="position: absolute; top: 8px; right: 12px; font-size: 0.62rem; padding: 2px 7px; border-radius: 4px; letter-spacing: 0.5px; box-shadow: 0 2px 4px rgba(0,0,0,0.15);">BETA</span>
                 </div>
                 <div class="brand-title">
                     <h2>Laboratory Information</h2>

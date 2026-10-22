@@ -95,8 +95,8 @@
                                     <table class="table table-bordered mt-1" id="test-standard-table">
                                         <thead>
                                             <tr>
-                                                <th>Test</th>
-                                                <th>Standard</th>
+                                                <th>Test <b class="text-danger">*</b></th>
+                                                <th>Standard <small class="text-muted">(Optional)</small></th>
                                                 <th width="80px">Action</th>
                                             </tr>
                                         </thead>
@@ -117,10 +117,13 @@
                                                     </td>
                                                     <td>
                                                         <select name="tests[{{ $index }}][standard_id]"
-                                                            class="form-control standard-select" required>
-                                                            <option value="{{ $pkgTest->standard->m15_standard_id ?? '' }}">
-                                                                {{ $pkgTest->standard->m15_method ?? 'Current Standard' }}
-                                                            </option>
+                                                            class="form-control standard-select">
+                                                            <option value="">-- Select Standard (Optional) --</option>
+                                                            @if ($pkgTest->standard)
+                                                                <option value="{{ $pkgTest->standard->m15_standard_id }}" selected>
+                                                                    {{ $pkgTest->standard->m15_method ?? 'Current Standard' }}
+                                                                </option>
+                                                            @endif
                                                         </select>
                                                     </td>
                                                     <td>
@@ -229,8 +232,8 @@
                     </td>
                     <td>
                         <div class="form-control-wrap">
-                            <select name="tests[${rowIndex}][standard_id]" class="form-control standard-select" required>
-                                <option value="">-- Select Standard --</option>
+                            <select name="tests[${rowIndex}][standard_id]" class="form-control standard-select">
+                                <option value="">-- Select Standard (Optional) --</option>
                             </select>
                         </div>
                     </td>
@@ -254,7 +257,7 @@
                 updateTestOptions();
 
                 if (!testId) {
-                    $standard.html('<option value="">-- Select Standard --</option>');
+                    $standard.html('<option value="">-- Select Standard (Optional) --</option>');
                     return;
                 }
 
@@ -263,7 +266,7 @@
                 $.getJSON(STANDARD_URL, {
                     test_id: testId
                 }, function(data) {
-                    $standard.html('<option value="">-- Select Standard --</option>');
+                    $standard.html('<option value="">-- Select Standard (Optional) --</option>');
                     data.forEach(s => {
                         $standard.append(`<option value="${s.id}">${s.name}</option>`);
                     });

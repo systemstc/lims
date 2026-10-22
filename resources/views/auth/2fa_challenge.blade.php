@@ -350,8 +350,9 @@
         <div class="two-fa-container">
             <!-- Logo -->
             <div class="brand-logo-wrapper">
-                <a href="{{ url('/') }}" class="logo-link">
+                <a href="{{ url('/') }}" class="logo-link d-inline-flex align-items-center">
                     <img src="{{ asset('backAssets/images/logo_lg.png') }}" alt="LIMS Logo">
+                    <span class="badge bg-warning text-dark fw-bold ms-2" style="font-size: 0.65rem; padding: 2px 7px; border-radius: 4px; vertical-align: middle; box-shadow: 0 1px 3px rgba(0,0,0,0.15);">BETA</span>
                 </a>
             </div>
 

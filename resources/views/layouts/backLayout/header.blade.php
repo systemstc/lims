@@ -6,9 +6,10 @@
                         class="icon ni ni-menu"></em></a>
             </div>
             <div class="nk-header-brand d-xl-none">
-                <a href="javascript:void(0)" class="logo-link">
+                <a href="javascript:void(0)" class="logo-link d-flex align-items-center">
                     <img class="logo-light logo-img" src="{{ asset('backAssets/images/logo.png') }}" alt="logo">
                     <img class="logo-dark logo-img" src="{{ asset('backAssets/images/logo.png') }}" alt="logo">
+                    <span class="badge bg-warning text-dark fw-bold ms-2" style="font-size: 0.85rem; letter-spacing: 0.8px; padding: 2px 6px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.12); text-transform: uppercase;">BETA</span>
                 </a>
             </div><!-- .nk-header-brand -->
             <div class="nk-header-search ms-3 ms-xl-0">

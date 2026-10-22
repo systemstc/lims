@@ -79,6 +79,7 @@
                 <img class="logo-small logo-img logo-img-small me-2" src="{{ asset('backAssets/images/logo.png') }}"
                     alt="logo-small">
                 <span class="lims-brand-text text-gradient">LIMS</span>
+                <span class="badge bg-warning text-dark fw-bold ms-2" style="font-size: 0.85rem; letter-spacing: 0.8px; padding: 2px 6px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.12); text-transform: uppercase;">BETA</span>
             </a>
         </div>
         <div class="nk-menu-trigger me-n2">

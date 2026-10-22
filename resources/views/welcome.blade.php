@@ -1197,7 +1197,7 @@
                     <img src="{{ asset('frontAssets/textiles_logo_200.png') }}" alt="Textile Committee">
                 </div>
                 <div class="drawer-brand-text">
-                    <strong>Textile Committee</strong>
+                    <strong>Textile Committee <span class="badge bg-warning text-dark fw-bold ms-1" style="font-size: 0.85rem; letter-spacing: 0.8px; padding: 2px 6px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.12); text-transform: uppercase;">BETA</span></strong>
                     <small>LIMS Portal</small>
                 </div>
             </div>
@@ -1253,7 +1253,7 @@
                     </div>
                     <div class="brand-divider"></div>
                     <div class="navbar-brand-text">
-                        <span class="brand-name">Laboratories of Textile Committee</span>
+                        <span class="brand-name">Laboratories of Textile Committee <span class="badge bg-warning text-dark fw-bold ms-1" style="font-size: 0.85rem; padding: 2px 5px; border-radius: 4px; letter-spacing: 0.5px; vertical-align: middle;">BETA</span></span>
                         <span class="brand-sub">Laboratory Information Management System</span>
                     </div>
                 </a>
@@ -1648,7 +1648,7 @@
                             <img src="{{ asset('frontAssets/textiles_logo_200.png') }}" alt="Textiles Committee Logo">
                         </div>
                         <div class="ms-1">
-                            <div class="fw-bold text-white" style="font-size:0.92rem;line-height:1.25;">Laboratories of Textile Committee</div>
+                            <div class="fw-bold text-white" style="font-size:0.92rem;line-height:1.25;">Laboratories of Textile Committee <span class="badge bg-warning text-dark fw-bold ms-1" style="font-size: 0.6rem; padding: 1px 5px; border-radius: 3px;">BETA</span></div>
                             <small class="text-light" style="opacity:0.8;font-size:0.75rem;">LIMS Portal</small>
                         </div>
                     </div>

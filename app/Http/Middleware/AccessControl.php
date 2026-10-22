@@ -153,7 +153,8 @@ class AccessControl
 
             'revert_allotment',
             'bulk_revert_allotment',
-            'search_sample_for_allotment'
+            'search_sample_for_allotment',
+            'fetch_gst_details',
         ];
 
         if (in_array($routeName, $skipPermissionRoutes)) {

@@ -106,8 +106,8 @@
                                     <table class="table table-bordered mt-1" id="test-standard-table">
                                         <thead>
                                             <tr>
-                                                <th>Test</th>
-                                                <th>Standard</th>
+                                                <th>Test <b class="text-danger">*</b></th>
+                                                <th>Standard <small class="text-muted">(Optional)</small></th>
                                                 <th width="80px">Action</th>
                                             </tr>
                                         </thead>
@@ -138,8 +138,8 @@
                                                         <div class="form-control-wrap">
                                                             <select name="tests[{{ $index }}][standard_id]"
                                                                 class="form-control standard-select @error('tests.'.$index.'.standard_id') is-invalid @enderror"
-                                                                data-old-standard="{{ $oldTest['standard_id'] ?? '' }}" required>
-                                                                <option value="">-- Select Standard --</option>
+                                                                data-old-standard="{{ $oldTest['standard_id'] ?? '' }}">
+                                                                <option value="">-- Select Standard (Optional) --</option>
                                                             </select>
                                                         </div>
                                                         @error('tests.'.$index.'.standard_id')
@@ -234,7 +234,7 @@
                     $.getJSON("{{ route('get_standards_by_test') }}", {
                         test_id: testId
                     }, data => {
-                        let options = '<option value="">-- Select Standard --</option>';
+                        let options = '<option value="">-- Select Standard (Optional) --</option>';
                         data.forEach(s => {
                             const isSelected = (selectedStandardId && selectedStandardId == s.id) ? 'selected' : '';
                             options += `<option value="${s.id}" ${isSelected}>${s.name}</option>`;
@@ -242,7 +242,7 @@
                         $standard.html(options);
                     });
                 } else {
-                    $standard.html('<option value="">-- Select Standard --</option>');
+                    $standard.html('<option value="">-- Select Standard (Optional) --</option>');
                 }
             }
 
@@ -295,8 +295,8 @@
                 </td>
                 <td>
                     <div class="form-control-wrap">
-                        <select name="tests[${rowIndex}][standard_id]" class="form-control standard-select" required>
-                            <option value="">-- Select Standard --</option>
+                        <select name="tests[${rowIndex}][standard_id]" class="form-control standard-select">
+                            <option value="">-- Select Standard (Optional) --</option>
                         </select>
                     </div>
                 </td>

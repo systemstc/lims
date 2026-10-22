@@ -40,8 +40,7 @@
                                                 <td>
                                                     @foreach ($cust->packageTests as $pkgTest)
                                                         <span class="badge bg-primary">
-                                                            {{ $pkgTest->test->m12_name ?? 'N/A' }} -
-                                                            {{ $pkgTest->standard->m15_method ?? 'N/A' }}
+                                                            {{ $pkgTest->test->m12_name ?? 'N/A' }}{{ !empty($pkgTest->standard?->m15_method) ? ' - ' . $pkgTest->standard->m15_method : '' }}
                                                         </span><br>
                                                     @endforeach
                                                 </td>

@@ -2517,7 +2517,7 @@ class MasterController extends Controller
                 'txt_charges' => 'required|numeric|min:0',
                 'tests' => 'required|array|min:1',
                 'tests.*.test_id' => 'required|integer|exists:m12_tests,m12_test_id',
-                'tests.*.standard_id' => 'required|integer|exists:m15_standards,m15_standard_id',
+                'tests.*.standard_id' => 'nullable|integer|exists:m15_standards,m15_standard_id',
             ], [
                 'txt_name.required' => 'Package name is required.',
                 'txt_name.unique' => 'This package name already exists.',
@@ -2527,7 +2527,6 @@ class MasterController extends Controller
                 'tests.required' => 'At least one test is required.',
                 'tests.*.test_id.required' => 'Please select a test.',
                 'tests.*.test_id.exists' => 'Selected test is invalid.',
-                'tests.*.standard_id.required' => 'Please select a standard for the chosen test.',
                 'tests.*.standard_id.exists' => 'Selected standard is invalid.',
             ]);
 
@@ -2546,7 +2545,7 @@ class MasterController extends Controller
                     PackageTest::create([
                         'm19_package_id' => $package->m19_package_id,
                         'm12_test_id' => $testRow['test_id'],
-                        'm15_standard_id' => $testRow['standard_id'],
+                        'm15_standard_id' => !empty($testRow['standard_id']) ? $testRow['standard_id'] : null,
                     ]);
                 }
                 DB::commit();
@@ -2573,7 +2572,7 @@ class MasterController extends Controller
                 'txt_charges' => 'required|numeric|min:0',
                 'tests' => 'required|array|min:1',
                 'tests.*.test_id' => 'required|exists:m12_tests,m12_test_id',
-                'tests.*.standard_id' => 'required|exists:m15_standards,m15_standard_id',
+                'tests.*.standard_id' => 'nullable|exists:m15_standards,m15_standard_id',
             ], [
                 'txt_name.required' => 'Package name is required.',
                 'txt_name.unique' => 'This package name already exists.',
@@ -2581,8 +2580,7 @@ class MasterController extends Controller
                 'txt_charges.numeric' => 'Package charge must be a number.',
                 'txt_charges.min' => 'Package charge cannot be negative.',
                 'tests.required' => 'At least one test is required.',
-                'tests.*.test_id.required' => 'Please select a test.',
-                'tests.*.standard_id.required' => 'Please select a standard.'
+                'tests.*.test_id.required' => 'Please select a test.'
             ]);
 
             if ($validator->fails()) {
@@ -2604,7 +2602,7 @@ class MasterController extends Controller
                     PackageTest::create([
                         'm19_package_id' => $package->m19_package_id,
                         'm12_test_id' => $testRow['test_id'],
-                        'm15_standard_id' => $testRow['standard_id'],
+                        'm15_standard_id' => !empty($testRow['standard_id']) ? $testRow['standard_id'] : null,
                     ]);
                 }
                 DB::commit();
@@ -2618,7 +2616,7 @@ class MasterController extends Controller
                 return back();
             }
         }
-        $package = Package::with('packageTests.test')->findOrFail($id);
+        $package = Package::with(['packageTests.test', 'packageTests.standard'])->findOrFail($id);
         $tests = Test::all();
         return view('master.package.edit_package', compact('package', 'tests'));
     }
@@ -2659,7 +2657,7 @@ class MasterController extends Controller
                 'txt_customer_id' => 'required|integer|exists:m07_customers,m07_customer_id',
                 'tests' => 'required|array|min:1',
                 'tests.*.test_id' => 'required|integer|exists:m12_tests,m12_test_id',
-                'tests.*.standard_id' => 'required|integer|exists:m15_standards,m15_standard_id',
+                'tests.*.standard_id' => 'nullable|integer|exists:m15_standards,m15_standard_id',
             ], [
                 'txt_name.required' => 'Contract name is required.',
                 'txt_name.string' => 'Contract name must be a valid text string.',
@@ -2677,13 +2675,12 @@ class MasterController extends Controller
                 'txt_charges.numeric' => 'Charge must be a valid numeric amount.',
                 'txt_charges.min' => 'Charge cannot be a negative amount.',
 
-                'tests.required' => 'At least one test with a standard is required.',
+                'tests.required' => 'At least one test is required.',
                 'tests.array' => 'Tests data must be a valid array.',
-                'tests.min' => 'At least one test with a standard is required.',
+                'tests.min' => 'At least one test is required.',
                 'tests.*.test_id.required' => 'Please select a test for all rows.',
                 'tests.*.test_id.integer' => 'Selected test ID is invalid.',
                 'tests.*.test_id.exists' => 'Selected test is invalid.',
-                'tests.*.standard_id.required' => 'Please select a standard for all rows.',
                 'tests.*.standard_id.integer' => 'Selected standard ID is invalid.',
                 'tests.*.standard_id.exists' => 'Selected standard is invalid.',
             ]);
@@ -2706,7 +2703,7 @@ class MasterController extends Controller
                     PackageTest::create([
                         'm19_package_id' => $package->m19_package_id,
                         'm12_test_id' => $testRow['test_id'],
-                        'm15_standard_id' => $testRow['standard_id'],
+                        'm15_standard_id' => !empty($testRow['standard_id']) ? $testRow['standard_id'] : null,
                     ]);
                 }
                 DB::commit();
@@ -2736,7 +2733,7 @@ class MasterController extends Controller
                 'txt_customer_id' => 'required|integer|exists:m07_customers,m07_customer_id',
                 'tests' => 'required|array|min:1',
                 'tests.*.test_id' => 'required|integer|exists:m12_tests,m12_test_id',
-                'tests.*.standard_id' => 'required|integer|exists:m15_standards,m15_standard_id',
+                'tests.*.standard_id' => 'nullable|integer|exists:m15_standards,m15_standard_id',
             ], [
                 'txt_name.required' => 'Contract name is required.',
                 'txt_name.string' => 'Contract name must be a valid text string.',
@@ -2754,13 +2751,12 @@ class MasterController extends Controller
                 'txt_charges.numeric' => 'Charge must be a valid numeric amount.',
                 'txt_charges.min' => 'Charge cannot be a negative amount.',
 
-                'tests.required' => 'At least one test with a standard is required.',
+                'tests.required' => 'At least one test is required.',
                 'tests.array' => 'Tests data must be a valid array.',
-                'tests.min' => 'At least one test with a standard is required.',
+                'tests.min' => 'At least one test is required.',
                 'tests.*.test_id.required' => 'Please select a test for all rows.',
                 'tests.*.test_id.integer' => 'Selected test ID is invalid.',
                 'tests.*.test_id.exists' => 'Selected test is invalid.',
-                'tests.*.standard_id.required' => 'Please select a standard for all rows.',
                 'tests.*.standard_id.integer' => 'Selected standard ID is invalid.',
                 'tests.*.standard_id.exists' => 'Selected standard is invalid.',
             ]);
@@ -2786,7 +2782,7 @@ class MasterController extends Controller
                     PackageTest::create([
                         'm19_package_id' => $package->m19_package_id,
                         'm12_test_id' => $testRow['test_id'],
-                        'm15_standard_id' => $testRow['standard_id'],
+                        'm15_standard_id' => !empty($testRow['standard_id']) ? $testRow['standard_id'] : null,
                     ]);
                 }
 
@@ -2802,7 +2798,7 @@ class MasterController extends Controller
                 return back()->withInput();
             }
         }
-        $package = Package::with('packageTests.test', 'customer')->findOrFail($id);
+        $package = Package::with('packageTests.test', 'packageTests.standard', 'customer')->findOrFail($id);
         $tests = Test::all();
         return view('master.contract.edit_contract', compact('package', 'tests'));
     }
@@ -2833,7 +2829,7 @@ class MasterController extends Controller
                 'txt_charges' => 'required|numeric|min:0',
                 'tests' => 'required|array|min:1',
                 'tests.*.test_id' => 'required|integer|exists:m12_tests,m12_test_id',
-                'tests.*.standard_id' => 'required|integer|exists:m15_standards,m15_standard_id',
+                'tests.*.standard_id' => 'nullable|integer|exists:m15_standards,m15_standard_id',
             ], [
                 'txt_name.required' => 'Specification name is required.',
                 'txt_name.unique' => 'This specification name already exists.',
@@ -2843,7 +2839,6 @@ class MasterController extends Controller
                 'tests.required' => 'At least one test is required.',
                 'tests.*.test_id.required' => 'Please select a test.',
                 'tests.*.test_id.exists' => 'Selected test is invalid.',
-                'tests.*.standard_id.required' => 'Please select a standard for the chosen test.',
                 'tests.*.standard_id.exists' => 'Selected standard is invalid.',
             ]);
 
@@ -2865,7 +2860,7 @@ class MasterController extends Controller
                     PackageTest::create([
                         'm19_package_id' => $specification->m19_package_id,
                         'm12_test_id' => $testRow['test_id'],
-                        'm15_standard_id' => $testRow['standard_id'],
+                        'm15_standard_id' => !empty($testRow['standard_id']) ? $testRow['standard_id'] : null,
                     ]);
                 }
 
@@ -2893,7 +2888,7 @@ class MasterController extends Controller
                 'txt_charges' => 'required|numeric|min:0',
                 'tests' => 'required|array|min:1',
                 'tests.*.test_id' => 'required|exists:m12_tests,m12_test_id',
-                'tests.*.standard_id' => 'required|exists:m15_standards,m15_standard_id',
+                'tests.*.standard_id' => 'nullable|exists:m15_standards,m15_standard_id',
             ], [
                 'txt_name.required' => 'Specification name is required.',
                 'txt_name.unique' => 'This specification name already exists.',
@@ -2901,8 +2896,7 @@ class MasterController extends Controller
                 'txt_charges.numeric' => 'Charge must be a number.',
                 'txt_charges.min' => 'Charge cannot be negative.',
                 'tests.required' => 'At least one test is required.',
-                'tests.*.test_id.required' => 'Please select a test.',
-                'tests.*.standard_id.required' => 'Please select a standard.'
+                'tests.*.test_id.required' => 'Please select a test.'
             ]);
 
             if ($validator->fails()) {
@@ -2924,7 +2918,7 @@ class MasterController extends Controller
                     PackageTest::create([
                         'm19_package_id' => $package->m19_package_id,
                         'm12_test_id' => $testRow['test_id'],
-                        'm15_standard_id' => $testRow['standard_id'],
+                        'm15_standard_id' => !empty($testRow['standard_id']) ? $testRow['standard_id'] : null,
                     ]);
                 }
 
@@ -2939,7 +2933,7 @@ class MasterController extends Controller
                 return redirect()->back();
             }
         }
-        $specification = Package::with('packageTests.test')->findOrFail($id);
+        $specification = Package::with('packageTests.test', 'packageTests.standard')->findOrFail($id);
         $tests = Test::all();
         return view('master.specification.edit_specification', compact('specification', 'tests'));
     }
@@ -2961,7 +2955,7 @@ class MasterController extends Controller
                 'txt_customer_id' => 'required|exists:m07_customers,m07_customer_id',
                 'tests' => 'required|array|min:1',
                 'tests.*.test_id' => 'required|integer|exists:m12_tests,m12_test_id',
-                'tests.*.standard_id' => 'required|integer|exists:m15_standards,m15_standard_id',
+                'tests.*.standard_id' => 'nullable|integer|exists:m15_standards,m15_standard_id',
             ], [
                 'txt_name.required' => 'Custom contract name is required.',
                 'txt_name.unique' => 'This custom contract name already exists.',
@@ -2971,7 +2965,6 @@ class MasterController extends Controller
                 'tests.required' => 'At least one test is required.',
                 'tests.*.test_id.required' => 'Please select a test.',
                 'tests.*.test_id.exists' => 'Selected test is invalid.',
-                'tests.*.standard_id.required' => 'Please select a standard for the chosen test.',
                 'tests.*.standard_id.exists' => 'Selected standard is invalid.',
             ]);
 
@@ -2993,7 +2986,7 @@ class MasterController extends Controller
                     PackageTest::create([
                         'm19_package_id' => $package->m19_package_id,
                         'm12_test_id' => $testRow['test_id'],
-                        'm15_standard_id' => $testRow['standard_id'],
+                        'm15_standard_id' => !empty($testRow['standard_id']) ? $testRow['standard_id'] : null,
                     ]);
                 }
                 DB::commit();
@@ -3019,12 +3012,11 @@ class MasterController extends Controller
                 'txt_charges' => 'required|numeric|min:0',
                 'tests' => 'required|array|min:1',
                 'tests.*.test_id' => 'required|exists:m12_tests,m12_test_id',
-                'tests.*.standard_id' => 'required|exists:m15_standards,m15_standard_id',
+                'tests.*.standard_id' => 'nullable|exists:m15_standards,m15_standard_id',
             ], [
                 'txt_name.required' => 'Package name is required.',
                 'tests.required' => 'At least one test is required.',
-                'tests.*.test_id.required' => 'Please select a test.',
-                'tests.*.standard_id.required' => 'Please select a standard.'
+                'tests.*.test_id.required' => 'Please select a test.'
             ]);
 
             if ($validator->fails()) {
@@ -3048,7 +3040,7 @@ class MasterController extends Controller
                     PackageTest::create([
                         'm19_package_id' => $package->m19_package_id,
                         'm12_test_id' => $testRow['test_id'],
-                        'm15_standard_id' => $testRow['standard_id'],
+                        'm15_standard_id' => !empty($testRow['standard_id']) ? $testRow['standard_id'] : null,
                     ]);
                 }
 
@@ -3063,7 +3055,7 @@ class MasterController extends Controller
                 return redirect()->back();
             }
         }
-        $custom = Package::with('packageTests.test')->findOrFail($id);
+        $custom = Package::with('packageTests.test', 'packageTests.standard')->findOrFail($id);
         $tests = Test::all();
         return view('master.custom.edit_custom', compact('custom', 'tests'));
     }
