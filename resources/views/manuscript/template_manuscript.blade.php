@@ -5,24 +5,103 @@
         <div class="nk-content-inner">
             <div class="nk-content-body">
                 <div class="components-preview wide-xxl mx-auto">
-                    <div class="nk-block nk-block-lg">
-
-                        @php
-                            $roName = 'MUMBAI';
-                            if (Session::has('ro_id')) {
-                                $ro = \App\Models\Ro::find(Session::get('ro_id'));
-                                if ($ro) {
-                                    $roName = strtoupper(str_replace('RO ', '', $ro->m04_name));
-                                }
-                            } else {
-                                $employee = \App\Models\Employee::with('district')
-                                    ->where('tr01_user_id', Session::get('tr01_user_id'))
-                                    ->first();
-                                if ($employee && $employee->district) {
-                                    $roName = strtoupper(str_replace('RO ', '', $employee->district->m04_name));
-                                }
+                    @php
+                        $roName = 'MUMBAI';
+                        if (Session::has('ro_id')) {
+                            $ro = \App\Models\Ro::find(Session::get('ro_id'));
+                            if ($ro) {
+                                $roName = strtoupper(str_replace('RO ', '', $ro->m04_name));
                             }
-                        @endphp
+                        } else {
+                            $employee = \App\Models\Employee::with('district')
+                                ->where('tr01_user_id', Session::get('tr01_user_id'))
+                                ->first();
+                            if ($employee && $employee->district) {
+                                $roName = strtoupper(str_replace('RO ', '', $employee->district->m04_name));
+                            }
+                        }
+
+                        $reg = isset($manuscripts) && $manuscripts->isNotEmpty() ? $manuscripts->first()->registration : null;
+                        $currentRole = Session::get('role');
+
+                        if ($currentRole === 'Analyst') {
+                            $sendBackTargetRole = 'Manager';
+                            $sendBackButtonLabel = 'Send Back to Manager';
+                            $sendBackContext = 'analyst';
+                            $sendBackModalTitle = 'Send Back to Manager for Clarification';
+                            $sendBackAlertText = 'Sending back sample <strong>' . e($reg?->tr04_reference_id) . '</strong> to the <strong>Manager</strong> will return test(s) to the unallotted pool so the manager can re-allot or correct the sample.';
+                            $sendBackPlaceholder = 'Explain reason for sending back to Manager (e.g., sample damaged, insufficient test sample quantity, wrong test alloted, or testing method discrepancy)...';
+                            $sendBackHelperText = 'The Manager will see this explanation in the allotment dashboard.';
+                        } elseif ($currentRole === 'DEO') {
+                            $sendBackTargetRole = 'Analyst';
+                            $sendBackButtonLabel = 'Send Back to Analyst';
+                            $sendBackContext = 'deo';
+                            $sendBackModalTitle = 'Send Back to Analyst for Clarification';
+                            $sendBackAlertText = 'Sending back sample <strong>' . e($reg?->tr04_reference_id) . '</strong> to the <strong>Analyst</strong> will reset test status to in-progress so the analyst can correct and re-submit the manuscript.';
+                            $sendBackPlaceholder = 'Explain the manuscript ambiguity, missing values, illegible handwriting, or discrepancies...';
+                            $sendBackHelperText = 'The Analyst will see this exact message prominently on their screen.';
+                        } else {
+                            $sendBackTargetRole = 'RC';
+                            $sendBackButtonLabel = 'Send Back to RC';
+                            $sendBackContext = 'allotment';
+                            $sendBackModalTitle = 'Send Back to Reception Center';
+                            $sendBackAlertText = 'Sending back sample <strong>' . e($reg?->tr04_reference_id) . '</strong> to the <strong>Reception Center (RC)</strong> for registration correction.';
+                            $sendBackPlaceholder = 'Explain why sample is being returned to Reception Center (e.g., sample registration flaw, incorrect sample type, missing documents)...';
+                            $sendBackHelperText = 'The Reception Center will see this clarification remark.';
+                        }
+                    @endphp
+
+                    <!-- Page Header Section -->
+                    <div class="nk-block-head nk-block-head-sm">
+                        <div class="nk-block-between">
+                            <div class="nk-block-head-content">
+                                <h3 class="nk-block-title page-title">
+                                    Manuscript Data Entry
+                                    @if($reg)
+                                        <span class="badge bg-primary-dim text-primary fw-bold fs-13px ms-2">#{{ $reg->tr04_reference_id }}</span>
+                                    @endif
+                                </h3>
+                                <div class="nk-block-des text-soft">
+                                    <p class="text-muted fs-13px mb-0">Record test readings, formulas and calculations from manuscript sheet</p>
+                                </div>
+                            </div>
+                            <div class="nk-block-head-content">
+                                <div class="d-flex align-items-center gap-2 flex-wrap">
+                                    @if($reg)
+                                        <button type="button" class="btn btn-dim btn-outline-danger btn-sm fw-bold" style="padding: 0.4rem 0.85rem; font-size: 0.8125rem; display: inline-flex; align-items: center; white-space: nowrap;" data-bs-toggle="modal" data-bs-target="#sendBackModal">
+                                            <em class="icon ni ni-undo me-1"></em> <span>{{ $sendBackButtonLabel }}</span>
+                                        </button>
+                                    @endif
+                                    <a href="{{ url()->previous() }}" class="btn btn-outline-primary btn-sm fw-bold" style="padding: 0.4rem 0.85rem; font-size: 0.8125rem; display: inline-flex; align-items: center; white-space: nowrap;">
+                                        <em class="icon ni ni-arrow-left me-1"></em> <span>Back</span>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    @if ($reg && $reg->tr04_is_under_clarification)
+                        <div class="alert alert-pro alert-warning bg-warning-dim border-warning shadow-none mb-4 py-2 px-3">
+                            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 pb-1 border-bottom border-warning border-opacity-25 mb-1">
+                                <div class="d-flex align-items-center gap-2 flex-wrap">
+                                    <em class="icon ni ni-alert-circle text-warning fs-18px"></em>
+                                    <span class="fw-bold text-dark fs-14px">Clarification Required</span>
+                                    <span class="badge badge-dim bg-danger text-danger">Returned by {{ $reg->tr04_sent_back_by_role }} ({{ $reg->tr04_sent_back_by_name ?? 'Authority' }})</span>
+                                </div>
+                                @if ($reg->tr04_sent_back_at)
+                                    <span class="text-muted small">
+                                        <em class="icon ni ni-clock me-1"></em>{{ \Carbon\Carbon::parse($reg->tr04_sent_back_at)->format('d M, Y h:i A') }}
+                                    </span>
+                                @endif
+                            </div>
+                            <div class="text-dark fs-13px ps-1 pt-1" style="line-height: 1.5;">
+                                <strong class="text-warning-dark me-1"><em class="icon ni ni-chat-fill text-warning me-1"></em>Remark:</strong>
+                                <span>{{ $reg->tr04_latest_clarification_remark }}</span>
+                            </div>
+                        </div>
+                    @endif
+
+                    <div class="nk-block nk-block-lg">
                         <form id="manuscriptForm" action="{{ route('create_test_result') }}" method="POST"
                             enctype="multipart/form-data">
                             @csrf
@@ -33,14 +112,8 @@
                                     value="{{ $manuscripts->first()->registration->tr04_reference_id ?? '' }}">
                             @endif
 
-                                    <div>
-                                        <a href="{{ url()->previous() }}" class="btn btn-outline-primary btn-sm">
-                                            <em class="icon ni ni-caret-left-fill"></em> Back
-                                        </a>
-                                    </div>
-                                </div>
-                                <!-- Report Information -->
-                                <div class="card shadow-sm border-0 mb-4">
+                            <!-- Report Information -->
+                            <div class="card shadow-sm border-0 mb-4">
                                     <div class="card-header bg-primary text-white py-2 px-3 rounded-top">
                                         <h6 class="mb-0 text-uppercase"><em class="icon ni ni-clipboard"></em> Test Report
                                             Details</h6>
@@ -675,24 +748,33 @@
     @enderror
 
     <!-- Action Buttons -->
-    <div class="card border-0 shadow-sm">
-        <div class="card-body d-flex justify-content-end align-items-center">
-            <div class="btn-group">
-                @if (optional($existingResults->first())->tr07_result_status != 'SUBMITTED')
-                    <button type="button" onclick="submitForm('DRAFT')" class="btn btn-outline-primary">
-                        <em class="icon ni ni-file-text"></em> Save as Draft
-                    </button>
-                @endif
-                @if (Session::get('role') === 'DEO')
-                    <button type="button" onclick="submitForm('RESULTED')" class="btn btn-primary">
-                        <em class="icon ni ni-check-circle"></em> Save & Complete
-                    </button>
-                @else
-                    <button type="button" onclick="submitForm('SUBMITTED')" class="btn btn-primary">
-                        <em class="icon ni ni-check-circle"></em> Save & Complete
+    <div class="card border-0 shadow-sm mb-3">
+        <div class="card-body py-2 px-3 d-flex justify-content-between align-items-center flex-wrap">
+            <div class="my-1">
+                @if(isset($reg) && $reg)
+                    <button type="button" class="btn btn-outline-danger btn-sm fw-bold d-inline-flex align-items-center shadow-sm text-nowrap" data-bs-toggle="modal" data-bs-target="#sendBackModal">
+                        <em class="icon ni ni-undo me-1"></em> <span>{{ $sendBackButtonLabel ?? 'Send Back' }}</span>
                     </button>
                 @endif
             </div>
+            <div class="d-flex align-items-center my-1 gap-2">
+                @if (optional($existingResults->first())->tr07_result_status != 'SUBMITTED')
+                    <button type="button" onclick="submitForm('DRAFT')" class="btn btn-outline-primary btn-sm fw-bold d-inline-flex align-items-center shadow-sm text-nowrap" id="btnSaveDraft">
+                        <em class="icon ni ni-file-text me-1"></em> Save as Draft
+                    </button>
+                @endif
+                @if (Session::get('role') === 'DEO')
+                    <button type="button" onclick="openResultPreviewModal('RESULTED')" class="btn btn-primary btn-sm fw-bold d-inline-flex align-items-center shadow-sm text-nowrap" id="btnPreviewComplete">
+                        <em class="icon ni ni-eye me-1"></em> Preview
+                    </button>
+                @else
+                    <button type="button" onclick="openResultPreviewModal('SUBMITTED')" class="btn btn-primary btn-sm fw-bold d-inline-flex align-items-center shadow-sm text-nowrap" id="btnPreviewComplete">
+                        <em class="icon ni ni-eye me-1"></em> Preview
+                    </button>
+                @endif
+            </div>
+        </div>
+    </div>
     <!-- Action Buttons End -->
     <!-- Scientific Symbol & Multiplier Picker Popup -->
     <div id="symbolPickerPopup" class="card shadow-lg border position-fixed d-none" style="z-index: 1060; width: 330px; border-radius: 8px; overflow: hidden; font-size: 13px;">
@@ -1141,25 +1223,41 @@
             $(this).trigger('input');
         });
 
-        function submitForm(actionValue) {
-            const form = document.getElementById('manuscriptForm');
-            
-            // Sync all WYSIWYG editors to hidden inputs first
+        let pendingCompletionAction = '{{ Session::get('role') === 'DEO' ? 'RESULTED' : 'SUBMITTED' }}';
+
+        function syncAllWysiwygEditors() {
             $('.wysiwyg-editor-input').each(function() {
                 const $hidden = $(this).closest('.input-group').find('.wysiwyg-hidden-val');
                 if ($hidden.length) {
                     $hidden.val(this.innerHTML);
                 }
             });
+        }
 
-            const resultInputs = form.querySelectorAll('.wysiwyg-hidden-val, input[name$="[value]"]');
+        function escapeHtml(text) {
+            if (!text) return '';
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.toString().replace(/[&<>"']/g, m => map[m]);
+        }
+
+        function validateResultForm() {
+            const form = document.getElementById('manuscriptForm');
+            syncAllWysiwygEditors();
+
+            const resultInputs = form.querySelectorAll('.wysiwyg-hidden-val, input[name$="[value]"], input[name$="[result]"]');
             
             let isValid = true;
             let firstInvalid = null;
             
             resultInputs.forEach(input => {
                 const inputGroup = input.closest('.input-group');
-                if (inputGroup && inputGroup.classList.contains('d-none')) return;
+                if (inputGroup && (inputGroup.classList.contains('d-none') || inputGroup.style.display === 'none')) return;
                 if (input.closest('.d-none')) return;
                 
                 const wysiwygDiv = inputGroup ? inputGroup.querySelector('.wysiwyg-editor-input') : null;
@@ -1179,18 +1277,153 @@
                     input.classList.remove('is-invalid');
                 }
             });
-            
-            if (!isValid) {
+
+            form.querySelectorAll('input.custom-field-input').forEach(input => {
+                const trRow = input.closest('tr');
+                if (trRow && (trRow.classList.contains('d-none') || trRow.style.display === 'none')) return;
+                if (!input.value.trim()) {
+                    isValid = false;
+                    input.classList.add('is-invalid');
+                    if (!firstInvalid) firstInvalid = input;
+                } else {
+                    input.classList.remove('is-invalid');
+                }
+            });
+
+            return { isValid, firstInvalid };
+        }
+
+        function submitForm(actionValue) {
+            const form = document.getElementById('manuscriptForm');
+            syncAllWysiwygEditors();
+
+            if (actionValue === 'DRAFT') {
+                form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+                document.getElementById('formAction').value = 'DRAFT';
+                const btnDraft = document.getElementById('btnSaveDraft');
+                if (btnDraft) {
+                    btnDraft.disabled = true;
+                    btnDraft.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Saving Draft...';
+                }
+                form.submit();
+                return;
+            }
+
+            const validation = validateResultForm();
+            if (!validation.isValid) {
                 Swal.fire({
                     icon: 'error',
-                    title: 'Validation Error',
-                    text: 'Please fill in all selected test result values and custom fields before saving.'
+                    title: 'Incomplete Test Results',
+                    text: 'Please fill in all selected test result values and custom fields before completing.'
                 });
-                if (firstInvalid) firstInvalid.focus();
+                if (validation.firstInvalid) {
+                    validation.firstInvalid.focus();
+                    validation.firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
                 return;
             }
 
             document.getElementById('formAction').value = actionValue;
+            form.submit();
+        }
+
+        function openResultPreviewModal(finalActionValue) {
+            pendingCompletionAction = finalActionValue || '{{ Session::get('role') === 'DEO' ? 'RESULTED' : 'SUBMITTED' }}';
+
+            const validation = validateResultForm();
+            if (!validation.isValid) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Result Entry Incomplete',
+                    html: 'Please fill in all test results and required fields before previewing.<br><br><small class="text-muted">If you cannot complete all tests now, you can click <strong>Save as Draft</strong> to save your progress and complete later.</small>'
+                });
+                if (validation.firstInvalid) {
+                    validation.firstInvalid.focus();
+                    validation.firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+                return;
+            }
+
+            populatePreviewModalContent();
+
+            const modalEl = document.getElementById('testResultPreviewModal');
+            if (modalEl) {
+                const previewModal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                previewModal.show();
+            }
+        }
+
+        function populatePreviewModalContent() {
+            const testDateVal = document.querySelector('input[name="test_date"]')?.value || 'N/A';
+            const perfDateVal = document.querySelector('input[name="performance_date"]')?.value || 'N/A';
+            $('#modalPreviewTestDate').text(testDateVal);
+            $('#modalPreviewPerfDate').text(perfDateVal);
+
+            const remarksVal = document.querySelector('textarea[name="remarks"]')?.value || '';
+            if (remarksVal.trim()) {
+                $('#previewRemarksContainer').removeClass('d-none');
+                $('#previewRemarksText').text(remarksVal);
+            } else {
+                $('#previewRemarksContainer').addClass('d-none');
+            }
+
+            const $tbody = $('#previewResultsTableBody');
+            $tbody.empty();
+
+            const rows = document.querySelectorAll('table[id^="results_table_"] tbody tr');
+            rows.forEach(tr => {
+                if (tr.classList.contains('d-none') || tr.style.display === 'none') return;
+
+                const serial = tr.cells[0]?.textContent.trim() || '';
+                const paramEl = tr.cells[1]?.querySelector('input.custom-field-input') || tr.cells[1];
+                const paramName = paramEl?.value ? paramEl.value.trim() : (paramEl?.textContent.trim() || '');
+
+                const wysiwygDiv = tr.cells[2]?.querySelector('.wysiwyg-editor-input');
+                const valInput = tr.cells[2]?.querySelector('input[name$="[value]"], input[name$="[result]"]');
+                const unitInput = tr.cells[2]?.querySelector('input[name$="[unit]"]');
+
+                if (!wysiwygDiv && !valInput) {
+                    $tbody.append(`
+                        <tr class="table-light border-bottom">
+                            <td class="text-center align-middle fw-bold">${serial}</td>
+                            <td class="align-middle" colspan="3">
+                                <strong class="text-dark">${escapeHtml(paramName)}</strong>
+                                <span class="badge bg-light text-primary border ms-2"><em class="icon ni ni-layers me-1"></em>Configured with Sub-tests</span>
+                            </td>
+                        </tr>
+                    `);
+                    return;
+                }
+
+                const resultVal = wysiwygDiv ? wysiwygDiv.innerHTML.trim() : (valInput ? valInput.value.trim() : '-');
+                const unitVal = unitInput ? unitInput.value.trim() : '-';
+
+                $tbody.append(`
+                    <tr class="bg-white border-bottom">
+                        <td class="text-center align-middle">${serial}</td>
+                        <td class="align-middle fw-semibold">${escapeHtml(paramName)}</td>
+                        <td class="align-middle text-primary fw-bold">${resultVal || '-'}</td>
+                        <td class="text-center align-middle">${escapeHtml(unitVal) || '-'}</td>
+                    </tr>
+                `);
+            });
+        }
+
+        function confirmCompleteSubmission() {
+            const btn = document.getElementById('btnModalConfirmComplete');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Completing...';
+            }
+
+            const modalEl = document.getElementById('testResultPreviewModal');
+            if (modalEl) {
+                const previewModal = bootstrap.Modal.getInstance(modalEl);
+                if (previewModal) previewModal.hide();
+            }
+
+            const form = document.getElementById('manuscriptForm');
+            document.getElementById('formAction').value = pendingCompletionAction;
             form.submit();
         }
 
@@ -1816,26 +2049,8 @@
                             $fullLocalPath = storage_path('app/public/test_results/' . $manuscriptPath);
                             $publicLocalPath = public_path('storage/test_results/' . $manuscriptPath);
 
-                            if ($isImage) {
-                                if (file_exists($fullLocalPath)) {
-                                    $fileUrl = 'data:image/' . ($ext === 'jpg' ? 'jpeg' : $ext) . ';base64,' . base64_encode(file_get_contents($fullLocalPath));
-                                } elseif (file_exists($publicLocalPath)) {
-                                    $fileUrl = 'data:image/' . ($ext === 'jpg' ? 'jpeg' : $ext) . ';base64,' . base64_encode(file_get_contents($publicLocalPath));
-                                } else {
-                                    $fileUrl = asset('public/storage/test_results/' . $manuscriptPath);
-                                }
-                            } elseif ($ext === 'pdf') {
-                                if (file_exists($fullLocalPath)) {
-                                    $fileUrl = 'data:application/pdf;base64,' . base64_encode(file_get_contents($fullLocalPath));
-                                } elseif (file_exists($publicLocalPath)) {
-                                    $fileUrl = 'data:application/pdf;base64,' . base64_encode(file_get_contents($publicLocalPath));
-                                } else {
-                                    $fileUrl = asset('public/storage/test_results/' . $manuscriptPath);
-                                }
-                            } else {
-                                $fileUrl = asset('public/storage/test_results/' . $manuscriptPath);
-                            }
-                            $downloadUrl = asset('public/storage/test_results/' . $manuscriptPath);
+                            $fileUrl = route('serve_manuscript_file', ['filename' => basename($manuscriptPath)]);
+                            $downloadUrl = route('serve_manuscript_file', ['filename' => basename($manuscriptPath)]);
                         @endphp
 
                         @if ($isImage)
@@ -1883,28 +2098,156 @@
     <div class="modal fade" id="uploadManuscriptDirectModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
-                <form action="{{ route('testresult_upload', optional($manuscripts->first()?->registration)->tr04_reference_id ?? '') }}" method="POST" enctype="multipart/form-data">
+                <form action="{{ route('testresult_upload', optional($manuscripts->first()?->registration)->tr04_reference_id ?? '') }}" method="POST" enctype="multipart/form-data" id="analystManuscriptUploadForm">
                     @csrf
                     <input type="hidden" name="redirect_to_result" value="1">
+                    <input type="hidden" name="analyst_id" value="{{ Session::get('user_id') }}">
                     <div class="modal-header bg-primary text-white">
                         <h5 class="modal-title text-white"><em class="icon ni ni-upload me-1"></em> Upload Paper Manuscript</h5>
                         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body p-4">
-                        <p class="text-muted small mb-3">Upload photo or PDF of the calculation paper completed by the analyst for reference: <strong>{{ optional($manuscripts->first()?->registration)->tr04_reference_id ?? '' }}</strong>.</p>
+                        <p class="text-muted small mb-3">Upload single or multi-page photos/PDF of your raw calculation paper for Sample Ref: <strong>{{ optional($manuscripts->first()?->registration)->tr04_reference_id ?? '' }}</strong>.</p>
+                        
                         <div class="mb-3">
-                            <label class="form-label fw-bold">Select File (JPG, PNG, WEBP, PDF)</label>
-                            <input type="file" name="result_file" class="form-control form-control-lg" accept=".jpg,.jpeg,.png,.webp,.pdf,.doc,.docx" required>
+                            <label class="form-label fw-bold d-flex justify-content-between align-items-center">
+                                <span>Select Document(s) / Photo(s)</span>
+                                <span class="badge bg-light text-primary">Multi-Page Supported</span>
+                            </label>
+                            <input type="file" name="result_files[]" id="templateManuscriptInput" class="form-control" accept=".jpg,.jpeg,.png,.webp,.pdf,.doc,.docx" multiple required onchange="handleTemplateManuscriptFileSelect(this)">
+                            <div class="form-text text-muted small mt-1">
+                                <em class="icon ni ni-info me-1"></em>You can select multiple photos at once (Page 1, 2, 3...). High-res camera photos will be automatically compressed in your browser before sending.
+                            </div>
+                        </div>
+
+                        <div id="templateFileSelectionSummary" class="border rounded p-2 bg-light d-none mb-3">
+                            <div class="fw-bold text-dark fs-12px mb-1" id="templateFileCountBadge">Selected Files:</div>
+                            <ul class="list-unstyled mb-0 small text-muted" id="templateFileListNames" style="max-height: 120px; overflow-y: auto;"></ul>
+                        </div>
+
+                        <div class="mb-0">
+                            <label class="form-label small text-muted">Optional Remarks / Note</label>
+                            <input type="text" name="remarks" class="form-control form-control-sm" placeholder="e.g. Raw titration sheet, instrument printout...">
                         </div>
                     </div>
                     <div class="modal-footer bg-light">
                         <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary"><em class="icon ni ni-upload me-1"></em> Upload Document</button>
+                        <button type="submit" class="btn btn-primary" id="analystUploadBtn"><em class="icon ni ni-upload me-1"></em> Upload Document</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
+    <script>
+        function handleTemplateManuscriptFileSelect(input) {
+            const summaryBox = document.getElementById('templateFileSelectionSummary');
+            const countBadge = document.getElementById('templateFileCountBadge');
+            const listEl = document.getElementById('templateFileListNames');
+            if (!summaryBox || !listEl) return;
+
+            if (input.files && input.files.length > 0) {
+                summaryBox.classList.remove('d-none');
+                countBadge.textContent = `Selected ${input.files.length} File(s) / Page(s):`;
+                listEl.innerHTML = '';
+                for (let i = 0; i < input.files.length; i++) {
+                    const f = input.files[i];
+                    const sizeKb = Math.round(f.size / 1024);
+                    const li = document.createElement('li');
+                    li.className = 'd-flex justify-content-between py-1 border-bottom border-light';
+                    li.innerHTML = `<span><em class="icon ni ni-file-text me-1 text-primary"></em><strong>Page ${i + 1}:</strong> ${f.name}</span><span class="text-muted">${sizeKb} KB</span>`;
+                    listEl.appendChild(li);
+                }
+            } else {
+                summaryBox.classList.add('d-none');
+            }
+        }
+
+        // Client-side image compression before sending to server
+        function compressTemplateClientImage(file, maxWidth = 1920, maxHeight = 1920, quality = 0.8) {
+            if (!file.type.match(/image.*/)) {
+                return Promise.resolve(file);
+            }
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        let width = img.width;
+                        let height = img.height;
+
+                        if (width > maxWidth || height > maxHeight) {
+                            if (width > height) {
+                                height = Math.round((height * maxWidth) / width);
+                                width = maxWidth;
+                            } else {
+                                width = Math.round((width * maxHeight) / height);
+                                height = maxHeight;
+                            }
+                        }
+
+                        const canvas = document.createElement('canvas');
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+
+                        canvas.toBlob((blob) => {
+                            if (blob && blob.size < file.size) {
+                                const cleanName = file.name.replace(/\.[^/.]+$/, "") + ".jpg";
+                                const compressedFile = new File([blob], cleanName, {
+                                    type: 'image/jpeg',
+                                    lastModified: Date.now()
+                                });
+                                resolve(compressedFile);
+                            } else {
+                                resolve(file);
+                            }
+                        }, 'image/jpeg', quality);
+                    };
+                    img.onerror = () => resolve(file);
+                    img.src = e.target.result;
+                };
+                reader.onerror = () => resolve(file);
+                reader.readAsDataURL(file);
+            });
+        }
+
+        document.getElementById('analystManuscriptUploadForm')?.addEventListener('submit', async function(e) {
+            if (this.dataset.compressed === 'true') {
+                return;
+            }
+            e.preventDefault();
+            const fileInput = document.getElementById('templateManuscriptInput');
+            if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+                this.dataset.compressed = 'true';
+                this.submit();
+                return;
+            }
+
+            const submitBtn = document.getElementById('analystUploadBtn');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Compressing & Uploading...';
+            }
+
+            try {
+                if (window.DataTransfer) {
+                    const dt = new DataTransfer();
+                    for (let i = 0; i < fileInput.files.length; i++) {
+                        const originalFile = fileInput.files[i];
+                        const compressed = await compressTemplateClientImage(originalFile);
+                        dt.items.add(compressed);
+                    }
+                    fileInput.files = dt.files;
+                }
+            } catch (err) {
+                console.warn('Pre-upload compression fallback:', err);
+            }
+
+            this.dataset.compressed = 'true';
+            this.submit();
+        });
+    </script>
 
     @php
         $id = optional($manuscripts->first()?->registration)->tr04_reference_id;
@@ -2150,6 +2493,122 @@
             padding-right: 6px !important;
         }
     </style>
+
+    @if($reg)
+    <!-- Modal: Send Back for Clarification -->
+    <div class="modal fade" id="sendBackModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <form action="{{ route('sample.custody.send_back') }}" method="POST" id="custodySendBackForm">
+                    @csrf
+                    <input type="hidden" name="sample_id" value="{{ $reg->tr04_sample_registration_id }}">
+                    <input type="hidden" name="to_role" value="{{ $sendBackTargetRole }}">
+                    <input type="hidden" name="context" value="{{ $sendBackContext }}">
+                    <div class="modal-header bg-danger text-white">
+                        <h5 class="modal-title text-white">
+                            <em class="icon ni ni-undo me-1"></em> {{ $sendBackModalTitle }}
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body p-4">
+                        <div class="alert alert-warning py-2 mb-3">
+                            <em class="icon ni ni-alert-circle me-1"></em>
+                            {!! $sendBackAlertText !!}
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label fw-bold text-dark">
+                                Mandatory Clarification Remark <span class="text-danger">*</span>
+                            </label>
+                            <textarea name="clarification_remark" id="modal_clarification_remark" class="form-control" rows="4" placeholder="{{ $sendBackPlaceholder }}" required minlength="3"></textarea>
+                            <small class="text-muted">{{ $sendBackHelperText }}</small>
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-light">
+                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-danger btn-sm fw-bold" id="btnConfirmSendBack">
+                            <em class="icon ni ni-send me-1"></em> {{ $sendBackButtonLabel }}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <!-- Result Entry Preview & Complete Modal -->
+    <div class="modal fade" id="testResultPreviewModal" tabindex="-1" aria-labelledby="testResultPreviewModalLabel" aria-hidden="true" data-bs-backdrop="static">
+        <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content shadow-lg border-0">
+                <div class="modal-header bg-primary text-white py-2 px-3 d-flex justify-content-between align-items-center">
+                    <h5 class="modal-title text-white fs-15px mb-0 d-flex align-items-center" id="testResultPreviewModalLabel">
+                        <em class="icon ni ni-eye me-2"></em> Test Result Entry Preview
+                        <span class="badge bg-light text-primary fw-bold ms-3">Report #{{ $reg?->tr04_reference_id ?? 'N/A' }}</span>
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-3">
+                    <!-- Verification Notice -->
+                    <div class="alert alert-fill alert-light alert-icon border mb-3 py-2 px-3">
+                        <em class="icon ni ni-alert-circle text-primary fs-5"></em>
+                        <div class="small">
+                            <strong>DEO Verification Check:</strong> Please review all entered results, units, and test methods below. Clicking <strong>Complete</strong> will mark result entry as finished and route this sample to the <strong>Verification Officer</strong>.
+                        </div>
+                    </div>
+
+                    <!-- Report Meta Card -->
+                    <div class="card bg-light border-0 shadow-none mb-3">
+                        <div class="card-body py-2 px-3">
+                            <div class="row g-2 small">
+                                <div class="col-md-3 col-6"><span class="text-muted">Test Report No:</span> <strong class="text-dark d-block">{{ $reg?->tr04_reference_id ?? 'N/A' }}</strong></div>
+                                <div class="col-md-3 col-6"><span class="text-muted">Test Date:</span> <strong class="text-dark d-block" id="modalPreviewTestDate">-</strong></div>
+                                <div class="col-md-3 col-6"><span class="text-muted">Performance Date:</span> <strong class="text-dark d-block" id="modalPreviewPerfDate">-</strong></div>
+                                <div class="col-md-3 col-6"><span class="text-muted">No. of Samples:</span> <strong class="text-dark d-block">{{ $reg?->tr04_number_of_samples ?? '1' }}</strong></div>
+                                <div class="col-md-3 col-6"><span class="text-muted">Sample Description:</span> <strong class="text-dark d-block">{{ optional($reg?->labSample)->m14_name ?? 'N/A' }}</strong></div>
+                                <div class="col-md-3 col-6"><span class="text-muted">Analyst:</span> <strong class="text-dark d-block">{{ optional($manuscripts->first()?->allotedTo)->m06_name ?? 'N/A' }}</strong></div>
+                                <div class="col-md-6 col-12"><span class="text-muted">Technical Manager:</span> <strong class="text-dark d-block">{{ Session::get('role') === 'Manager' ? Session::get('name') : optional($manuscripts->first()?->allotedBy)->m06_name ?? 'N/A' }}</strong></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Test Results Table -->
+                    <h6 class="fs-13px text-uppercase text-muted fw-bold mb-2">Entered Test Results</h6>
+                    <div class="table-responsive border rounded bg-white shadow-sm" style="max-height: 52vh; overflow-y: auto;">
+                        <table class="table table-sm align-middle mb-0" id="previewResultsTable">
+                            <thead class="table-dark small sticky-top">
+                                <tr>
+                                    <th class="text-center" style="width: 60px;">#</th>
+                                    <th style="width: 50%;">Parameter / Test Name</th>
+                                    <th style="width: 25%;">Result Value</th>
+                                    <th class="text-center" style="width: 15%;">Unit</th>
+                                </tr>
+                            </thead>
+                            <tbody id="previewResultsTableBody">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div id="previewRemarksContainer" class="mt-2 p-2 bg-light rounded d-none">
+                        <small class="text-muted fw-bold">Remarks:</small> <span id="previewRemarksText" class="text-dark small"></span>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light py-2 px-3 d-flex justify-content-between align-items-center">
+                    <div>
+                        <button type="button" class="btn btn-outline-secondary btn-sm fw-bold" data-bs-dismiss="modal">
+                            <em class="icon ni ni-arrow-left me-1"></em> Back to Edit
+                        </button>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <button type="button" class="btn btn-outline-primary btn-sm fw-bold" onclick="submitForm('DRAFT')">
+                            <em class="icon ni ni-file-text me-1"></em> Save as Draft
+                        </button>
+                        <button type="button" class="btn btn-success btn-sm fw-bold px-4 shadow-sm" id="btnModalConfirmComplete" onclick="confirmCompleteSubmission()">
+                            <em class="icon ni ni-check-circle me-1"></em> Complete
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
 
     @if (Session::has('swal_message') || Session::has('message'))
         <script>

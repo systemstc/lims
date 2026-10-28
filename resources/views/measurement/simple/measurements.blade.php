@@ -32,17 +32,25 @@
                                                 <option value=""></option>
                                                 @foreach ($allSamples as $s)
                                                     @php
-                                                        $isCompleted = $s->completed_tests > 0;
-                                                        $hasActionable = $s->actionable_tests_count > 0;
-                                                        $statusLabel = $hasActionable 
-                                                            ? ($isCompleted ? 'Analyst Completed (' . $s->completed_tests . '/' . $s->total_tests . ')' : 'Pending Analyst (' . $s->completed_tests . '/' . $s->total_tests . ')') 
-                                                            : 'Results Already Present in DB';
+                                                        if (!empty($s->has_draft)) {
+                                                            $statusLabel = 'Draft Saved — Incomplete (' . $s->completed_tests . '/' . $s->total_tests . ')';
+                                                        } elseif ($s->actionable_tests_count > 0) {
+                                                            $statusLabel = 'Analyst Completed (' . $s->completed_tests . '/' . $s->total_tests . ')';
+                                                        } elseif ($s->completed_tests == 0) {
+                                                            $statusLabel = 'Pending Analyst (0/' . $s->total_tests . ')';
+                                                        } elseif ($s->completed_tests < $s->total_tests) {
+                                                            $statusLabel = 'Partial Results in DB (' . ($s->total_tests - $s->completed_tests) . ' Pending Analyst)';
+                                                        } else {
+                                                            $statusLabel = 'Results Already Present in DB';
+                                                        }
                                                         $msLabel = $s->manuscript ? 'Manuscript Uploaded' : 'No Manuscript';
                                                     @endphp
                                                     <option value="{{ $s->sample_id }}"
                                                         data-ref-id="{{ $s->reference_id }}"
                                                         data-manuscript="{{ $s->manuscript ? 1 : 0 }}"
                                                         data-actionable="{{ $s->actionable_tests_count }}"
+                                                        data-completed="{{ $s->completed_tests }}"
+                                                        data-total="{{ $s->total_tests }}"
                                                         data-result-url="{{ route('template_manuscript', $s->sample_id) }}">
                                                         {{ $s->reference_id }} — [ {{ $statusLabel }} | {{ $msLabel }} ]
                                                     </option>
@@ -92,6 +100,16 @@
                                                 <td>{{ $key + 1 }}</td>
                                                 <td>
                                                     <span class="fw-bold text-dark fs-14px">{{ $sample->reference_id }}</span>
+                                                    @if (!empty($sample->has_draft))
+                                                        <br><span class="badge bg-warning text-dark mt-1" title="Incomplete entry saved as draft">
+                                                            <em class="icon ni ni-file-text me-1"></em> Draft Saved
+                                                        </span>
+                                                    @endif
+                                                    @if (optional($sample->registration)->tr04_is_under_clarification)
+                                                        <br><span class="badge bg-warning text-dark mt-1" title="{{ $sample->registration->tr04_latest_clarification_remark }}">
+                                                            <em class="icon ni ni-undo me-1"></em> Clarification: {{ $sample->registration->tr04_sent_back_by_role }}
+                                                        </span>
+                                                    @endif
                                                 </td>
                                                 <td>
                                                     <strong>Total:</strong> {{ $sample->total_tests }} <br>
@@ -134,7 +152,7 @@
                                                             <!-- Manuscript is uploaded -> Go directly to Result Entry Form -->
                                                             <a href="{{ route('template_manuscript', $sample->sample_id) }}"
                                                                 class="btn btn-primary btn-sm">
-                                                                <em class="icon ni ni-edit-fill me-1"></em> Result Entry
+                                                                <em class="icon ni ni-edit-fill me-1"></em> {{ !empty($sample->has_draft) ? 'Resume Entry' : 'Result Entry' }}
                                                             </a>
                                                         @else
                                                             <!-- Manuscript not uploaded -> Prompt upload modal first -->
@@ -224,17 +242,22 @@
 
             const $selectedOption = $(this).find('option:selected');
             const actionable = parseInt($selectedOption.data('actionable')) || 0;
+            const completed = parseInt($selectedOption.data('completed')) || 0;
+            const total = parseInt($selectedOption.data('total')) || 0;
 
             selectedOptionData = {
                 sampleId: val,
                 refId: $selectedOption.data('ref-id'),
                 hasManuscript: parseInt($selectedOption.data('manuscript')) === 1,
                 actionable: actionable,
+                completed: completed,
                 resultUrl: $selectedOption.data('result-url')
             };
 
             if (actionable > 0) {
                 $btn.removeClass('btn-secondary disabled').addClass('btn-primary').prop('disabled', false).html('<em class="icon ni ni-arrow-right me-1"></em> Open Result Entry');
+            } else if (completed === 0) {
+                $btn.removeClass('btn-primary').addClass('btn-secondary disabled').prop('disabled', true).html('<em class="icon ni ni-clock me-1"></em> Pending Analyst Completion');
             } else {
                 $btn.removeClass('btn-primary').addClass('btn-secondary disabled').prop('disabled', true).html('<em class="icon ni ni-check-circle me-1"></em> Results Already Present');
             }

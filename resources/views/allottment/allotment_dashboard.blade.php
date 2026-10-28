@@ -352,7 +352,19 @@
                                                                 {{ $registration->transferred_tests }}
                                                             </span>
                                                         @endif
+                                                        @if ($registration->tr04_is_under_clarification)
+                                                            <span class="badge bg-warning text-dark ms-2" title="{{ $registration->tr04_latest_clarification_remark }}">
+                                                                <em class="icon ni ni-undo me-1"></em>Returned: {{ $registration->tr04_sent_back_by_role ?? 'Clarification' }}
+                                                            </span>
+                                                        @endif
                                                     </div>
+                                                    @if ($registration->tr04_is_under_clarification && !empty($registration->tr04_latest_clarification_remark))
+                                                        <div class="mt-1 p-1 bg-warning-dim rounded border border-warning small text-dark" style="font-size: 11.5px; line-height: 1.3;">
+                                                            <em class="icon ni ni-alert-fill text-warning me-1"></em>
+                                                            <strong>{{ $registration->tr04_sent_back_by_role ?? 'Analyst' }}:</strong>
+                                                            <span>{{ $registration->tr04_latest_clarification_remark }}</span>
+                                                        </div>
+                                                    @endif
                                                     @php
                                                         $remarkedTests = $registration->sampleTests->filter(function($test) {
                                                             return !empty($test->tr05_remark) && in_array($test->tr05_status, ['ALLOTED', 'IN_PROGRESS']);
@@ -553,6 +565,18 @@
                                                                 <em class="icon ni ni-arrow-up"></em>
                                                                 {{ $registration->transferred_tests }}
                                                             </span>
+                                                        @endif
+                                                        @if ($registration->tr04_is_under_clarification)
+                                                            <span class="badge bg-warning text-dark ms-2" title="{{ $registration->tr04_latest_clarification_remark }}">
+                                                                <em class="icon ni ni-undo me-1"></em>Returned: {{ $registration->tr04_sent_back_by_role ?? 'Clarification' }}
+                                                            </span>
+                                                        @endif
+                                                        @if ($registration->tr04_is_under_clarification && !empty($registration->tr04_latest_clarification_remark))
+                                                            <div class="mt-1 p-1 bg-warning-dim rounded border border-warning small text-dark" style="font-size: 11.5px; line-height: 1.3;">
+                                                                <em class="icon ni ni-alert-fill text-warning me-1"></em>
+                                                                <strong>{{ $registration->tr04_sent_back_by_role ?? 'Analyst' }}:</strong>
+                                                                <span>{{ $registration->tr04_latest_clarification_remark }}</span>
+                                                            </div>
                                                         @endif
                                                         @php
                                                             $remarkedTests = $registration->sampleTests->filter(function($test) {
@@ -770,7 +794,7 @@
                             <option value="">Choose Analyst...</option>
                             @foreach ($employees as $employee)
                                 <option value="{{ $employee->m06_employee_id }}">
-                                    {{ $employee->m06_name }} ({{ $employee->role }})
+                                    {{ $employee->m06_name }} [{{ $employee->short_name }}] ({{ $employee->role }})
                                 </option>
                             @endforeach
                         </select>
@@ -807,8 +831,8 @@
                             <select name="emp_id" class="form-control form-select" required>
                                 <option value="">Choose Analyst...</option>
                                 @foreach ($employees as $employee)
-                                    <option value="{{ $employee->m06_employee_id }}">{{ $employee->m06_name }}
-                                        ({{ $employee->role }})
+                                    <option value="{{ $employee->m06_employee_id }}">
+                                        {{ $employee->m06_name }} [{{ $employee->short_name }}] ({{ $employee->role }})
                                     </option>
                                 @endforeach
                             </select>
@@ -905,8 +929,8 @@
                             <select name="emp_id" class="form-control form-select" required>
                                 <option value="">Choose Analyst...</option>
                                 @foreach ($employees as $employee)
-                                    <option value="{{ $employee->m06_employee_id }}">{{ $employee->m06_name }}
-                                        ({{ $employee->role }})
+                                    <option value="{{ $employee->m06_employee_id }}">
+                                        {{ $employee->m06_name }} [{{ $employee->short_name }}] ({{ $employee->role }})
                                     </option>
                                 @endforeach
                             </select>
@@ -1431,7 +1455,7 @@
             var analystStats = @json($analystStats);
 
             var labels = analystStats.map(function(item) {
-                return item.name;
+                return item.short_name || item.name;
             });
             var allottedData = analystStats.map(function(item) {
                 return item.allotted;
@@ -1504,6 +1528,18 @@
                         tooltip: {
                             mode: 'index',
                             intersect: false,
+                            callbacks: {
+                                title: function(tooltipItems) {
+                                    if (tooltipItems && tooltipItems.length > 0) {
+                                        var idx = tooltipItems[0].dataIndex;
+                                        var item = analystStats[idx];
+                                        if (item) {
+                                            return item.name + (item.short_name && item.short_name !== item.name ? ' (' + item.short_name + ')' : '');
+                                        }
+                                    }
+                                    return '';
+                                }
+                            }
                         }
                     },
                     onClick: function(e) {
@@ -1516,10 +1552,9 @@
                             const labelIndex = firstPoint.index;
                             const datasetIndex = firstPoint.datasetIndex;
 
-                            const analystName = labels[labelIndex];
-                            // We need the analyst ID. Let's assume analystStats array aligns with labels array index.
                             const analystData = analystStats[labelIndex];
-                            const analystId = analystData.emp_id;
+                            const analystName = (analystData && analystData.name) ? analystData.name : labels[labelIndex];
+                            const analystId = analystData ? analystData.emp_id : null;
 
                             const statusLabel = chart.data.datasets[datasetIndex].label
                                 .toLowerCase(); // allotted, completed, pending

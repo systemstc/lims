@@ -7,6 +7,7 @@ use App\Models\PrimaryTest;
 use App\Models\SampleRegistration;
 use App\Models\SampleTest;
 use App\Models\SecondaryTest;
+use App\Models\Standard;
 use App\Models\Test;
 use App\Models\TestReport;
 use Illuminate\Http\Request;
@@ -20,6 +21,8 @@ use App\Models\RawEntry;
 use App\Models\Wallet;
 use App\Models\WalletTransaction;
 use App\Traits\HasManuscriptContent;
+use App\Services\CustodyService;
+use App\Models\SampleManuscript;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 
@@ -266,12 +269,14 @@ class TestResultController extends Controller
 
     public function templateTestResult(Request $request, $id)
     {
+        ini_set('memory_limit', '512M');
         $route = '';
         // Get tests based on role
         if (Session::get('role') === 'Manager') {
             $sampleTests = SampleTest::with([
                 'test',
                 'test.standard',
+                'standard',
                 'registration',
                 'registration.labSample',
                 'allotedTo'
@@ -282,6 +287,7 @@ class TestResultController extends Controller
                 'test',
                 'test.formula',
                 'test.standard',
+                'standard',
                 'registration',
                 'registration.labSample',
                 'allotedTo'
@@ -293,6 +299,7 @@ class TestResultController extends Controller
                 'test',
                 'test.formula',
                 'test.standard',
+                'standard',
                 'registration',
                 'registration.labSample',
                 'allotedTo',
@@ -387,12 +394,26 @@ class TestResultController extends Controller
             }
         }
 
+        SampleManuscript::ensureManuscriptSchemaExists();
+        SampleTest::ensureStandardColumnSupportsMultiple();
+        $sampleManuscripts = SampleManuscript::where('tr04_sample_registration_id', $sampleTests->first()?->tr04_sample_registration_id)
+            ->where('is_current', 1)
+            ->orderBy('m06_analyst_id')
+            ->orderBy('page_number')
+            ->orderBy('tr11_manuscript_id')
+            ->get();
+
+        $allStandards = Standard::where('m15_status', 'ACTIVE')->orderBy('m15_method')->get();
+
         return view('testresult.result_template', compact(
             'sampleTests',
+            'registrationId',
             'existingResults',
             'existingCustomFields',
             'testDate',
-            'performanceDate'
+            'performanceDate',
+            'sampleManuscripts',
+            'allStandards'
         ));
     }
     public function templateManuscript(Request $request, $id)
@@ -529,57 +550,232 @@ class TestResultController extends Controller
 
     public function uploadDocument(Request $request, $id)
     {
+        @ini_set('upload_max_filesize', '64M');
+        @ini_set('post_max_size', '64M');
+        @ini_set('memory_limit', '512M');
+        @ini_set('max_execution_time', '300');
+
         try {
-            if (!$request->hasFile('result_file')) {
-                Session::flash('swal_icon', 'error');
-                Session::flash('swal_title', 'Upload Failed');
-                Session::flash('swal_message', 'No file was received. The file size may exceed the PHP server upload limit (upload_max_filesize in php.ini).');
-                return back();
+            SampleManuscript::ensureManuscriptSchemaExists();
+
+            // Collect all incoming files (supporting both result_files[] and result_file)
+            $uploadedFiles = [];
+            if ($request->hasFile('result_files')) {
+                $raw = $request->file('result_files');
+                $uploadedFiles = is_array($raw) ? $raw : [$raw];
+            } elseif ($request->hasFile('result_file')) {
+                $raw = $request->file('result_file');
+                $uploadedFiles = is_array($raw) ? $raw : [$raw];
             }
 
-            $file = $request->file('result_file');
-            if (!$file->isValid()) {
-                $errorMsg = $file->getErrorMessage();
-                if ($file->getError() === UPLOAD_ERR_INI_SIZE || $file->getError() === UPLOAD_ERR_FORM_SIZE) {
-                    $errorMsg = 'File size exceeds server upload limit (php.ini upload_max_filesize). Please choose a smaller file or increase upload_max_filesize in php.ini.';
-                }
+            if (empty($uploadedFiles)) {
                 Session::flash('swal_icon', 'error');
                 Session::flash('swal_title', 'Upload Failed');
-                Session::flash('swal_message', 'File upload error: ' . $errorMsg);
-                return back();
-            }
-
-            $originalExtension = strtolower($file->getClientOriginalExtension());
-            $allowedExtensions = ['pdf', 'jpg', 'jpeg', 'png', 'webp', 'doc', 'docx'];
-            if (!in_array($originalExtension, $allowedExtensions)) {
-                Session::flash('swal_icon', 'error');
-                Session::flash('swal_title', 'Invalid File Type');
-                Session::flash('swal_message', 'Only PDF, JPG, PNG, WEBP, DOC, and DOCX files are allowed.');
+                Session::flash('swal_message', 'No file was received. Please select at least one document or photo to upload.');
                 return back();
             }
 
             // Find registration by reference ID or registration ID
-            $registration = SampleRegistration::where('tr04_reference_id', $id)
+            $registration = SampleRegistration::with(['sampleTests.allotedTo', 'sampleTests.test'])
+                ->where('tr04_reference_id', $id)
                 ->orWhere('tr04_sample_registration_id', $id)
                 ->first();
 
-            $refId = $registration ? $registration->tr04_reference_id : $id;
-            $fileName = 'manuscript_' . $refId . '_' . now()->timestamp . '.' . $originalExtension;
-            $folderPath = 'test_results';
+            if (!$registration) {
+                Session::flash('swal_icon', 'error');
+                Session::flash('swal_title', 'Not Found');
+                Session::flash('swal_message', 'Sample registration not found.');
+                return back();
+            }
 
-            $filePath = $file->storeAs($folderPath, $fileName, 'public');
+            $refId = $registration->tr04_reference_id;
+            $currentUserId = Session::get('user_id');
+            $currentRole = Session::get('role') ?? 'Analyst';
 
-            if ($registration) {
-                $registration->update([
-                    'tr04_manuscript' => $fileName,
+            // Determine Target Analyst & Associated Tests
+            $targetAnalystId = $request->input('analyst_id');
+            if (!$targetAnalystId && $currentRole === 'Analyst') {
+                $targetAnalystId = $currentUserId;
+            }
+
+            // Filter relevant tests allotted to this analyst
+            $relevantTests = collect();
+            if ($targetAnalystId) {
+                $relevantTests = $registration->sampleTests->where('m06_alloted_to', $targetAnalystId);
+            }
+
+            if ($relevantTests->isEmpty()) {
+                $relevantTests = $registration->sampleTests;
+            }
+
+            $targetAnalystName = null;
+            if ($targetAnalystId) {
+                $emp = \App\Models\Employee::find($targetAnalystId);
+                $targetAnalystName = $emp?->m06_name;
+            }
+            if (!$targetAnalystName) {
+                $targetAnalystName = $relevantTests->first()?->allotedTo?->m06_name ?? ($currentRole === 'DEO' ? 'DEO Entry' : 'Analyst');
+            }
+
+            $testIds = $relevantTests->pluck('m12_test_id')->filter()->unique()->implode(',');
+            $testNames = $relevantTests->map(fn($st) => $st->test?->m12_name)->filter()->unique()->implode(', ');
+
+            $allowedExtensions = ['pdf', 'jpg', 'jpeg', 'png', 'webp', 'doc', 'docx'];
+            $totalPages = count($uploadedFiles);
+            $savedFileNames = [];
+            $savedImagePaths = [];
+            $allImages = true;
+
+            $storageDir = storage_path('app/public/test_results');
+            $publicDir = public_path('storage/test_results');
+            if (!is_dir($storageDir)) @mkdir($storageDir, 0755, true);
+            if (!is_dir($publicDir)) @mkdir($publicDir, 0755, true);
+
+            // Supersede any older manuscript uploads for this registration and analyst
+            // so only the newest upload batch is active in verification, review, and reporting
+            SampleManuscript::where('tr04_sample_registration_id', $registration->tr04_sample_registration_id)
+                ->when($targetAnalystId, function ($query) use ($targetAnalystId) {
+                    $query->where(function ($q) use ($targetAnalystId) {
+                        $q->where('m06_analyst_id', $targetAnalystId)
+                          ->orWhereNull('m06_analyst_id');
+                    });
+                })
+                ->update(['is_current' => 0]);
+
+            foreach ($uploadedFiles as $index => $file) {
+                if (!$file->isValid()) {
+                    continue;
+                }
+
+                $originalExtension = strtolower($file->getClientOriginalExtension());
+                if (!in_array($originalExtension, $allowedExtensions)) {
+                    continue;
+                }
+
+                $pageNumber = $index + 1;
+                $isImg = in_array($originalExtension, ['jpg', 'jpeg', 'png', 'webp', 'gif']);
+                $isPdf = $originalExtension === 'pdf';
+                $fileType = $isImg ? 'image' : ($isPdf ? 'pdf' : 'other');
+
+                if (!$isImg) {
+                    $allImages = false;
+                }
+
+                $analystSlug = $targetAnalystId ? '_analyst' . $targetAnalystId : '';
+                $pageSlug = $totalPages > 1 ? '_pg' . $pageNumber : '';
+                $targetExt = ($isImg && $originalExtension === 'png') ? 'jpg' : $originalExtension;
+                $fileName = 'manuscript_' . $refId . $analystSlug . $pageSlug . '_' . now()->timestamp . '_' . $pageNumber . '.' . $targetExt;
+
+                $fullStoragePath = $storageDir . '/' . $fileName;
+                $fullPublicPath = $publicDir . '/' . $fileName;
+
+                if ($isImg) {
+                    $this->compressAndSaveImage($file, $fullStoragePath, 80);
+                    $savedImagePaths[] = $fullStoragePath;
+                } else {
+                    $file->storeAs('test_results', $fileName, 'public');
+                }
+
+                // Sync copy to public directory for direct asset serving
+                if (file_exists($fullStoragePath) && is_dir($publicDir)) {
+                    @copy($fullStoragePath, $fullPublicPath);
+                }
+
+                $fileSize = file_exists($fullStoragePath) ? filesize($fullStoragePath) : $file->getSize();
+                $savedFileNames[] = $fileName;
+
+                // Create individual page record in tr11_sample_manuscripts
+                SampleManuscript::create([
+                    'tr04_sample_registration_id' => $registration->tr04_sample_registration_id,
+                    'tr04_reference_id'           => $refId,
+                    'm06_analyst_id'              => $targetAnalystId,
+                    'analyst_name'                => $targetAnalystName,
+                    'm12_test_ids'                => $testIds,
+                    'test_names'                  => $testNames,
+                    'file_path'                   => $fileName,
+                    'original_name'               => $file->getClientOriginalName(),
+                    'page_number'                 => $pageNumber,
+                    'total_pages'                 => $totalPages,
+                    'is_current'                  => 1,
+                    'file_type'                   => $fileType,
+                    'file_size'                   => $fileSize,
+                    'uploaded_by'                 => $currentUserId,
+                    'uploader_role'               => $currentRole,
+                    'remarks'                     => $request->input('remarks'),
                 ]);
             }
 
+            if (empty($savedFileNames)) {
+                Session::flash('swal_icon', 'error');
+                Session::flash('swal_title', 'Upload Failed');
+                Session::flash('swal_message', 'No valid files could be processed. Allowed types: JPG, PNG, WEBP, PDF.');
+                return back();
+            }
+
+            // If multiple images were uploaded, create an optional combined multi-page PDF
+            if ($totalPages > 1 && $allImages && !empty($savedImagePaths)) {
+                try {
+                    $html = '<html><head><style>@page { margin: 0; size: A4 portrait; } body { margin: 0; padding: 0; background: #fff; text-align: center; } .page { page-break-after: always; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; } img { max-width: 98%; max-height: 98%; object-fit: contain; }</style></head><body>';
+                    foreach ($savedImagePaths as $imgPath) {
+                        if (file_exists($imgPath)) {
+                            $base64 = base64_encode(file_get_contents($imgPath));
+                            $html .= '<div class="page"><img src="data:image/jpeg;base64,' . $base64 . '"></div>';
+                        }
+                    }
+                    $html .= '</body></html>';
+
+                    $pdf = Pdf::loadHTML($html)->setPaper('a4', 'portrait');
+                    $combinedFileName = 'manuscript_' . $refId . $analystSlug . '_combined_' . now()->timestamp . '.pdf';
+                    $combinedStoragePath = $storageDir . '/' . $combinedFileName;
+                    $pdf->save($combinedStoragePath);
+
+                    if (is_dir($publicDir)) {
+                        @copy($combinedStoragePath, $publicDir . '/' . $combinedFileName);
+                    }
+
+                    // Register combined PDF in manuscripts table
+                    SampleManuscript::create([
+                        'tr04_sample_registration_id' => $registration->tr04_sample_registration_id,
+                        'tr04_reference_id'           => $refId,
+                        'm06_analyst_id'              => $targetAnalystId,
+                        'analyst_name'                => $targetAnalystName,
+                        'm12_test_ids'                => $testIds,
+                        'test_names'                  => $testNames,
+                        'file_path'                   => $combinedFileName,
+                        'original_name'               => 'Combined_' . $totalPages . '_Pages.pdf',
+                        'page_number'                 => 1,
+                        'total_pages'                 => 1,
+                        'is_current'                  => 1,
+                        'file_type'                   => 'pdf',
+                        'file_size'                   => file_exists($combinedStoragePath) ? filesize($combinedStoragePath) : null,
+                        'uploaded_by'                 => $currentUserId,
+                        'uploader_role'               => $currentRole,
+                        'remarks'                     => 'Combined multi-page PDF for ' . $targetAnalystName,
+                    ]);
+                } catch (\Throwable $pdfEx) {
+                    Log::warning('Combined PDF generation skipped: ' . $pdfEx->getMessage());
+                }
+            }
+
+            // Update tr05_sample_tests with uploaded manuscript for the relevant tests
+            $primaryFileName = $savedFileNames[0];
+            $relevantTestPks = $relevantTests->pluck('tr05_sample_test_id')->toArray();
+            if (!empty($relevantTestPks)) {
+                SampleTest::whereIn('tr05_sample_test_id', $relevantTestPks)
+                    ->update(['tr05_manuscript' => $primaryFileName]);
+            }
+
+            // Also keep tr04_manuscript on SampleRegistration updated for backwards compatibility
+            $registration->update([
+                'tr04_manuscript' => $primaryFileName,
+            ]);
+
+            $pageMsg = $totalPages > 1 ? " ({$totalPages} pages compressed & structured)" : ' (compressed & optimized)';
             Session::flash('type', 'success');
-            Session::flash('message', 'Manuscript document uploaded successfully.');
+            Session::flash('message', "Manuscript for {$targetAnalystName} uploaded successfully{$pageMsg}.");
             Session::flash('swal_icon', 'success');
             Session::flash('swal_title', 'Uploaded Successfully');
-            Session::flash('swal_message', 'Manuscript document has been uploaded successfully.');
+            Session::flash('swal_message', "Manuscript sheet(s) for {$targetAnalystName} uploaded and attached to all allotted tests{$pageMsg}.");
 
             return back();
         } catch (\Exception $e) {
@@ -588,6 +784,115 @@ class TestResultController extends Controller
             Session::flash('swal_message', 'Failed to upload document: ' . $e->getMessage());
             return back();
         }
+    }
+
+    /**
+     * Compress and fix orientation of uploaded image file using PHP GD.
+     * Downscales images larger than 1920x1920 to prevent bloat while maintaining laboratory sharpness.
+     */
+    private function compressAndSaveImage($file, string $destinationFullPath, int $quality = 80): bool
+    {
+        try {
+            $sourcePath = $file->getRealPath();
+            $ext = strtolower($file->getClientOriginalExtension());
+
+            if (!in_array($ext, ['jpg', 'jpeg', 'png', 'webp', 'gif'])) {
+                return copy($sourcePath, $destinationFullPath);
+            }
+
+            $image = null;
+            if ($ext === 'png') {
+                $image = @imagecreatefrompng($sourcePath);
+            } elseif ($ext === 'webp') {
+                $image = @imagecreatefromwebp($sourcePath);
+            } elseif ($ext === 'gif') {
+                $image = @imagecreatefromgif($sourcePath);
+            } else {
+                $image = @imagecreatefromjpeg($sourcePath);
+            }
+
+            if (!$image) {
+                $image = @imagecreatefromstring(file_get_contents($sourcePath));
+            }
+
+            if (!$image) {
+                return copy($sourcePath, $destinationFullPath);
+            }
+
+            // Auto-correct smartphone EXIF camera orientation
+            if (function_exists('exif_read_data') && in_array($ext, ['jpg', 'jpeg'])) {
+                try {
+                    $exif = @exif_read_data($sourcePath);
+                    if (!empty($exif['Orientation'])) {
+                        switch ($exif['Orientation']) {
+                            case 3:
+                                $image = imagerotate($image, 180, 0);
+                                break;
+                            case 6:
+                                $image = imagerotate($image, -90, 0);
+                                break;
+                            case 8:
+                                $image = imagerotate($image, 90, 0);
+                                break;
+                        }
+                    }
+                } catch (\Throwable $exifEx) {
+                    // Ignore EXIF errors
+                }
+            }
+
+            $origWidth = imagesx($image);
+            $origHeight = imagesy($image);
+            $maxDimension = 1920;
+
+            if ($origWidth > $maxDimension || $origHeight > $maxDimension) {
+                if ($origWidth > $origHeight) {
+                    $newWidth = $maxDimension;
+                    $newHeight = (int)round(($origHeight / $origWidth) * $maxDimension);
+                } else {
+                    $newHeight = $maxDimension;
+                    $newWidth = (int)round(($origWidth / $origHeight) * $maxDimension);
+                }
+
+                $resizedImage = imagecreatetruecolor($newWidth, $newHeight);
+                if ($ext === 'png') {
+                    imagealphablending($resizedImage, false);
+                    imagesavealpha($resizedImage, true);
+                }
+
+                imagecopyresampled($resizedImage, $image, 0, 0, 0, 0, $newWidth, $newHeight, $origWidth, $origHeight);
+                imagedestroy($image);
+                $image = $resizedImage;
+            }
+
+            $dir = dirname($destinationFullPath);
+            if (!is_dir($dir)) {
+                @mkdir($dir, 0755, true);
+            }
+
+            // Save optimized JPEG format (saves up to 90% space on paper calculation scans)
+            imagejpeg($image, $destinationFullPath, $quality);
+            imagedestroy($image);
+            return true;
+        } catch (\Throwable $e) {
+            Log::warning('Image compression fallback: ' . $e->getMessage());
+            return copy($file->getRealPath(), $destinationFullPath);
+        }
+    }
+
+    public function serveManuscriptFile($filename)
+    {
+        $safeName = basename($filename);
+        $path = public_path('storage/test_results/' . $safeName);
+        if (!file_exists($path)) {
+            $path = storage_path('app/public/test_results/' . $safeName);
+        }
+
+        if (!file_exists($path)) {
+            abort(404, 'Manuscript file not found.');
+        }
+
+        return response()->file($path);
     }
 
     public function downloadManuscript(Request $request, $id)
@@ -669,7 +974,7 @@ class TestResultController extends Controller
         $testsList = [];
         foreach ($uniqueSampleTests as $sampleTest) {
             $testName = $sampleTest->test->m12_name ?? 'Test';
-            $standardMethod = $sampleTest->standard->m15_method ?? '';
+            $standardMethod = $sampleTest->standard_method ?? ($sampleTest->standard->m15_method ?? '');
 
             // Check if existing result has manuscript content
             $existingResult = $existingResults->where('m12_test_number', $sampleTest->m12_test_number)
@@ -685,8 +990,9 @@ class TestResultController extends Controller
                     ->get()
                     ->first(function ($t) use ($sampleTest) {
                         if (!$t->m15_standard_ids) return true;
-                        $standardIdsArray = explode(',', $t->m15_standard_ids);
-                        return in_array((string)$sampleTest->m15_standard_id, $standardIdsArray);
+                        $standardIdsArray = array_filter(array_map('trim', explode(',', $t->m15_standard_ids)));
+                        $sampleStdIds = array_filter(array_map('trim', explode(',', (string)$sampleTest->m15_standard_id)));
+                        return !empty(array_intersect($sampleStdIds, $standardIdsArray));
                     });
 
                 $content = $applicableTemplate ? $applicableTemplate->m22_content : '';
@@ -886,31 +1192,35 @@ class TestResultController extends Controller
         $minDate = now()->subDays(15)->format('Y-m-d');
         $today = now()->format('Y-m-d');
 
+        $isDraft = ($request->action === 'DRAFT');
+
         $rules = [
             'registration_id' => 'required|string',
-            'test_date' => 'required|date|after_or_equal:' . $minDate . '|before_or_equal:' . $today,
-            'performance_date' => 'required|date|after_or_equal:' . $minDate . '|before_or_equal:' . $today,
+            'test_date' => $isDraft ? 'nullable|date' : 'required|date|after_or_equal:' . $minDate . '|before_or_equal:' . $today,
+            'performance_date' => $isDraft ? 'nullable|date' : 'required|date|after_or_equal:' . $minDate . '|before_or_equal:' . $today,
             'results' => 'nullable|array',
             'manuscript_data' => 'nullable|array',
             'test_data' => 'nullable|array',
             'custom_fields' => 'nullable|array',
             'remarks' => 'nullable|string',
             'action' => 'required|string|in:DRAFT,SUBMITTED,RESULTED',
-            
-            // Nested validation to enforce required result values if the row is submitted
-            'results.*.test.result' => 'required_with:results.*.test',
-            'results.*.primary_tests.*.result' => 'required_without:results.*.primary_tests.*.secondary_tests',
-            'results.*.primary_tests.*.secondary_tests.*.result' => 'required_with:results.*.primary_tests.*.secondary_tests.*.secondary_test_id',
+        ];
+
+        if (!$isDraft) {
+            // Nested validation to enforce required result values if the row is submitted / completed
+            $rules['results.*.test.result'] = 'required_with:results.*.test';
+            $rules['results.*.primary_tests.*.result'] = 'required_without:results.*.primary_tests.*.secondary_tests';
+            $rules['results.*.primary_tests.*.secondary_tests.*.result'] = 'required_with:results.*.primary_tests.*.secondary_tests.*.secondary_test_id';
             
             // Nested validation for custom fields
-            'results.*.custom_fields.*.value' => 'required_with:results.*.custom_fields.*.label',
-            'results.*.primary_tests.*.custom_fields.*.value' => 'required_with:results.*.primary_tests.*.custom_fields.*.label',
-            'results.*.primary_tests.*.secondary_tests.*.custom_fields.*.value' => 'required_with:results.*.primary_tests.*.secondary_tests.*.custom_fields.*.label',
+            $rules['results.*.custom_fields.*.value'] = 'required_with:results.*.custom_fields.*.label';
+            $rules['results.*.primary_tests.*.custom_fields.*.value'] = 'required_with:results.*.primary_tests.*.custom_fields.*.label';
+            $rules['results.*.primary_tests.*.secondary_tests.*.custom_fields.*.value'] = 'required_with:results.*.primary_tests.*.secondary_tests.*.custom_fields.*.label';
             
             // For template_manuscript test_data and manuscript_data
-            'test_data.*.result' => 'required_with:test_data.*.test_id',
-            'manuscript_data.*.*.result' => 'required_with:manuscript_data.*.*.test_id',
-        ];
+            $rules['test_data.*.result'] = 'required_with:test_data.*.test_id';
+            $rules['manuscript_data.*.*.result'] = 'required_with:manuscript_data.*.*.test_id';
+        }
 
         $messages = [
             'test_date.before_or_equal' => 'Test Date cannot be in the future.',
@@ -946,15 +1256,32 @@ class TestResultController extends Controller
             $roId = Session::get('ro_id');
             Log::info('User ID: ' . $userId . ', RO ID: ' . $roId);
 
+            $testDate = $request->test_date ?: date('Y-m-d');
+            $performanceDate = $request->performance_date ?: date('Y-m-d');
+
             // Persist analyst-edited sample test standard selection from manuscript entries
             if (!empty($request->sample_tests) && is_array($request->sample_tests)) {
+                SampleTest::ensureStandardColumnSupportsMultiple();
+                $registration = SampleRegistration::where('tr04_reference_id', $request->registration_id)->first();
+                $regId = $registration->tr04_sample_registration_id ?? null;
+
                 foreach ($request->sample_tests as $sampleTestId => $sampleTestData) {
                     if (!array_key_exists('standard_id', $sampleTestData)) {
                         continue;
                     }
 
-                    SampleTest::where('m12_test_id', $sampleTestId)
-                        ->update(['m15_standard_id' => $sampleTestData['standard_id'] ?: null]);
+                    $stdValue = is_array($sampleTestData['standard_id']) 
+                        ? implode(',', array_filter($sampleTestData['standard_id'])) 
+                        : ($sampleTestData['standard_id'] ?: null);
+
+                    $updated = SampleTest::where('tr05_sample_test_id', $sampleTestId)
+                        ->update(['m15_standard_id' => $stdValue]);
+
+                    if (!$updated && $regId) {
+                        SampleTest::where('m12_test_id', $sampleTestId)
+                            ->where('tr04_sample_registration_id', $regId)
+                            ->update(['m15_standard_id' => $stdValue]);
+                    }
                 }
             }
 
@@ -1172,14 +1499,24 @@ class TestResultController extends Controller
                 }
             }
 
-            Log::info('Auto-completing Sample Tests for IDs: ' . implode(',', $processedTestIds));
-            $this->autoCompleteSampleTests($request->registration_id, $userId, $processedTestIds);
+            if ($request->action !== 'DRAFT') {
+                Log::info('Auto-completing Sample Tests for IDs: ' . implode(',', $processedTestIds));
+                $this->autoCompleteSampleTests($request->registration_id, $userId, $processedTestIds);
+
+                // Forward custody to Verification Officer when results are submitted
+                $fromRole = Session::get('role') === 'DEO' ? 'DEO' : 'Analyst';
+                try {
+                    CustodyService::forwardOrResolve($request->registration_id, $fromRole, 'Verification Officer');
+                } catch (\Throwable $e) {
+                    Log::warning('Custody forward error in createResult: ' . $e->getMessage());
+                }
+            }
 
             DB::commit();
             Log::info('Transaction Committed Successfully');
 
             $message = $request->action === 'DRAFT'
-                ? 'Test results saved as draft successfully.'
+                ? 'Test results saved as draft successfully. You can resume and complete this entry later before sending for verification.'
                 : 'Test results submitted successfully.';
 
             Session::flash('type', 'success');
@@ -1219,7 +1556,7 @@ class TestResultController extends Controller
                 $this->processCustomFieldLevel($data, $baseData, $primaryTestId, $currentSecondaryTestId);
             } else {
                 // This is an actual custom field data
-                if ((isset($data['name']) || isset($data['label'])) && isset($data['value'])) {
+                if (isset($data['name']) || isset($data['label'])) {
                     $this->saveCustomField([
                         'registration_id' => $baseData['registration_id'],
                         'test_number' => $baseData['test_number'],
@@ -1243,6 +1580,7 @@ class TestResultController extends Controller
     private function saveCustomField($data)
     {
         $fieldData = $data['field_data'];
+        $val = (isset($fieldData['value']) && $fieldData['value'] !== '') ? $fieldData['value'] : null;
 
         $customFieldData = [
             'tr04_reference_id' => $data['registration_id'],
@@ -1250,7 +1588,7 @@ class TestResultController extends Controller
             'm16_primary_test_id' => $data['primary_test_id'],
             'm17_secondary_test_id' => $data['secondary_test_id'],
             'tr08_field_name' => $fieldData['name'] ?? $fieldData['label'] ?? null,
-            'tr08_field_value' => $fieldData['value'],
+            'tr08_field_value' => $val,
             'tr08_field_unit' => $fieldData['unit'] ?? null,
             'tr08_result_status' => $data['action'],
             'tr08_test_date' => $data['test_date'],
@@ -1258,11 +1596,39 @@ class TestResultController extends Controller
             'tr08_remarks' => $data['remarks'],
         ];
 
-        // Check if we're updating an existing custom field
+        // Check if we're updating an existing custom field by ID
         if (!empty($fieldData['custom_field_id'])) {
             $customField = CustomField::find($fieldData['custom_field_id']);
             if ($customField) {
                 $customField->update(array_merge($customFieldData, [
+                    'm06_updated_by' => $data['user_id'],
+                ]));
+                return;
+            }
+        }
+
+        // Check if existing record with same field name exists to avoid duplicate rows on repeated drafts
+        if (!empty($customFieldData['tr08_field_name'])) {
+            $query = CustomField::where('tr04_reference_id', $data['registration_id'])
+                ->where('m12_test_number', $data['test_number'])
+                ->where('tr08_field_name', $customFieldData['tr08_field_name'])
+                ->where('tr08_is_current', 'YES');
+
+            if (!empty($data['primary_test_id'])) {
+                $query->where('m16_primary_test_id', $data['primary_test_id']);
+            } else {
+                $query->whereNull('m16_primary_test_id');
+            }
+
+            if (!empty($data['secondary_test_id'])) {
+                $query->where('m17_secondary_test_id', $data['secondary_test_id']);
+            } else {
+                $query->whereNull('m17_secondary_test_id');
+            }
+
+            $existingCf = $query->first();
+            if ($existingCf) {
+                $existingCf->update(array_merge($customFieldData, [
                     'm06_updated_by' => $data['user_id'],
                 ]));
                 return;
@@ -1279,11 +1645,14 @@ class TestResultController extends Controller
     {
         $resultData = $data['result_data'];
 
-        // Check if result_id exists (updating) - similar to manuscript handling
+        $resultVal = (isset($resultData['result']) && $resultData['result'] !== '') ? $resultData['result'] : null;
+        $unitVal = (isset($resultData['unit']) && $resultData['unit'] !== '') ? $resultData['unit'] : null;
+
+        // Check if result_id exists (updating)
         if (!empty($resultData['result_id'])) {
             $updateData = [
-                'tr07_result' => $resultData['result'] ?? null,
-                'tr07_unit' => $resultData['unit'] ?? null,
+                'tr07_result' => $resultVal,
+                'tr07_unit' => $unitVal,
                 'tr07_result_status' => $data['action'],
                 'tr07_test_date' => $data['test_date'],
                 'tr07_performance_date' => $data['performance_date'],
@@ -1298,24 +1667,59 @@ class TestResultController extends Controller
             TestResult::where('tr07_test_result_id', $resultData['result_id'])
                 ->update($updateData);
         } else {
-            // Creating new result - similar to manuscript creation
-            TestResult::create([
-                'm04_ro_id' => $data['ro_id'],
-                'tr04_reference_id' => $data['registration_id'],
-                'm12_test_number' => $data['test_number'],
-                'm16_primary_test_id' => $data['primary_test_id'] ?? null,
-                'm17_secondary_test_id' => $data['secondary_test_id'] ?? null,
-                'm22_manuscript_id' => $data['manuscript_id'] ?? null, // Use the passed manuscript_id
-                'tr07_result' => $resultData['result'] ?? null,
-                'tr07_unit' => $resultData['unit'] ?? null,
-                'tr07_manuscript_content' => $this->processManuscriptImages($data['manuscript_content'] ?? null),
-                'tr07_test_date' => $data['test_date'],
-                'tr07_performance_date' => $data['performance_date'],
-                'tr07_remarks' => $data['remarks'],
-                'tr07_current_version' => 1,
-                'tr07_result_status' => $data['action'],
-                'm06_created_by' => $data['user_id'],
-            ]);
+            // Check if existing record exists for this registration and test/subtest to avoid duplicates on draft
+            $query = TestResult::where('tr04_reference_id', $data['registration_id'])
+                ->where('m12_test_number', $data['test_number'])
+                ->where('tr07_is_current', 'YES');
+
+            if (!empty($data['primary_test_id'])) {
+                $query->where('m16_primary_test_id', $data['primary_test_id']);
+            } else {
+                $query->whereNull('m16_primary_test_id');
+            }
+
+            if (!empty($data['secondary_test_id'])) {
+                $query->where('m17_secondary_test_id', $data['secondary_test_id']);
+            } else {
+                $query->whereNull('m17_secondary_test_id');
+            }
+
+            $existing = $query->first();
+
+            if ($existing) {
+                $updateData = [
+                    'tr07_result' => $resultVal,
+                    'tr07_unit' => $unitVal,
+                    'tr07_result_status' => $data['action'],
+                    'tr07_test_date' => $data['test_date'],
+                    'tr07_performance_date' => $data['performance_date'],
+                    'tr07_remarks' => $data['remarks'],
+                    'm06_updated_by' => $data['user_id'],
+                ];
+                if (isset($data['manuscript_content'])) {
+                    $updateData['tr07_manuscript_content'] = $this->processManuscriptImages($data['manuscript_content']);
+                }
+                $existing->update($updateData);
+            } else {
+                // Creating new result
+                TestResult::create([
+                    'm04_ro_id' => $data['ro_id'],
+                    'tr04_reference_id' => $data['registration_id'],
+                    'm12_test_number' => $data['test_number'],
+                    'm16_primary_test_id' => $data['primary_test_id'] ?? null,
+                    'm17_secondary_test_id' => $data['secondary_test_id'] ?? null,
+                    'm22_manuscript_id' => $data['manuscript_id'] ?? null,
+                    'tr07_result' => $resultVal,
+                    'tr07_unit' => $unitVal,
+                    'tr07_manuscript_content' => $this->processManuscriptImages($data['manuscript_content'] ?? null),
+                    'tr07_test_date' => $data['test_date'],
+                    'tr07_performance_date' => $data['performance_date'],
+                    'tr07_remarks' => $data['remarks'],
+                    'tr07_current_version' => 1,
+                    'tr07_result_status' => $data['action'],
+                    'm06_created_by' => $data['user_id'],
+                ]);
+            }
         }
     }
 
@@ -1448,14 +1852,26 @@ class TestResultController extends Controller
                         });
 
                     $sample->actionable_tests_count = $actionableTests->count();
+                    $sample->has_draft = $registration->testResult
+                        ->where('tr07_result_status', 'DRAFT')
+                        ->isNotEmpty();
                 } else {
                     $sample->actionable_tests_count = 0;
+                    $sample->has_draft = false;
                 }
 
                 return $sample;
             })
             ->filter(function ($sample) {
-                return $sample->reference_id !== '-';
+                if ($sample->reference_id === '-') {
+                    return false;
+                }
+                // If sample is currently under clarification with Analyst, Manager, or RC, DEO must not see it until returned
+                $reg = $sample->registration;
+                if ($reg && $reg->tr04_is_under_clarification && $reg->tr04_current_custody_role !== 'DEO') {
+                    return false;
+                }
+                return true;
             })
             ->values();
 
@@ -2697,6 +3113,64 @@ class TestResultController extends Controller
             DB::rollBack();
             Log::error('Error saving raw entry: ' . $e->getMessage());
             return response()->json(['success' => false, 'message' => 'Failed to save raw entry: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Update standard(s) for a sample test (via AJAX from result template)
+     */
+    public function updateTestStandard(Request $request)
+    {
+        try {
+            $request->validate([
+                'sample_test_id' => 'required',
+                'standard_id' => 'nullable',
+            ]);
+
+            $sampleTestId = $request->sample_test_id;
+            $standardId = $request->standard_id;
+
+            if (is_array($standardId)) {
+                $standardId = implode(',', array_filter($standardId));
+            }
+
+            $sampleTest = SampleTest::where('tr05_sample_test_id', $sampleTestId)->first();
+            if (!$sampleTest && $request->filled('registration_id')) {
+                $reg = SampleRegistration::where('tr04_reference_id', $request->registration_id)->first();
+                if ($reg) {
+                    $sampleTest = SampleTest::where('m12_test_id', $sampleTestId)
+                        ->where('tr04_sample_registration_id', $reg->tr04_sample_registration_id)
+                        ->first();
+                }
+            }
+
+            if (!$sampleTest) {
+                return response()->json(['success' => false, 'message' => 'Sample test record not found.'], 404);
+            }
+
+            SampleTest::ensureStandardColumnSupportsMultiple();
+            $sampleTest->m15_standard_id = !empty($standardId) ? $standardId : null;
+            $sampleTest->save();
+
+            // Resolve updated standard method names
+            $names = [];
+            if ($sampleTest->m15_standard_id) {
+                $ids = array_filter(array_map('trim', explode(',', $sampleTest->m15_standard_id)));
+                $names = Standard::whereIn('m15_standard_id', $ids)->pluck('m15_method')->toArray();
+            }
+
+            $standardMethodNames = !empty($names) ? implode(' & ', $names) : 'No standard assigned';
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Test standard updated successfully.',
+                'sample_test_id' => $sampleTest->tr05_sample_test_id,
+                'standard_id' => $sampleTest->m15_standard_id,
+                'standard_names' => $standardMethodNames,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error updating test standard: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Failed to update standard: ' . $e->getMessage()], 500);
         }
     }
 }

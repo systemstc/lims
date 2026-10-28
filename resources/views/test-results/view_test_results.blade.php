@@ -165,11 +165,12 @@
                                                                                 <span>Generate Report</span>
                                                                             </a>
                                                                         @endif
-                                                                        {{-- <a
-                                                                                href="{{ route('test_results.report', $result->tr04_reference_id) }}">
-                                                                                <em class="icon ni ni-file-docs"></em>
-                                                                                <span>Generate Report</span>
-                                                                            </a> --}}
+                                                                    </li>
+                                                                    <li>
+                                                                        <a href="javascript:void(0)" class="text-danger" onclick="openSendBackModal('{{ $result->tr04_reference_id }}')">
+                                                                            <em class="icon ni ni-undo text-danger"></em>
+                                                                            <span>Send Back for Clarification</span>
+                                                                        </a>
                                                                     </li>
                                                                 </ul>
                                                             </div>
@@ -200,4 +201,63 @@
             </div>
         </div>
     </div>
+
+    <!-- Send Back to Verification Officer Modal -->
+    <div class="modal fade" id="sendBackToVerificationModal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content border-0 shadow">
+                <form action="{{ route('sample.custody.send_back') }}" method="POST" id="sendBackToVerificationForm">
+                    @csrf
+                    <input type="hidden" name="sample_id" id="modalSampleId" value="">
+                    <input type="hidden" name="to_role" value="Verification Officer">
+                    <input type="hidden" name="context" value="reporting">
+                    <div class="modal-header bg-danger text-white">
+                        <h5 class="modal-title text-white">
+                            <em class="icon ni ni-undo me-1"></em> Send Back to Verification Officer
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body p-4">
+                        <div class="alert alert-danger alert-icon bg-danger-dim border-danger mb-3">
+                            <em class="icon ni ni-alert-circle"></em>
+                            <div class="alert-content">
+                                <span class="fw-bold">Mandatory Clarification Remark</span><br>
+                                <span class="small">Explain clearly why this sample is being sent back to the <b>Verification Officer</b> so they can take corrective action.</span>
+                            </div>
+                        </div>
+                        <div class="form-group mb-3">
+                            <label class="form-label fw-bold text-dark">
+                                Sample Reference: <span id="modalSampleRefDisplay" class="badge bg-primary-dim text-primary fw-bold"></span>
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label fw-bold text-dark" for="verificationRemarkTextarea">
+                                Clarification Remark <span class="text-danger">*</span>
+                            </label>
+                            <div class="form-control-wrap">
+                                <textarea name="clarification_remark" id="verificationRemarkTextarea" class="form-control" rows="4" required minlength="3" placeholder="State clear reasons or instructions for the Verification Officer..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-light">
+                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-danger btn-sm fw-bold">
+                            <em class="icon ni ni-send me-1"></em> Confirm & Send Back
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function openSendBackModal(refId) {
+            document.getElementById('modalSampleId').value = refId;
+            document.getElementById('modalSampleRefDisplay').innerText = refId;
+            document.getElementById('verificationRemarkTextarea').value = '';
+            const modalEl = document.getElementById('sendBackToVerificationModal');
+            const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            modal.show();
+        }
+    </script>
 @endsection

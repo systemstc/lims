@@ -16,7 +16,11 @@
                                     </nav>
                                     <h3 class="nk-block-title page-title fw-bold mb-0">Employee List</h3>
                                     <div class="nk-block-des text-soft">
-                                        <p class="mb-0 small">Manage and track all registered lab employees</p>
+                                        @if(Session::has('ro_id') && Session::get('role') !== 'ADMIN')
+                                            <p class="mb-0 small">Manage and track registered lab employees for <span class="badge bg-outline-info text-dark fw-bold">{{ Session::get('ro_name', 'Your Regional Office') }}</span></p>
+                                        @else
+                                            <p class="mb-0 small">Manage and track all registered lab employees</p>
+                                        @endif
                                     </div>
                                 </div>
                                 <div class="nk-block-head-content">
@@ -72,7 +76,12 @@
                                                 <td>{{ $key + 1 }}</td>
                                                 <td>{{ $employee->m06_emp_id ?? 'N/A' }}</td>
                                                 <td>
-                                                    <span class="fw-medium text-dark">{{ $employee->m06_name }}</span>
+                                                    <div class="d-inline-flex align-items-center">
+                                                        <span class="fw-medium text-dark">{{ $employee->m06_name }}</span>
+                                                        @if (!empty($employee->short_name))
+                                                            <span class="badge bg-light text-primary border border-primary-subtle ms-2 px-1 py-0" title="Short Name / Initials" style="font-size: 0.70rem; font-weight: 700; letter-spacing: 0.5px;">{{ $employee->short_name }}</span>
+                                                        @endif
+                                                    </div>
                                                     @if (!empty($employee->m06_designation))
                                                         <span class="d-block text-muted small" style="font-size: 0.75rem;">{{ $employee->m06_designation }}</span>
                                                     @endif

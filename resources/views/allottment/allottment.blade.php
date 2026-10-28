@@ -1,20 +1,53 @@
 @extends('layouts.app_back')
 
 @section('content')
-    <div class="nk-block nk-block-lg">
-        <div class="nk-block-head">
-            <div class="nk-block-head">
-                <div class="nk-block-head-content d-flex justify-content-between align-items-center">
-                    <h4 class="nk-block-title">Manage Test Allotments</h4>
-                    <p>Registration ID: <strong>#{{ $registration->tr04_reference_id }}</strong></p>
-                    <a href="{{ route('view_allottment') }}" class="btn btn-primary">
-                        <em class="icon ni ni-back-alt-fill"></em> &nbsp; Back.
-                    </a>
+    <div class="container-fluid">
+        <div class="nk-content-inner">
+            <div class="nk-content-body">
+                <div class="nk-block-head nk-block-head-sm">
+                    <div class="nk-block-between align-items-center">
+                        <div class="nk-block-head-content">
+                            <h3 class="nk-block-title page-title">Manage Test Allotments</h3>
+                            <div class="nk-block-des text-soft">
+                                <p>Registration ID: <span class="fw-bold text-primary">#{{ $registration->tr04_reference_id }}</span> &bull; Allot tests to employees or transfer to other ROs</p>
+                            </div>
+                        </div>
+                        <div class="nk-block-head-content">
+                            <div class="d-flex align-items-center gap-2">
+                                <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#sendBackToRCModal">
+                                    <em class="icon ni ni-undo me-1"></em> <span>Send Back to RC</span>
+                                </button>
+                                <a href="{{ route('view_allottment') }}" class="btn btn-primary btn-sm">
+                                    <em class="icon ni ni-arrow-left me-1"></em> <span>Back</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+        @if ($registration->tr04_is_under_clarification)
+            <!-- Clarification Alert Banner -->
+            <div class="alert alert-pro alert-warning bg-warning-dim border-warning shadow-none mb-4 py-2 px-3">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 pb-1 border-bottom border-warning border-opacity-25 mb-1">
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <em class="icon ni ni-alert-circle text-warning fs-18px"></em>
+                        <span class="fw-bold text-dark fs-14px">Clarification Required</span>
+                        <span class="badge badge-dim bg-danger text-danger">Returned by {{ $registration->tr04_sent_back_by_role }} ({{ $registration->tr04_sent_back_by_name ?? 'Authority' }})</span>
+                    </div>
+                    @if ($registration->tr04_sent_back_at)
+                        <span class="text-muted small">
+                            <em class="icon ni ni-clock me-1"></em>{{ \Carbon\Carbon::parse($registration->tr04_sent_back_at)->format('d M, Y h:i A') }}
+                        </span>
+                    @endif
+                </div>
+                <div class="text-dark fs-13px ps-1 pt-1" style="line-height: 1.5;">
+                    <strong class="text-warning-dark me-1"><em class="icon ni ni-chat-fill text-warning me-1"></em>Remark:</strong>
+                    <span>{{ $registration->tr04_latest_clarification_remark }}</span>
                 </div>
             </div>
-        </div>
-        {{-- @dd($registration) --}}
-        <!-- Registration Summary -->
+        @endif
+        <div class="nk-block nk-block-lg">
+            <!-- Registration Summary -->
         <div class="card card-bordered mb-4">
             <div class="card-inner">
                 <div class="row g-4">
@@ -198,7 +231,7 @@
                                                     @foreach ($employees as $emp)
                                                         <option value="{{ $emp->m06_employee_id }}"
                                                             {{ $test->m06_alloted_to == $emp->m06_employee_id ? 'selected' : '' }}>
-                                                            {{ $emp->m06_name }}
+                                                            {{ $emp->m06_name }} [{{ $emp->short_name }}]
                                                         </option>
                                                     @endforeach
                                                 </select>
@@ -258,7 +291,10 @@
                 </form>
             </div>
         </div>
-    </div>
+    </div><!-- .nk-block -->
+            </div><!-- .nk-content-body -->
+        </div><!-- .nk-content-inner -->
+    </div><!-- .container-fluid -->
 
     <!-- Bulk Allot Modal -->
     <div class="modal fade" id="bulkAllotModal" tabindex="-1">
@@ -277,7 +313,7 @@
                             <select name="emp_id" class="form-control form-select" required>
                                 <option value="">-- Select Employee --</option>
                                 @foreach ($employees as $emp)
-                                    <option value="{{ $emp->m06_employee_id }}">{{ $emp->m06_name }}</option>
+                                    <option value="{{ $emp->m06_employee_id }}">{{ $emp->m06_name }} [{{ $emp->short_name }}]</option>
                                 @endforeach
                             </select>
                         </div>
@@ -519,4 +555,51 @@
             window.open(`{{ route('history', ':id') }}`.replace(':id', testId), '_blank');
         }
     </script>
+
+    <!-- Send Back to RC Modal -->
+    <div class="modal fade" id="sendBackToRCModal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content border-0 shadow">
+                <form action="{{ route('sample.custody.send_back') }}" method="POST" id="sendBackToRCForm">
+                    @csrf
+                    <input type="hidden" name="sample_id" value="{{ $registration->tr04_sample_registration_id }}">
+                    <input type="hidden" name="to_role" value="RC">
+                    <div class="modal-header bg-danger text-white">
+                        <h5 class="modal-title text-white">
+                            <em class="icon ni ni-undo me-1"></em> Send Back to Registration Counter (RC)
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body p-4">
+                        <div class="alert alert-danger alert-icon bg-danger-dim border-danger mb-3">
+                            <em class="icon ni ni-alert-circle"></em>
+                            <div class="alert-content">
+                                <span class="fw-bold">Mandatory Clarification Remark</span><br>
+                                <span class="small">State clear instructions or missing details that need correction at the Registration Counter.</span>
+                            </div>
+                        </div>
+                        <div class="form-group mb-3">
+                            <label class="form-label fw-bold text-dark">
+                                Sample Reference: <span class="badge bg-primary-dim text-primary fw-bold">#{{ $registration->tr04_reference_id }}</span>
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label fw-bold text-dark" for="rcRemarkTextarea">
+                                Clarification Remark <span class="text-danger">*</span>
+                            </label>
+                            <div class="form-control-wrap">
+                                <textarea name="clarification_remark" id="rcRemarkTextarea" class="form-control" rows="4" required minlength="3" placeholder="Explain what needs to be verified or changed by RC (e.g. wrong sample type, missing customer info, incorrect test package)..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-light">
+                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-danger btn-sm fw-bold">
+                            <em class="icon ni ni-send me-1"></em> Confirm & Return to RC
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 @endsection

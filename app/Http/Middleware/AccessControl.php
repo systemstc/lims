@@ -117,6 +117,8 @@ class AccessControl
             'track_sample',
             'search_tracker',
             'create_test_result',
+            'update_test_standard',
+            'serve_manuscript_file',
             'dispatch_sample',
             // 2FA Routes
             'profile.2fa.index',
@@ -155,6 +157,10 @@ class AccessControl
             'bulk_revert_allotment',
             'search_sample_for_allotment',
             'fetch_gst_details',
+
+            'sample.custody.send_back',
+            'sample.custody.forward',
+            'sample.custody.timeline',
         ];
 
         if (in_array($routeName, $skipPermissionRoutes)) {
@@ -184,6 +190,12 @@ class AccessControl
         }
 
         if (!$isAllowed) {
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Permission denied: You are not allowed to access this module.'
+                ], 403);
+            }
             Session::flash('type', 'error');
             Session::flash('message', 'Permission denied: You are not allowed to access this module.');
             return redirect()->back();

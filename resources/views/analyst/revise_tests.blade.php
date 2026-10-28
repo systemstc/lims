@@ -21,12 +21,36 @@
                                     <small class="text-muted ms-2">Previous results were rejected and need revision</small>
                                 </div>
                             </div>
-                            <div>
-                                <a href="{{ route('rejected_samples') }}" class="btn btn-outline-primary btn-sm">
-                                    <em class="icon ni ni-caret-left-fill"></em> Back to Rejected
+                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                <button type="button" class="btn btn-dim btn-outline-danger btn-sm fw-bold" style="padding: 0.4rem 0.85rem; font-size: 0.8125rem; display: inline-flex; align-items: center; white-space: nowrap;" data-bs-toggle="modal" data-bs-target="#analystSendBackModal">
+                                    <em class="icon ni ni-undo me-1"></em> <span>Send Back to Manager</span>
+                                </button>
+                                <a href="{{ route('rejected_samples') }}" class="btn btn-outline-primary btn-sm fw-bold" style="padding: 0.4rem 0.85rem; font-size: 0.8125rem; display: inline-flex; align-items: center; white-space: nowrap;">
+                                    <em class="icon ni ni-arrow-left me-1"></em> <span>Back to Rejected</span>
                                 </a>
                             </div>
                         </div>
+
+                        @if ($sample->tr04_is_under_clarification || $sample->tr04_latest_clarification_remark || optional($rejectedResults->first())->tr07_remarks)
+                            <div class="alert alert-pro alert-warning bg-warning-dim border-warning shadow-none mb-4 py-2 px-3">
+                                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 pb-1 border-bottom border-warning border-opacity-25 mb-1">
+                                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                                        <em class="icon ni ni-alert-circle text-warning fs-18px"></em>
+                                        <span class="fw-bold text-dark fs-14px">Clarification Required</span>
+                                        <span class="badge badge-dim bg-danger text-danger">From {{ $sample->tr04_sent_back_by_role ?? 'Verification Officer' }} ({{ $sample->tr04_sent_back_by_name ?? 'Authority' }})</span>
+                                    </div>
+                                    @if ($sample->tr04_sent_back_at)
+                                        <span class="text-muted small">
+                                            <em class="icon ni ni-clock me-1"></em>{{ \Carbon\Carbon::parse($sample->tr04_sent_back_at)->format('d M, Y h:i A') }}
+                                        </span>
+                                    @endif
+                                </div>
+                                <div class="text-dark fs-13px ps-1 pt-1" style="line-height: 1.5;">
+                                    <strong class="text-warning-dark me-1"><em class="icon ni ni-chat-fill text-warning me-1"></em>Remark:</strong>
+                                    <span>{{ $sample->tr04_latest_clarification_remark ?: optional($rejectedResults->first())->tr07_remarks }}</span>
+                                </div>
+                            </div>
+                        @endif
 
                         <!-- Form -->
                         <form action="{{ route('revise_test', $sample->tr04_reference_id) }}" method="POST"
@@ -691,4 +715,52 @@
             });
         });
     </script>
+
+    <!-- Send Back to Manager Modal -->
+    <div class="modal fade" id="analystSendBackModal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content border-0 shadow">
+                <form action="{{ route('sample.custody.send_back') }}" method="POST" id="analystSendBackForm">
+                    @csrf
+                    <input type="hidden" name="sample_id" value="{{ $sample->tr04_sample_registration_id }}">
+                    <input type="hidden" name="to_role" value="Manager">
+                    <input type="hidden" name="context" value="analyst">
+                    <div class="modal-header bg-danger text-white">
+                        <h5 class="modal-title text-white">
+                            <em class="icon ni ni-undo me-1"></em> Send Back to Manager (Allotment)
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body p-4">
+                        <div class="alert alert-danger alert-icon bg-danger-dim border-danger mb-3">
+                            <em class="icon ni ni-alert-circle"></em>
+                            <div class="alert-content">
+                                <span class="fw-bold">Mandatory Clarification Remark</span><br>
+                                <span class="small">State clear reasons why this sample is being sent back to the Manager (e.g. sample damaged, insufficient quantity, wrong test alloted).</span>
+                            </div>
+                        </div>
+                        <div class="form-group mb-3">
+                            <label class="form-label fw-bold text-dark">
+                                Sample Reference: <span class="badge bg-primary-dim text-primary fw-bold">#{{ $sample->tr04_reference_id }}</span>
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label fw-bold text-dark" for="analystRemarkTextarea">
+                                Clarification Remark <span class="text-danger">*</span>
+                            </label>
+                            <div class="form-control-wrap">
+                                <textarea name="clarification_remark" id="analystRemarkTextarea" class="form-control" rows="4" required minlength="3" placeholder="Explain the reason for sending back to Manager..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-light">
+                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-danger btn-sm fw-bold">
+                            <em class="icon ni ni-send me-1"></em> Confirm & Send Back
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 @endsection

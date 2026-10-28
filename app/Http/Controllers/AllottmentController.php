@@ -16,6 +16,7 @@ use App\Models\Test;
 use App\Models\TestTransfer;
 use App\Models\Wallet;
 use App\Models\WalletTransaction;
+use App\Services\CustodyService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Session;
@@ -32,7 +33,14 @@ class AllottmentController extends Controller
 
     public function pendingAllotments(Request $request)
     {
-        $roId = Session::get('ro_id');
+        Employee::ensureShortNameColumnExists();
+
+        $roId = Session::get('ro_id') ?: $request->get('ro_id');
+        if (!$roId) {
+            $firstRo = Ro::where('m04_status', 'ACTIVE')->orderBy('m04_ro_id')->first();
+            $roId = $firstRo ? $firstRo->m04_ro_id : null;
+        }
+
         $query = $this->buildPendingQuery($roId);
         $this->applyFilters($query, $request);
         $this->applySorting($query);
@@ -75,9 +83,13 @@ class AllottmentController extends Controller
 
     private function getAnalystStats($roId)
     {
-        // Get all active, non-expired analysts for the current RO (supporting multi-role)
-        $analysts = Employee::where('m06_employees.m04_ro_id', $roId)
-            ->where('m06_employees.m06_status', 'Active')
+        // Get all active, non-expired analysts strictly for the target RO (supporting multi-role)
+        $query = Employee::where('m06_employees.m06_status', 'Active');
+        if ($roId) {
+            $query->where('m06_employees.m04_ro_id', $roId);
+        }
+
+        $analysts = $query
             ->where(function ($q) {
                 $q->whereHas('role', function ($sub) {
                     $sub->where('m03_name', 'Analyst');
@@ -114,11 +126,6 @@ class AllottmentController extends Controller
 
             // 3. Completed Samples
             // Samples where the analyst has completed tests AND has no pending tests for that same sample
-            // Logic: (Samples with Completed Tests) - (Samples with Pending Tests that also have Completed Tests)
-            // Simpler: Samples where `m06_alloted_to` == User AND `status` == COMPLETED
-            //          AND ensuring that sample doesn't also have a 'PENDING' test for this user.
-
-            // Get IDs of samples with pending work for this analyst
             $pendingSampleIds = SampleTest::where('m06_alloted_to', $analystId)
                 ->whereIn('tr05_status', ['ALLOTED', 'IN_PROGRESS'])
                 ->pluck('tr04_sample_registration_id')
@@ -131,7 +138,6 @@ class AllottmentController extends Controller
                 ->distinct('tr04_sample_registration_id')
                 ->count('tr04_sample_registration_id');
 
-
             // 4. Rejected Samples
             // Distinct samples where this analyst created a rejected TestResult
             $rejected = TestResult::where('m06_created_by', $analystId)
@@ -143,6 +149,7 @@ class AllottmentController extends Controller
             $stats[] = [
                 'emp_id' => $analystId,
                 'name' => $analyst->m06_name,
+                'short_name' => $analyst->short_name ?: Employee::generateShortName($analyst->m06_name),
                 'allotted' => $totalAllotted,
                 'completed' => $completed,
                 'pending' => $pending,
@@ -255,7 +262,12 @@ class AllottmentController extends Controller
     {
         return SampleRegistration::query()
             ->with(['sampleTests.test']) // Eager load to prevent N+1 if accessed
-            ->where('tr04_progress', '!=', 'PENDING_PAYMENT') // Exclude PAYMENT_PENDING
+            ->whereNotIn('tr04_progress', ['PENDING_PAYMENT', 'UNDER_CLARIFICATION']) // Exclude PAYMENT_PENDING & UNDER_CLARIFICATION (sent back to RC)
+            ->where(function ($q) {
+                // If under clarification, only show if custody is currently with Manager
+                $q->where('tr04_is_under_clarification', 0)
+                  ->orWhere('tr04_current_custody_role', 'Manager');
+            })
             ->whereHas('sampleTests', function ($query) use ($roId) {
                 $query->where('m04_ro_id', $roId);
             })
@@ -410,8 +422,12 @@ class AllottmentController extends Controller
 
     private function getLabEmployees($roId)
     {
-        return Employee::where('m06_employees.m04_ro_id', $roId)
-            ->where('m06_employees.m06_status', 'Active')
+        $query = Employee::where('m06_employees.m06_status', 'Active');
+        if ($roId) {
+            $query->where('m06_employees.m04_ro_id', $roId);
+        }
+
+        return $query
             ->where(function ($q) {
                 $q->whereHas('role', function ($sub) {
                     $sub->where('m03_name', 'Analyst');
@@ -430,6 +446,7 @@ class AllottmentController extends Controller
             })
             ->map(function ($emp) {
                 $emp->role = 'Analyst';
+                $emp->short_name = $emp->short_name ?: Employee::generateShortName($emp->m06_name);
                 return $emp;
             })
             ->values();
@@ -437,9 +454,10 @@ class AllottmentController extends Controller
 
     public function viewAllottment($registrationId)
     {
-        $roId = Session::get('ro_id');
+        Employee::ensureShortNameColumnExists();
 
         $registration = SampleRegistration::with('department')->findOrFail($registrationId);
+        $roId = Session::get('ro_id') ?: $registration->m04_ro_id;
 
         $tests = SampleTest::where('tr04_sample_registration_id', $registrationId)
             ->where(function ($q) use ($roId) {
@@ -626,6 +644,9 @@ class AllottmentController extends Controller
                     ]);
                     $totalUpdated++;
                 }
+                try {
+                    CustodyService::forwardOrResolve($sampleId, 'Manager', 'Analyst');
+                } catch (\Throwable $e) {}
             }
 
             DB::commit();
@@ -782,6 +803,10 @@ class AllottmentController extends Controller
                 $updatedCount++;
             }
 
+            try {
+                CustodyService::forwardOrResolve($request->sample_id, 'Manager', 'Analyst');
+            } catch (\Throwable $e) {}
+
             DB::commit();
             Session::flash('type', 'success');
             Session::flash('message', "Successfully allotted {$updatedCount} tests to the selected analyst");
@@ -935,6 +960,11 @@ class AllottmentController extends Controller
                     }
                 }
             }
+
+            try {
+                CustodyService::forwardOrResolve($request->txt_sample_registration_id, 'Manager', 'Analyst');
+            } catch (\Throwable $e) {}
+
             DB::commit();
             Session::flash('type', 'success');
             Session::flash('message', "Successfully alloted {$updatedCount} tests");

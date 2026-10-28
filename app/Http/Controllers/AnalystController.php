@@ -11,6 +11,7 @@ use App\Models\SecondaryTest;
 use App\Models\TestReport;
 use App\Models\TestResult;
 use App\Traits\HasManuscriptContent;
+use App\Services\CustodyService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -643,6 +644,15 @@ class AnalystController extends Controller
                 // Auto-complete SampleTest status
                 $this->autoCompleteSampleTests($refId, $userId);
 
+                // Forward custody to Verification Officer when revised results are submitted
+                if ($request->action !== 'DRAFT') {
+                    try {
+                        CustodyService::forwardOrResolve($refId, 'Analyst', 'Verification Officer');
+                    } catch (\Throwable $e) {
+                        Log::warning('Custody forward error in reviseTest: ' . $e->getMessage());
+                    }
+                }
+
                 DB::commit();
 
                 $message = $request->action === 'DRAFT'
@@ -803,6 +813,17 @@ class AnalystController extends Controller
             ]);
         }
         if ($updated) {
+            // If all tests for this sample are completed, advance custody / resolve clarification to DEO
+            $pendingCount = SampleTest::where('tr04_sample_registration_id', $sampleTest->tr04_sample_registration_id)
+                ->where('tr05_status', '!=', 'COMPLETED')
+                ->where('tr05_status', '!=', 'TRANSFERRED')
+                ->count();
+            if ($pendingCount === 0) {
+                try {
+                    CustodyService::forwardOrResolve($sampleTest->tr04_sample_registration_id, 'Analyst', 'DEO');
+                } catch (\Throwable $e) {}
+            }
+
             Session::flash('type', 'success');
             Session::flash('message', 'Test Marked as Completed');
             return redirect()->back();
@@ -843,6 +864,17 @@ class AnalystController extends Controller
         }
 
         if ($updated) {
+            // If all tests for this sample are completed, advance custody / resolve clarification to DEO
+            $pendingCount = SampleTest::where('tr04_sample_registration_id', $sample->tr04_sample_registration_id)
+                ->where('tr05_status', '!=', 'COMPLETED')
+                ->where('tr05_status', '!=', 'TRANSFERRED')
+                ->count();
+            if ($pendingCount === 0) {
+                try {
+                    CustodyService::forwardOrResolve($sample->tr04_sample_registration_id, 'Analyst', 'DEO');
+                } catch (\Throwable $e) {}
+            }
+
             Session::flash('type', 'success');
             Session::flash('message', 'Tests Updated Successfully');
             return redirect()->back();

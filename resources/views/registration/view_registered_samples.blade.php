@@ -19,9 +19,14 @@
                         <div class="nk-block-head">
                             <div class="nk-block-head-content d-flex justify-content-between align-items-center">
                                 <h4 class="nk-block-title mb-0">All Registered Samples</h4>
-                                <a href="{{ url()->previous() }}" class="btn btn-outline-primary">
-                                    <em class="ni ni-back-alt-fill"></em> Back
-                                </a>
+                                <div class="d-flex align-items-center">
+                                    <a href="{{ route('view_contract_reviews') }}" class="btn btn-primary me-2">
+                                        <em class="ni ni-shield-check me-1"></em> Contract Reviews
+                                    </a>
+                                    <a href="{{ url()->previous() }}" class="btn btn-outline-light">
+                                        <em class="ni ni-back-alt-fill"></em> Back
+                                    </a>
+                                </div>
                             </div>
                         </div>
                         <div class="nk-block">
@@ -33,9 +38,8 @@
                                                 <tr>
                                                     <th>Registration ID</th>
                                                     <th>Date</th>
-                                                    <th>Sample Description</th>
-                                                    {{-- <th>Sample Image</th> --}}
-                                                    <th>Priority</th>
+                                                    <th>Customer Name</th>
+                                                    <th>BE Number</th>
                                                     <th>Amount</th>
                                                     <th>Payment Status</th>
                                                     <th>Status</th>
@@ -165,25 +169,12 @@
                         name: 'created_at'
                     },
                     {
-                        data: 'sample_description',
-                        name: 'tr04_sample_description'
+                        data: 'customer_name',
+                        name: 'customer.m07_name'
                     },
-                    // {
-                    //    data: 'sanple_image',
-                    //    name: 'tr04_attachment',
-                    //    render: function(data, type, row) {
-                    //        if (data) {
-                    //            return `<button class="btn view-image" data-image="${data}">
-                    //            <em class="icon ni ni-eye-fill"></em></button>`;
-                    //        } else {
-                    //            return `<span class="text-muted">No Image</span>`;
-                    //        }
-                    //    }
-                    // },
-
                     {
-                        data: 'sample_type',
-                        name: 'tr04_sample_type'
+                        data: 'be_no',
+                        name: 'tr04_be_no'
                     },
                     {
                         data: 'amount',
@@ -317,5 +308,59 @@
                 }
             });
         });
+
+        function openForwardToManagerModal(sampleId, refId, remark) {
+            document.getElementById('forwardSampleId').value = sampleId;
+            document.getElementById('forwardSampleRefDisplay').innerText = refId;
+            document.getElementById('forwardReasonDisplay').innerText = `"${remark}"`;
+            document.getElementById('forwardRemarkTextarea').value = '';
+            const modalEl = document.getElementById('forwardToManagerModal');
+            const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            modal.show();
+        }
     </script>
+
+    <!-- Clarify and Forward to Manager Modal -->
+    <div class="modal fade" id="forwardToManagerModal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content border-0 shadow">
+                <form action="{{ route('sample.custody.forward') }}" method="POST" id="forwardToManagerForm">
+                    @csrf
+                    <input type="hidden" name="sample_id" id="forwardSampleId" value="">
+                    <input type="hidden" name="to_role" value="Manager">
+                    <div class="modal-header bg-success text-white">
+                        <h5 class="modal-title text-white">
+                            <em class="icon ni ni-send me-1"></em> Clarify & Forward to Manager
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body p-4">
+                        <div class="alert alert-warning border border-warning mb-3">
+                            <span class="fw-bold text-dark d-block mb-1">Reason for Return by Manager:</span>
+                            <span id="forwardReasonDisplay" class="text-dark font-monospace fs-12px"></span>
+                        </div>
+                        <div class="form-group mb-3">
+                            <label class="form-label fw-bold text-dark">
+                                Sample Reference: <span id="forwardSampleRefDisplay" class="badge bg-primary-dim text-primary fw-bold"></span>
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label fw-bold text-dark" for="forwardRemarkTextarea">
+                                Clarification Notes (Optional)
+                            </label>
+                            <div class="form-control-wrap">
+                                <textarea name="remark" id="forwardRemarkTextarea" class="form-control" rows="3" placeholder="Provide any additional clarifications or adjustments made..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-light">
+                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-success btn-sm fw-bold">
+                            <em class="icon ni ni-send me-1"></em> Forward to Manager
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 @endsection

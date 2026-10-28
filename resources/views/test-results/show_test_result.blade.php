@@ -16,9 +16,14 @@
                             </div>
                         </div>
                         <div class="nk-block-head-content">
-                            <a href="{{ route('test_results') }}" class="btn btn-outline-primary btn-sm">
-                                <em class="icon ni ni-caret-left-fill"></em> Back
-                            </a>
+                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                <button type="button" class="btn btn-dim btn-outline-danger btn-sm fw-bold" style="padding: 0.4rem 0.85rem; font-size: 0.8125rem; display: inline-flex; align-items: center; white-space: nowrap;" data-bs-toggle="modal" data-bs-target="#sendBackModal">
+                                    <em class="icon ni ni-undo me-1"></em> <span>Send Back for Clarification</span>
+                                </button>
+                                <a href="{{ route('test_results') }}" class="btn btn-outline-primary btn-sm fw-bold" style="padding: 0.4rem 0.85rem; font-size: 0.8125rem; display: inline-flex; align-items: center; white-space: nowrap;">
+                                    <em class="icon ni ni-arrow-left me-1"></em> <span>Back</span>
+                                </a>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -508,4 +513,39 @@
             });
         });
     </script>
+
+    <!-- Modal: Send Back to Verification Officer -->
+    <div class="modal fade" id="sendBackModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form action="{{ route('sample.custody.send_back') }}" method="POST">
+                    @csrf
+                    <input type="hidden" name="sample_id" value="{{ $sampleInfo->tr04_reference_id }}">
+                    <input type="hidden" name="to_role" value="Verification Officer">
+                    <input type="hidden" name="context" value="reporting">
+                    <div class="modal-header bg-danger text-white">
+                        <h5 class="modal-title text-white"><em class="icon ni ni-undo me-1"></em> Send Back to Verification Officer</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="alert alert-warning py-2 mb-3">
+                            <em class="icon ni ni-alert-circle me-1"></em>
+                            Sample <strong>#{{ $sampleInfo->tr04_reference_id }}</strong> will be reverted to <strong>RESULTED</strong> and sent back to the <strong>Verification Officer</strong> for review.
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label fw-bold">Mandatory Clarification Remark <span class="text-danger">*</span></label>
+                            <textarea name="clarification_remark" class="form-control" rows="4" placeholder="Detail the issues found in the report, values, units, or remarks that require clarification..." required minlength="3"></textarea>
+                            <small class="text-muted">The Verification Officer will see this exact message prominently upon opening the sample.</small>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-danger">
+                            <em class="icon ni ni-send me-1"></em> Send Back
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 @endsection

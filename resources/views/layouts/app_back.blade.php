@@ -4,7 +4,6 @@
 
 <body class="nk-body bg-lighter npc-default has-sidebar">
     <!-- Loader Overlay -->
-    <!-- Loader Overlay -->
     <div id="global-loader" style="display:none;">
         <div class="loader">
             <div class="dot dot1"></div>
@@ -27,6 +26,7 @@
     </div>
     @include('layouts.backLayout.scripts')
     @yield('scripts')
+    @stack('scripts')
     <script>
         // Function that toggles status between active and inactive 
         function bindToggleStatus(className = '.eg-swal-av3', route = null) {
@@ -111,18 +111,24 @@
         const loader = document.getElementById('global-loader');
         let loaderCount = 0;
         let autoHideTimer = null;
-        const AUTO_HIDE_MS = 500;
+        const AUTO_HIDE_TIMEOUT_MS = 25000; // 25s fallback safety timeout in case navigation is aborted or fails
 
-        function showLoader() {
+        function showLoader(customTimeout) {
             loaderCount++;
-            if (loader.style.display !== 'flex') loader.style.display = 'flex';
-            // reset auto-hide timer
-            if (autoHideTimer) clearTimeout(autoHideTimer);
+            if (loader && loader.style.display !== 'flex') {
+                loader.style.display = 'flex';
+            }
+            // Clear previous safety timer
+            if (autoHideTimer) {
+                clearTimeout(autoHideTimer);
+                autoHideTimer = null;
+            }
+            const timeout = (typeof customTimeout === 'number' && customTimeout > 0) ? customTimeout : AUTO_HIDE_TIMEOUT_MS;
             autoHideTimer = setTimeout(() => {
-                console.warn('Loader auto-hidden after timeout (' + AUTO_HIDE_MS + 'ms)');
+                console.warn('Loader safety auto-hide triggered after ' + timeout + 'ms');
                 loaderCount = 0;
                 hideLoader(true);
-            }, AUTO_HIDE_MS);
+            }, timeout);
         }
 
         function hideLoader(force = false) {
@@ -132,7 +138,9 @@
                 loaderCount = Math.max(0, loaderCount - 1);
             }
             if (loaderCount === 0) {
-                loader.style.display = 'none';
+                if (loader) {
+                    loader.style.display = 'none';
+                }
                 if (autoHideTimer) {
                     clearTimeout(autoHideTimer);
                     autoHideTimer = null;
@@ -140,18 +148,31 @@
             }
         }
 
+        // Global functions for custom scripts or AJAX to control loader
+        window.showLoader = showLoader;
+        window.hideLoader = hideLoader;
+
+        // Form submission: show loader on legitimate page submits
         document.addEventListener('submit', function(e) {
             const form = e.target;
+            if (!form || form.nodeName !== 'FORM') return;
 
             const submitter = e.submitter || form.querySelector('[type="submit"]');
             if (submitter && (submitter.matches('.no-loader') || submitter.dataset.noLoader !== undefined)) return;
             if (form.dataset.noLoader !== undefined || form.classList.contains('no-loader')) return;
 
+            // Form submitting in a new window/tab
+            if (form.target === '_blank') return;
+
+            // Stop if HTML5 native validation prevents submit
+            if (form.checkValidity && !form.checkValidity()) return;
+
             const action = form.getAttribute('action');
-            if (!action || action.trim() === '' || action.trim() === '#' || action.trim().startsWith(
-                    'javascript:')) {
+            if (action && (action.trim() === '#' || action.trim().startsWith('javascript:'))) {
                 return;
             }
+
+            // Defer until after submit event has bubbled, ensuring preventDefault was not called
             setTimeout(() => {
                 if (!e.defaultPrevented) {
                     showLoader();
@@ -159,45 +180,94 @@
             }, 0);
         }, true);
 
+        // Link click: show loader when navigating to another URL
         document.addEventListener('click', function(e) {
+            // Only process primary left clicks without modifier keys
+            if (e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
+
             const clickable = e.target.closest('a, button');
             if (!clickable) return;
 
+            // Opt-outs
             if (clickable.dataset.noLoader !== undefined || clickable.classList.contains('no-loader')) return;
+            if (clickable.closest('.no-loader, [data-no-loader], .swal2-container')) return;
 
-            if (clickable.hasAttribute('data-bs-toggle') || clickable.hasAttribute('data-toggle') || clickable
-                .closest('.swal2-container')) return;
+            // Bootstrap modal / dropdown / tab / collapse toggles & dismissers
+            if (clickable.hasAttribute('data-bs-toggle') || clickable.hasAttribute('data-toggle') ||
+                clickable.hasAttribute('data-bs-dismiss') || clickable.hasAttribute('data-dismiss')) {
+                return;
+            }
 
             const tag = clickable.tagName.toLowerCase();
 
+            // Native buttons are handled by form submit or custom scripts, ignore here
+            if (tag === 'button') {
+                return;
+            }
+
             if (tag === 'a') {
+                // Ignore download links
+                if (clickable.hasAttribute('download')) return;
+
+                // Ignore new tab/window links
+                if (clickable.target === '_blank') return;
+
                 const href = clickable.getAttribute('href');
-                if (!href || href === '#' || href.startsWith('javascript:') || href.startsWith('mailto:') || href
-                    .startsWith('tel:')) return;
+                if (!href) return;
+                const cleanHref = href.trim();
+                if (cleanHref === '' || cleanHref === '#' || cleanHref.startsWith('#') ||
+                    cleanHref.startsWith('javascript:') || cleanHref.startsWith('mailto:') || cleanHref.startsWith('tel:')) {
+                    return;
+                }
+
                 try {
-                    const url = new URL(href, location.href);
-                    if (url.pathname === location.pathname && url.search === location.search && url.hash) {
+                    const targetUrl = new URL(cleanHref, location.href);
+                    // Same-page hash navigation
+                    if (targetUrl.origin === location.origin &&
+                        targetUrl.pathname === location.pathname &&
+                        targetUrl.search === location.search &&
+                        targetUrl.hash) {
+                        return;
+                    }
+                    // Common file downloads that don't cause page unloads
+                    if (targetUrl.pathname.match(/\.(xlsx?|csv|zip|rar|docx?|txt)$/i)) {
                         return;
                     }
                 } catch (err) {}
-                if (clickable.target === '_blank') return;
-            } else if (tag === 'button') {
-                const type = (clickable.getAttribute('type') || '').toLowerCase();
-                if (type === 'button') return;
-                if (type === 'submit') return;
+
+                // Defer to check if another click handler calls e.preventDefault()
+                setTimeout(() => {
+                    if (!e.defaultPrevented) {
+                        showLoader();
+                    }
+                }, 0);
             }
-            showLoader();
         }, true);
-        // if (window.jQuery) {
-        //     $(document).ajaxStart(function() {
-        //         showLoader();
-        //     }).ajaxStop(function() {
-        //         hideLoader();
-        //     });
-        // }
+
+        // Optional jQuery AJAX support: only show if explicitly requested with { showLoader: true }
+        if (window.jQuery) {
+            $(document).ajaxSend(function(event, jqXHR, settings) {
+                if (settings && settings.showLoader) {
+                    showLoader();
+                }
+            });
+            $(document).ajaxComplete(function(event, jqXHR, settings) {
+                if (settings && settings.showLoader) {
+                    hideLoader();
+                }
+            });
+        }
+
+        // Hide loader when page loads or restored from browser back-forward cache (bfcache)
         window.addEventListener('load', () => hideLoader(true));
-        window.addEventListener('pageshow', function(event) {
-            if (event.persisted) hideLoader(true);
+        window.addEventListener('pageshow', () => hideLoader(true));
+        document.addEventListener('DOMContentLoaded', () => hideLoader(true));
+
+        // Allow pressing Escape to dismiss loader if user cancelled navigation
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' || e.keyCode === 27) {
+                hideLoader(true);
+            }
         });
     </script>
 

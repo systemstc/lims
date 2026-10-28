@@ -23,14 +23,25 @@
                                             <div class="form-group">
                                                 <label class="form-label" for="txt_ro_id">Regional Office</label>
                                                 <div class="form-control-wrap">
-                                                    <select name="txt_ro_id" class="form-control" id="txt_ro_id" required>
-                                                        <option value="">-- Select Ro --</option>
-                                                        @foreach ($ros as $ro)
-                                                            <option value="{{ $ro->m04_ro_id }}">
-                                                                {{ $ro->m04_name }}
-                                                            </option>
-                                                        @endforeach
-                                                    </select>
+                                                    @if (isset($isRoScoped) && $isRoScoped)
+                                                        <select name="txt_ro_id" class="form-control bg-light" id="txt_ro_id" readonly style="pointer-events: none;" required>
+                                                            @foreach ($ros as $ro)
+                                                                <option value="{{ $ro->m04_ro_id }}" selected>
+                                                                    {{ $ro->m04_name }} (Assigned RO)
+                                                                </option>
+                                                            @endforeach
+                                                        </select>
+                                                        <small class="text-muted">Locked to your designated Regional Office</small>
+                                                    @else
+                                                        <select name="txt_ro_id" class="form-control" id="txt_ro_id" required>
+                                                            <option value="">-- Select Ro --</option>
+                                                            @foreach ($ros as $ro)
+                                                                <option value="{{ $ro->m04_ro_id }}" {{ old('txt_ro_id') == $ro->m04_ro_id ? 'selected' : '' }}>
+                                                                    {{ $ro->m04_name }}
+                                                                </option>
+                                                            @endforeach
+                                                        </select>
+                                                    @endif
                                                     @error('txt_ro_id')
                                                         <span class="text-danger">{{ $message }}</span>
                                                     @enderror
@@ -58,12 +69,25 @@
                                         </div>
                                         <div class="col-md-6">
                                             <div class="form-group">
-                                                <label class="form-label" for="txt_name">Full Name</label>
+                                                <label class="form-label" for="txt_name">Full Name <span class="text-danger">*</span></label>
                                                 <div class="form-control-wrap">
                                                     <input type="text" class="form-control" id="txt_name"
-                                                        name="txt_name" required>
+                                                        name="txt_name" value="{{ old('txt_name') }}" required placeholder="e.g. Abhishek Singh">
                                                 </div>
                                                 @error('txt_name')
+                                                    <span class="text-danger">{{ $message }}</span>
+                                                @enderror
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label class="form-label" for="txt_short_name">Short Name / Initials</label>
+                                                <div class="form-control-wrap">
+                                                    <input type="text" class="form-control text-uppercase fw-bold" id="txt_short_name"
+                                                        name="txt_short_name" value="{{ old('txt_short_name') }}" placeholder="Auto-generated (e.g. AS)" maxlength="20">
+                                                </div>
+                                                <small class="text-muted">Auto-generated from first & last initials. Used for allotment graphs & concise views.</small>
+                                                @error('txt_short_name')
                                                     <span class="text-danger">{{ $message }}</span>
                                                 @enderror
                                             </div>
@@ -173,6 +197,37 @@
     </div>
 
     <script>
+        // Auto-generate short name initials from first and last name
+        let isShortNameManual = false;
+        $('#txt_short_name').on('input', function() {
+            isShortNameManual = ($(this).val().trim() !== '');
+        });
+
+        $('#txt_name').on('input', function() {
+            if (!isShortNameManual) {
+                let name = $(this).val().trim();
+                let shortName = generateShortName(name);
+                $('#txt_short_name').val(shortName);
+            }
+        });
+
+        function generateShortName(name) {
+            if (!name) return '';
+            let cleaned = name.replace(/[^\p{L}\p{N}\s]/gu, '').trim();
+            let words = cleaned.split(/\s+/).filter(Boolean);
+            if (words.length === 0) return '';
+            const prefixes = ['DR', 'MR', 'MRS', 'MS', 'ER', 'PROF', 'DOC'];
+            if (words.length > 2 && prefixes.includes(words[0].toUpperCase())) {
+                words.shift();
+            }
+            if (words.length === 1) {
+                return words[0].substring(0, 2).toUpperCase();
+            }
+            let first = words[0].substring(0, 1);
+            let last = words[words.length - 1].substring(0, 1);
+            return (first + last).toUpperCase();
+        }
+
         $('#txt_state_id').on('change', function() {
             var stateId = $(this).val();
             $('#txt_district_id').html('<option value="">Loading...</option>');

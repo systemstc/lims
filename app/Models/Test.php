@@ -106,10 +106,21 @@ class Test extends Model
     public function getStandardsListAttribute()
     {
         $ids = $this->m15_standard_id
-            ? explode(',', $this->m15_standard_id)
+            ? array_filter(array_map('trim', explode(',', (string) $this->m15_standard_id)))
             : [];
 
-        return Standard::whereIn('m15_standard_id', $ids)->get();
+        if (empty($ids) && $this->standard) {
+            return collect([$this->standard]);
+        }
+
+        if (empty($ids)) {
+            return collect();
+        }
+
+        return Standard::whereIn('m15_standard_id', $ids)
+            ->where('m15_status', 'ACTIVE')
+            ->orderBy('m15_method')
+            ->get();
     }
 
     public function getSecondaryTestsListAttribute()

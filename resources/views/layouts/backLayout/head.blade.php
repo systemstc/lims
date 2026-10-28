@@ -223,12 +223,20 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(189, 180, 180, 0.9);
-            z-index: 9999;
+            background: rgba(255, 255, 255, 0.88);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            z-index: 999999;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
+            pointer-events: all;
+            user-select: none;
+        }
+
+        body.dark-mode #global-loader {
+            background: rgba(16, 23, 41, 0.90);
         }
 
         .loader {
@@ -271,12 +279,17 @@
 
         .loader-text {
             margin-top: 18px;
-            font-size: 18px;
+            font-size: 16px;
             font-weight: 600;
             color: #3F41D1;
             letter-spacing: 1px;
-            opacity: 0.8;
+            opacity: 0.9;
+        }
+
+        body.dark-mode .loader-text {
+            color: #798bff;
         }
     </style>
-
+    @yield('styles')
+    @stack('styles')
 </head>

@@ -701,6 +701,7 @@ class RegistrationController extends Controller
                 'sampleTests.test',
                 'sampleTests.standard',
                 'customerType',
+                'customer',
             ])->select('tr04_sample_registrations.*');
 
             if (Session::get('role') !== 'ADMIN') {
@@ -714,7 +715,28 @@ class RegistrationController extends Controller
                     return $row->tr04_sample_registration_id ?? 'N/A';
                 })
                 ->addColumn('registration_id', function ($row) {
-                    return $row->tr04_reference_id ?? 'N/A';
+                    $ref = '<b>' . e($row->tr04_reference_id ?? 'N/A') . '</b>';
+                    $reviewStatus = strtoupper($row->tr04_contract_review_status ?? 'PENDING');
+                    $reviewBadge = match ($reviewStatus) {
+                        'ACCEPTED' => '<span class="badge bg-success-dim text-success fs-10px py-0 px-1 mt-1 d-block"><em class="icon ni ni-check-circle me-1"></em>Review: Accepted</span>',
+                        'ACCEPTED_WITH_DEVIATION', 'ACCEPTED_DEVIATION' => '<span class="badge bg-info-dim text-info fs-10px py-0 px-1 mt-1 d-block"><em class="icon ni ni-alert-circle me-1"></em>Review: Deviation</span>',
+                        'CLARIFICATION_REQUIRED' => '<span class="badge bg-warning-dim text-warning fs-10px py-0 px-1 mt-1 d-block"><em class="icon ni ni-help-circle me-1"></em>Review: Clarification</span>',
+                        'REJECTED' => '<span class="badge bg-danger-dim text-danger fs-10px py-0 px-1 mt-1 d-block"><em class="icon ni ni-cross-circle me-1"></em>Review: Rejected</span>',
+                        default => '<span class="badge bg-light text-secondary border fs-10px py-0 px-1 mt-1 d-block"><em class="icon ni ni-clock me-1"></em>Review: Pending</span>',
+                    };
+                    $ref .= $reviewBadge;
+                    if ($row->tr04_is_under_clarification) {
+                        $ref .= '<br><span class="badge bg-warning text-dark mt-1" title="' . e($row->tr04_latest_clarification_remark) . '"><em class="icon ni ni-undo me-1"></em>Returned: ' . e($row->tr04_sent_back_by_role) . '</span>';
+                    }
+                    return $ref;
+                })
+                ->addColumn('customer_name', function ($row) {
+                    $name = $row->customer?->m07_name;
+                    return $name ? '<span class="fw-bold text-dark">' . e($name) . '</span>' : '<span class="text-muted">N/A</span>';
+                })
+                ->addColumn('be_no', function ($row) {
+                    $beNo = $row->tr04_be_no;
+                    return $beNo ? '<span class="badge bg-light text-dark border fw-medium">' . e($beNo) . '</span>' : '<span class="text-muted">N/A</span>';
                 })
                 ->addColumn('sample_description', function ($row) {
                     return $row->tr04_sample_description ?? 'N/A';
@@ -789,6 +811,20 @@ class RegistrationController extends Controller
                                 <div class="dropdown-menu dropdown-menu-end">
                                     <ul class="link-list-opt no-bdr">';
 
+                    // Contract Review (ISO/IEC 17025)
+                    // $actions .= '<li>
+                    //     <a href="' . route('show_contract', $row->tr04_sample_registration_id) . '" class="text-primary fw-bold">
+                    //         <em class="icon ni ni-shield-check"></em><span>Contract Review</span>
+                    //     </a>
+                    // </li>';
+
+                    // // Edit Details
+                    // $actions .= '<li>
+                    //     <a href="' . route('edit_contract_details', $row->tr04_sample_registration_id) . '" class="text-dark">
+                    //         <em class="icon ni ni-edit-alt"></em><span>Edit Sample & Tests</span>
+                    //     </a>
+                    // </li>';
+
                     if (!$isDispatched) {
                         // Print Acknowledgement
                         $actions .= '<li>
@@ -837,6 +873,16 @@ class RegistrationController extends Controller
                             </a>
                         </li>';
                         }
+
+                        // Clarify and Send to Manager action if under clarification
+                        if ($row->tr04_is_under_clarification) {
+                            $escapedRemark = htmlspecialchars($row->tr04_latest_clarification_remark ?? '', ENT_QUOTES, 'UTF-8');
+                            $actions .= '<li>
+                            <a href="javascript:void(0)" class="text-success" onclick="openForwardToManagerModal(' . $row->tr04_sample_registration_id . ', \'' . e($row->tr04_reference_id) . '\', \'' . $escapedRemark . '\')">
+                                <em class="icon ni ni-send text-success"></em><span>Clarify & Send to Manager</span>
+                            </a>
+                        </li>';
+                        }
                     }
 
                     $actions .= '</ul>
@@ -847,7 +893,15 @@ class RegistrationController extends Controller
             </td>';
                     return $actions;
                 })
-                ->rawColumns(['status', 'amount', 'action', 'sample_type', 'payment_status'])
+                ->filterColumn('customer_name', function ($query, $keyword) {
+                    $query->whereHas('customer', function ($q) use ($keyword) {
+                        $q->where('m07_name', 'like', "%{$keyword}%");
+                    });
+                })
+                ->filterColumn('be_no', function ($query, $keyword) {
+                    $query->where('tr04_be_no', 'like', "%{$keyword}%");
+                })
+                ->rawColumns(['status', 'amount', 'action', 'sample_type', 'payment_status', 'registration_id', 'customer_name', 'be_no'])
                 ->make(true);
         }
         return view('registration.view_registered_samples');

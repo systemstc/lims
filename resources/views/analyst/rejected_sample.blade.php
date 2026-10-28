@@ -47,15 +47,22 @@
                                                         </strong>
                                                     </div>
                                                     @if ($sample->overall_status === 'COMPLETED' && $sample->latest_completed_at != '')
-                                                        <p class="small text-muted mb-3">
+                                                        <p class="small text-muted mb-2">
                                                             Completed At:
                                                             {{ \Carbon\Carbon::parse($sample->latest_completed_at)->format('d M, Y h:i A') }}
                                                         </p>
                                                     @else
-                                                        <p class="small text-muted mb-3">
+                                                        <p class="small text-muted mb-2">
                                                             Latest Allotment:
                                                             {{ \Carbon\Carbon::parse($sample->latest_allotment)->format('d M, Y h:i A') }}
                                                         </p>
+                                                    @endif
+
+                                                    @if ($sample->registration && $sample->registration->tr04_is_under_clarification)
+                                                        <div class="alert alert-warning py-1 px-2 border border-warning rounded mb-2 small">
+                                                            <strong class="text-dark"><em class="icon ni ni-undo me-1"></em>{{ $sample->registration->tr04_sent_back_by_role }}:</strong>
+                                                            <span class="text-dark font-monospace">"{{ \Illuminate\Support\Str::limit($sample->registration->tr04_latest_clarification_remark, 80) }}"</span>
+                                                        </div>
                                                     @endif
 
                                                     <!-- Progress Bar -->

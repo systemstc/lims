@@ -22,6 +22,8 @@ use App\Http\Controllers\WalletController;
 use App\Http\Controllers\TwoFactorController;
 use App\Http\Controllers\CustomerPortalController;
 use App\Http\Controllers\AdminProfileController;
+use App\Http\Controllers\CustodyController;
+use App\Http\Controllers\ContractReviewController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Session;
 
@@ -189,6 +191,20 @@ Route::middleware(['access_control'])->group(function () {
     // Blank Registration
     Route::match(['get', 'post'], 'blank-registration', [RegistrationController::class, 'blankRegistration'])->name('blank_registration');
 
+    // ISO/IEC 17025 Clause 7.1 Contract Review Routes (Lab In-Charge / Technical Manager)
+    Route::get('contract-reviews', [ContractReviewController::class, 'index'])->name('view_contract_reviews');
+    Route::get('contract-reviews/{id}/show', [ContractReviewController::class, 'show'])->name('show_contract');
+    Route::get('show-contract/{id}', [ContractReviewController::class, 'show']); // Alias
+    Route::match(['get', 'post'], 'contract-reviews/{id}/edit', [ContractReviewController::class, 'edit'])->name('edit_contract_details');
+    Route::match(['get', 'post'], 'edit-contract-details/{id}', [ContractReviewController::class, 'edit']); // Alias
+    Route::put('contract-reviews/{id}/update', [ContractReviewController::class, 'update'])->name('update_contract_details');
+    Route::match(['post', 'delete'], 'contract-reviews/{id}/delete', [ContractReviewController::class, 'destroy'])->name('delete_details');
+    Route::match(['post', 'delete'], 'delete-details/{id}', [ContractReviewController::class, 'destroy']); // Alias
+    Route::post('contract-reviews/{id}/decision', [ContractReviewController::class, 'updateDecision'])->name('contract_review_decision');
+    Route::get('contract-reviews/{id}/print', [ContractReviewController::class, 'printReview'])->name('print_contract_review');
+    Route::get('contract-reviews-ajax/standards', [ContractReviewController::class, 'getStandardsByTest'])->name('contract_standards_by_test');
+    Route::get('contract-reviews-ajax/tests', [ContractReviewController::class, 'getTestsByGroup'])->name('contract_tests_by_group');
+
     // Invoice Registration
     Route::get('/samples/{id}/invoicedetails', [InvoiceController::class, 'showInvoiceDetails'])->name('view_invoice');
     Route::get('/customer/{id}/invoicedetails', [InvoiceController::class, 'showAllInvoiceDetails'])->name('view_all_invoice');
@@ -262,6 +278,7 @@ Route::middleware(['access_control'])->group(function () {
         Route::get('/get-formula-details/{id}', [TestResultController::class, 'getFormulaDetails'])->name('get_formula_details');
         Route::post('/get-raw-entry', [TestResultController::class, 'getRawEntry'])->name('get_raw_entry');
         Route::post('/save-raw-entry', [TestResultController::class, 'saveRawEntry'])->name('save_raw_entry');
+        Route::post('/update-test-standard', [TestResultController::class, 'updateTestStandard'])->name('update_test_standard');
     });
     Route::get('cumulative-reports', [CumulativeReportController::class, 'index'])->name('cumulative_reports');
     Route::match(['get', 'post'], 'cumulative-reports/preview', [CumulativeReportController::class, 'preview'])->name('show_cumulative_report');
@@ -363,6 +380,7 @@ Route::middleware(['access_control'])->group(function () {
     Route::get('manuscript-template/{id}', [TestResultController::class, 'templateTestResult'])->name('template_manuscript');
     Route::get('manuscript-dd-template/{id}', [TestResultController::class, 'templateManuscript'])->name('manuscript_template');
     Route::get('manuscript-download/{id}', [TestResultController::class, 'downloadManuscript'])->name('download_manuscript');
+    Route::get('manuscript-file/{filename}', [TestResultController::class, 'serveManuscriptFile'])->name('serve_manuscript_file');
     Route::get('completed-tests', [TestResultController::class, 'viewCompletedTests'])->name('view_completed_camples');
     Route::post('/test-result/upload/{id}', [TestResultController::class, 'uploadDocument'])->name('testresult_upload');
 
@@ -373,6 +391,11 @@ Route::middleware(['access_control'])->group(function () {
     // Verification Routes
     Route::get('view-result-verification', [VerificationController::class, 'viewVerification'])->name('view_result_verification');
     Route::match(['get', 'post'], 'verify-result/{id}', [VerificationController::class, 'verifyResult'])->name('verify_result');
+
+    // Chain of Custody & Clarification Routes
+    Route::post('sample-custody/send-back', [CustodyController::class, 'sendBack'])->name('sample.custody.send_back');
+    Route::post('sample-custody/forward', [CustodyController::class, 'forward'])->name('sample.custody.forward');
+    Route::get('sample-custody/timeline/{sampleId}', [CustodyController::class, 'timeline'])->name('sample.custody.timeline');
 
     // Payment for testing
     // Route::get('/razorpay-checkout', [RazorpayController::class, 'checkout'])->name('razorpay.checkout');

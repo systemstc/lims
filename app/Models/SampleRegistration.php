@@ -55,6 +55,29 @@ class SampleRegistration extends Model
         'tr04_hold_amount',
         'tr04_manuscript',
         'tr04_ulr_no',
+        'tr04_current_custody_role',
+        'tr04_is_under_clarification',
+        'tr04_latest_clarification_remark',
+        'tr04_sent_back_by_name',
+        'tr04_sent_back_by_role',
+        'tr04_sent_back_at',
+        'tr04_contract_review_status',
+        'tr04_contract_reviewed_by',
+        'tr04_contract_reviewed_by_name',
+        'tr04_contract_reviewed_by_role',
+        'tr04_contract_reviewed_at',
+        'tr04_contract_review_remarks',
+        'tr04_sample_condition',
+        'tr04_storage_condition',
+        'tr04_decision_rule',
+        'tr04_feasibility_checklist',
+        'tr04_customer_agreed_deviation',
+    ];
+
+    protected $casts = [
+        'tr04_contract_reviewed_at' => 'datetime',
+        'tr04_feasibility_checklist' => 'array',
+        'tr04_customer_agreed_deviation' => 'boolean',
     ];
 
     protected $appends = ['parties', 'test_details'];
@@ -230,4 +253,64 @@ class SampleRegistration extends Model
         return in_array($this->tr04_status, ['testing', 'ready-for-reporting']) &&
             $this->tr04_progress >= 80;
     }
+
+    /**
+     * Sample Custody Logs history.
+     */
+    public function custodyLogs()
+    {
+        return $this->hasMany(SampleCustodyLog::class, 'tr04_sample_registration_id', 'tr04_sample_registration_id')
+            ->orderByDesc('tr10_custody_log_id');
+    }
+
+    /**
+     * Latest custody log.
+     */
+    public function latestCustodyLog()
+    {
+        return $this->hasOne(SampleCustodyLog::class, 'tr04_sample_registration_id', 'tr04_sample_registration_id')
+            ->latestOfMany('tr10_custody_log_id');
+    }
+
+    /**
+     * Check if sample is currently under clarification.
+     */
+    public function isUnderClarification(): bool
+    {
+        return (bool)($this->tr04_is_under_clarification ?? 0);
+    }
+
+    /**
+     * Uploaded multi-analyst, multi-page paper manuscripts.
+     */
+    public function manuscripts()
+    {
+        return $this->hasMany(SampleManuscript::class, 'tr04_sample_registration_id', 'tr04_sample_registration_id')
+            ->orderBy('m06_analyst_id')
+            ->orderBy('page_number');
+    }
+
+    /**
+     * Contract Reviewer Employee.
+     */
+    public function contractReviewer()
+    {
+        return $this->belongsTo(Employee::class, 'tr04_contract_reviewed_by', 'm06_employee_id');
+    }
+
+    /**
+     * Get Contract Review Status Badge HTML.
+     */
+    public function getContractReviewBadgeAttribute(): string
+    {
+        $status = strtoupper($this->tr04_contract_review_status ?? 'PENDING');
+        return match ($status) {
+            'ACCEPTED' => '<span class="badge bg-success"><em class="icon ni ni-check-circle me-1"></em>Accepted</span>',
+            'ACCEPTED_WITH_DEVIATION' => '<span class="badge bg-info text-white"><em class="icon ni ni-alert-circle me-1"></em>Accepted w/ Deviation</span>',
+            'CLARIFICATION_REQUIRED' => '<span class="badge bg-warning text-dark"><em class="icon ni ni-help-circle me-1"></em>Clarification Required</span>',
+            'REJECTED' => '<span class="badge bg-danger"><em class="icon ni ni-cross-circle me-1"></em>Rejected</span>',
+            default => '<span class="badge bg-secondary"><em class="icon ni ni-clock me-1"></em>Pending Review</span>',
+        };
+    }
 }
+

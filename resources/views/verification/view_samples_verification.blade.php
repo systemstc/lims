@@ -31,7 +31,14 @@
                                         @foreach ($samples as $key => $sample)
                                             <tr>
                                                 <td>{{ $key + 1 }}</td>
-                                                <td>{{ $sample->reference_id ?? 'N/A' }}</td>
+                                                <td>
+                                                    <span class="fw-bold">{{ $sample->reference_id ?? 'N/A' }}</span>
+                                                    @if (optional($sample->registration)->tr04_is_under_clarification)
+                                                        <br><span class="badge bg-warning text-dark mt-1" title="{{ $sample->registration->tr04_latest_clarification_remark }}">
+                                                            <em class="icon ni ni-undo me-1"></em> Clarification: {{ $sample->registration->tr04_sent_back_by_role }}
+                                                        </span>
+                                                    @endif
+                                                </td>
                                                 <td>
                                                     <strong>Total:</strong> {{ $sample->total_tests ?? 0 }} <br>
                                                     <span class="text-success">Completed: {{ $sample->completed_tests ?? 0 }}</span>

@@ -956,8 +956,9 @@
                                                         $item['test_number'],
                                                     );
                                                     $standardMethod =
-                                                        optional($sampleTest->standard)->m15_method ??
-                                                        (optional($parent->test->standard)->m15_method ?? null);
+                                                        $sampleTest->standard_method ??
+                                                        (optional($sampleTest->standard)->m15_method ??
+                                                        (optional($parent->test->standard)->m15_method ?? null));
                                                 @endphp
                                                 @if ($standardMethod)
                                                     <small>({{ $standardMethod }})</small>

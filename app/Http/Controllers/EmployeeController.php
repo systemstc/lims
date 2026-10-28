@@ -20,13 +20,36 @@ class EmployeeController extends Controller
 {
     public function viewEmployee()
     {
-        $employees = Employee::with(['user.roles', 'roles', 'ro', 'role'])->get();
+        Employee::ensureShortNameColumnExists();
+
+        $userRoId = Session::get('ro_id');
+        $userRole = Session::get('role');
+
+        $query = Employee::with(['user.roles', 'roles', 'ro', 'role']);
+
+        // Non-admin users can only view employees belonging to their RO
+        if ($userRoId && $userRole !== 'ADMIN') {
+            $query->where('m04_ro_id', $userRoId);
+        }
+
+        $employees = $query->get();
         return view('employees.employees', compact('employees'));
     }
 
     public function createEmployee(Request $request)
     {
+        Employee::ensureShortNameColumnExists();
+
+        $userRoId = Session::get('ro_id');
+        $userRole = Session::get('role');
+        $isRoScoped = ($userRoId && $userRole !== 'ADMIN');
+
         if ($request->isMethod('POST')) {
+            // Strictly enforce RO scoping for non-admin users
+            if ($isRoScoped) {
+                $request->merge(['txt_ro_id' => $userRoId]);
+            }
+
             // Support both txt_role_ids array and legacy txt_role_id
             $roleIds = $request->input('txt_role_ids');
             if (empty($roleIds) && $request->filled('txt_role_id')) {
@@ -39,6 +62,7 @@ class EmployeeController extends Controller
                 'txt_role_ids'     => 'required|array|min:1',
                 'txt_role_ids.*'   => 'integer|exists:m03_roles,m03_role_id',
                 'txt_name'         => 'required|string|max:255',
+                'txt_short_name'   => 'nullable|string|max:50',
                 'txt_email'        => 'required|email|unique:m06_employees,m06_email',
                 'txt_phone'        => 'required|digits:10|unique:m06_employees,m06_phone',
                 'txt_state_id'     => 'required|integer',
@@ -74,6 +98,9 @@ class EmployeeController extends Controller
                 ]);
 
                 $primaryRoleId = (int) $request->txt_role_ids[0];
+                $shortName = $request->filled('txt_short_name')
+                    ? strtoupper(trim($request->txt_short_name))
+                    : Employee::generateShortName($request->txt_name);
 
                 $employeeData = [
                     'tr01_user_id'     => $user->tr01_user_id,
@@ -81,6 +108,7 @@ class EmployeeController extends Controller
                     'm01_state_id'     => $request->txt_state_id,
                     'm02_district_id'  => $request->txt_district_id,
                     'm06_name'         => $request->txt_name,
+                    'm06_short_name'   => $shortName,
                     'm06_email'        => $request->txt_email,
                     'm06_phone'        => $request->txt_phone,
                     'm03_role_id'      => $primaryRoleId,
@@ -115,16 +143,34 @@ class EmployeeController extends Controller
             }
         }
         $states = State::where('m01_status', 'ACTIVE')->get(['m01_state_id', 'm01_name']);
-        $ros = Ro::where('m04_status', 'ACTIVE')->get(['m04_ro_id', 'm04_name']);
+        if ($isRoScoped) {
+            $ros = Ro::where('m04_status', 'ACTIVE')->where('m04_ro_id', $userRoId)->get(['m04_ro_id', 'm04_name']);
+        } else {
+            $ros = Ro::where('m04_status', 'ACTIVE')->get(['m04_ro_id', 'm04_name']);
+        }
         $roles = Role::where('m03_status', 'ACTIVE')->get(['m03_role_id', 'm03_name']);
-        return view('employees.create_employee', compact('states', 'ros', 'roles'));
+        return view('employees.create_employee', compact('states', 'ros', 'roles', 'isRoScoped'));
     }
 
     public function updateEmployee(Request $request, $id)
     {
+        Employee::ensureShortNameColumnExists();
+
+        $userRoId = Session::get('ro_id');
+        $userRole = Session::get('role');
+        $isRoScoped = ($userRoId && $userRole !== 'ADMIN');
+
         $employee = Employee::findOrFail($id);
 
+        if ($isRoScoped && (int) $employee->m04_ro_id !== (int) $userRoId) {
+            abort(403, 'Unauthorized: You can only edit employees belonging to your Regional Office.');
+        }
+
         if ($request->isMethod('POST')) {
+            if ($isRoScoped) {
+                $request->merge(['txt_ro_id' => $userRoId]);
+            }
+
             // Support both txt_role_ids array and legacy txt_role_id
             $roleIds = $request->input('txt_role_ids');
             if (empty($roleIds) && $request->filled('txt_role_id')) {
@@ -137,6 +183,7 @@ class EmployeeController extends Controller
                 'txt_role_ids'     => 'required|array|min:1',
                 'txt_role_ids.*'   => 'integer|exists:m03_roles,m03_role_id',
                 'txt_name'         => 'required|string|max:255',
+                'txt_short_name'   => 'nullable|string|max:50',
                 'txt_email'        => 'required|email|unique:m06_employees,m06_email,' . $employee->m06_employee_id . ',m06_employee_id',
                 'txt_phone'        => 'required|digits:10|unique:m06_employees,m06_phone,' . $employee->m06_employee_id . ',m06_employee_id',
                 'txt_state_id'     => 'required|integer',
@@ -160,12 +207,16 @@ class EmployeeController extends Controller
                 }
 
                 $primaryRoleId = (int) $request->txt_role_ids[0];
+                $shortName = $request->filled('txt_short_name')
+                    ? strtoupper(trim($request->txt_short_name))
+                    : Employee::generateShortName($request->txt_name);
 
                 $employeeUpdateData = [
                     'm04_ro_id'        => $request->txt_ro_id,
                     'm01_state_id'     => $request->txt_state_id,
                     'm02_district_id'  => $request->txt_district_id,
                     'm06_name'         => $request->txt_name,
+                    'm06_short_name'   => $shortName,
                     'm06_email'        => $request->txt_email,
                     'm06_phone'        => $request->txt_phone,
                     'm03_role_id'      => $primaryRoleId,
@@ -202,7 +253,11 @@ class EmployeeController extends Controller
         }
 
         $states = State::where('m01_status', 'ACTIVE')->get(['m01_state_id', 'm01_name']);
-        $ros = Ro::where('m04_status', 'ACTIVE')->get(['m04_ro_id', 'm04_name']);
+        if ($isRoScoped) {
+            $ros = Ro::where('m04_status', 'ACTIVE')->where('m04_ro_id', $userRoId)->get(['m04_ro_id', 'm04_name']);
+        } else {
+            $ros = Ro::where('m04_status', 'ACTIVE')->get(['m04_ro_id', 'm04_name']);
+        }
         $roles = Role::where('m03_status', 'ACTIVE')->get(['m03_role_id', 'm03_name']);
 
         // Get currently assigned role IDs
@@ -218,7 +273,7 @@ class EmployeeController extends Controller
             $assignedRoleIds = [(int) $employee->m03_role_id];
         }
 
-        return view('employees.edit_employee', compact('employee', 'states', 'ros', 'roles', 'assignedRoleIds'));
+        return view('employees.edit_employee', compact('employee', 'states', 'ros', 'roles', 'assignedRoleIds', 'isRoScoped'));
     }
 
     /**
@@ -375,9 +430,16 @@ class EmployeeController extends Controller
 
             $primaryRoleId = $assignedRoleIds[0] ?? 1;
 
-            // Resolve Regional Office
-            $ro = $this->resolveRo($region);
-            $roId = $ro ? $ro->m04_ro_id : 1;
+            // Resolve Regional Office (Non-admin users strictly scoped to their own RO)
+            $userRoId = Session::get('ro_id');
+            $userRole = Session::get('role');
+            if ($userRoId && $userRole !== 'ADMIN') {
+                $roId = $userRoId;
+                $ro = Ro::find($userRoId);
+            } else {
+                $ro = $this->resolveRo($region);
+                $roId = $ro ? $ro->m04_ro_id : 1;
+            }
 
             // Resolve State and District
             [$stateId, $districtId] = $this->resolveStateAndDistrict($region, $ro);
@@ -440,6 +502,10 @@ class EmployeeController extends Controller
                     $employee->m02_district_id = $districtId;
                     $employee->m06_status      = 'ACTIVE';
 
+                    if (empty($employee->m06_short_name)) {
+                        $employee->m06_short_name = Employee::generateShortName($name);
+                    }
+
                     if (!empty($validUpto)) {
                         try {
                             $employee->m06_valid_upto = \Carbon\Carbon::parse($validUpto)->format('Y-m-d');
@@ -459,6 +525,7 @@ class EmployeeController extends Controller
                         'm01_state_id'    => $stateId,
                         'm02_district_id' => $districtId,
                         'm06_name'        => $name,
+                        'm06_short_name'  => Employee::generateShortName($name),
                         'm06_email'       => $email,
                         'm06_phone'       => $phone ?: '9999999999',
                         'm03_role_id'     => $primaryRoleId,
