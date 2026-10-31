@@ -30,6 +30,7 @@ class TestResult extends Model
         'tr07_test_date',
         'tr07_performance_date',
         'tr07_remarks',
+        'm24_remark_id',
         'm06_created_by',
         'tr07_created_at',
         'm06_updated_by',
@@ -84,6 +85,25 @@ class TestResult extends Model
     public function updater()
     {
         return $this->belongsTo(Employee::class, 'm06_updated_by', 'm06_employee_id');
+    }
+
+    public function remarkRecord()
+    {
+        return $this->belongsTo(TestRemark::class, 'm24_remark_id', 'm24_remark_id');
+    }
+
+    public function audits()
+    {
+        return $this->hasMany(TestResultAudit::class, 'tr07_test_result_id', 'tr07_test_result_id')
+            ->orderBy('tr10_created_at', 'desc');
+    }
+
+    public function getTr07TestNameAttribute()
+    {
+        return $this->test->m12_name 
+            ?? $this->primaryTest->m16_name 
+            ?? $this->manuscript->m22_name 
+            ?? ('Test #' . ($this->m12_test_number ?? $this->tr07_test_result_id));
     }
 
     // Scopes

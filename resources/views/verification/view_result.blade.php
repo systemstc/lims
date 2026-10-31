@@ -311,11 +311,21 @@
                                                                 </td>
                                                             </tr>
                                                         @else
-                                                            <tr class="table-lighter">
-                                                                <td class="text-center fw-bold">{{ $key + 1 }}</td>
-                                                                <td class="fw-bold">{{ $test->m12_name }}</td>
-                                                                <td colspan="2" class="text-muted text-center italic small">Hierarchy follows below</td>
-                                                            </tr>
+                                                            @php
+                                                                // Only show the parent header row if at least one primary has an entered result
+                                                                $anyPrimaryHasResult = $primaryTests->contains(
+                                                                    fn($pt) => $currentTestResults->contains(
+                                                                        fn($r) => (string)$r->m16_primary_test_id === (string)$pt->m16_primary_test_id
+                                                                    )
+                                                                );
+                                                            @endphp
+                                                            @if ($anyPrimaryHasResult)
+                                                                <tr class="table-lighter">
+                                                                    <td class="text-center fw-bold">{{ $key + 1 }}</td>
+                                                                    <td class="fw-bold">{{ $test->m12_name }}</td>
+                                                                    <td colspan="2" class="text-muted text-center italic small">Hierarchy follows below</td>
+                                                                </tr>
+                                                            @endif
                                                             @foreach ($primaryTests as $pKey => $primaryTest)
                                                                 @include('verification.partials.verification_primary_row', [
                                                                     'key' => $key,

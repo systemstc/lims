@@ -37,54 +37,63 @@
                         <div class="card card-bordered card-stretch">
                             <div class="card-inner-group">
                                 <div class="card-inner">
-                                    <form method="GET" action="{{ route('test-results.audit') }}">
+                                    <form method="GET" action="{{ route('test_results_audit') }}">
                                         <div class="row g-3 align-center">
-                                            <div class="col-lg-2">
+                                            <div class="col-lg-3 col-md-4">
                                                 <div class="form-group">
-                                                    <label class="form-label" for="test-result-id">Test Result ID</label>
+                                                    <label class="form-label" for="search-input">Sample Ref / Test / ID</label>
                                                     <div class="form-control-wrap">
-                                                        <input type="number" class="form-control" id="test-result-id"
-                                                            name="test_result_id" value="{{ request('test_result_id') }}"
-                                                            placeholder="Enter ID">
+                                                        <div class="form-icon form-icon-left">
+                                                            <em class="icon ni ni-search"></em>
+                                                        </div>
+                                                        <input type="text" class="form-control" id="search-input"
+                                                            name="search" value="{{ request('search', request('test_result_id')) }}"
+                                                            placeholder="Ref ID, Tracker, or Test...">
                                                     </div>
                                                 </div>
                                             </div>
-                                            <div class="col-lg-2">
+                                            <div class="col-lg-2 col-md-4">
                                                 <div class="form-group">
                                                     <label class="form-label" for="action">Action</label>
                                                     <div class="form-control-wrap">
                                                         <select class="form-select" id="action" name="action">
                                                             <option value="">All Actions</option>
-                                                            <option value="created"
-                                                                {{ request('action') == 'created' ? 'selected' : '' }}>
-                                                                Created</option>
-                                                            <option value="updated"
-                                                                {{ request('action') == 'updated' ? 'selected' : '' }}>
-                                                                Updated</option>
-                                                            <option value="finalized"
-                                                                {{ request('action') == 'finalized' ? 'selected' : '' }}>
-                                                                Finalized</option>
-                                                            <option value="revised"
-                                                                {{ request('action') == 'revised' ? 'selected' : '' }}>
-                                                                Revised</option>
-                                                            <option value="deleted"
-                                                                {{ request('action') == 'deleted' ? 'selected' : '' }}>
-                                                                Deleted</option>
+                                                            <option value="CREATED"
+                                                                {{ strtoupper(request('action')) == 'CREATED' ? 'selected' : '' }}>
+                                                                Initial Entry (Created)</option>
+                                                            <option value="UPDATED"
+                                                                {{ strtoupper(request('action')) == 'UPDATED' ? 'selected' : '' }}>
+                                                                Updated / Revised</option>
+                                                            <option value="VERIFIED"
+                                                                {{ strtoupper(request('action')) == 'VERIFIED' ? 'selected' : '' }}>
+                                                                Verified (QA)</option>
+                                                            <option value="REPORTED"
+                                                                {{ strtoupper(request('action')) == 'REPORTED' ? 'selected' : '' }}>
+                                                                Reported / Released</option>
+                                                            <option value="REJECTED"
+                                                                {{ strtoupper(request('action')) == 'REJECTED' ? 'selected' : '' }}>
+                                                                Sent Back (Clarification)</option>
                                                         </select>
                                                     </div>
                                                 </div>
                                             </div>
-                                            <div class="col-lg-2">
+                                            <div class="col-lg-2 col-md-4">
                                                 <div class="form-group">
-                                                    <label class="form-label" for="user-id">User ID</label>
+                                                    <label class="form-label" for="user-id">User / Analyst</label>
                                                     <div class="form-control-wrap">
-                                                        <input type="number" class="form-control" id="user-id"
-                                                            name="user_id" value="{{ request('user_id') }}"
-                                                            placeholder="Enter User ID">
+                                                        <select class="form-select" id="user-id" name="user_id">
+                                                            <option value="">All Users</option>
+                                                            @foreach ($employees ?? [] as $emp)
+                                                                <option value="{{ $emp->m06_employee_id }}"
+                                                                    {{ request('user_id') == $emp->m06_employee_id ? 'selected' : '' }}>
+                                                                    {{ $emp->m06_name }}
+                                                                </option>
+                                                            @endforeach
+                                                        </select>
                                                     </div>
                                                 </div>
                                             </div>
-                                            <div class="col-lg-2">
+                                            <div class="col-lg-2 col-md-6">
                                                 <div class="form-group">
                                                     <label class="form-label" for="date-from">Date From</label>
                                                     <div class="form-control-wrap">
@@ -93,7 +102,7 @@
                                                     </div>
                                                 </div>
                                             </div>
-                                            <div class="col-lg-2">
+                                            <div class="col-lg-2 col-md-6">
                                                 <div class="form-group">
                                                     <label class="form-label" for="date-to">Date To</label>
                                                     <div class="form-control-wrap">
@@ -102,15 +111,15 @@
                                                     </div>
                                                 </div>
                                             </div>
-                                            <div class="col-lg-2">
+                                            <div class="col-lg-1 col-md-12 text-end">
                                                 <div class="form-group">
-                                                    <label class="form-label">&nbsp;</label>
-                                                    <div class="form-control-wrap d-flex gap-2">
-                                                        <button type="submit" class="btn btn-primary">
+                                                    <label class="form-label d-none d-lg-block">&nbsp;</label>
+                                                    <div class="form-control-wrap d-flex gap-2 justify-content-end">
+                                                        <button type="submit" class="btn btn-primary" title="Search Audit Logs">
                                                             <em class="icon ni ni-search"></em>
                                                         </button>
-                                                        <a href="{{ route('test-results.audit') }}"
-                                                            class="btn btn-outline-secondary">
+                                                        <a href="{{ route('test_results_audit') }}"
+                                                            class="btn btn-outline-secondary" title="Reset Filters">
                                                             <em class="icon ni ni-reload"></em>
                                                         </a>
                                                     </div>
@@ -144,14 +153,27 @@
                                             </div>
 
                                             @foreach ($auditLogs as $log)
+                                                @php
+                                                    $logCreatedAt = $log->tr10_created_at ?? $log->tr07_created_at;
+                                                    $logCarbon = $logCreatedAt ? (\Carbon\Carbon::parse($logCreatedAt)) : null;
+                                                    $actionStr = strtolower($log->tr10_action ?? $log->tr07_action ?? 'action');
+                                                    $actionColor = $actionColors[$actionStr] ?? 'secondary';
+                                                    $fieldChanged = $log->tr10_field_changed ?? $log->tr07_field_changed;
+                                                    $changeReason = $log->tr10_change_reason ?? $log->tr07_change_reason;
+                                                    $oldVal = $log->tr10_old_value ?? $log->tr07_old_value;
+                                                    $newVal = $log->tr10_new_value ?? $log->tr07_new_value;
+                                                    $ipAddr = $log->tr10_ip_address ?? $log->tr07_ip_address ?? 'N/A';
+                                                    $userId = $log->tr10_user_id ?? $log->tr07_user_id;
+                                                    $userName = $log->user?->m06_name ?? $log->user?->name ?? ($userId ? "User #{$userId}" : "System");
+                                                @endphp
                                                 <div class="nk-tb-item">
                                                     <div class="nk-tb-col">
                                                         <div class="user-card">
                                                             <div class="user-info">
                                                                 <span
-                                                                    class="tb-lead">{{ $log->tr07_created_at->format('M d, Y') }}</span>
+                                                                    class="tb-lead">{{ $logCarbon ? $logCarbon->format('M d, Y') : 'N/A' }}</span>
                                                                 <span
-                                                                    class="fs-12px text-soft">{{ $log->tr07_created_at->format('H:i:s') }}</span>
+                                                                    class="fs-12px text-soft">{{ $logCarbon ? $logCarbon->format('H:i:s') : '' }}</span>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -159,14 +181,21 @@
                                                         @if ($log->testResult)
                                                             <div class="user-card">
                                                                 <div class="user-info">
-                                                                    <span
-                                                                        class="tb-lead">{{ $log->testResult->tr07_test_name }}</span>
-                                                                    <span class="fs-12px text-soft">ID:
-                                                                        {{ $log->tr07_test_result_id }}</span>
+                                                                    @if ($log->testResult->tr04_reference_id)
+                                                                        <a href="{{ route('sample_history', ['identifier' => $log->testResult->tr04_reference_id]) }}"
+                                                                            class="badge bg-primary text-white mb-1" target="_blank"
+                                                                            title="View Complete Sample History Track">
+                                                                            <em class="icon ni ni-route me-1"></em>#{{ $log->testResult->tr04_reference_id }}
+                                                                        </a>
+                                                                    @endif
+                                                                    <div class="tb-lead text-dark fw-bold">
+                                                                        {{ $log->testResult->tr07_test_name }}
+                                                                    </div>
+                                                                    <span class="fs-11px text-soft">Result ID: #{{ $log->tr07_test_result_id }}</span>
                                                                 </div>
                                                             </div>
                                                         @else
-                                                            <span class="text-danger">Test Result Deleted</span>
+                                                            <span class="text-danger">Test Result #{{ $log->tr07_test_result_id }}</span>
                                                         @endif
                                                     </div>
                                                     <div class="nk-tb-col tb-col-md">
@@ -174,25 +203,28 @@
                                                             $actionColors = [
                                                                 'created' => 'success',
                                                                 'updated' => 'info',
-                                                                'finalized' => 'primary',
+                                                                'verified' => 'primary',
+                                                                'reported' => 'dark',
+                                                                'finalized' => 'dark',
                                                                 'revised' => 'warning',
+                                                                'rejected' => 'danger',
                                                                 'deleted' => 'danger',
                                                             ];
                                                             $actionColor =
-                                                                $actionColors[$log->tr07_action] ?? 'secondary';
+                                                                $actionColors[$actionStr] ?? 'secondary';
                                                         @endphp
                                                         <span
                                                             class="badge badge-sm badge-dot has-bg bg-{{ $actionColor }} d-none d-sm-inline-flex">
-                                                            {{ ucfirst($log->tr07_action) }}
+                                                            {{ ucfirst($actionStr) }}
                                                         </span>
                                                     </div>
                                                     <div class="nk-tb-col tb-col-lg">
                                                         <div class="user-card">
                                                             <div class="user-info">
                                                                 <span
-                                                                    class="tb-lead">{{ $log->user->name ?? 'Unknown User' }}</span>
+                                                                    class="tb-lead">{{ $userName }}</span>
                                                                 <span class="fs-12px text-soft">ID:
-                                                                    {{ $log->tr07_user_id }}</span>
+                                                                    {{ $userId ?? 'N/A' }}</span>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -206,31 +238,35 @@
                                                     </div>
                                                     <div class="nk-tb-col">
                                                         <div class="tb-lead-sub">
-                                                            @if ($log->tr07_field_changed)
+                                                            @if ($fieldChanged)
                                                                 <span
-                                                                    class="text-primary">{{ $log->tr07_field_changed }}</span>
+                                                                    class="text-primary">{{ $fieldChanged }}</span>
                                                             @endif
 
-                                                            @if ($log->tr07_change_reason)
+                                                            @if ($changeReason)
                                                                 <div class="fs-12px text-soft mt-1"
-                                                                    title="{{ $log->tr07_change_reason }}">
-                                                                    {{ Str::limit($log->tr07_change_reason, 50) }}
+                                                                    title="{{ $changeReason }}">
+                                                                    {{ Str::limit($changeReason, 50) }}
                                                                 </div>
                                                             @endif
 
-                                                            @if ($log->tr07_old_value && $log->tr07_new_value)
+                                                            @if ($oldVal || $newVal)
                                                                 <div class="fs-11px mt-1">
-                                                                    <span class="text-danger">From:
-                                                                        {{ Str::limit($log->tr07_old_value, 20) }}</span><br>
-                                                                    <span class="text-success">To:
-                                                                        {{ Str::limit($log->tr07_new_value, 20) }}</span>
+                                                                    @if ($oldVal)
+                                                                        <span class="text-danger">From:
+                                                                            {{ Str::limit($oldVal, 20) }}</span><br>
+                                                                    @endif
+                                                                    @if ($newVal)
+                                                                        <span class="text-success">To:
+                                                                            {{ Str::limit($newVal, 20) }}</span>
+                                                                    @endif
                                                                 </div>
                                                             @endif
                                                         </div>
                                                     </div>
                                                     <div class="nk-tb-col tb-col-md">
                                                         <span
-                                                            class="fs-12px text-soft">{{ $log->tr07_ip_address ?? 'N/A' }}</span>
+                                                            class="fs-12px text-soft">{{ $ipAddr }}</span>
                                                     </div>
                                                 </div>
                                             @endforeach
@@ -294,7 +330,7 @@
                                             </div>
                                         </div>
                                         <div class="card-amount">
-                                            <span class="amount">{{ $auditLogs->total() }}</span>
+                                            <span class="amount">{{ $totalActions ?? $auditLogs->total() }}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -311,8 +347,7 @@
                                             </div>
                                         </div>
                                         <div class="card-amount">
-                                            <span
-                                                class="amount">{{ \App\Models\TestResultAudit::whereDate('tr07_created_at', today())->count() }}</span>
+                                            <span class="amount">{{ $todayActivity ?? 0 }}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -329,8 +364,7 @@
                                             </div>
                                         </div>
                                         <div class="card-amount">
-                                            <span
-                                                class="amount">{{ \App\Models\TestResultAudit::whereBetween('tr07_created_at', [now()->startOfWeek(), now()->endOfWeek()])->count() }}</span>
+                                            <span class="amount">{{ $thisWeek ?? 0 }}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -347,8 +381,7 @@
                                             </div>
                                         </div>
                                         <div class="card-amount">
-                                            <span
-                                                class="amount">{{ \App\Models\TestResultAudit::whereMonth('tr07_created_at', now()->month)->count() }}</span>
+                                            <span class="amount">{{ $thisMonth ?? 0 }}</span>
                                         </div>
                                     </div>
                                 </div>

@@ -47,6 +47,56 @@
 
                                     @php
                                         $isCustom = ($sample->m09_customer_type_id == 4) || ($sample->customerType && str_contains(strtolower($sample->customerType->m09_name), 'custom'));
+
+                                        // Build sequential remarks list across all test results in preview order
+                                        $allRemarksList = [];
+                                        $remarksStarMap = [];
+                                        $remarkCounter = 0;
+
+                                        foreach ($orderedItems as $it) {
+                                            if ($it['type'] === 'test') {
+                                                $tResults = $groupedResults[$it['test_number']] ?? collect();
+                                                foreach ($tResults as $res) {
+                                                    $txt = trim($res->tr07_remarks ?? '');
+                                                    if (empty($txt) && !empty($res->m24_remark_id)) {
+                                                        $txt = trim($res->remarkRecord?->m24_remark_text ?? \App\Models\TestRemark::find($res->m24_remark_id)?->m24_remark_text ?? '');
+                                                    }
+
+                                                    if ($txt !== '') {
+                                                        $resId = $res->tr07_test_result_id ? (string)$res->tr07_test_result_id : null;
+                                                        $compositeKey = $it['test_number'] . '_' . ($res->m16_primary_test_id ?: '0') . '_' . ($res->m17_secondary_test_id ?: '0');
+
+                                                        $existingStar = null;
+                                                        if ($resId && isset($remarksStarMap[$resId])) {
+                                                            $existingStar = $remarksStarMap[$resId];
+                                                        } elseif (isset($remarksStarMap[$compositeKey])) {
+                                                            $existingStar = $remarksStarMap[$compositeKey];
+                                                        }
+
+                                                        if (!$existingStar) {
+                                                            $remarkCounter++;
+                                                            $starStr = str_repeat('*', $remarkCounter);
+                                                            if ($resId) {
+                                                                $remarksStarMap[$resId] = $starStr;
+                                                            }
+                                                            $remarksStarMap[$compositeKey] = $starStr;
+
+                                                            $allRemarksList[] = [
+                                                                'stars' => $starStr,
+                                                                'text' => $txt,
+                                                                'test_name' => $res->test->m12_name ?? ('Test #' . $it['test_number']),
+                                                                'test_number' => $it['test_number'],
+                                                            ];
+                                                        } else {
+                                                            if ($resId) {
+                                                                $remarksStarMap[$resId] = $existingStar;
+                                                            }
+                                                            $remarksStarMap[$compositeKey] = $existingStar;
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
                                     @endphp
 
                                     {{-- Sample Information Table --}}
@@ -220,11 +270,21 @@
                                                                         ->isNotEmpty();
                                                                 @endphp
 
-                                                                @if (!$hasPrimary)
+                                                                 @if (!$hasPrimary)
+                                                                    @php
+                                                                        $parentKey = $parent->tr07_test_result_id ? (string)$parent->tr07_test_result_id : null;
+                                                                        $parentCompKey = $item['test_number'] . '_0_0';
+                                                                        $parentStar = ($parentKey ? ($remarksStarMap[$parentKey] ?? null) : null) ?? ($remarksStarMap[$parentCompKey] ?? null);
+                                                                    @endphp
                                                                     <div
                                                                         class="d-flex justify-content-between border-bottom pb-1 mb-1">
                                                                         <span>{{ $parent->tr07_unit }}</span>
-                                                                        <strong>{!! $parent->tr07_result ?? '-' !!}</strong>
+                                                                        <strong>
+                                                                            {!! $parent->tr07_result ?? '-' !!}
+                                                                            @if ($parentStar)
+                                                                                <sup class="text-danger fw-bold ms-1">{{ $parentStar }}</sup>
+                                                                            @endif
+                                                                        </strong>
                                                                     </div>
                                                                 @else
                                                                     @php $subCounter = 1; @endphp
@@ -253,6 +313,11 @@
 
                                                                             {{-- Secondary Tests --}}
                                                                             @foreach ($primaryResults->whereNotNull('m17_secondary_test_id') as $secondary)
+                                                                                @php
+                                                                                    $secKey = $secondary->tr07_test_result_id ? (string)$secondary->tr07_test_result_id : null;
+                                                                                    $secCompKey = $item['test_number'] . '_' . ($secondary->m16_primary_test_id ?: '0') . '_' . $secondary->m17_secondary_test_id;
+                                                                                    $secStar = ($secKey ? ($remarksStarMap[$secKey] ?? null) : null) ?? ($remarksStarMap[$secCompKey] ?? null);
+                                                                                @endphp
                                                                                 <div
                                                                                     class="d-flex justify-content-between border-bottom pb-1 mb-1 ms-3">
                                                                                     <span
@@ -262,10 +327,21 @@
                                                                                         @endif
                                                                                         :
                                                                                     </span>
-                                                                                    <strong>{!! $secondary->tr07_result ?? '-' !!}</strong>
+                                                                                    <strong>
+                                                                                        {!! $secondary->tr07_result ?? '-' !!}
+                                                                                        @if ($secStar)
+                                                                                            <sup class="text-danger fw-bold ms-1">{{ $secStar }}</sup>
+                                                                                        @endif
+                                                                                    </strong>
                                                                                 </div>
                                                                             @endforeach
                                                                         @else
+                                                                            @php
+                                                                                $priItem = $primaryResults->first();
+                                                                                $priKey = $priItem?->tr07_test_result_id ? (string)$priItem->tr07_test_result_id : null;
+                                                                                $priCompKey = $item['test_number'] . '_' . ($primaryId ?: '0') . '_0';
+                                                                                $priStar = ($priKey ? ($remarksStarMap[$priKey] ?? null) : null) ?? ($remarksStarMap[$priCompKey] ?? null);
+                                                                            @endphp
                                                                             <div
                                                                                 class="d-flex justify-content-between border-bottom pb-1 mb-1 bg-light px-2 rounded">
                                                                                 <span
@@ -273,7 +349,12 @@
                                                                                     <strong>(
                                                                                         {{ $primaryResults->first()->tr07_unit ?? '' }}
                                                                                         )</strong>:</span>
-                                                                                <strong>{!! $primaryResults->first()->tr07_result ?? '-' !!}</strong>
+                                                                                <strong>
+                                                                                    {!! $primaryResults->first()->tr07_result ?? '-' !!}
+                                                                                    @if ($priStar)
+                                                                                        <sup class="text-danger fw-bold ms-1">{{ $priStar }}</sup>
+                                                                                    @endif
+                                                                                </strong>
                                                                             </div>
                                                                         @endif
                                                                     @endforeach
@@ -372,6 +453,21 @@
                                             @endif
                                         @endforeach
                                     </div>
+
+                                    {{-- Remarks Section Preview (Printed before QR code) --}}
+                                    @if (!empty($allRemarksList))
+                                        <div class="card card-bordered bg-white p-3 my-3">
+                                            <h6 class="card-title text-decoration-underline mb-2 fs-13px fw-bold">Remarks:</h6>
+                                            <ul class="list-unstyled mb-0">
+                                                @foreach ($allRemarksList as $rem)
+                                                    <li class="mb-1 fs-12px">
+                                                        <strong class="text-danger fw-bold me-1">{{ $rem['stars'] }}</strong>
+                                                        <span>{{ $rem['text'] }}</span>
+                                                    </li>
+                                                @endforeach
+                                            </ul>
+                                        </div>
+                                    @endif
 
                                     {{-- Signatory Section Preview --}}
                                     <div class="mt-4 pt-3 border-top d-flex justify-content-between align-items-end">

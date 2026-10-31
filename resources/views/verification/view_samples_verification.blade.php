@@ -65,8 +65,13 @@
                                                 <td>
                                                     @if ($sample->allResulted)
                                                         <a href="{{ route('verify_result', $sample->sample_id) }}"
+                                                            class="btn btn-sm btn-primary">
+                                                            <em class="icon ni ni-check-circle me-1"></em> Verify Results
+                                                        </a>
+                                                    @else
+                                                        <a href="{{ route('verify_result', $sample->sample_id) }}"
                                                             class="btn btn-sm btn-outline-primary">
-                                                            Verify Results
+                                                            <em class="icon ni ni-eye me-1"></em> Review / Verify
                                                         </a>
                                                     @endif
                                                 </td>

@@ -1,10 +1,39 @@
 @php
     $pKey = $pKey ?? $loop->index;
-    $hasSecondaryTests = $primaryTest->secondaryTests && $primaryTest->secondaryTests->isNotEmpty();
-    $current = null;
-    $historical = null;
+
+    // --- Has secondary test RESULTS actually been entered? ---
+    // (not just whether secondary tests are *defined* in the master)
+    $enteredSecondaryResults = $currentResults->filter(
+        fn($r) => (string)$r->m16_primary_test_id === (string)$primaryTest->m16_primary_test_id
+                  && !empty($r->m17_secondary_test_id)
+    );
+    $hasEnteredSecondaryResults = $enteredSecondaryResults->isNotEmpty();
+
+    // --- Direct result entered on the primary (no secondary) ---
+    $current = $currentResults->filter(
+        fn($r) => (string)$r->m16_primary_test_id === (string)$primaryTest->m16_primary_test_id
+                  && empty($r->m17_secondary_test_id)
+    )->first();
+
+    $historical = $historicalResults->filter(
+        fn($r) => (string)$r->m16_primary_test_id === (string)$primaryTest->m16_primary_test_id
+                  && empty($r->m17_secondary_test_id)
+    )->sortByDesc('tr07_test_result_id')->first();
+
+    // --- Only show this primary row when there is something to display ---
+    // Show if: direct result exists OR secondary results exist
+    $hasAnyResult = $current !== null || $hasEnteredSecondaryResults;
+
+    // Custom fields for this primary (not tied to a secondary)
+    $primaryCustomFields = $customFields->filter(
+        fn($f) => (string)$f->m16_primary_test_id === (string)$primaryTest->m16_primary_test_id
+                  && empty($f->m17_secondary_test_id)
+    );
+    $hasPrimaryCustomFields = $primaryCustomFields->isNotEmpty();
 @endphp
 
+{{-- Only render the row when a result has actually been entered --}}
+@if ($hasAnyResult || $hasPrimaryCustomFields)
 <tr class="primary-test-row bg-light" data-primary-test-id="{{ $primaryTest->m16_primary_test_id }}">
     <td class="fw-bold">{{ $key + 1 }}.{{ $pKey + 1 }}</td>
     <td>
@@ -14,13 +43,31 @@
         @endif
     </td>
     <td class="text-center">
-        @if (!$hasSecondaryTests)
-            @php
-                $current = $currentResults->filter(fn($r) => (string)$r->m16_primary_test_id === (string)$primaryTest->m16_primary_test_id && empty($r->m17_secondary_test_id))->first();
-                $historical = $historicalResults->filter(fn($r) => (string)$r->m16_primary_test_id === (string)$primaryTest->m16_primary_test_id && empty($r->m17_secondary_test_id))->sortByDesc('tr07_test_result_id')->first();
-            @endphp
-
-            @if ($historical && $current && (string)$historical->tr07_result !== (string)$current->tr07_result)
+        @if ($hasEnteredSecondaryResults)
+            {{--
+                Secondary results exist → show "Calculated from secondary tests"
+                only if no direct result was also entered on the primary itself.
+                If the analyst entered BOTH, prefer showing the direct result.
+            --}}
+            @if ($current)
+                {{-- Direct result present alongside secondary results --}}
+                @if ($historical && $current && (string)$historical->tr07_result !== (string)$current->tr07_result)
+                    <div class="comparison-box">
+                        <span class="text-danger text-decoration-line-through me-1">{!! $historical->tr07_result ?? 'N/A' !!}</span>
+                        <em class="icon ni ni-arrow-right small text-muted"></em>
+                        <span class="text-success fw-bold ms-1">{!! $current->tr07_result ?? 'N/A' !!}</span>
+                        @if ($current->tr07_unit) <small class="text-muted">({{ $current->tr07_unit }})</small> @endif
+                    </div>
+                @else
+                    <span class="fw-bold">{!! $current->tr07_result ?? 'N/A' !!}</span>
+                    @if ($current && $current->tr07_unit) <small class="text-muted">({{ $current->tr07_unit }})</small> @endif
+                @endif
+            @else
+                <span class="text-muted small italic">Calculated from secondary tests</span>
+            @endif
+        @elseif ($current)
+            {{-- Only direct result, no secondary results entered --}}
+            @if ($historical && (string)$historical->tr07_result !== (string)$current->tr07_result)
                 <div class="comparison-box">
                     <span class="text-danger text-decoration-line-through me-1">{!! $historical->tr07_result ?? 'N/A' !!}</span>
                     <em class="icon ni ni-arrow-right small text-muted"></em>
@@ -32,7 +79,8 @@
                 @if ($current && $current->tr07_unit) <small class="text-muted">({{ $current->tr07_unit }})</small> @endif
             @endif
         @else
-            <span class="text-muted small italic">Calculated from secondary tests</span>
+            {{-- No result entered, but has custom fields — show dash --}}
+            <span class="text-muted small">—</span>
         @endif
     </td>
     <td class="text-center">
@@ -43,12 +91,18 @@
         @endif
     </td>
 </tr>
+@endif
 
-<!-- Secondary Tests -->
-@foreach ($currentResults->filter(fn($r) => (string)$r->m16_primary_test_id === (string)$primaryTest->m16_primary_test_id && !empty($r->m17_secondary_test_id)) as $currentSecondary)
+<!-- Secondary Tests (only those with actual entered results) -->
+@foreach ($enteredSecondaryResults as $currentSecondary)
     @php
-        $secondaryTest = collect($primaryTest->secondaryTests)->filter(fn($st) => (string)$st->m17_secondary_test_id === (string)$currentSecondary->m17_secondary_test_id)->first();
-        $historicalSecondary = $historicalResults->filter(fn($r) => (string)$r->m16_primary_test_id === (string)$primaryTest->m16_primary_test_id && (string)$r->m17_secondary_test_id === (string)$currentSecondary->m17_secondary_test_id)->sortByDesc('tr07_test_result_id')->first();
+        $secondaryTest = collect($primaryTest->secondaryTests ?? [])->filter(
+            fn($st) => (string)$st->m17_secondary_test_id === (string)$currentSecondary->m17_secondary_test_id
+        )->first();
+        $historicalSecondary = $historicalResults->filter(
+            fn($r) => (string)$r->m16_primary_test_id === (string)$primaryTest->m16_primary_test_id
+                      && (string)$r->m17_secondary_test_id === (string)$currentSecondary->m17_secondary_test_id
+        )->sortByDesc('tr07_test_result_id')->first();
     @endphp
     @if ($secondaryTest)
         <tr class="secondary-test-row">
@@ -99,8 +153,8 @@
     @endif
 @endforeach
 
-<!-- Custom Fields for Primary -->
-@foreach ($customFields->filter(fn($f) => (string)$f->m16_primary_test_id === (string)$primaryTest->m16_primary_test_id && empty($f->m17_secondary_test_id)) as $cf)
+<!-- Custom Fields for Primary (not tied to a secondary) -->
+@foreach ($primaryCustomFields as $cf)
     @php
         $hCf = $historicalCustomFields->filter(fn($f) => $f->tr08_field_name === $cf->tr08_field_name && (string)$f->m16_primary_test_id === (string)$primaryTest->m16_primary_test_id && empty($f->m17_secondary_test_id))->first();
     @endphp

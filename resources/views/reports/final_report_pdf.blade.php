@@ -510,6 +510,58 @@
             $sample->m09_customer_type_id == 4 ||
             ($sample->customerType && str_contains(strtolower($sample->customerType->m09_name), 'custom'));
         $totalParts = count($reportParts);
+
+        // Build sequential remarks list across all test results in report order
+        $allRemarksList = [];
+        $remarksStarMap = [];
+        $remarkCounter = 0;
+
+        foreach ($reportParts as $pData) {
+            foreach ($pData['items'] as $it) {
+                if ($it['type'] === 'test') {
+                    $tResults = $groupedResults[$it['test_number']] ?? collect();
+                    foreach ($tResults as $res) {
+                        $txt = trim($res->tr07_remarks ?? '');
+                        if (empty($txt) && !empty($res->m24_remark_id)) {
+                            $txt = trim($res->remarkRecord?->m24_remark_text ?? \App\Models\TestRemark::find($res->m24_remark_id)?->m24_remark_text ?? '');
+                        }
+
+                        if ($txt !== '') {
+                            $resId = $res->tr07_test_result_id ? (string)$res->tr07_test_result_id : null;
+                            $compositeKey = $it['test_number'] . '_' . ($res->m16_primary_test_id ?: '0') . '_' . ($res->m17_secondary_test_id ?: '0');
+
+                            $existingStar = null;
+                            if ($resId && isset($remarksStarMap[$resId])) {
+                                $existingStar = $remarksStarMap[$resId];
+                            } elseif (isset($remarksStarMap[$compositeKey])) {
+                                $existingStar = $remarksStarMap[$compositeKey];
+                            }
+
+                            if (!$existingStar) {
+                                $remarkCounter++;
+                                $starStr = str_repeat('*', $remarkCounter);
+                                if ($resId) {
+                                    $remarksStarMap[$resId] = $starStr;
+                                }
+                                $remarksStarMap[$compositeKey] = $starStr;
+
+                                $allRemarksList[] = [
+                                    'stars' => $starStr,
+                                    'text' => $txt,
+                                    'test_name' => $res->test->m12_name ?? ('Test #' . $it['test_number']),
+                                    'test_number' => $it['test_number'],
+                                ];
+                            } else {
+                                if ($resId) {
+                                    $remarksStarMap[$resId] = $existingStar;
+                                }
+                                $remarksStarMap[$compositeKey] = $existingStar;
+                            }
+                        }
+                    }
+                }
+            }
+        }
     @endphp
 
     @foreach ($reportParts as $pIndex => $partData)
@@ -844,9 +896,18 @@
                             @for ($i = 0; $i < $maxRows; $i++)
                                 <tr>
                                     @if (isset($firstHalf[$i]))
+                                        @php
+                                            $aPri1 = $firstHalf[$i];
+                                            $aPri1Key = $aPri1->tr07_test_result_id ? (string)$aPri1->tr07_test_result_id : null;
+                                            $aPri1Comp = $arylAminesTest['parent']->m12_test_number . '_' . ($aPri1->m16_primary_test_id ?: '0') . '_0';
+                                            $aPri1Star = ($aPri1Key ? ($remarksStarMap[$aPri1Key] ?? null) : null) ?? ($remarksStarMap[$aPri1Comp] ?? null);
+                                        @endphp
                                         <td class="text-center">{{ $i + 1 }}</td>
-                                        <td>{{ $firstHalf[$i]->primaryTest->m16_name ?? '' }}</td>
-                                        <td class="text-center">{{ $firstHalf[$i]->tr07_result ?? 'Not detected' }}
+                                        <td>{{ $aPri1->primaryTest->m16_name ?? '' }}</td>
+                                        <td class="text-center">{!! $aPri1->tr07_result ?? 'Not detected' !!}
+                                            @if ($aPri1Star)
+                                                <sup style="font-weight: bold; font-size: 11px; color: #000;">{{ $aPri1Star }}</sup>
+                                            @endif
                                         </td>
                                     @else
                                         <td></td>
@@ -857,9 +918,18 @@
                                     <td style="border:none; background:transparent;"></td>
 
                                     @if (isset($secondHalf[$i]))
+                                        @php
+                                            $aPri2 = $secondHalf[$i];
+                                            $aPri2Key = $aPri2->tr07_test_result_id ? (string)$aPri2->tr07_test_result_id : null;
+                                            $aPri2Comp = $arylAminesTest['parent']->m12_test_number . '_' . ($aPri2->m16_primary_test_id ?: '0') . '_0';
+                                            $aPri2Star = ($aPri2Key ? ($remarksStarMap[$aPri2Key] ?? null) : null) ?? ($remarksStarMap[$aPri2Comp] ?? null);
+                                        @endphp
                                         <td class="text-center">{{ $startNumber + $i }}</td>
-                                        <td>{{ $secondHalf[$i]->primaryTest->m16_name ?? '' }}</td>
-                                        <td class="text-center">{{ $secondHalf[$i]->tr07_result ?? 'Not detected' }}
+                                        <td>{{ $aPri2->primaryTest->m16_name ?? '' }}</td>
+                                        <td class="text-center">{!! $aPri2->tr07_result ?? 'Not detected' !!}
+                                            @if ($aPri2Star)
+                                                <sup style="font-weight: bold; font-size: 11px; color: #000;">{{ $aPri2Star }}</sup>
+                                            @endif
                                         </td>
                                     @else
                                         <td></td>
@@ -972,7 +1042,15 @@
                                                         ->isNotEmpty();
                                                 @endphp
                                                 @if (!$hasPrimary)
+                                                    @php
+                                                        $parentKey = $parent->tr07_test_result_id ? (string)$parent->tr07_test_result_id : null;
+                                                        $parentCompKey = $item['test_number'] . '_0_0';
+                                                        $parentStar = ($parentKey ? ($remarksStarMap[$parentKey] ?? null) : null) ?? ($remarksStarMap[$parentCompKey] ?? null);
+                                                    @endphp
                                                     {!! $parent->tr07_result ?? '' !!}
+                                                    @if ($parentStar)
+                                                        <sup style="font-weight: bold; font-size: 11px; color: #000;">{{ $parentStar }}</sup>
+                                                    @endif
                                                 @endif
                                             </td>
                                         </tr>
@@ -1003,6 +1081,11 @@
                                                     </tr>
 
                                                     @foreach ($primaryResults->whereNotNull('m17_secondary_test_id') as $secondary)
+                                                        @php
+                                                            $secKey = $secondary->tr07_test_result_id ? (string)$secondary->tr07_test_result_id : null;
+                                                            $secCompKey = $item['test_number'] . '_' . ($secondary->m16_primary_test_id ?: '0') . '_' . $secondary->m17_secondary_test_id;
+                                                            $secStar = ($secKey ? ($remarksStarMap[$secKey] ?? null) : null) ?? ($remarksStarMap[$secCompKey] ?? null);
+                                                        @endphp
                                                         <tr>
                                                             <td class="text-center"></td>
                                                             <td class="text-end">
@@ -1014,10 +1097,19 @@
                                                                 </em>
                                                             </td>
                                                             <td class="text-center">{!! $secondary->tr07_result ?? '-' !!}
+                                                                @if ($secStar)
+                                                                    <sup style="font-weight: bold; font-size: 11px; color: #000;">{{ $secStar }}</sup>
+                                                                @endif
                                                             </td>
                                                         </tr>
                                                     @endforeach
                                                 @else
+                                                    @php
+                                                        $priItem = $primaryResults->first();
+                                                        $priKey = $priItem?->tr07_test_result_id ? (string)$priItem->tr07_test_result_id : null;
+                                                        $priCompKey = $item['test_number'] . '_' . ($primaryId ?: '0') . '_0';
+                                                        $priStar = ($priKey ? ($remarksStarMap[$priKey] ?? null) : null) ?? ($remarksStarMap[$priCompKey] ?? null);
+                                                    @endphp
                                                     <tr class="table-secondary">
                                                         <td class="text-center"></td>
                                                         <td class="text-end">
@@ -1029,7 +1121,11 @@
                                                             </em>
                                                         </td>
                                                         <td class="text-center">
-                                                            {!! $primaryResults->first()->tr07_result ?? '-' !!}</td>
+                                                            {!! $primaryResults->first()->tr07_result ?? '-' !!}
+                                                            @if ($priStar)
+                                                                <sup style="font-weight: bold; font-size: 11px; color: #000;">{{ $priStar }}</sup>
+                                                            @endif
+                                                        </td>
                                                     </tr>
                                                 @endif
                                             @endforeach
@@ -1066,20 +1162,35 @@
                 </table>
             @endif
 
+            {{-- ===== REMARKS SECTION (Printed before QR code on the last page) ===== --}}
+            @if ($loop->last && !empty($allRemarksList))
+                <div class="report-remarks-box" style="margin-top: 15px; margin-bottom: 12px; padding: 6px 10px; border: 1px solid #333; background-color: #fafafa; page-break-inside: avoid;">
+                    <div style="font-weight: bold; font-size: 11px; margin-bottom: 4px; text-decoration: underline;">Remarks:</div>
+                    @foreach ($allRemarksList as $remItem)
+                        <div style="font-size: 10px; line-height: 1.4; margin-bottom: 2px;">
+                            <strong style="font-size: 11px;">{{ $remItem['stars'] }}</strong>
+                            <span>{{ $remItem['text'] }}</span>
+                        </div>
+                    @endforeach
+                </div>
+            @endif
+
             {{-- ===== SIGNATURE & QR CODE + END OF REPORT ===== --}}
             <div class="signature-qr-container">
                 <table class="signature-qr-table">
                     <tr>
                         <td style="width: 50%; vertical-align: bottom; text-align: left; padding-left: 5px !important;">
-                            @php
-                                $qrTrackerId = $sample->tr04_tracker_id ?? $sample->tr04_reference_id;
-                                $qrUrl = $qrTrackerId ? route('track_sample', ['trackerId' => $qrTrackerId]) : url('/');
-                                $qrCodeSvg = \SimpleSoftwareIO\QrCode\Facades\QrCode::size(70)->margin(0)->generate($qrUrl);
-                            @endphp
-                            <div style="display: inline-block; text-align: left;">
-                                <img src="data:image/svg+xml;base64,{{ base64_encode($qrCodeSvg) }}"
-                                    style="width: 70px; height: 70px; display: block; border: none;" alt="QR Code">
-                            </div>
+                            @if ($loop->last)
+                                @php
+                                    $qrTrackerId = $sample->tr04_tracker_id ?? $sample->tr04_reference_id;
+                                    $qrUrl = $qrTrackerId ? route('track_sample', ['trackerId' => $qrTrackerId]) : url('/');
+                                    $qrCodeSvg = \SimpleSoftwareIO\QrCode\Facades\QrCode::size(70)->margin(0)->generate($qrUrl);
+                                @endphp
+                                <div style="display: inline-block; text-align: left;">
+                                    <img src="data:image/svg+xml;base64,{{ base64_encode($qrCodeSvg) }}"
+                                        style="width: 70px; height: 70px; display: block; border: none;" alt="QR Code">
+                                </div>
+                            @endif
                         </td>
                         <td style="width: 50%; vertical-align: bottom; text-align: right; padding-right: 15px !important;">
                             <div style="font-weight: bold; font-size: 14px;">{{ $report->generator->m06_name ?? 'Manager' }}</div>
@@ -1088,8 +1199,10 @@
                     </tr>
                 </table>
 
-                {{-- ===== END OF REPORT (after last table row on every/last page) ===== --}}
-                <div class="end-of-report">----------End of Report ----------</div>
+                @if ($loop->last)
+                    {{-- ===== END OF REPORT (only on final part) ===== --}}
+                    <div class="end-of-report">----------End of Report ----------</div>
+                @endif
             </div>
 
         </div>

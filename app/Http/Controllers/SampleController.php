@@ -419,57 +419,46 @@ class SampleController extends Controller
     /**
      * Search sample by Tracker ID and redirect based on role
      */
+    /**
+     * Search sample by Tracker ID or Registration/Reference ID
+     */
     public function searchTracker(Request $request)
     {
-        $trackerId = $request->input('tracker_id');
-        if (!$trackerId) {
-            return back()->with('message', 'Please enter a Tracker ID')->with('type', 'warning');
+        $identifier = $request->input('tracker_id') ?? $request->input('query') ?? $request->input('reference_id');
+        if (!$identifier) {
+            return back()->with('message', 'Please enter a Tracker ID or Registration ID')->with('type', 'warning');
         }
-        return $this->trackSample($trackerId);
+        return $this->trackSample($identifier);
     }
 
     /**
-     * Track sample by ID and redirect based on role
+     * Track sample by ID and redirect to tracking view or role dashboard
      */
     public function trackSample($trackerId)
     {
-        $sample = SampleRegistration::where('tr04_tracker_id', $trackerId)->first();
+        $cleanId = trim($trackerId);
+        $sample = SampleRegistration::where('tr04_tracker_id', $cleanId)
+            ->orWhere('tr04_reference_id', $cleanId)
+            ->orWhere('tr04_reference_no', $cleanId)
+            ->when(is_numeric($cleanId), fn($q) => $q->orWhere('tr04_sample_registration_id', (int)$cleanId))
+            ->first();
 
         if (!$sample) {
-            return redirect()->route('dashboard')->with('message', 'Sample not found for Tracker ID: ' . $trackerId)->with('type', 'error');
+            $stripped = ltrim($cleanId, '#');
+            $sample = SampleRegistration::where('tr04_tracker_id', $stripped)
+                ->orWhere('tr04_reference_id', $stripped)
+                ->orWhere('tr04_reference_no', $stripped)
+                ->when(is_numeric($stripped), fn($q) => $q->orWhere('tr04_sample_registration_id', (int)$stripped))
+                ->first();
         }
 
-        $role = Session::get('role');
-        $id = $sample->tr04_sample_registration_id;
-
-        // Dispatch based on role
-        // Analyst -> Analyst Dashboard / Test Views
-        if ($role === 'Analyst') {
-            // Check if Analyst has tests for this sample
-            // The route view_sample_tests takes sampleId
-            return redirect()->route('view_sample_tests', ['sampleId' => $id]);
+        if (!$sample) {
+            return redirect()->route('sample_history', ['identifier' => $trackerId])
+                ->with('message', 'Sample not found for ID: ' . $trackerId)
+                ->with('type', 'error');
         }
 
-        // Verification Officer -> Verification View
-        // Assuming role name, checking if they have access
-        if ($role === 'Verification Officer' || $role === 'Jr.QA') {
-            // The verification view takes report/sample ID? 
-            // view_result_verification list all. verify_result/{id} verifies specific.
-            // We can redirect to verify_result
-            return redirect()->route('verify_result', ['id' => $sample->tr04_sample_registration_id]);
-        }
-
-        // Manager / Admin -> Full Details + Reports
-        if ($role === 'Manager' || $role === 'Admin') {
-            return redirect()->route('view_registration_pdf', ['id' => $id]);
-        }
-
-        // Registrar / DEO -> Registration Details
-        if ($role === 'Registrar' || $role === 'DEO') {
-            return redirect()->route('view_registration_pdf', ['id' => $id]);
-        }
-
-        // Default Fallback
-        return redirect()->route('view_registration_pdf', ['id' => $id]);
+        // Redirect to the end-to-end journey tracker
+        return redirect()->route('sample_history', ['identifier' => $sample->tr04_tracker_id ?? $sample->tr04_reference_id]);
     }
 }

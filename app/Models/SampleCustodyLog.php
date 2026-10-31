@@ -92,4 +92,14 @@ class SampleCustodyLog extends Model
     {
         return $this->belongsTo(SampleRegistration::class, 'tr04_sample_registration_id', 'tr04_sample_registration_id');
     }
+
+    public function fromUser()
+    {
+        return $this->belongsTo(Employee::class, 'from_user_id', 'm06_employee_id');
+    }
+
+    public function toUser()
+    {
+        return $this->belongsTo(Employee::class, 'to_user_id', 'm06_employee_id');
+    }
 }

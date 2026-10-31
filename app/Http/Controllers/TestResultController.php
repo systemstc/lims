@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\CustomField;
+use App\Models\Employee;
 use App\Models\PrimaryTest;
 use App\Models\SampleRegistration;
 use App\Models\SampleTest;
@@ -10,11 +11,16 @@ use App\Models\SecondaryTest;
 use App\Models\Standard;
 use App\Models\Test;
 use App\Models\TestReport;
+use App\Models\TestRemark;
+use App\Models\TestResultAudit;
+use App\Models\TestTemplate;
+use App\Models\TestTemplateParameter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use App\Models\TestResult;
 use App\Models\Formula;
 use App\Models\RawEntry;
@@ -1574,6 +1580,36 @@ class TestResultController extends Controller
         }
     }
 
+    private function recordResultAudit($existing, array $newVals, $userId)
+    {
+        $fieldMap = [
+            'tr07_result'  => 'Result Value',
+            'tr07_unit'    => 'Unit',
+            'tr07_remarks' => 'Remarks',
+        ];
+
+        foreach ($fieldMap as $col => $label) {
+            $oldVal = trim((string)($existing->$col ?? ''));
+            $newVal = trim((string)($newVals[$col] ?? ''));
+
+            if ($oldVal !== $newVal) {
+                TestResultAudit::create([
+                    'tr07_test_result_id' => $existing->tr07_test_result_id,
+                    'tr09_version_id'     => $existing->tr07_current_version ?? 1,
+                    'tr10_action'         => 'UPDATED',
+                    'tr10_field_changed'  => $label,
+                    'tr10_old_value'      => $oldVal !== '' ? $oldVal : '(empty)',
+                    'tr10_new_value'      => $newVal !== '' ? $newVal : '(empty)',
+                    'tr10_change_reason'  => request()->input('change_reason') ?? 'Result parameter revised/updated',
+                    'tr10_user_id'        => $userId ?? Session::get('user_id') ?? 1,
+                    'tr10_ip_address'     => request()->ip(),
+                    'tr10_user_agent'     => substr(request()->userAgent() ?? '', 0, 500),
+                    'tr10_created_at'     => now(),
+                ]);
+            }
+        }
+    }
+
     /**
      * Save or update custom field
      */
@@ -1641,6 +1677,78 @@ class TestResultController extends Controller
         ]));
     }
 
+    /**
+     * Get remark suggestions for a test, ordered by current user, current RO, and recency
+     */
+    public function getRemarkSuggestions(Request $request)
+    {
+        $testId = $request->input('test_id');
+        $testNumber = $request->input('test_number');
+
+        if (!$testId && $testNumber) {
+            $testObj = Test::where('m12_test_number', $testNumber)->first();
+            $testId = $testObj?->m12_test_id;
+        }
+
+        if (!$testId) {
+            return response()->json(['success' => false, 'suggestions' => []]);
+        }
+
+        $userId = Session::get('user_id');
+        $roId = Session::get('ro_id');
+
+        $suggestions = TestRemark::where('m12_test_id', $testId)
+            ->select('m24_remark_id', 'm24_remark_text', 'm04_ro_id', 'm06_user_id', 'created_at')
+            ->orderByRaw("CASE WHEN m06_user_id = ? THEN 1 ELSE 0 END DESC", [$userId ?: 0])
+            ->orderByRaw("CASE WHEN m04_ro_id = ? THEN 1 ELSE 0 END DESC", [$roId ?: 0])
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->unique('m24_remark_text')
+            ->values()
+            ->map(function ($item) use ($userId, $roId) {
+                return [
+                    'id' => $item->m24_remark_id,
+                    'text' => $item->m24_remark_text,
+                    'is_my_remark' => ($item->m06_user_id == $userId),
+                    'is_my_ro' => ($item->m04_ro_id == $roId),
+                    'created_at' => $item->created_at ? $item->created_at->format('d M Y') : '',
+                ];
+            });
+
+        return response()->json(['success' => true, 'suggestions' => $suggestions]);
+    }
+
+    /**
+     * Save a new remark to the library
+     */
+    public function saveRemarkToLibrary(Request $request)
+    {
+        $request->validate([
+            'remark_text' => 'required|string|max:2000',
+            'test_id' => 'nullable',
+            'test_number' => 'nullable',
+        ]);
+
+        $testId = $request->input('test_id');
+        if (!$testId && $request->input('test_number')) {
+            $testObj = Test::where('m12_test_number', $request->input('test_number'))->first();
+            $testId = $testObj?->m12_test_id;
+        }
+
+        $remark = TestRemark::firstOrCreate([
+            'm04_ro_id' => Session::get('ro_id'),
+            'm06_user_id' => Session::get('user_id'),
+            'm12_test_id' => $testId,
+            'm24_remark_text' => trim($request->input('remark_text')),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'remark_id' => $remark->m24_remark_id,
+            'remark_text' => $remark->m24_remark_text,
+        ]);
+    }
+
     private function saveTestResult($data)
     {
         $resultData = $data['result_data'];
@@ -1648,15 +1756,54 @@ class TestResultController extends Controller
         $resultVal = (isset($resultData['result']) && $resultData['result'] !== '') ? $resultData['result'] : null;
         $unitVal = (isset($resultData['unit']) && $resultData['unit'] !== '') ? $resultData['unit'] : null;
 
+        // Resolve test remark and memory ID
+        $remarkText = isset($resultData['remarks']) && trim($resultData['remarks']) !== ''
+            ? trim($resultData['remarks'])
+            : (isset($data['remarks']) && trim($data['remarks']) !== '' ? trim($data['remarks']) : null);
+        $remarkId = !empty($resultData['remark_id']) ? (int)$resultData['remark_id'] : null;
+
+        // If remark ID exists but remark text is empty, auto-hydrate from library
+        if (!empty($remarkId) && empty($remarkText)) {
+            $libRemark = TestRemark::find($remarkId);
+            if ($libRemark) {
+                $remarkText = $libRemark->m24_remark_text;
+            }
+        }
+
+        // If remark text exists but no library remark ID, auto-save to memory table (m24_test_remarks)
+        if ($remarkText && empty($remarkId)) {
+            $testObj = Test::where('m12_test_number', $data['test_number'])->first();
+            $testDbId = $testObj?->m12_test_id ?? null;
+            if ($testDbId) {
+                $libRemark = TestRemark::firstOrCreate([
+                    'm04_ro_id' => $data['ro_id'] ?? Session::get('ro_id'),
+                    'm06_user_id' => $data['user_id'] ?? Session::get('user_id'),
+                    'm12_test_id' => $testDbId,
+                    'm24_remark_text' => $remarkText,
+                ]);
+                $remarkId = $libRemark->m24_remark_id;
+            }
+        }
+
         // Check if result_id exists (updating)
         if (!empty($resultData['result_id'])) {
+            $existing = TestResult::find($resultData['result_id']);
+            if ($existing) {
+                $this->recordResultAudit($existing, [
+                    'tr07_result'  => $resultVal,
+                    'tr07_unit'    => $unitVal,
+                    'tr07_remarks' => $remarkText,
+                ], $data['user_id'] ?? Session::get('user_id'));
+            }
+
             $updateData = [
                 'tr07_result' => $resultVal,
                 'tr07_unit' => $unitVal,
                 'tr07_result_status' => $data['action'],
                 'tr07_test_date' => $data['test_date'],
                 'tr07_performance_date' => $data['performance_date'],
-                'tr07_remarks' => $data['remarks'],
+                'tr07_remarks' => $remarkText,
+                'm24_remark_id' => $remarkId,
                 'm06_updated_by' => $data['user_id'],
             ];
 
@@ -1687,13 +1834,20 @@ class TestResultController extends Controller
             $existing = $query->first();
 
             if ($existing) {
+                $this->recordResultAudit($existing, [
+                    'tr07_result'  => $resultVal,
+                    'tr07_unit'    => $unitVal,
+                    'tr07_remarks' => $remarkText,
+                ], $data['user_id'] ?? Session::get('user_id'));
+
                 $updateData = [
                     'tr07_result' => $resultVal,
                     'tr07_unit' => $unitVal,
                     'tr07_result_status' => $data['action'],
                     'tr07_test_date' => $data['test_date'],
                     'tr07_performance_date' => $data['performance_date'],
-                    'tr07_remarks' => $data['remarks'],
+                    'tr07_remarks' => $remarkText,
+                    'm24_remark_id' => $remarkId,
                     'm06_updated_by' => $data['user_id'],
                 ];
                 if (isset($data['manuscript_content'])) {
@@ -1702,7 +1856,7 @@ class TestResultController extends Controller
                 $existing->update($updateData);
             } else {
                 // Creating new result
-                TestResult::create([
+                $createdResult = TestResult::create([
                     'm04_ro_id' => $data['ro_id'],
                     'tr04_reference_id' => $data['registration_id'],
                     'm12_test_number' => $data['test_number'],
@@ -1714,10 +1868,26 @@ class TestResultController extends Controller
                     'tr07_manuscript_content' => $this->processManuscriptImages($data['manuscript_content'] ?? null),
                     'tr07_test_date' => $data['test_date'],
                     'tr07_performance_date' => $data['performance_date'],
-                    'tr07_remarks' => $data['remarks'],
+                    'tr07_remarks' => $remarkText,
+                    'm24_remark_id' => $remarkId,
                     'tr07_current_version' => 1,
                     'tr07_result_status' => $data['action'],
                     'm06_created_by' => $data['user_id'],
+                ]);
+
+                // ISO 17025 Audit Trail logging for initial result creation
+                TestResultAudit::create([
+                    'tr07_test_result_id' => $createdResult->tr07_test_result_id,
+                    'tr09_version_id'     => 1,
+                    'tr10_action'         => 'CREATED',
+                    'tr10_field_changed'  => 'Initial Result Entry',
+                    'tr10_old_value'      => null,
+                    'tr10_new_value'      => trim(($resultVal ?? '') . ' ' . ($unitVal ?? '')) ?: 'Recorded',
+                    'tr10_change_reason'  => 'Initial test result recorded by analyst',
+                    'tr10_user_id'        => $data['user_id'] ?? Session::get('user_id') ?? 1,
+                    'tr10_ip_address'     => request()->ip(),
+                    'tr10_user_agent'     => substr(request()->userAgent() ?? '', 0, 500),
+                    'tr10_created_at'     => now(),
                 ]);
             }
         }
@@ -1758,17 +1928,35 @@ class TestResultController extends Controller
 
     public function showSampleResult($id)
     {
+        // Resolve sample registration by reference ID, primary key ID, tracker ID, or reference number
+        $sample = SampleRegistration::where('tr04_reference_id', $id)
+            ->orWhere('tr04_sample_registration_id', $id)
+            ->orWhere('tr04_reference_no', $id)
+            ->orWhere('tr04_tracker_id', $id)
+            ->first();
+
+        $referenceId = $sample ? $sample->tr04_reference_id : $id;
+        $role = strtoupper((string) Session::get('role', ''));
+        $userRoId = Session::get('ro_id');
+        $isAdmin = in_array($role, ['ADMIN', 'SUPER ADMIN', 'RO ADMIN']) || Session::get('role_id') == 1;
+
         // Get all test results with relationships
-        $testResults = TestResult::with([
+        $query = TestResult::with([
             'test',
             'primaryTest',
             'secondaryTest',
             'creator'
         ])
-            ->where('tr04_reference_id', $id)
-            ->where('m04_ro_id', Session::get('ro_id'))
-            ->where('tr07_result_status', 'VERIFIED')
-            ->where('tr07_is_current', 'YES')
+            ->where('tr04_reference_id', $referenceId)
+            ->whereIn('tr07_result_status', ['VERIFIED', 'REPORTED', 'RESULTED', 'SUBMITTED', 'FINALIZED'])
+            ->where('tr07_is_current', 'YES');
+
+        // Restrict by RO only for non-admin users
+        if (!$isAdmin && $userRoId && (!$sample || $sample->m04_ro_id == $userRoId)) {
+            $query->where('m04_ro_id', $userRoId);
+        }
+
+        $testResults = $query
             ->orderBy('m12_test_number')
             ->orderBy('m16_primary_test_id')
             ->orderBy('m17_secondary_test_id')
@@ -1776,16 +1964,29 @@ class TestResultController extends Controller
             ->get();
 
         // Get custom fields for this sample
-        $customFields = CustomField::with(['test', 'primaryTest', 'secondaryTest'])
-            ->where('tr04_reference_id', $id)
-            ->where('tr08_result_status', 'VERIFIED')
+        $customQuery = CustomField::with(['test', 'primaryTest', 'secondaryTest'])
+            ->where('tr04_reference_id', $referenceId)
+            ->whereIn('tr08_result_status', ['VERIFIED', 'REPORTED', 'RESULTED', 'SUBMITTED', 'FINALIZED']);
+
+        if (!$isAdmin && $userRoId && (!$sample || $sample->m04_ro_id == $userRoId)) {
+            $customQuery->where('m04_ro_id', $userRoId);
+        }
+
+        $customFields = $customQuery
             ->orderBy('m12_test_number')
             ->orderBy('m16_primary_test_id')
             ->orderBy('m17_secondary_test_id')
             ->get();
 
         if ($testResults->isEmpty() && $customFields->isEmpty()) {
-            abort(404, 'No test results found for this sample.');
+            if ($sample) {
+                return redirect()->back()
+                    ->with('type', 'warning')
+                    ->with('message', 'No verified or reported test results found yet for sample #' . $referenceId);
+            }
+            return redirect()->route('test_results')
+                ->with('type', 'error')
+                ->with('message', 'Sample not found.');
         }
 
         // Group test results by test number
@@ -2021,7 +2222,7 @@ class TestResultController extends Controller
             'testResult' => function ($q) {
                 $q->where('tr07_is_current', 'YES')
                     ->whereIn('tr07_result_status', ['VERIFIED', 'REPORTED'])
-                    ->with(['test', 'primaryTest', 'secondaryTest']);
+                    ->with(['test', 'primaryTest', 'secondaryTest', 'remarkRecord']);
             },
             'sampleTests.standard'
         ])
@@ -2719,7 +2920,7 @@ class TestResultController extends Controller
             'testResult' => function ($q) {
                 $q->where('tr07_is_current', 'YES')
                     ->whereIn('tr07_result_status', ['VERIFIED', 'REPORTED'])
-                    ->with(['test', 'primaryTest', 'secondaryTest']);
+                    ->with(['test', 'primaryTest', 'secondaryTest', 'remarkRecord']);
             },
             'sampleTests.standard'
         ])
@@ -2977,43 +3178,188 @@ class TestResultController extends Controller
 
     public function audit(Request $request)
     {
-        // $query = TestResultAudit::with(['testResult', 'user', 'version'])
-        //     ->orderBy('tr07_created_at', 'desc');
+        $query = TestResultAudit::with(['testResult.test', 'testResult.registration', 'user'])
+            ->orderBy('tr10_created_at', 'desc');
 
-        // if ($request->filled('test_result_id')) {
-        //     $query->where('tr07_test_result_id', $request->test_result_id);
-        // }
+        // Unified search across Sample Ref ID, Tracker ID, Test Name, or Result ID
+        if ($request->filled('search')) {
+            $search = trim($request->search);
+            $query->where(function ($q) use ($search) {
+                if (is_numeric($search)) {
+                    $q->where('tr07_test_result_id', (int)$search);
+                }
+                $q->orWhereHas('testResult', function ($tq) use ($search) {
+                    $tq->where('tr04_reference_id', 'like', "%{$search}%")
+                        ->orWhere('m12_test_number', 'like', "%{$search}%")
+                        ->orWhereHas('test', function ($tst) use ($search) {
+                            $tst->where('m12_name', 'like', "%{$search}%");
+                        })
+                        ->orWhereHas('registration', function ($reg) use ($search) {
+                            $reg->where('tr04_tracker_id', 'like', "%{$search}%")
+                                ->orWhere('tr04_reference_no', 'like', "%{$search}%");
+                        });
+                });
+            });
+        }
 
-        // if ($request->filled('action')) {
-        //     $query->where('tr07_action', $request->action);
-        // }
+        // Backward compatibility if user entered test_result_id
+        if ($request->filled('test_result_id')) {
+            $tid = trim($request->test_result_id);
+            $query->where(function ($q) use ($tid) {
+                if (is_numeric($tid)) {
+                    $q->where('tr07_test_result_id', (int)$tid);
+                }
+                $q->orWhereHas('testResult', function ($tq) use ($tid) {
+                    $tq->where('tr04_reference_id', 'like', "%{$tid}%");
+                });
+            });
+        }
 
-        // if ($request->filled('user_id')) {
-        //     $query->where('tr07_user_id', $request->user_id);
-        // }
+        if ($request->filled('action')) {
+            $actionUpper = strtoupper(trim($request->action));
+            $query->where(DB::raw('UPPER(tr10_action)'), $actionUpper);
+        }
 
-        // if ($request->filled('date_from')) {
-        //     $query->where('tr07_created_at', '>=', $request->date_from . ' 00:00:00');
-        // }
+        if ($request->filled('user_id')) {
+            $query->where('tr10_user_id', $request->user_id);
+        }
 
-        // if ($request->filled('date_to')) {
-        //     $query->where('tr07_created_at', '<=', $request->date_to . ' 23:59:59');
-        // }
+        if ($request->filled('date_from')) {
+            $query->where('tr10_created_at', '>=', $request->date_from . ' 00:00:00');
+        }
 
-        // $auditLogs = $query->paginate(20);
+        if ($request->filled('date_to')) {
+            $query->where('tr10_created_at', '<=', $request->date_to . ' 23:59:59');
+        }
 
-        return view('test-results.audit_test_result', compact('auditLogs'));
+        // CSV Export for ISO 17025 compliance
+        if ($request->get('export') == '1') {
+            return $this->exportAuditLogsCsv($query->get());
+        }
+
+        $auditLogs = $query->paginate(20);
+
+        // Fetch active employees for user filter dropdown
+        $employees = Employee::where('m06_status', 'ACTIVE')
+            ->orderBy('m06_name')
+            ->get(['m06_employee_id', 'm06_name']);
+
+        // Activity KPI summary counts
+        $totalActions = TestResultAudit::count();
+        $todayActivity = TestResultAudit::whereDate('tr10_created_at', today())->count();
+        $thisWeek = TestResultAudit::whereBetween('tr10_created_at', [now()->startOfWeek(), now()->endOfWeek()])->count();
+        $thisMonth = TestResultAudit::whereMonth('tr10_created_at', now()->month)->count();
+
+        return view('test-results.audit_test_result', compact(
+            'auditLogs',
+            'employees',
+            'totalActions',
+            'todayActivity',
+            'thisWeek',
+            'thisMonth'
+        ));
     }
 
-    // Test formaula template
+    private function exportAuditLogsCsv($logs)
+    {
+        $filename = 'audit_trail_' . date('Y-m-d_His') . '.csv';
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+        ];
+
+        $callback = function () use ($logs) {
+            $file = fopen('php://output', 'w');
+            fputcsv($file, [
+                'Log ID',
+                'Date/Time',
+                'Sample Reference ID',
+                'Test Name',
+                'Test Result ID',
+                'Action',
+                'Field Changed',
+                'Original Value',
+                'New Value',
+                'Reason for Change',
+                'User / Analyst',
+                'IP Address'
+            ]);
+
+            foreach ($logs as $log) {
+                fputcsv($file, [
+                    $log->tr10_audit_id,
+                    $log->tr10_created_at ? $log->tr10_created_at->format('Y-m-d H:i:s') : '',
+                    $log->testResult?->tr04_reference_id ?? 'N/A',
+                    $log->testResult?->tr07_test_name ?? ('Test #' . ($log->testResult?->m12_test_number ?? '')),
+                    $log->tr07_test_result_id,
+                    $log->tr10_action,
+                    $log->tr10_field_changed,
+                    $log->tr10_old_value ?? '-',
+                    $log->tr10_new_value ?? '-',
+                    $log->tr10_change_reason ?? '-',
+                    $log->user?->m06_name ?? ($log->tr10_user_id ? "User #{$log->tr10_user_id}" : "System"),
+                    $log->tr10_ip_address ?? 'N/A',
+                ]);
+            }
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
+    // Test formula template
     public function getTestTemplate()
     {
-        $tests = DB::table('m12_tests')
-            ->whereNotIn('m12_test_id', function ($q) {
-                $q->select('m12_test_id')->from('tr08_test_templates');
-            })
-            ->get();
+        $testsQuery = DB::table('m12_tests');
+        if (Schema::hasTable('tr08_test_templates')) {
+            $testsQuery->whereNotIn('m12_test_id', function ($q) {
+                $q->select('m12_test_id')->from('tr08_test_templates')->where('tr08_status', 'YES');
+            });
+        }
+        $tests = $testsQuery->where('m12_status', 'ACTIVE')->orderBy('m12_name')->get();
         return view('test-results.create_test_template', compact('tests'));
+    }
+
+    public function createTestTemplate(Request $request)
+    {
+        $request->validate([
+            'm12_test_id'        => 'required|integer',
+            'tr08_test_type'     => 'required|string',
+            'txt_test_performed' => 'required|integer|min:1',
+            'txt_param_num'      => 'required|integer|min:1',
+            'parameters'         => 'required|array',
+        ]);
+
+        DB::beginTransaction();
+        try {
+            $template = TestTemplate::create([
+                'm12_test_id'             => $request->m12_test_id,
+                'tr08_test_type'          => $request->tr08_test_type,
+                'tr08_times_test_perform' => $request->txt_test_performed,
+                'tr08_formula'            => $request->txt_main_test_formula ?? null,
+                'tr08_fields_config'      => $request->parameters,
+                'tr08_status'             => 'YES',
+                'm06_created_by'          => Session::get('user_id'),
+            ]);
+
+            foreach ($request->parameters as $param) {
+                TestTemplateParameter::create([
+                    'tr08_test_template_id' => $template->tr08_test_template_id,
+                    'tr09_name'             => $param['name'] ?? 'Parameter',
+                    'tr09_inputs'           => $param['inputs'] ?? '1',
+                    'tr09_min'              => $param['min'] ?? null,
+                    'tr09_max'              => $param['max'] ?? null,
+                    'tr09_formula'          => $param['formula'] ?? null,
+                ]);
+            }
+
+            DB::commit();
+            return redirect()->back()->with('success', 'Test template created successfully!');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Failed to create test template: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Failed to create template: ' . $e->getMessage());
+        }
     }
 
     /**

@@ -27,6 +27,9 @@ class AccessControl
 
         // 2. AUTH CHECK
         if (!Session::has('role_id')) {
+            if (in_array($routeName, ['track_sample', 'sample_history', 'search_tracker'])) {
+                return $next($request);
+            }
             return to_route('user_login')->with('error', 'Please login first.');
         }
 
@@ -116,6 +119,7 @@ class AccessControl
             'download_remote_report',
             'track_sample',
             'search_tracker',
+            'sample_history',
             'create_test_result',
             'update_test_standard',
             'serve_manuscript_file',

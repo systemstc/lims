@@ -24,6 +24,7 @@ use App\Http\Controllers\CustomerPortalController;
 use App\Http\Controllers\AdminProfileController;
 use App\Http\Controllers\CustodyController;
 use App\Http\Controllers\ContractReviewController;
+use App\Http\Controllers\SampleTrackingController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Session;
 
@@ -273,6 +274,7 @@ Route::middleware(['access_control'])->group(function () {
 
         // Audit Trail
         Route::get('/audit/trail', [TestResultController::class, 'audit'])->name('test_results_audit');
+        Route::get('/audit', [TestResultController::class, 'audit'])->name('test-results.audit');
 
         // Formula & Raw Entry
         Route::get('/get-formula-details/{id}', [TestResultController::class, 'getFormulaDetails'])->name('get_formula_details');
@@ -285,6 +287,8 @@ Route::middleware(['access_control'])->group(function () {
     Route::post('cumulative-reports/generate', [CumulativeReportController::class, 'generate'])->name('generate_cumulative_report');
 
     Route::get('/template', [TestResultController::class, 'getTestTemplate'])->name('create_test_template');
+    Route::post('/template', [TestResultController::class, 'createTestTemplate']);
+    Route::post('/create-test-template', [TestResultController::class, 'createTestTemplate'])->name('store_test_template');
 
     Route::get('/get-districts', [MasterController::class, 'getDistricts'])->name('get_districts');
     Route::get('group-bysample', [MasterController::class, 'getGroups'])->name('get_groups');
@@ -323,9 +327,10 @@ Route::middleware(['access_control'])->group(function () {
     Route::get('/today-stats', [SampleController::class, 'todayStats'])->name('today_stats');
     Route::get('/sample-details', [SampleController::class, 'getSampleDetails'])->name('get_sample_details');
 
-    // Role-based Tracking & Search
-    Route::get('/track-sample/{trackerId}', [SampleController::class, 'trackSample'])->name('track_sample');
-    Route::get('/search-tracker', [SampleController::class, 'searchTracker'])->name('search_tracker');
+    // End-to-End Sample History Journey Track
+    Route::get('/sample-history/{identifier?}', [SampleTrackingController::class, 'showTrack'])->name('sample_history');
+    Route::get('/track-sample/{trackerId}', [SampleTrackingController::class, 'showTrack'])->name('track_sample');
+    Route::get('/search-tracker', [SampleTrackingController::class, 'showTrack'])->name('search_tracker');
 
     // Validation
     Route::post('/validate-field', [ValidationController::class, 'checkField'])->name('validate_field');
@@ -383,6 +388,11 @@ Route::middleware(['access_control'])->group(function () {
     Route::get('manuscript-file/{filename}', [TestResultController::class, 'serveManuscriptFile'])->name('serve_manuscript_file');
     Route::get('completed-tests', [TestResultController::class, 'viewCompletedTests'])->name('view_completed_camples');
     Route::post('/test-result/upload/{id}', [TestResultController::class, 'uploadDocument'])->name('testresult_upload');
+
+    // Test Remarks Library
+    Route::get('/get-remark-suggestions', [TestResultController::class, 'getRemarkSuggestions'])->name('get_remark_suggestions');
+    Route::post('/save-remark-library', [TestResultController::class, 'saveRemarkToLibrary'])->name('save_remark_library');
+    Route::post('/save-remark-to-library', [TestResultController::class, 'saveRemarkToLibrary'])->name('save_remark_to_library');
 
     // Transferred samples from other regional offices 
     Route::get('accept-pending-samples', [SampleController::class, 'viewPedingSmples'])->name('view_regional_samples');

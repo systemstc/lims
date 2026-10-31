@@ -16,7 +16,7 @@
                 <em class="icon ni ni-search"></em>
                 <form action="{{ route('search_tracker') }}" method="GET">
                     <input type="text" name="tracker_id" class="form-control border-transparent form-focus-none"
-                        placeholder="Search by Tracker ID">
+                        placeholder="Search by Tracker ID or Ref No...">
                 </form>
             </div><!-- .nk-header-news -->
             <div class="nk-header-tools">

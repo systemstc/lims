@@ -7,6 +7,9 @@
         $regPkId = $sampleTests->first()?->tr04_sample_registration_id ?? $sampleReg?->tr04_sample_registration_id;
         $defaultTargetRole = Session::get('role') === 'DEO' ? 'Analyst' : (Session::get('role') === 'Analyst' ? 'Manager' : 'RC');
 
+        $firstResultStatus = optional($existingResults->first())->tr07_result_status;
+        $isResultSubmitted = in_array($firstResultStatus, ['SUBMITTED', 'RESULTED', 'COMPLETED', 'VERIFIED', 'REPORTED', 'FINALIZED']);
+
         // Helper to resolve URL for any manuscript item
         // Helper to resolve URL for any manuscript item
         $resolveManuscriptUrl = function($fileName, $ext = null) {
@@ -372,9 +375,21 @@
                                                                     name="results[{{ $test->m12_test_number }}][test][result]"
                                                                     class="wysiwyg-hidden-val"
                                                                     value="{{ old('results.' . $test->m12_test_number . '.test.result', $existingMainTestResult->tr07_result ?? '') }}">
+                                                                @php
+                                                                    $mainRemarkVal = old('results.' . $test->m12_test_number . '.test.remarks', $existingMainTestResult->tr07_remarks ?? ($existingMainTestResult?->remarkRecord?->m24_remark_text ?? (\App\Models\TestRemark::find($existingMainTestResult->m24_remark_id ?? 0)?->m24_remark_text ?? '')));
+                                                                @endphp
+                                                                <input type="hidden"
+                                                                    name="results[{{ $test->m12_test_number }}][test][remarks]"
+                                                                    class="row-remark-text"
+                                                                    value="{{ $mainRemarkVal }}">
+                                                                <input type="hidden"
+                                                                    name="results[{{ $test->m12_test_number }}][test][remark_id]"
+                                                                    class="row-remark-id"
+                                                                    value="{{ old('results.' . $test->m12_test_number . '.test.remark_id', $existingMainTestResult->m24_remark_id ?? '') }}">
                                                                 <div class="form-control form-control-sm bg-light wysiwyg-editor-input @error('results.' . $test->m12_test_number . '.test.result') is-invalid @enderror"
                                                                     contenteditable="true"
                                                                     data-placeholder="Enter result value">{!! old('results.' . $test->m12_test_number . '.test.result', $existingMainTestResult->tr07_result ?? '') !!}</div>
+                                                                <span class="input-group-text bg-white text-danger fw-bold row-remark-star px-1" style="{{ empty($mainRemarkVal) ? 'display:none;' : '' }} font-size:13px; cursor:pointer;" title="Remark attached">*</span>
                                                                 <button type="button" class="btn btn-outline-light btn-xs btn-wysiwyg-cmd px-2" data-cmd="superscript" title="Superscript (Ctrl + .)"><span style="font-weight:bold; font-size:11px;">x<sup>2</sup></span></button>
                                                                 <button type="button" class="btn btn-outline-light btn-xs btn-wysiwyg-cmd px-2" data-cmd="subscript" title="Subscript (Ctrl + ,)"><span style="font-weight:bold; font-size:11px;">x<sub>2</sub></span></button>
                                                                 <button type="button" class="btn btn-outline-light btn-xs btn-open-symbols px-2" title="Insert Symbol"><span style="font-weight:bold; font-size:11px;">Ω</span></button>
@@ -387,6 +402,15 @@
                                                                         <em class="icon ni ni-calc"></em>
                                                                     </button>
                                                                 @endif
+                                                                <button type="button"
+                                                                    class="btn btn-xs {{ !empty($mainRemarkVal) ? 'btn-info text-white' : 'btn-outline-light' }} btn-open-remark px-2"
+                                                                    data-test-id="{{ $test->m12_test_id }}"
+                                                                    data-test-number="{{ $test->m12_test_number }}"
+                                                                    data-test-name="{{ $test->m12_name }}"
+                                                                    data-field-prefix="results[{{ $test->m12_test_number }}][test]"
+                                                                    title="{{ !empty($mainRemarkVal) ? 'Remark: ' . $mainRemarkVal : 'Add / View Remark' }}">
+                                                                    <em class="icon ni ni-notes"></em>
+                                                                </button>
                                                                 <input type="text"
                                                                     class="form-control form-control-sm bg-light text-center px-1"
                                                                     style="max-width: 75px; min-width: 55px;"
@@ -461,9 +485,20 @@
                                                                         <input type="hidden"
                                                                             name="results[{{ $test->m12_test_number }}][primary_tests][{{ $primaryTest->m16_primary_test_id }}][primary_test_id]"
                                                                             value="{{ $primaryTest->m16_primary_test_id }}">
-                                                                        <input type="hidden"
+                                                                         <input type="hidden"
                                                                             name="results[{{ $test->m12_test_number }}][primary_tests][{{ $primaryTest->m16_primary_test_id }}][result_id]"
                                                                             value="{{ $existingPrimaryResult->tr07_test_result_id ?? '' }}">
+                                                                        @php
+                                                                            $priRemarkVal = old('results.' . $test->m12_test_number . '.primary_tests.' . $primaryTest->m16_primary_test_id . '.remarks', $existingPrimaryResult->tr07_remarks ?? ($existingPrimaryResult?->remarkRecord?->m24_remark_text ?? (\App\Models\TestRemark::find($existingPrimaryResult->m24_remark_id ?? 0)?->m24_remark_text ?? '')));
+                                                                        @endphp
+                                                                        <input type="hidden"
+                                                                            name="results[{{ $test->m12_test_number }}][primary_tests][{{ $primaryTest->m16_primary_test_id }}][remarks]"
+                                                                            class="row-remark-text"
+                                                                            value="{{ $priRemarkVal }}">
+                                                                        <input type="hidden"
+                                                                            name="results[{{ $test->m12_test_number }}][primary_tests][{{ $primaryTest->m16_primary_test_id }}][remark_id]"
+                                                                            class="row-remark-id"
+                                                                            value="{{ old('results.' . $test->m12_test_number . '.primary_tests.' . $primaryTest->m16_primary_test_id . '.remark_id', $existingPrimaryResult->m24_remark_id ?? '') }}">
                                                                         @php
                                                                             $testNameLower = strtolower($test->m12_name ?? '');
                                                                             $isAzoTest = str_contains($testNameLower, 'banned amines') || str_contains($testNameLower, 'aryl amine') || str_contains($testNameLower, 'azo');
@@ -476,6 +511,7 @@
                                                                         <div class="form-control form-control-sm border-0 bg-light wysiwyg-editor-input @error('results.' . $test->m12_test_number . '.primary_tests.' . $primaryTest->m16_primary_test_id . '.result') is-invalid @enderror"
                                                                             contenteditable="true"
                                                                             data-placeholder="Enter result value">{!! $primaryDefaultVal !!}</div>
+                                                                        <span class="input-group-text bg-white text-danger fw-bold row-remark-star px-1" style="{{ empty($priRemarkVal) ? 'display:none;' : '' }} font-size:13px; cursor:pointer;" title="Remark attached">*</span>
                                                                         <button type="button" class="btn btn-outline-light btn-xs btn-wysiwyg-cmd px-2" data-cmd="superscript" title="Superscript (Ctrl + .)"><span style="font-weight:bold; font-size:11px;">x<sup>2</sup></span></button>
                                                                         <button type="button" class="btn btn-outline-light btn-xs btn-wysiwyg-cmd px-2" data-cmd="subscript" title="Subscript (Ctrl + ,)"><span style="font-weight:bold; font-size:11px;">x<sub>2</sub></span></button>
                                                                         <button type="button" class="btn btn-outline-light btn-xs btn-open-symbols px-2" title="Insert Symbol"><span style="font-weight:bold; font-size:11px;">Ω</span></button>
@@ -488,6 +524,15 @@
                                                                                 <em class="icon ni ni-calc"></em>
                                                                             </button>
                                                                         @endif
+                                                                        <button type="button"
+                                                                            class="btn btn-xs {{ !empty($priRemarkVal) ? 'btn-info text-white' : 'btn-outline-light' }} btn-open-remark px-2"
+                                                                            data-test-id="{{ $test->m12_test_id }}"
+                                                                            data-test-number="{{ $test->m12_test_number }}"
+                                                                            data-test-name="{{ $primaryTest->m16_name ?? $test->m12_name }}"
+                                                                            data-field-prefix="results[{{ $test->m12_test_number }}][primary_tests][{{ $primaryTest->m16_primary_test_id }}]"
+                                                                            title="{{ !empty($priRemarkVal) ? 'Remark: ' . $priRemarkVal : 'Add / View Remark' }}">
+                                                                            <em class="icon ni ni-notes"></em>
+                                                                        </button>
                                                                         <input type="text"
                                                                             class="form-control form-control-sm border-0 bg-light text-center px-1"
                                                                             style="max-width: 75px; min-width: 55px;"
@@ -565,9 +610,20 @@
                                                                                 <input type="hidden"
                                                                                     name="results[{{ $test->m12_test_number }}][primary_tests][{{ $primaryTest->m16_primary_test_id }}][secondary_tests][{{ $secondaryTest->m17_secondary_test_id }}][secondary_test_id]"
                                                                                     value="{{ $secondaryTest->m17_secondary_test_id }}">
-                                                                                <input type="hidden"
+                                                                                 <input type="hidden"
                                                                                     name="results[{{ $test->m12_test_number }}][primary_tests][{{ $primaryTest->m16_primary_test_id }}][secondary_tests][{{ $secondaryTest->m17_secondary_test_id }}][result_id]"
                                                                                     value="{{ $existingSecondaryResult->tr07_test_result_id ?? '' }}">
+                                                                                <input type="hidden"
+                                                                                    name="results[{{ $test->m12_test_number }}][primary_tests][{{ $primaryTest->m16_primary_test_id }}][secondary_tests][{{ $secondaryTest->m17_secondary_test_id }}][remarks]"
+                                                                                    class="row-remark-text"
+                                                                                    @php
+                                                                                        $secRemarkVal = old('results.' . $test->m12_test_number . '.primary_tests.' . $primaryTest->m16_primary_test_id . '.secondary_tests.' . $secondaryTest->m17_secondary_test_id . '.remarks', $existingSecondaryResult->tr07_remarks ?? ($existingSecondaryResult?->remarkRecord?->m24_remark_text ?? (\App\Models\TestRemark::find($existingSecondaryResult->m24_remark_id ?? 0)?->m24_remark_text ?? '')));
+                                                                                    @endphp
+                                                                                    value="{{ $secRemarkVal }}">
+                                                                                <input type="hidden"
+                                                                                    name="results[{{ $test->m12_test_number }}][primary_tests][{{ $primaryTest->m16_primary_test_id }}][secondary_tests][{{ $secondaryTest->m17_secondary_test_id }}][remark_id]"
+                                                                                    class="row-remark-id"
+                                                                                    value="{{ old('results.' . $test->m12_test_number . '.primary_tests.' . $primaryTest->m16_primary_test_id . '.secondary_tests.' . $secondaryTest->m17_secondary_test_id . '.remark_id', $existingSecondaryResult->m24_remark_id ?? '') }}">
                                                                                 @php
                                                                                     $testNameLower = strtolower($test->m12_name ?? '');
                                                                                     $isAzoTest = str_contains($testNameLower, 'banned amines') || str_contains($testNameLower, 'aryl amine') || str_contains($testNameLower, 'azo');
@@ -580,6 +636,7 @@
                                                                                 <div class="form-control form-control-sm border-0 bg-light wysiwyg-editor-input @error('results.' . $test->m12_test_number . '.primary_tests.' . $primaryTest->m16_primary_test_id . '.secondary_tests.' . $secondaryTest->m17_secondary_test_id . '.result') is-invalid @enderror"
                                                                                     contenteditable="true"
                                                                                     data-placeholder="Enter result value">{!! $secondaryDefaultVal !!}</div>
+                                                                                <span class="input-group-text bg-white text-danger fw-bold row-remark-star px-1" style="{{ empty($secRemarkVal) ? 'display:none;' : '' }} font-size:13px; cursor:pointer;" title="Remark attached">*</span>
                                                                                 <button type="button" class="btn btn-outline-light btn-xs btn-wysiwyg-cmd px-2" data-cmd="superscript" title="Superscript (Ctrl + .)"><span style="font-weight:bold; font-size:11px;">x<sup>2</sup></span></button>
                                                                                 <button type="button" class="btn btn-outline-light btn-xs btn-wysiwyg-cmd px-2" data-cmd="subscript" title="Subscript (Ctrl + ,)"><span style="font-weight:bold; font-size:11px;">x<sub>2</sub></span></button>
                                                                                 <button type="button" class="btn btn-outline-light btn-xs btn-open-symbols px-2" title="Insert Symbol"><span style="font-weight:bold; font-size:11px;">Ω</span></button>
@@ -592,6 +649,15 @@
                                                                                         <em class="icon ni ni-calc"></em>
                                                                                     </button>
                                                                                 @endif
+                                                                                <button type="button"
+                                                                                    class="btn btn-xs {{ !empty($secRemarkVal) ? 'btn-info text-white' : 'btn-outline-light' }} btn-open-remark px-2"
+                                                                                    data-test-id="{{ $test->m12_test_id }}"
+                                                                                    data-test-number="{{ $test->m12_test_number }}"
+                                                                                    data-test-name="{{ $secondaryTest->m17_name ?? $test->m12_name }}"
+                                                                                    data-field-prefix="results[{{ $test->m12_test_number }}][primary_tests][{{ $primaryTest->m16_primary_test_id }}][secondary_tests][{{ $secondaryTest->m17_secondary_test_id }}]"
+                                                                                    title="{{ !empty($secRemarkVal) ? 'Remark: ' . $secRemarkVal : 'Add / View Remark' }}">
+                                                                                    <em class="icon ni ni-notes"></em>
+                                                                                </button>
                                                                                 <input type="text"
                                                                                     class="form-control form-control-sm border-0 bg-light text-center px-1"
                                                                                     style="max-width: 75px; min-width: 55px;"
@@ -1609,6 +1675,72 @@
         </div>
     </div>
 
+    <!-- Test Remark Modal & Memory Library -->
+    <div class="modal fade" id="testRemarkModal" tabindex="-1" aria-labelledby="testRemarkModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content shadow border-0">
+                <div class="modal-header bg-info text-white py-2 px-3">
+                    <h6 class="modal-title fs-14px fw-bold text-white mb-0" id="testRemarkModalLabel">
+                        <em class="icon ni ni-notes me-1"></em> <span id="modalRemarkHeading">Test Remark</span>
+                    </h6>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-3">
+                    <div id="modalRemarkSubmittedNotice" class="alert alert-warning py-2 px-3 small mb-3 d-flex align-items-center" style="display: none;">
+                        <em class="icon ni ni-alert-circle fs-18px me-2 text-warning"></em>
+                        <div>
+                            <strong>Submitted Result (Locked)</strong>
+                            <div class="fs-11px text-muted">Test results have been submitted and finalized. Remarks are in read-only mode and cannot be modified.</div>
+                        </div>
+                    </div>
+
+                    <input type="hidden" id="modalRemarkRowIndex" value="">
+                    <input type="hidden" id="modalRemarkTestId" value="">
+                    <input type="hidden" id="modalRemarkTestNumber" value="">
+                    <input type="hidden" id="modalRemarkId" value="">
+
+                    <!-- Past Remark Suggestions Memory -->
+                    <div class="mb-3" id="remarkSuggestionsWrapper">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label fw-semibold fs-12px mb-0 text-secondary">
+                                <em class="icon ni ni-histroy text-info me-1"></em> Past Remarks for This Test:
+                            </label>
+                            <span id="suggestionsSpinner" class="spinner-border spinner-border-sm text-info d-none" role="status" aria-hidden="true"></span>
+                        </div>
+                        <div id="remarkSuggestionsBox" class="border rounded p-2 bg-light d-flex flex-wrap gap-1" style="max-height: 120px; overflow-y: auto;">
+                            <span class="text-muted fs-11px">Loading suggestions...</span>
+                        </div>
+                        <div class="fs-11px text-muted mt-1">
+                            Click any past suggestion above to quickly load it, or enter a new remark below.
+                        </div>
+                    </div>
+
+                    <!-- Remark Input -->
+                    <div class="form-group mb-2">
+                        <label class="form-label fw-semibold fs-12px" for="modalRemarkInput">
+                            Remark Text
+                        </label>
+                        <textarea class="form-control form-control-sm" id="modalRemarkInput" rows="3" placeholder="Enter specific observation, deviation, or condition for this test..."></textarea>
+                        <div class="fs-11px text-muted mt-1">
+                            This remark will be printed on the last page of the final report before the QR code with sequential star notation (*, **, etc.).
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer py-2 bg-light d-flex justify-content-between">
+                    <button type="button" class="btn btn-sm btn-outline-danger" id="btnDeleteRemark">
+                        <em class="icon ni ni-trash me-1"></em> Remove Remark
+                    </button>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-sm btn-info text-white fw-bold" id="btnApplyRemark">
+                            <em class="icon ni ni-check me-1"></em> Apply Remark
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Scientific Symbol & Multiplier Picker Popup -->
     <div id="symbolPickerPopup" class="card shadow-lg border position-fixed d-none" style="z-index: 1060; width: 330px; border-radius: 8px; overflow: hidden; font-size: 13px;">
         <div class="card-header bg-primary text-white py-2 px-3 d-flex justify-content-between align-items-center">
@@ -2345,6 +2477,181 @@
             let usedPrimaryTests = new Map();
             let usedSecondaryTests = new Map();
 
+            const isResultSubmitted = {{ $isResultSubmitted ? 'true' : 'false' }};
+            let currentActiveRemarkRow = null;
+
+            // Function to recalculate sequential star notation (*, **, ***) for all rows with remarks
+            window.recalculateRemarksStars = function() {
+                let count = 0;
+                document.querySelectorAll('tr').forEach(row => {
+                    const remarkInput = row.querySelector('.row-remark-text');
+                    if (!remarkInput) return;
+
+                    const remarkVal = (remarkInput.value || '').trim();
+                    const starElem = row.querySelector('.row-remark-star');
+                    const btn = row.querySelector('.btn-open-remark');
+
+                    if (remarkVal !== '') {
+                        count++;
+                        const starStr = '*'.repeat(count);
+                        if (starElem) {
+                            starElem.textContent = starStr;
+                            starElem.style.display = '';
+                            starElem.setAttribute('title', 'Remark: ' + remarkVal + ' (' + starStr + ')');
+                        }
+                        if (btn) {
+                            btn.classList.remove('btn-outline-light');
+                            btn.classList.add('btn-info', 'text-white');
+                            btn.setAttribute('title', 'Remark: ' + remarkVal + ' (' + starStr + ')');
+                        }
+                    } else {
+                        if (starElem) {
+                            starElem.textContent = '';
+                            starElem.style.display = 'none';
+                        }
+                        if (btn) {
+                            btn.classList.remove('btn-info', 'text-white');
+                            btn.classList.add('btn-outline-light');
+                            btn.setAttribute('title', 'Add / View Remark');
+                        }
+                    }
+                });
+            };
+
+            // Run initial recalculation
+            recalculateRemarksStars();
+
+            // Handle clicking the Remark button
+            $(document).on('click', '.btn-open-remark', function() {
+                const btn = $(this);
+                const row = btn.closest('tr');
+                currentActiveRemarkRow = row;
+
+                const testId = btn.data('test-id') || '';
+                const testNumber = btn.data('test-number') || '';
+                const testName = btn.data('test-name') || 'Test';
+
+                const currentRemark = (row.find('.row-remark-text').val() || '').trim();
+                const currentRemarkId = row.find('.row-remark-id').val() || '';
+
+                $('#modalRemarkHeading').text(`Remark - ${testName}`);
+                $('#modalRemarkTestId').val(testId);
+                $('#modalRemarkTestNumber').val(testNumber);
+                $('#modalRemarkId').val(currentRemarkId);
+                $('#modalRemarkInput').val(currentRemark);
+
+                // Enforce read-only state if results are submitted
+                if (isResultSubmitted) {
+                    $('#modalRemarkSubmittedNotice').show();
+                    $('#modalRemarkInput').prop('disabled', true);
+                    $('#btnApplyRemark').hide();
+                    $('#btnDeleteRemark').hide();
+                    $('#remarkSuggestionsWrapper').hide();
+                } else {
+                    $('#modalRemarkSubmittedNotice').hide();
+                    $('#modalRemarkInput').prop('disabled', false);
+                    $('#btnApplyRemark').show();
+                    if (currentRemark) {
+                        $('#btnDeleteRemark').show();
+                    } else {
+                        $('#btnDeleteRemark').hide();
+                    }
+                    $('#remarkSuggestionsWrapper').show();
+
+                    // Load past remark suggestions from memory
+                    loadRemarkSuggestions(testId, testNumber);
+                }
+
+                $('#testRemarkModal').modal('show');
+            });
+
+            // Load suggestions via AJAX
+            function loadRemarkSuggestions(testId, testNumber) {
+                $('#suggestionsSpinner').removeClass('d-none');
+                $('#remarkSuggestionsBox').html('<span class="text-muted fs-11px">Fetching suggestions from memory...</span>');
+
+                $.ajax({
+                    url: '{{ route('get_remark_suggestions') }}',
+                    method: 'GET',
+                    data: { test_id: testId, test_number: testNumber },
+                    dataType: 'json',
+                    success: function(res) {
+                        $('#suggestionsSpinner').addClass('d-none');
+                        if (res.success && res.suggestions && res.suggestions.length > 0) {
+                            let html = '';
+                            res.suggestions.forEach(item => {
+                                const badgeClass = item.is_my_remark ? 'btn-primary' : (item.is_my_ro ? 'btn-outline-primary' : 'btn-outline-secondary');
+                                const safeText = $('<div>').text(item.text).html();
+                                const tip = item.is_my_remark ? 'Previously used by you' : (item.is_my_ro ? 'Used in your lab' : 'Past remark');
+                                html += `<button type="button" class="btn btn-xs ${badgeClass} text-start suggestion-pill text-truncate" style="max-width: 100%;" data-id="${item.id}" data-text="${safeText}" title="${tip}">
+                                    <em class="icon ni ni-arrow-right me-1"></em> ${safeText}
+                                </button>`;
+                            });
+                            $('#remarkSuggestionsBox').html(html);
+                        } else {
+                            $('#remarkSuggestionsBox').html('<span class="text-muted fs-11px">No previous remarks recorded for this test yet. Enter one below!</span>');
+                        }
+                    },
+                    error: function() {
+                        $('#suggestionsSpinner').addClass('d-none');
+                        $('#remarkSuggestionsBox').html('<span class="text-muted fs-11px">Could not load suggestions.</span>');
+                    }
+                });
+            }
+
+            // Click suggestion pill to insert into textarea
+            $(document).on('click', '.suggestion-pill', function() {
+                const text = $(this).data('text');
+                const remId = $(this).data('id');
+                $('#modalRemarkInput').val(text);
+                $('#modalRemarkId').val(remId);
+                $('#btnDeleteRemark').show();
+            });
+
+            // Save / Apply Remark
+            $('#btnApplyRemark').on('click', function() {
+                if (!currentActiveRemarkRow) return;
+
+                const text = ($('#modalRemarkInput').val() || '').trim();
+                let remId = $('#modalRemarkId').val() || '';
+                const testId = $('#modalRemarkTestId').val();
+                const testNumber = $('#modalRemarkTestNumber').val();
+
+                currentActiveRemarkRow.find('.row-remark-text').val(text);
+                currentActiveRemarkRow.find('.row-remark-id').val(remId);
+
+                // Auto-save new custom remark to memory library if text provided
+                if (text && !remId) {
+                    $.ajax({
+                        url: '{{ route('save_remark_library') }}',
+                        method: 'POST',
+                        data: {
+                            _token: '{{ csrf_token() }}',
+                            test_id: testId,
+                            test_number: testNumber,
+                            remark_text: text
+                        },
+                        success: function(res) {
+                            if (res.success && res.remark_id) {
+                                currentActiveRemarkRow.find('.row-remark-id').val(res.remark_id);
+                            }
+                        }
+                    });
+                }
+
+                recalculateRemarksStars();
+                $('#testRemarkModal').modal('hide');
+            });
+
+            // Remove Remark
+            $('#btnDeleteRemark').on('click', function() {
+                if (!currentActiveRemarkRow) return;
+                currentActiveRemarkRow.find('.row-remark-text').val('');
+                currentActiveRemarkRow.find('.row-remark-id').val('');
+                recalculateRemarksStars();
+                $('#testRemarkModal').modal('hide');
+            });
+
             // Initialize used tests from existing results
             @foreach ($existingResults as $result)
                 @if ($result->m16_primary_test_id && !$result->m17_secondary_test_id)
@@ -2773,9 +3080,18 @@
                                 name="results[${testNumber}][primary_tests][${primaryTestId}][result]"
                                 class="wysiwyg-hidden-val"
                                 value="${defaultResultVal}">
+                            <input type="hidden"
+                                name="results[${testNumber}][primary_tests][${primaryTestId}][remarks]"
+                                class="row-remark-text"
+                                value="">
+                            <input type="hidden"
+                                name="results[${testNumber}][primary_tests][${primaryTestId}][remark_id]"
+                                class="row-remark-id"
+                                value="">
                             <div class="form-control form-control-sm border-0 bg-light wysiwyg-editor-input"
                                 contenteditable="true"
                                 data-placeholder="Enter result value">${defaultResultVal}</div>
+                            <span class="input-group-text bg-white text-danger fw-bold row-remark-star px-1" style="display:none; font-size:13px; cursor:pointer;" title="Remark attached">*</span>
                             <button type="button" class="btn btn-outline-light btn-xs btn-wysiwyg-cmd px-2" data-cmd="superscript" title="Superscript (Ctrl + .)"><span style="font-weight:bold; font-size:11px;">x<sup>2</sup></span></button>
                             <button type="button" class="btn btn-outline-light btn-xs btn-wysiwyg-cmd px-2" data-cmd="subscript" title="Subscript (Ctrl + ,)"><span style="font-weight:bold; font-size:11px;">x<sub>2</sub></span></button>
                             <button type="button" class="btn btn-outline-light btn-xs btn-open-symbols px-2" title="Insert Symbol"><span style="font-weight:bold; font-size:11px;">Ω</span></button>
@@ -2788,6 +3104,15 @@
                                     <em class="icon ni ni-calc"></em>
                                 </button>
                             ` : ''}
+                            <button type="button"
+                                class="btn btn-xs btn-outline-light btn-open-remark px-2"
+                                data-test-id="${testId}"
+                                data-test-number="${testNumber}"
+                                data-test-name="${primaryTestName}"
+                                data-field-prefix="results[${testNumber}][primary_tests][${primaryTestId}]"
+                                title="Add / Select Remark">
+                                <em class="icon ni ni-notes"></em>
+                            </button>
                             <input type="text"
                                 class="form-control form-control-sm border-0 bg-light text-center px-1"
                                 style="max-width: 75px; min-width: 55px;"
@@ -2986,9 +3311,18 @@
                                 name="results[${testNumber}][primary_tests][${primaryTestId}][secondary_tests][${secondaryTestId}][result]"
                                 class="wysiwyg-hidden-val"
                                 value="${finalResultVal}">
+                            <input type="hidden"
+                                name="results[${testNumber}][primary_tests][${primaryTestId}][secondary_tests][${secondaryTestId}][remarks]"
+                                class="row-remark-text"
+                                value="">
+                            <input type="hidden"
+                                name="results[${testNumber}][primary_tests][${primaryTestId}][secondary_tests][${secondaryTestId}][remark_id]"
+                                class="row-remark-id"
+                                value="">
                             <div class="form-control form-control-sm border-0 bg-light wysiwyg-editor-input"
                                 contenteditable="true"
                                 data-placeholder="Enter result value">${finalResultVal}</div>
+                            <span class="input-group-text bg-white text-danger fw-bold row-remark-star px-1" style="display:none; font-size:13px; cursor:pointer;" title="Remark attached">*</span>
                             <button type="button" class="btn btn-outline-light btn-xs btn-wysiwyg-cmd px-2" data-cmd="superscript" title="Superscript (Ctrl + .)"><span style="font-weight:bold; font-size:11px;">x<sup>2</sup></span></button>
                             <button type="button" class="btn btn-outline-light btn-xs btn-wysiwyg-cmd px-2" data-cmd="subscript" title="Subscript (Ctrl + ,)"><span style="font-weight:bold; font-size:11px;">x<sub>2</sub></span></button>
                             <button type="button" class="btn btn-outline-light btn-xs btn-open-symbols px-2" title="Insert Symbol"><span style="font-weight:bold; font-size:11px;">Ω</span></button>
@@ -3001,6 +3335,15 @@
                                     <em class="icon ni ni-calc"></em>
                                 </button>
                             ` : ''}
+                            <button type="button"
+                                class="btn btn-xs btn-outline-light btn-open-remark px-2"
+                                data-test-id="${testId}"
+                                data-test-number="${testNumber}"
+                                data-test-name="${secondaryTest.m17_name}"
+                                data-field-prefix="results[${testNumber}][primary_tests][${primaryTestId}][secondary_tests][${secondaryTestId}]"
+                                title="Add / Select Remark">
+                                <em class="icon ni ni-notes"></em>
+                            </button>
                             <input type="text"
                                 class="form-control form-control-sm border-0 bg-light text-center px-1"
                                 style="max-width: 75px; min-width: 55px;"
@@ -3333,6 +3676,7 @@
                                         usedSecondaryTests.get(primaryTestId).delete(id);
                                     }
                                 }
+                                if (window.recalculateRemarksStars) window.recalculateRemarksStars();
                                 Swal.fire('Removed!', 'The test has been deleted.', 'success');
                             }
                         });

@@ -7,6 +7,7 @@ use App\Models\Employee;
 use App\Models\SampleManuscript;
 use App\Models\SampleRegistration;
 use App\Models\SampleTest;
+use App\Models\TestResultAudit;
 use App\Services\CustodyService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -141,11 +142,35 @@ class VerificationController extends Controller
                 $currentResults = $sample->testResult->where('tr07_is_current', 'YES');
 
                 foreach ($currentResults as $result) {
-                    $result->update([
+                    $updateData = [
                         'tr07_result_status' => $resultStatus,
                         'm06_verified_by'    => Session::get('user_id') ?? null,
                         'tr07_verified_at'   => now(),
-                        'tr07_remarks'       => $request->remarks,
+                    ];
+
+                    // Only update test result remarks on rejection/clarification if analyst hadn't provided a remark
+                    if ($request->action !== 'verify' && $request->filled('remarks')) {
+                        if (empty($result->tr07_remarks)) {
+                            $updateData['tr07_remarks'] = $request->remarks;
+                        }
+                    }
+
+                    $prevStatus = $result->tr07_result_status;
+                    $result->update($updateData);
+
+                    // ISO 17025 Audit Trail logging for verification/rejection
+                    TestResultAudit::create([
+                        'tr07_test_result_id' => $result->tr07_test_result_id,
+                        'tr09_version_id'     => $result->tr07_current_version ?? 1,
+                        'tr10_action'         => $request->action === 'verify' ? 'VERIFIED' : 'REJECTED',
+                        'tr10_field_changed'  => 'Status',
+                        'tr10_old_value'      => $prevStatus,
+                        'tr10_new_value'      => $resultStatus,
+                        'tr10_change_reason'  => $request->action === 'verify' ? 'Verified & approved by Quality Officer' : ($request->remarks ?? 'Returned for clarification'),
+                        'tr10_user_id'        => Session::get('user_id') ?? 1,
+                        'tr10_ip_address'     => request()->ip(),
+                        'tr10_user_agent'     => substr(request()->userAgent() ?? '', 0, 500),
+                        'tr10_created_at'     => now(),
                     ]);
 
                     // Handle Reassignment (if rejecting and Analyst selected)
@@ -169,12 +194,19 @@ class VerificationController extends Controller
                     ->get();
 
                 foreach ($customFields as $customField) {
-                    $customField->update([
+                    $cfUpdate = [
                         'tr08_result_status' => $resultStatus,
                         'm06_updated_by'     => Session::get('user_id') ?? null,
                         'tr08_updated_at'    => now(),
-                        'tr08_remarks'       => $request->remarks,
-                    ]);
+                    ];
+
+                    if ($request->action !== 'verify' && $request->filled('remarks')) {
+                        if (empty($customField->tr08_remarks)) {
+                            $cfUpdate['tr08_remarks'] = $request->remarks;
+                        }
+                    }
+
+                    $customField->update($cfUpdate);
                 }
 
                 // Integrate with CustodyService

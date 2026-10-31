@@ -202,7 +202,24 @@ class SampleRegistration extends Model
      */
     public function createdBy()
     {
-        return $this->belongsTo(Employee::class, 'm07_created_by', 'm06_employee_id');
+        return $this->belongsTo(Employee::class, 'tr04_created_by', 'm06_employee_id');
+    }
+
+    public function creatorEmployee()
+    {
+        return $this->belongsTo(Employee::class, 'tr04_created_by', 'm06_employee_id');
+    }
+
+    public function reports()
+    {
+        return $this->hasMany(TestReport::class, 'tr04_reference_id', 'tr04_reference_id')
+            ->orderBy('tr09_version_number', 'desc');
+    }
+
+    public function latestReport()
+    {
+        return $this->hasOne(TestReport::class, 'tr04_reference_id', 'tr04_reference_id')
+            ->where('tr09_is_current', 'YES');
     }
 
     /**
