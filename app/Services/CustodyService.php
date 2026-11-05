@@ -91,7 +91,6 @@ class CustodyService
                     ->whereIn('tr07_result_status', ['VERIFIED', 'REPORTED', 'FINALIZED'])
                     ->update([
                         'tr07_result_status' => 'RESULTED',
-                        'tr07_remarks'       => $cleanRemark,
                     ]);
 
                 CustomField::where('tr04_reference_id', $sample->tr04_reference_id)
@@ -99,7 +98,6 @@ class CustodyService
                     ->whereIn('tr08_result_status', ['VERIFIED', 'REPORTED', 'FINALIZED'])
                     ->update([
                         'tr08_result_status' => 'RESULTED',
-                        'tr08_remarks'       => $cleanRemark,
                     ]);
 
                 // Invalidate any generated current test reports so a fresh report must be generated upon re-verification
@@ -116,7 +114,6 @@ class CustodyService
                         ->where('tr07_is_current', 'YES')
                         ->update([
                             'tr07_result_status' => 'REJECTED',
-                            'tr07_remarks'       => $cleanRemark,
                             'tr07_verified_at'   => now(),
                         ]);
 
@@ -124,7 +121,6 @@ class CustodyService
                         ->where('tr08_is_current', 'YES')
                         ->update([
                             'tr08_result_status' => 'REJECTED',
-                            'tr08_remarks'       => $cleanRemark,
                             'tr08_updated_at'    => now(),
                         ]);
 
@@ -152,14 +148,12 @@ class CustodyService
                     ->where('tr07_is_current', 'YES')
                     ->update([
                         'tr07_result_status' => 'DRAFT',
-                        'tr07_remarks'       => $cleanRemark,
                     ]);
 
                 CustomField::where('tr04_reference_id', $sample->tr04_reference_id)
                     ->where('tr08_is_current', 'YES')
                     ->update([
                         'tr08_result_status' => 'DRAFT',
-                        'tr08_remarks'       => $cleanRemark,
                     ]);
             }
 

@@ -437,19 +437,38 @@ class SampleController extends Controller
     public function trackSample($trackerId)
     {
         $cleanId = trim($trackerId);
-        $sample = SampleRegistration::where('tr04_tracker_id', $cleanId)
-            ->orWhere('tr04_reference_id', $cleanId)
-            ->orWhere('tr04_reference_no', $cleanId)
-            ->when(is_numeric($cleanId), fn($q) => $q->orWhere('tr04_sample_registration_id', (int)$cleanId))
-            ->first();
+        $stripped = ltrim($cleanId, '#');
 
+        // Tier 1: Exact match on Tracker ID, Reference ID, or Reference No
+        $sample = SampleRegistration::where(function ($q) use ($cleanId, $stripped) {
+            $q->where('tr04_tracker_id', $cleanId)
+              ->orWhere('tr04_reference_id', $cleanId)
+              ->orWhere('tr04_reference_no', $cleanId)
+              ->orWhere('tr04_tracker_id', $stripped)
+              ->orWhere('tr04_reference_id', $stripped)
+              ->orWhere('tr04_reference_no', $stripped);
+        })->first();
+
+        // Tier 2: Suffix or partial match for reference ID (e.g. 5 digits '00041' matching '01143032627-00041')
         if (!$sample) {
-            $stripped = ltrim($cleanId, '#');
-            $sample = SampleRegistration::where('tr04_tracker_id', $stripped)
-                ->orWhere('tr04_reference_id', $stripped)
-                ->orWhere('tr04_reference_no', $stripped)
-                ->when(is_numeric($stripped), fn($q) => $q->orWhere('tr04_sample_registration_id', (int)$stripped))
-                ->first();
+            $sample = SampleRegistration::where(function ($q) use ($stripped) {
+                $q->where('tr04_reference_id', 'like', '%-' . $stripped)
+                  ->orWhere('tr04_reference_id', 'like', '%' . $stripped)
+                  ->orWhere('tr04_tracker_id', 'like', '%' . $stripped . '%');
+            })->first();
+        }
+
+        // Tier 3: Primary key lookup ONLY if numeric AND does NOT start with leading '0'
+        if (!$sample && is_numeric($stripped) && (!str_starts_with($stripped, '0') || $stripped === '0')) {
+            $sample = SampleRegistration::where('tr04_sample_registration_id', (int)$stripped)->first();
+        }
+
+        // Tier 4: Broad fallback match
+        if (!$sample) {
+            $sample = SampleRegistration::where(function ($q) use ($stripped) {
+                $q->where('tr04_reference_id', 'like', '%' . $stripped . '%')
+                  ->orWhere('tr04_reference_no', 'like', '%' . $stripped . '%');
+            })->first();
         }
 
         if (!$sample) {

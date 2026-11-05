@@ -40,12 +40,12 @@
         }
 
         /* ====================================================
-           Left Side - 50% Width Pastel Lavender Branding Section
+           Left Side - 50% Width Vibrant Lab Cyan-Blue Staff Section
         ==================================================== */
         .branding-section {
             flex: 1;
             width: 50%;
-            background: linear-gradient(135deg, #6255f6 0%, #7b71ff 40%, #978dfd 75%, #b4adff 100%);
+            background: linear-gradient(135deg, #0369a1 0%, #0284c7 35%, #2563eb 70%, #4338ca 100%);
             color: #ffffff;
             padding: 60px 70px;
             display: flex;
@@ -419,8 +419,9 @@
             background: #ffffff;
             border-radius: 24px;
             padding: 44px 40px;
-            box-shadow: 0 20px 50px -12px rgba(98, 85, 246, 0.12), 0 8px 24px -4px rgba(0, 0, 0, 0.03);
+            box-shadow: 0 20px 50px -12px rgba(2, 132, 199, 0.16), 0 8px 24px -4px rgba(0, 0, 0, 0.03);
             border: 1px solid rgba(226, 232, 240, 0.8);
+            border-top: 4px solid #0284c7;
             position: relative;
             z-index: 10;
             animation: cardEntrance 0.75s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
@@ -429,7 +430,7 @@
 
         .card-container:hover {
             transform: translateY(-3px) scale(1.008);
-            box-shadow: 0 24px 60px -12px rgba(98, 85, 246, 0.16), 0 12px 30px -4px rgba(0, 0, 0, 0.04);
+            box-shadow: 0 24px 60px -12px rgba(2, 132, 199, 0.22), 0 12px 30px -4px rgba(0, 0, 0, 0.04);
         }
 
         @keyframes cardEntrance {
@@ -444,7 +445,7 @@
             position: relative;
             width: 76px;
             height: 76px;
-            margin: 0 auto 20px auto;
+            margin: 0 auto 16px auto;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -454,7 +455,8 @@
             width: 76px;
             height: 76px;
             border-radius: 50%;
-            background: #f1edfe;
+            background: #e0f2fe;
+            border: 2px solid #bae6fd;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -464,7 +466,7 @@
         .icon-circle svg {
             width: 36px;
             height: 36px;
-            color: #6255f6;
+            color: #0284c7;
         }
 
         @keyframes shieldBouncePulse {
@@ -607,7 +609,7 @@
         .btn-submit {
             width: 100%;
             height: 58px;
-            background: linear-gradient(135deg, #5b50f6 0%, #7c71ff 50%, #988eff 100%);
+            background: linear-gradient(135deg, #0284c7 0%, #2563eb 50%, #4f46e5 100%);
             border: none;
             border-radius: 12px;
             color: #ffffff;
@@ -622,7 +624,7 @@
             position: relative;
             overflow: hidden;
             transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-            box-shadow: 0 8px 22px rgba(91, 80, 246, 0.35);
+            box-shadow: 0 8px 22px rgba(2, 132, 199, 0.35);
             text-transform: uppercase;
             letter-spacing: 0.6px;
             margin-top: 26px;
@@ -816,8 +818,14 @@
 
             <!-- Middle Text Content -->
             <div class="brand-mid">
-                <h3>Welcome Back!</h3>
-                <p>Log in to manage your assigned laboratory samples, update test progress, and access your reports efficiently.</p>
+                <div style="margin-bottom: 14px;">
+                    <span style="display: inline-flex; align-items: center; gap: 6px; padding: 5px 14px; font-size: 11px; font-weight: 800; color: #ffffff; background: #0284c7; border-radius: 9999px; letter-spacing: 0.8px; text-transform: uppercase;">
+                        <svg style="width: 14px; height: 14px;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>
+                        LABORATORY OPERATIONS
+                    </span>
+                </div>
+                <h3>Laboratory Staff Portal</h3>
+                <p>Log in to manage sample registration, view test allotments, record analytical results, and process ISO/IEC 17025 test workflows.</p>
             </div>
 
             <!-- Footer Badge -->
@@ -825,7 +833,7 @@
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
                 </svg>
-                <span>&copy; 2024 System Cell. All Rights Reserved.</span>
+                <span>&copy; 2026 System Cell. Textiles Committee Laboratories.</span>
             </div>
 
         </div>
@@ -859,8 +867,14 @@
                     </div>
                 </div>
 
-                <!-- Title -->
-                <h3 class="title">Sign In</h3>
+                <!-- Staff Portal Badge & Title -->
+                <div style="text-align: center; margin-bottom: 6px;">
+                    <span style="display: inline-flex; align-items: center; gap: 5px; padding: 4px 12px; font-size: 11px; font-weight: 700; color: #0284c7; background: #e0f2fe; border-radius: 9999px; letter-spacing: 0.5px; text-transform: uppercase;">
+                        LABORATORY STAFF PORTAL
+                    </span>
+                </div>
+                <h3 class="title">Staff &amp; Analyst Login</h3>
+                <p style="text-align: center; color: #64748b; font-size: 13px; margin-bottom: 16px;">RC &bull; Analyst &bull; Verification Officer &bull; DEO</p>
                 <div class="title-dash"></div>
 
                 <!-- Form -->
@@ -911,8 +925,15 @@
                         <svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.2" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l3 3m0 0l-3 3m3-3H2.25" />
                         </svg>
-                        <span>SIGN IN</span>
+                        <span>SIGN IN AS STAFF</span>
                     </button>
+
+                    <!-- Switch to Admin Login Link -->
+                    <div style="text-align: center; margin-top: 20px; padding-top: 14px; border-top: 1px solid #f1f5f9;">
+                        <a href="{{ route('admin_login') }}" style="color: #0369a1; font-size: 13px; font-weight: 600; text-decoration: none;">
+                            Administrator? Switch to Admin Console &rarr;
+                        </a>
+                    </div>
                 </form>
 
                 <!-- Divider -->

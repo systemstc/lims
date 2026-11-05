@@ -44,7 +44,7 @@
                                 <div class="legend-item d-flex align-items-center">
                                     <span class="legend-color bg-secondary me-2"
                                         style="width: 16px; height: 16px; border-radius: 4px;"></span>
-                                    <small class="text-dark">ALLOTED</small>
+                                    <small class="text-dark">ALLOTTED</small>
                                 </div>
                             </div>
                         </div>
@@ -68,21 +68,21 @@
                                             $statusClass = 'status-verified';
                                         } elseif ($status === 'REGISTERED') {
                                             $statusClass = 'status-registered';
-                                        } elseif ($status === 'ALLOTED') {
+                                        } elseif ($status === 'ALLOTED' || $status === 'ALLOTTED') {
                                             $statusClass = 'status-alloted';
                                         }
                                     @endphp
                                     <div class="sample-box {{ $statusClass }}" data-bs-toggle="tooltip"
                                         data-bs-placement="top"
                                         title="Ref: {{ $sample->tr04_reference_id }}
-                                        Status: {{ $status ?: 'No Status' }}
+                                        Status: {{ ($status === 'ALLOTED' ? 'ALLOTTED' : $status) ?: 'No Status' }}
                                         Customer: {{ $sample->customer->m07_name ?? 'N/A' }}
                                         Created: {{ $sample->created_at->format('M d, Y') }}">
                                         <div class="sample-ref-id">
                                             {{ $sample->tr04_reference_id }}
                                         </div>
                                         <div class="sample-status">
-                                            {{ $status ?: 'N/A' }}
+                                            {{ ($status === 'ALLOTED' ? 'ALLOTTED' : $status) ?: 'N/A' }}
                                         </div>
                                     </div>
                                 @endforeach

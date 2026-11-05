@@ -182,6 +182,71 @@
                         </div>
                     </div>
 
+                    @php
+                        // Build sequential remarks list across all current results
+                        $allRemarksList = [];
+                        $remarksStarMap = [];
+                        $remarksTextMap = [];
+                        $remarkCounter = 0;
+
+                        foreach ($sampleTests as $st) {
+                            $t = $st->test;
+                            if (!$t) continue;
+                            $tResults = $currentResults->where('m12_test_number', $t->m12_test_number);
+                            foreach ($tResults as $res) {
+                                $txt = trim($res->tr07_remarks ?? '');
+                                if (empty($txt) && !empty($res->m24_remark_id)) {
+                                    $txt = trim($res->remarkRecord?->m24_remark_text ?? \App\Models\TestRemark::find($res->m24_remark_id)?->m24_remark_text ?? '');
+                                }
+
+                                if ($txt !== '') {
+                                    $resId = $res->tr07_test_result_id ? (string)$res->tr07_test_result_id : null;
+                                    $compositeKey = $t->m12_test_number . '_' . ($res->m16_primary_test_id ?: '0') . '_' . ($res->m17_secondary_test_id ?: '0');
+
+                                    $existingStar = null;
+                                    if ($resId && isset($remarksStarMap[$resId])) {
+                                        $existingStar = $remarksStarMap[$resId];
+                                    } elseif (isset($remarksStarMap[$compositeKey])) {
+                                        $existingStar = $remarksStarMap[$compositeKey];
+                                    }
+
+                                    if (!$existingStar) {
+                                        $remarkCounter++;
+                                        $starStr = str_repeat('*', $remarkCounter);
+                                        if ($resId) {
+                                            $remarksStarMap[$resId] = $starStr;
+                                            $remarksTextMap[$resId] = $txt;
+                                        }
+                                        $remarksStarMap[$compositeKey] = $starStr;
+                                        $remarksTextMap[$compositeKey] = $txt;
+
+                                        $subName = '';
+                                        if (!empty($res->m17_secondary_test_id)) {
+                                            $subName = $res->secondaryTest?->m17_name ?? (\DB::table('m17_secondary_tests')->where('m17_secondary_test_id', $res->m17_secondary_test_id)->value('m17_name') ?? '');
+                                        } elseif (!empty($res->m16_primary_test_id)) {
+                                            $subName = $res->primaryTest?->m16_name ?? (\DB::table('m16_primary_tests')->where('m16_primary_test_id', $res->m16_primary_test_id)->value('m16_name') ?? '');
+                                        }
+
+                                        $allRemarksList[] = [
+                                            'stars' => $starStr,
+                                            'text' => $txt,
+                                            'test_name' => $t->m12_name ?? ('Test #' . $t->m12_test_number),
+                                            'sub_name' => $subName,
+                                            'test_number' => $t->m12_test_number,
+                                        ];
+                                    } else {
+                                        if ($resId) {
+                                            $remarksStarMap[$resId] = $existingStar;
+                                            $remarksTextMap[$resId] = $txt;
+                                        }
+                                        $remarksStarMap[$compositeKey] = $existingStar;
+                                        $remarksTextMap[$compositeKey] = $txt;
+                                    }
+                                }
+                            }
+                        }
+                    @endphp
+
                     @foreach ($sampleTests as $key => $sampleTest)
                         @php
                             $test = $sampleTest->test;
@@ -254,8 +319,11 @@
                                     <h6 class="mb-0">
                                         <span class="badge bg-primary me-2">{{ $key + 1 }}</span>
                                         {{ $test->m12_name }} 
-                                        @if($test->standard?->m15_method)
-                                            <span class="text-soft ms-2 small">({{ $test->standard->m15_method }})</span>
+                                        @php
+                                            $dispStandard = $sampleTest->standard_method ?: ($test->standard?->m15_method ?? null);
+                                        @endphp
+                                        @if($dispStandard)
+                                            <span class="text-soft ms-2 small">({{ $dispStandard }})</span>
                                         @endif
                                         @if($isRevised) <span class="badge badge-outline-warning ms-2">Revised</span> @endif
                                     </h6>
@@ -283,49 +351,80 @@
                                                         @php
                                                             $mainCurrent = $currentTestResults->filter(fn($r) => empty($r->m16_primary_test_id) && empty($r->m17_secondary_test_id))->first();
                                                             $mainHistorical = $historicalTestResults->filter(fn($r) => empty($r->m16_primary_test_id) && empty($r->m17_secondary_test_id))->sortByDesc('tr07_test_result_id')->first();
+                                                            $hasParentResult = $mainCurrent && trim(strip_tags((string)$mainCurrent->tr07_result)) !== '';
+                                                            $anyPrimaryHasResult = $primaryTests->contains(
+                                                                fn($pt) => $currentTestResults->contains(
+                                                                    fn($r) => (string)$r->m16_primary_test_id === (string)$pt->m16_primary_test_id && trim(strip_tags((string)$r->tr07_result)) !== ''
+                                                                )
+                                                            );
+                                                            $parentKey = $mainCurrent?->tr07_test_result_id ? (string)$mainCurrent->tr07_test_result_id : null;
+                                                            $parentCompKey = $test->m12_test_number . '_0_0';
+                                                            $parentStar = ($parentKey ? ($remarksStarMap[$parentKey] ?? null) : null) ?? ($remarksStarMap[$parentCompKey] ?? null);
+                                                            $parentRemarkText = ($parentKey ? ($remarksTextMap[$parentKey] ?? null) : null) ?? ($remarksTextMap[$parentCompKey] ?? null);
                                                         @endphp
 
-                                                        @if ($primaryTests->isEmpty())
-                                                            <tr>
-                                                                <td class="text-center fw-bold">{{ $key + 1 }}</td>
-                                                                <td class="fw-bold">{{ $test->m12_name }}</td>
-                                                                <td class="text-center">
-                                                                    @if ($mainHistorical && (string)$mainHistorical->tr07_result !== (string)$mainCurrent->tr07_result)
+                                                        {{-- Render Parent Row if test has no primary tests OR if parent has an entered result (Case 1 & Case 3) --}}
+                                                        @if ($primaryTests->isEmpty() || $hasParentResult)
+                                                            @php
+                                                                $isParentRejected = $mainCurrent && $mainCurrent->tr07_result_status === 'REJECTED';
+                                                            @endphp
+                                                            <tr class="{{ $isParentRejected ? 'rejected-test-row table-danger' : '' }}">
+                                                                <td class="text-center fw-bold {{ $isParentRejected ? 'test-sr-no' : '' }}">{{ $key + 1 }}</td>
+                                                                <td class="fw-bold {{ $isParentRejected ? 'test-name-text' : '' }}">
+                                                                    <span class="{{ $isParentRejected ? 'text-decoration-line-through text-danger' : '' }}">{{ $test->m12_name }}</span>
+                                                                </td>
+                                                                <td class="text-center {{ $isParentRejected ? 'test-result-text' : '' }}">
+                                                                    @php
+                                                                        $hValClean = trim(strip_tags((string)($mainHistorical->tr07_result ?? '')));
+                                                                        $cValClean = trim(strip_tags((string)($mainCurrent->tr07_result ?? '')));
+                                                                    @endphp
+                                                                    @if ($mainHistorical && $hValClean !== '' && $hValClean !== $cValClean)
                                                                         <div class="comparison-box">
                                                                             <span class="text-danger text-decoration-line-through me-1">{!! $mainHistorical->tr07_result ?? 'N/A' !!}</span>
                                                                             <em class="icon ni ni-arrow-right small text-muted"></em>
                                                                             <span class="text-success fw-bold ms-1">{!! $mainCurrent->tr07_result ?? 'N/A' !!}</span>
                                                                             @if ($mainCurrent && $mainCurrent->tr07_unit) <small class="text-muted">({{ $mainCurrent->tr07_unit }})</small> @endif
+                                                                            @if ($parentStar)
+                                                                                <sup class="text-danger fw-bold ms-1" title="Remark: {{ $parentRemarkText }}">{{ $parentStar }}</sup>
+                                                                            @endif
                                                                         </div>
                                                                     @else
-                                                                        <span class="fw-bold">{!! $mainCurrent->tr07_result ?? 'N/A' !!}</span>
+                                                                        <span class="fw-bold {{ $isParentRejected ? 'text-decoration-line-through text-danger' : '' }}">{!! $mainCurrent->tr07_result ?? 'N/A' !!}</span>
                                                                         @if ($mainCurrent && $mainCurrent->tr07_unit) <small class="text-muted">({{ $mainCurrent->tr07_unit }})</small> @endif
+                                                                        @if ($parentStar)
+                                                                            <sup class="text-danger fw-bold ms-1" title="Remark: {{ $parentRemarkText }}">{{ $parentStar }}</sup>
+                                                                        @endif
                                                                     @endif
                                                                 </td>
                                                                 <td class="text-center">
                                                                     @if ($mainCurrent)
-                                                                        <span class="badge badge-dim bg-{{ $mainCurrent->tr07_result_status === 'REVISED' ? 'warning' : 'success' }}">
+                                                                        @php
+                                                                            $parentBadge = match($mainCurrent->tr07_result_status) {
+                                                                                'REJECTED' => 'bg-danger text-danger',
+                                                                                'REVISED' => 'bg-warning text-warning',
+                                                                                default => 'bg-success text-success',
+                                                                            };
+                                                                        @endphp
+                                                                        <span class="badge badge-dim {{ $parentBadge }}">
+                                                                            @if ($mainCurrent->tr07_result_status === 'REJECTED')
+                                                                                <em class="icon ni ni-cross-circle me-1"></em>
+                                                                            @endif
                                                                             {{ $mainCurrent->tr07_result_status }}
                                                                         </span>
                                                                     @endif
                                                                 </td>
                                                             </tr>
-                                                        @else
-                                                            @php
-                                                                // Only show the parent header row if at least one primary has an entered result
-                                                                $anyPrimaryHasResult = $primaryTests->contains(
-                                                                    fn($pt) => $currentTestResults->contains(
-                                                                        fn($r) => (string)$r->m16_primary_test_id === (string)$pt->m16_primary_test_id
-                                                                    )
-                                                                );
-                                                            @endphp
-                                                            @if ($anyPrimaryHasResult)
-                                                                <tr class="table-lighter">
-                                                                    <td class="text-center fw-bold">{{ $key + 1 }}</td>
-                                                                    <td class="fw-bold">{{ $test->m12_name }}</td>
-                                                                    <td colspan="2" class="text-muted text-center italic small">Hierarchy follows below</td>
-                                                                </tr>
-                                                            @endif
+                                                        @elseif ($anyPrimaryHasResult)
+                                                            {{-- Case 2: Only primary results exist, show parent header as hierarchy group --}}
+                                                            <tr class="table-lighter">
+                                                                <td class="text-center fw-bold">{{ $key + 1 }}</td>
+                                                                <td class="fw-bold">{{ $test->m12_name }}</td>
+                                                                <td colspan="2" class="text-muted text-center italic small">Hierarchy follows below</td>
+                                                            </tr>
+                                                        @endif
+
+                                                        {{-- Render Primary Test Rows if any primary result exists (Case 2 & Case 3) --}}
+                                                        @if ($primaryTests->isNotEmpty() && $anyPrimaryHasResult)
                                                             @foreach ($primaryTests as $pKey => $primaryTest)
                                                                 @include('verification.partials.verification_primary_row', [
                                                                     'key' => $key,
@@ -335,7 +434,9 @@
                                                                     'currentResults' => $currentTestResults,
                                                                     'historicalResults' => $historicalTestResults,
                                                                     'customFields' => $customFields->where('m12_test_number', $test->m12_test_number),
-                                                                    'historicalCustomFields' => $historicalCustomFields->where('m12_test_number', $test->m12_test_number)
+                                                                    'historicalCustomFields' => $historicalCustomFields->where('m12_test_number', $test->m12_test_number),
+                                                                    'remarksStarMap' => $remarksStarMap,
+                                                                    'remarksTextMap' => $remarksTextMap
                                                                 ])
                                                             @endforeach
                                                         @endif
@@ -344,27 +445,70 @@
                                                         @foreach ($customFields->where('m12_test_number', $test->m12_test_number)->filter(fn($f) => empty($f->m16_primary_test_id)) as $cf)
                                                             @php
                                                                 $hCf = $historicalCustomFields->where('m12_test_number', $test->m12_test_number)->filter(fn($f) => $f->tr08_field_name === $cf->tr08_field_name && empty($f->m16_primary_test_id))->first();
+                                                                $isCfRejected = $cf->tr08_result_status === 'REJECTED';
                                                             @endphp
-                                                            <tr class="custom-field-row table-light">
-                                                                <td class="text-center small text-muted">{{ $key + 1 }}.C{{ $loop->iteration }}</td>
-                                                                <td class="ps-3 small text-muted">{{ $cf->tr08_field_name }}</td>
-                                                                <td class="text-center">
-                                                                    @if ($hCf && (string)$hCf->tr08_field_value !== (string)$cf->tr08_field_value)
+                                                            <tr class="custom-field-row {{ $isCfRejected ? 'rejected-test-row table-danger' : 'table-light' }}">
+                                                                <td class="text-center small text-muted {{ $isCfRejected ? 'test-sr-no' : '' }}">{{ $key + 1 }}.C{{ $loop->iteration }}</td>
+                                                                <td class="ps-3 small text-muted {{ $isCfRejected ? 'test-name-text' : '' }}">
+                                                                    <span class="{{ $isCfRejected ? 'text-decoration-line-through text-danger' : '' }}">{{ $cf->tr08_field_name }}</span>
+                                                                </td>
+                                                                <td class="text-center {{ $isCfRejected ? 'test-result-text' : '' }}">
+                                                                    @php
+                                                                        $hCfClean = trim(strip_tags((string)($hCf->tr08_field_value ?? '')));
+                                                                        $cfClean = trim(strip_tags((string)($cf->tr08_field_value ?? '')));
+                                                                    @endphp
+                                                                    @if ($hCf && $hCfClean !== '' && $hCfClean !== $cfClean)
                                                                         <div class="comparison-box">
                                                                             <span class="text-danger text-decoration-line-through me-1">{{ $hCf->tr08_field_value ?? 'N/A' }}</span>
                                                                             <em class="icon ni ni-arrow-right small text-muted"></em>
                                                                             <span class="text-success fw-bold ms-1">{{ $cf->tr08_field_value ?? 'N/A' }}</span>
                                                                         </div>
                                                                     @else
-                                                                        {{ $cf->tr08_field_value }}
+                                                                        <span class="{{ $isCfRejected ? 'text-decoration-line-through text-danger' : '' }}">{{ $cf->tr08_field_value }}</span>
                                                                     @endif
                                                                 </td>
-                                                                <td class="text-center small text-muted">Custom</td>
+                                                                <td class="text-center">
+                                                                    @php
+                                                                        $cfStatus = $cf->tr08_result_status ?: 'SUBMITTED';
+                                                                        $cfBadge = match($cfStatus) {
+                                                                            'REJECTED' => 'bg-danger text-danger',
+                                                                            'REVISED' => 'bg-warning text-warning',
+                                                                            default => 'bg-success text-success',
+                                                                        };
+                                                                    @endphp
+                                                                    <span class="badge badge-dim {{ $cfBadge }}">
+                                                                        @if ($cfStatus === 'REJECTED')
+                                                                            <em class="icon ni ni-cross-circle me-1"></em>
+                                                                        @endif
+                                                                        {{ $cfStatus }}
+                                                                    </span>
+                                                                </td>
                                                             </tr>
                                                         @endforeach
                                                     </tbody>
                                                 </table>
                                             </div>
+
+                                            @php
+                                                $cardRemarks = collect($allRemarksList)->where('test_number', $test->m12_test_number);
+                                            @endphp
+                                            @if ($cardRemarks->isNotEmpty())
+                                                <div class="px-3 py-2 bg-light border-top">
+                                                    <div class="d-flex align-items-center gap-1 mb-1">
+                                                        <em class="icon ni ni-notes text-info fs-13px"></em>
+                                                        <span class="fs-12px fw-bold text-dark">Remarks for this test:</span>
+                                                    </div>
+                                                    @foreach ($cardRemarks as $cRem)
+                                                        <div class="fs-12px text-dark ms-2 mb-1">
+                                                            <span class="text-danger fw-bold me-1">{{ $cRem['stars'] }}</span>
+                                                            @if (!empty($cRem['sub_name']))
+                                                                <strong class="text-secondary">[{{ $cRem['sub_name'] }}]:</strong>
+                                                            @endif
+                                                            <span>{{ $cRem['text'] }}</span>
+                                                        </div>
+                                                    @endforeach
+                                                </div>
+                                            @endif
                                         </div>
 
                                         <!-- Unified Laboratory Manuscript Workstation Section -->
@@ -541,6 +685,71 @@
                         </div>
                     @endforeach
 
+                    <!-- Dedicated Remarks Section -->
+                    <div class="col-12 mt-3" id="remarksSectionCard">
+                        <div class="card card-bordered shadow-sm border-info">
+                            <div class="card-header bg-lighter py-2 px-3 d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0 text-dark fs-14px d-flex align-items-center">
+                                    <em class="icon ni ni-notes text-info me-2 fs-18px"></em>
+                                    <span>Remarks Section</span>
+                                    @if (!empty($allRemarksList))
+                                        <span class="badge bg-info-soft text-info ms-2">{{ count($allRemarksList) }} Remark(s) Recorded</span>
+                                    @endif
+                                </h6>
+                                <span class="text-muted fs-11px">These analyst observations and remarks will be printed on the official final test report</span>
+                            </div>
+                            <div class="card-inner p-3">
+                                @if (!empty($allRemarksList) || !empty($sample->tr04_remarks))
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered table-sm mb-0">
+                                            <thead class="bg-light">
+                                                <tr>
+                                                    <th width="70" class="text-center">Symbol</th>
+                                                    <th width="260">Test Parameter / Source</th>
+                                                    <th>Remark Observation / Details</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach ($allRemarksList as $rem)
+                                                    <tr>
+                                                        <td class="text-center fw-bold text-danger fs-14px align-middle">{{ $rem['stars'] }}</td>
+                                                        <td class="fw-semibold align-middle text-dark">
+                                                            <em class="icon ni ni-flask me-1 text-primary"></em>
+                                                            {{ $rem['test_name'] }}
+                                                            @if (!empty($rem['sub_name']))
+                                                                <div class="fs-11px text-muted ps-3">&rarr; {{ $rem['sub_name'] }}</div>
+                                                            @endif
+                                                        </td>
+                                                        <td class="align-middle text-dark fs-13px">
+                                                            {{ $rem['text'] }}
+                                                        </td>
+                                                    </tr>
+                                                @endforeach
+                                                @if (!empty($sample->tr04_remarks))
+                                                    <tr class="bg-light-soft">
+                                                        <td class="text-center text-muted fw-bold align-middle">General</td>
+                                                        <td class="fw-semibold align-middle text-muted">
+                                                            <em class="icon ni ni-file-text me-1 text-secondary"></em>
+                                                            Sample Registration Note
+                                                        </td>
+                                                        <td class="align-middle text-muted fst-italic fs-13px">
+                                                            {{ $sample->tr04_remarks }}
+                                                        </td>
+                                                    </tr>
+                                                @endif
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                @else
+                                    <div class="alert alert-light border text-muted py-2 px-3 mb-0 d-flex align-items-center">
+                                        <em class="icon ni ni-info me-2 text-info fs-18px"></em>
+                                        <span class="fs-12px">No specific test remarks or observations were recorded by the analyst for this sample.</span>
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Final Verification Actions -->
                     <div class="col-12 mt-4">
                         <div class="card card-bordered card-stretch shadow-sm">
@@ -714,6 +923,30 @@
     </div>
 
     <style>
+        /* Prominent Rejected Test Row Highlight & Strikethrough */
+        tr.rejected-test-row {
+            background-color: #fff2f2 !important;
+            border-left: 4px solid #e85347 !important;
+        }
+        tr.rejected-test-row td {
+            background-color: #fff2f2 !important;
+        }
+        tr.rejected-test-row .test-name-text,
+        tr.rejected-test-row .test-name-text strong,
+        tr.rejected-test-row .test-result-text,
+        tr.rejected-test-row .test-result-text span,
+        tr.rejected-test-row .test-sr-no,
+        .text-decoration-line-through {
+            text-decoration: line-through !important;
+            text-decoration-color: #e85347 !important;
+            text-decoration-thickness: 1px !important;
+        }
+        tr.rejected-test-row .test-name-text,
+        tr.rejected-test-row .test-result-text,
+        tr.rejected-test-row .test-sr-no {
+            color: #b02a37 !important;
+        }
+
         .comparison-box {
             display: inline-flex;
             align-items: center;

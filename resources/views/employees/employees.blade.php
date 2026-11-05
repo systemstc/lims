@@ -208,11 +208,14 @@
                         <div class="row g-3 mb-3">
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    <label class="form-label" for="default_password">Default Password for User Accounts</label>
-                                    <div class="form-control-wrap">
-                                        <input type="text" name="default_password" id="default_password" class="form-control" value="Default@123" placeholder="Default@123">
+                                    <label class="form-label fw-medium" for="default_password">Default Password for User Accounts</label>
+                                    <div class="form-control-wrap position-relative">
+                                        <a href="javascript:void(0)" class="form-icon form-icon-right" onclick="toggleImportPasswordVisibility('default_password', this)" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); z-index: 5; color: #64748b; cursor: pointer; text-decoration: none;">
+                                            <em class="icon ni ni-eye fs-6" id="importPasswordToggleIcon"></em>
+                                        </a>
+                                        <input type="password" name="default_password" id="default_password" class="form-control pe-5" value="" placeholder="Leave blank for secure system default" autocomplete="new-password">
                                     </div>
-                                    <small class="text-muted">Assigned to newly created user accounts (unless specified in CSV).</small>
+                                    <small class="text-muted">Assigned to newly created user accounts. Default password is kept hidden and securely applied if left blank.</small>
                                 </div>
                             </div>
                             <div class="col-md-6 d-flex flex-column justify-content-center">
@@ -252,4 +255,25 @@
             </div>
         </div>
     </div>
+
+    <script>
+        function toggleImportPasswordVisibility(fieldId, trigger) {
+            const input = document.getElementById(fieldId);
+            const icon = trigger ? trigger.querySelector('.icon') : document.getElementById('importPasswordToggleIcon');
+            if (!input) return;
+            if (input.type === 'password') {
+                input.type = 'text';
+                if (icon) {
+                    icon.classList.remove('ni-eye');
+                    icon.classList.add('ni-eye-off');
+                }
+            } else {
+                input.type = 'password';
+                if (icon) {
+                    icon.classList.remove('ni-eye-off');
+                    icon.classList.add('ni-eye');
+                }
+            }
+        }
+    </script>
 @endsection

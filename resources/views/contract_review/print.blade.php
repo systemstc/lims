@@ -280,11 +280,14 @@
     <table class="data-table">
         <thead>
             <tr>
-                <th style="width: 30px; text-align: center;">#</th>
+                <th style="width: 25px; text-align: center;">#</th>
                 <th>Test Parameter Name</th>
-                <th>Standard Test Method</th>
-                <th style="width: 100px; text-align: center;">Accredited Scope</th>
-                <th style="width: 90px; text-align: right;">Fee (₹)</th>
+                <th>Standard Method</th>
+                <th style="text-align: center;">NABL Scope</th>
+                <th>Equipment &amp; Calibration (Cl 6.4)</th>
+                <th>Analyst (Cl 6.2)</th>
+                <th style="text-align: center;">MU (Cl 7.6)</th>
+                <th style="width: 75px; text-align: right;">Fee (₹)</th>
             </tr>
         </thead>
         <tbody>
@@ -310,32 +313,38 @@
                             <span style="color: #6c757d;">Non-Accredited</span>
                         @endif
                     </td>
+                    <td>
+                        <div style="font-size: 8pt; font-weight: bold;">{{ $testItem->equipment_name }}</div>
+                        <div style="font-size: 7.5pt; color: #555;">{{ $testItem->equipment_code }} | Due: {{ $testItem->calibration_due }}</div>
+                    </td>
+                    <td style="font-size: 8pt;">{{ $testItem->authorized_analyst }}</td>
+                    <td style="text-align: center; font-size: 8pt; font-family: monospace;">{{ $testItem->measurement_uncertainty }}</td>
                     <td style="text-align: right;">{{ number_format($testItem->test->m12_charge ?? 0, 2) }}</td>
                 </tr>
             @empty
                 <tr>
-                    <td colspan="5" style="text-align: center;"><em>No test parameters registered for this sample.</em></td>
+                    <td colspan="8" style="text-align: center;"><em>No test parameters registered for this sample.</em></td>
                 </tr>
             @endforelse
         </tbody>
         <tfoot>
             <tr>
-                <td colspan="4" style="text-align: right; font-weight: bold;">Testing Charges Total:</td>
+                <td colspan="7" style="text-align: right; font-weight: bold;">Testing Charges Total:</td>
                 <td style="text-align: right; font-weight: bold;">₹ {{ number_format($sample->tr04_testing_charges ?? ($sample->tr04_total_charges / 1.18), 2) }}</td>
             </tr>
             @if(($sample->tr04_cgst ?? 0) > 0 || ($sample->tr04_sgst ?? 0) > 0)
                 <tr>
-                    <td colspan="4" style="text-align: right; font-size: 8.5pt;">CGST (9%) + SGST (9%):</td>
+                    <td colspan="7" style="text-align: right; font-size: 8.5pt;">CGST (9%) + SGST (9%):</td>
                     <td style="text-align: right; font-size: 8.5pt;">₹ {{ number_format(($sample->tr04_cgst ?? 0) + ($sample->tr04_sgst ?? 0), 2) }}</td>
                 </tr>
             @elseif(($sample->tr04_igst ?? 0) > 0)
                 <tr>
-                    <td colspan="4" style="text-align: right; font-size: 8.5pt;">IGST (18%):</td>
+                    <td colspan="7" style="text-align: right; font-size: 8.5pt;">IGST (18%):</td>
                     <td style="text-align: right; font-size: 8.5pt;">₹ {{ number_format($sample->tr04_igst ?? 0, 2) }}</td>
                 </tr>
             @endif
             <tr>
-                <td colspan="4" style="text-align: right; font-weight: bold;">Grand Total Fee:</td>
+                <td colspan="7" style="text-align: right; font-weight: bold;">Grand Total Fee:</td>
                 <td style="text-align: right; font-weight: bold;">₹ {{ number_format($sample->tr04_total_charges ?? 0, 2) }}</td>
             </tr>
         </tfoot>

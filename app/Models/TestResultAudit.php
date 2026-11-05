@@ -43,6 +43,11 @@ class TestResultAudit extends Model
         return $this->belongsTo(TestResultVersion::class, 'tr09_version_id', 'tr09_version_id');
     }
 
+    public function getVersionNumberAttribute()
+    {
+        return $this->tr09_version_id ?? $this->testResult?->tr07_current_version ?? 1;
+    }
+
     // Accessors for backward compatibility with templates
     public function getTr07CreatedAtAttribute()
     {

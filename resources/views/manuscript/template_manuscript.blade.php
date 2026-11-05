@@ -30,7 +30,7 @@
                             $sendBackContext = 'analyst';
                             $sendBackModalTitle = 'Send Back to Manager for Clarification';
                             $sendBackAlertText = 'Sending back sample <strong>' . e($reg?->tr04_reference_id) . '</strong> to the <strong>Manager</strong> will return test(s) to the unallotted pool so the manager can re-allot or correct the sample.';
-                            $sendBackPlaceholder = 'Explain reason for sending back to Manager (e.g., sample damaged, insufficient test sample quantity, wrong test alloted, or testing method discrepancy)...';
+                            $sendBackPlaceholder = 'Explain reason for sending back to Manager (e.g., sample damaged, insufficient test sample quantity, wrong test allotted, or testing method discrepancy)...';
                             $sendBackHelperText = 'The Manager will see this explanation in the allotment dashboard.';
                         } elseif ($currentRole === 'DEO') {
                             $sendBackTargetRole = 'Analyst';
@@ -391,7 +391,11 @@
                                                                 </tr>
                                                             @endforeach
                                                         @else
-                                                            <!-- Main Row (Always visible, contains add buttons) -->
+                                                            @php
+                                                                $existingParentVal = old('results.' . $test->m12_test_number . '.test.result', $existingMainTestResult->tr07_result ?? '');
+                                                                $hasMainVal = !empty(trim(strip_tags((string)$existingParentVal)));
+                                                            @endphp
+                                                            <!-- Main Row (Always visible, contains add buttons and optional direct result) -->
                                                             <tr class="test-main-row"
                                                                 data-test-id="{{ $test->m12_test_id }}"
                                                                 data-test-number="{{ $test->m12_test_number }}">
@@ -400,24 +404,81 @@
                                                                     {{ $test->m12_name ?? 'Test' }}
                                                                 </td>
                                                                 <td>
-                                                                    <div class="btn-group">
-                                                                        <button type="button"
-                                                                            class="btn btn-outline-primary btn-sm add-primary-test"
-                                                                            data-test-id="{{ $test->m12_test_id }}"
-                                                                            data-test-number="{{ $test->m12_test_number }}"
-                                                                            data-primary-tests="{{ $primaryTests->toJson() }}">
-                                                                            <em class="icon ni ni-plus"></em> Add Primary
-                                                                        </button>
-                                                                        <button type="button"
-                                                                            class="btn btn-outline-warning btn-sm add-custom-field"
-                                                                            data-test-id="{{ $test->m12_test_id }}"
-                                                                            data-test-number="{{ $test->m12_test_number }}"
-                                                                            data-type="test">
-                                                                            <em class="icon ni ni-plus"></em> Add Custom
-                                                                        </button>
+                                                                    <div class="d-flex flex-column gap-2">
+                                                                        <div class="d-flex align-items-center gap-2 flex-wrap">
+
+                                                                            <button type="button" 
+                                                                                class="btn btn-xs btn-outline-info btn-toggle-parent-manuscript" 
+                                                                                data-target="{{ $test->m12_test_number }}"
+                                                                                id="btn-toggle-parent-{{ $test->m12_test_number }}"
+                                                                                style="{{ $hasMainVal ? 'display:none;' : '' }}">
+                                                                                <em class="icon ni ni-edit me-1"></em>Direct Result
+                                                                            </button>
+                                                                        </div>
+
+                                                                        <div id="parent-manuscript-input-{{ $test->m12_test_number }}" style="{{ $hasMainVal ? '' : 'display:none;' }}">
+                                                                            <div class="d-flex align-items-center justify-content-between mb-1">
+                                                                                <button type="button" class="btn btn-outline-secondary btn-xs py-0 px-1 btn-hide-parent-manuscript" data-target="{{ $test->m12_test_number }}">
+                                                                                    <em class="icon ni ni-cross"></em> Hide
+                                                                                </button>
+                                                                            </div>
+                                                                            <div class="input-group input-group-sm">
+                                                                                <input type="hidden"
+                                                                                    name="results[{{ $test->m12_test_number }}][test][test_id]"
+                                                                                    value="{{ $test->m12_test_number }}">
+                                                                                <input type="hidden"
+                                                                                    name="results[{{ $test->m12_test_number }}][test][result]"
+                                                                                    class="wysiwyg-hidden-val"
+                                                                                    value="{{ $existingParentVal }}">
+                                                                                <div class="form-control form-control-sm bg-light wysiwyg-editor-input @error('results.' . $test->m12_test_number . '.test.result') is-invalid @enderror"
+                                                                                    contenteditable="true"
+                                                                                    data-placeholder="Enter parent result value">{!! $existingParentVal !!}</div>
+                                                                                <button type="button" class="btn btn-outline-light btn-sm btn-wysiwyg-cmd" data-cmd="superscript" title="Superscript (Ctrl + .)"><span style="font-weight:bold; font-size:11px;">x<sup>2</sup></span></button>
+                                                                                <button type="button" class="btn btn-outline-light btn-sm btn-wysiwyg-cmd" data-cmd="subscript" title="Subscript (Ctrl + ,)"><span style="font-weight:bold; font-size:11px;">x<sub>2</sub></span></button>
+                                                                                <button type="button" class="btn btn-outline-light btn-sm btn-open-symbols" title="Insert Symbol"><span style="font-weight:bold; font-size:11px;">Ω</span></button>
+                                                                                @if ($test->m23_formula_id)
+                                                                                    <button type="button"
+                                                                                        class="btn btn-outline-light btn-sm open-raw-entry"
+                                                                                        data-target-name="results[{{ $test->m12_test_number }}][test][result]"
+                                                                                        data-label="{{ $test->m12_name ?? 'Final Result' }}"
+                                                                                        title="Formula / Raw Entry">
+                                                                                        <em class="icon ni ni-calc"></em>
+                                                                                    </button>
+                                                                                @endif
+                                                                                <input type="text"
+                                                                                    class="form-control form-control-sm bg-light"
+                                                                                    style="max-width: 80px;"
+                                                                                    name="results[{{ $test->m12_test_number }}][test][unit]"
+                                                                                    value="{{ old('results.' . $test->m12_test_number . '.test.unit', $existingMainTestResult->tr07_unit ?? ($test->m12_unit ?? '')) }}"
+                                                                                    placeholder="Unit">
+                                                                                <input type="hidden"
+                                                                                    name="results[{{ $test->m12_test_number }}][test][result_id]"
+                                                                                    value="{{ $existingMainTestResult->tr07_test_result_id ?? '' }}">
+                                                                            </div>
+                                                                            @error('results.' . $test->m12_test_number . '.test.result')
+                                                                                <span class="text-danger small d-block mt-1">{{ $message }}</span>
+                                                                            @enderror
+                                                                        </div>
                                                                     </div>
                                                                 </td>
-                                                                <td></td>
+                                                                <td>
+                                                                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                                                                                <button type="button"
+                                                                                    class="btn btn-outline-primary btn-sm add-primary-test"
+                                                                                    data-test-id="{{ $test->m12_test_id }}"
+                                                                                    data-test-number="{{ $test->m12_test_number }}"
+                                                                                    data-primary-tests="{{ $primaryTests->toJson() }}">
+                                                                                    <em class="icon ni ni-plus"></em>Primary
+                                                                                </button>
+                                                                                <button type="button"
+                                                                                    class="btn btn-outline-warning btn-sm add-custom-field"
+                                                                                    data-test-id="{{ $test->m12_test_id }}"
+                                                                                    data-test-number="{{ $test->m12_test_number }}"
+                                                                                    data-type="test">
+                                                                                    <em class="icon ni ni-plus"></em>Custom
+                                                                                </button>
+                                                                        </div>
+                                                                </td>
                                                             </tr>
 
                                                             <!-- Primary Test Rows (Only those with existing results) -->
@@ -438,7 +499,7 @@
                                                                 @if (
                                                                     $existingPrimaryResult ||
                                                                         $existingTestResults->where('m16_primary_test_id', $primaryTest->m16_primary_test_id)->isNotEmpty() ||
-                                                                        $existingTestResults->isEmpty() ||
+                                                                        $customFields->where('m12_test_number', $test->m12_test_number)->where('m16_primary_test_id', $primaryTest->m16_primary_test_id)->isNotEmpty() ||
                                                                         old('results.' . $test->m12_test_number . '.primary_tests.' . $primaryTest->m16_primary_test_id) !== null)
                                                                     <tr class="primary-test-row"
                                                                         data-test-id="{{ $test->m12_test_id }}"
@@ -542,7 +603,7 @@
                                                                                     ->first();
                                                                             @endphp
 
-                                                                            @if ($existingSecondaryResult || $existingTestResults->isEmpty() || old('results.' . $test->m12_test_number . '.primary_tests.' . $primaryTest->m16_primary_test_id . '.secondary_tests.' . $secondaryTest->m17_secondary_test_id) !== null)
+                                                                            @if ($existingSecondaryResult || $customFields->where('m12_test_number', $test->m12_test_number)->where('m16_primary_test_id', $primaryTest->m16_primary_test_id)->where('m17_secondary_test_id', $secondaryTest->m17_secondary_test_id)->isNotEmpty() || old('results.' . $test->m12_test_number . '.primary_tests.' . $primaryTest->m16_primary_test_id . '.secondary_tests.' . $secondaryTest->m17_secondary_test_id) !== null)
                                                                                 <tr class="secondary-test-row"
                                                                                     data-test-number="{{ $test->m12_test_number }}"
                                                                                     data-primary-test-id="{{ $primaryTest->m16_primary_test_id }}"
@@ -728,6 +789,48 @@
                                                                         </tr>
                                                                     @endforeach
                                                                 @endif
+                                                            @endforeach
+
+                                                            <!-- Custom Fields for Main Test -->
+                                                            @foreach ($customFields->where('m12_test_number', $test->m12_test_number)->whereNull('m16_primary_test_id')->whereNull('m17_secondary_test_id') as $cfIndex => $cf)
+                                                                <tr class="custom-field-row"
+                                                                    data-test-number="{{ $test->m12_test_number }}">
+                                                                    <td class="serial-col">1.C{{ $cfIndex + 1 }}</td>
+                                                                    <td class="ps-3 fw-bold text-dark">
+                                                                        {{ $cf->tr08_field_name }}
+                                                                    </td>
+                                                                    <td>
+                                                                        <div class="input-group input-group-sm">
+                                                                            <input type="hidden"
+                                                                                name="results[{{ $test->m12_test_number }}][custom_fields][{{ $cf->tr08_custom_field_id }}][custom_field_id]"
+                                                                                value="{{ $cf->tr08_custom_field_id }}">
+                                                                            <input type="hidden"
+                                                                                name="results[{{ $test->m12_test_number }}][custom_fields][{{ $cf->tr08_custom_field_id }}][value]"
+                                                                                class="wysiwyg-hidden-val"
+                                                                                value="{{ $cf->tr08_field_value }}">
+                                                                            <div class="form-control form-control-sm border-0 bg-light wysiwyg-editor-input"
+                                                                                contenteditable="true"
+                                                                                data-placeholder="Value">{!! $cf->tr08_field_value !!}</div>
+                                                                            <button type="button" class="btn btn-outline-light btn-sm btn-wysiwyg-cmd" data-cmd="superscript" title="Superscript (Ctrl + .)"><span style="font-weight:bold; font-size:11px;">x<sup>2</sup></span></button>
+                                                                            <button type="button" class="btn btn-outline-light btn-sm btn-wysiwyg-cmd" data-cmd="subscript" title="Subscript (Ctrl + ,)"><span style="font-weight:bold; font-size:11px;">x<sub>2</sub></span></button>
+                                                                            <button type="button" class="btn btn-outline-light btn-sm btn-open-symbols" title="Insert Symbol"><span style="font-weight:bold; font-size:11px;">Ω</span></button>
+                                                                            <input type="text"
+                                                                                class="form-control form-control-sm border-0 bg-light"
+                                                                                style="max-width: 80px;"
+                                                                                name="results[{{ $test->m12_test_number }}][custom_fields][{{ $cf->tr08_custom_field_id }}][unit]"
+                                                                                value="{{ $cf->tr08_field_unit }}"
+                                                                                placeholder="Unit">
+                                                                        </div>
+                                                                    </td>
+                                                                    <td>
+                                                                        <button type="button"
+                                                                            class="btn btn-outline-danger btn-sm remove-test-row"
+                                                                            data-type="custom"
+                                                                            data-id="{{ $cf->tr08_custom_field_id }}">
+                                                                            <em class="icon ni ni-trash"></em>
+                                                                        </button>
+                                                                    </td>
+                                                                </tr>
                                                             @endforeach
                                                         @endif
                                                     </tbody>
@@ -1250,47 +1353,196 @@
             const form = document.getElementById('manuscriptForm');
             syncAllWysiwygEditors();
 
-            const resultInputs = form.querySelectorAll('.wysiwyg-hidden-val, input[name$="[value]"], input[name$="[result]"]');
-            
             let isValid = true;
             let firstInvalid = null;
-            
-            resultInputs.forEach(input => {
-                const inputGroup = input.closest('.input-group');
-                if (inputGroup && (inputGroup.classList.contains('d-none') || inputGroup.style.display === 'none')) return;
-                if (input.closest('.d-none')) return;
-                
-                const wysiwygDiv = inputGroup ? inputGroup.querySelector('.wysiwyg-editor-input') : null;
-                const textValue = wysiwygDiv ? wysiwygDiv.innerText.trim() : input.value.trim();
-                
-                if (!textValue) {
-                    isValid = false;
-                    if (wysiwygDiv) {
-                        wysiwygDiv.classList.add('is-invalid');
-                        if (!firstInvalid) firstInvalid = wysiwygDiv;
-                    } else {
-                        input.classList.add('is-invalid');
-                        if (!firstInvalid) firstInvalid = input;
+            const errors = [];
+
+            // Clear prior validation markers
+            form.querySelectorAll('.validation-error-badge').forEach(b => b.remove());
+            form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+            form.querySelectorAll('tr.row-invalid-highlight').forEach(tr => tr.classList.remove('row-invalid-highlight'));
+
+            // Helper: is element visible
+            const isVisible = (el) => {
+                if (!el) return false;
+                if (el.classList && el.classList.contains('d-none')) return false;
+                if (el.closest && (el.closest('.d-none') || el.closest('[style*="display:none"]') || el.closest('[style*="display: none"]'))) return false;
+                try {
+                    const style = window.getComputedStyle(el);
+                    if (style.display === 'none' || style.visibility === 'hidden') return false;
+                } catch (e) {}
+                return el.offsetParent !== null;
+            };
+
+            // Helper: mark element as invalid and attach error badge
+            const markInvalid = (element, message, container = null) => {
+                isValid = false;
+                if (element) {
+                    element.classList.add('is-invalid');
+                    if (!firstInvalid) firstInvalid = element;
+
+                    const targetContainer = container || element.closest('.input-group') || element.closest('td') || element.parentElement;
+                    if (targetContainer && !targetContainer.parentElement?.querySelector('.validation-error-badge') && !targetContainer.querySelector('.validation-error-badge')) {
+                        const badge = document.createElement('div');
+                        badge.className = 'validation-error-badge';
+                        badge.innerHTML = `<em class="icon ni ni-alert-circle"></em><span>${escapeHtml(message)}</span>`;
+                        if (targetContainer.classList.contains('input-group')) {
+                            targetContainer.parentNode.insertBefore(badge, targetContainer.nextSibling);
+                        } else {
+                            targetContainer.appendChild(badge);
+                        }
+                    }
+                }
+                errors.push({ element, message });
+            };
+
+            // 1. Group validation by Test Number to ensure every test is satisfied
+            const testMainRows = form.querySelectorAll('tr.test-main-row');
+
+            testMainRows.forEach(mainRow => {
+                if (!isVisible(mainRow)) return;
+
+                const testNumber = mainRow.getAttribute('data-test-number');
+                if (!testNumber) return;
+
+                const testNameEl = mainRow.cells[1]?.querySelector('strong') || mainRow.cells[1];
+                const testName = testNameEl ? testNameEl.textContent.trim() : `Test #${testNumber}`;
+
+                // Check if this test has primary tests configured
+                const parentInputBox = document.getElementById(`parent-manuscript-input-${testNumber}`);
+                const toggleBtn = document.getElementById(`btn-toggle-parent-${testNumber}`);
+                const hasPrimaryTestsConfigured = Boolean(parentInputBox || toggleBtn || form.querySelector(`.primary-test-row[data-test-number="${testNumber}"]`));
+
+                if (!hasPrimaryTestsConfigured) {
+                    // Case 1: Pure Standalone Test (No primary tests)
+                    // Main test result is strictly mandatory
+                    const mainResultHidden = mainRow.querySelector('.wysiwyg-hidden-val, input[name$="[result]"]');
+                    const mainWysiwyg = mainRow.querySelector('.wysiwyg-editor-input');
+                    const val = (mainWysiwyg ? mainWysiwyg.innerText.trim() : (mainResultHidden ? mainResultHidden.value.trim() : ''));
+
+                    if (!val) {
+                        mainRow.classList.add('row-invalid-highlight');
+                        markInvalid(mainWysiwyg || mainResultHidden, `Test #${testNumber} (${testName}): Result value is required.`);
                     }
                 } else {
-                    if (wysiwygDiv) wysiwygDiv.classList.remove('is-invalid');
-                    input.classList.remove('is-invalid');
+                    // Case 2 & 3: Test HAS primary tests configured
+                    // Check what results exist for this test:
+                    // a) Parent direct result (if entered)
+                    let hasParentVal = false;
+                    let parentWysiwyg = null;
+                    if (parentInputBox) {
+                        parentWysiwyg = parentInputBox.querySelector('.wysiwyg-editor-input');
+                        const pVal = parentWysiwyg ? parentWysiwyg.innerText.trim() : '';
+                        if (pVal !== '') {
+                            hasParentVal = true;
+                        }
+                    }
+
+                    // b) Visible primary test rows
+                    const primaryRows = form.querySelectorAll(`.primary-test-row[data-test-number="${testNumber}"]`);
+                    let hasAnyPrimaryOrSecResult = false;
+                    let hasVisibleSubRows = false;
+
+                    primaryRows.forEach(priRow => {
+                        if (!isVisible(priRow)) return;
+                        hasVisibleSubRows = true;
+                        const priTestId = priRow.getAttribute('data-primary-test-id');
+                        const priNameEl = priRow.cells[1]?.querySelector('strong') || priRow.cells[1];
+                        const priName = priNameEl ? priNameEl.textContent.trim() : `Primary Test`;
+
+                        // Check secondary rows for this primary test
+                        const secondaryRows = form.querySelectorAll(`.secondary-test-row[data-test-number="${testNumber}"][data-primary-test-id="${priTestId}"]`);
+                        const hasVisibleSecondaryRows = Array.from(secondaryRows).some(sr => isVisible(sr));
+
+                        if (hasVisibleSecondaryRows) {
+                            // Secondary test rows exist: validate secondary rows
+                            secondaryRows.forEach(secRow => {
+                                if (!isVisible(secRow)) return;
+                                const secWysiwyg = secRow.querySelector('.wysiwyg-editor-input');
+                                const secHidden = secRow.querySelector('.wysiwyg-hidden-val, input[name$="[result]"]');
+                                const secName = secRow.cells[1]?.textContent.trim() || 'Secondary Test';
+                                const sVal = secWysiwyg ? secWysiwyg.innerText.trim() : (secHidden ? secHidden.value.trim() : '');
+
+                                if (!sVal) {
+                                    secRow.classList.add('row-invalid-highlight');
+                                    markInvalid(secWysiwyg || secHidden, `${secName} (under Test #${testNumber}): Result value is required.`);
+                                } else {
+                                    hasAnyPrimaryOrSecResult = true;
+                                }
+                            });
+                        } else {
+                            // Primary test without secondary rows: primary test result is required
+                            const priWysiwyg = priRow.querySelector('.wysiwyg-editor-input');
+                            const priHidden = priRow.querySelector('.wysiwyg-hidden-val, input[name$="[result]"]');
+                            const pVal = priWysiwyg ? priWysiwyg.innerText.trim() : (priHidden ? priHidden.value.trim() : '');
+
+                            if (!pVal) {
+                                priRow.classList.add('row-invalid-highlight');
+                                markInvalid(priWysiwyg || priHidden, `${priName} (under Test #${testNumber}): Result value is required.`);
+                            } else {
+                                hasAnyPrimaryOrSecResult = true;
+                            }
+                        }
+                    });
+
+                    // c) Visible custom fields for this test
+                    const testCustomFieldRows = form.querySelectorAll(`.custom-field-row[data-test-number="${testNumber}"]`);
+                    let hasAnyCustomFieldResult = false;
+                    testCustomFieldRows.forEach(cfRow => {
+                        if (!isVisible(cfRow)) return;
+                        const valHidden = cfRow.querySelector('.wysiwyg-hidden-val, input[name$="[value]"]');
+                        const valWysiwyg = cfRow.querySelector('.wysiwyg-editor-input');
+                        const cfVal = valWysiwyg ? valWysiwyg.innerText.trim() : (valHidden ? valHidden.value.trim() : '');
+                        if (cfVal !== '') {
+                            hasAnyCustomFieldResult = true;
+                        }
+                    });
+
+                    // If this test has NO results at all:
+                    const hasAnyResultForThisTest = hasParentVal || hasAnyPrimaryOrSecResult || hasAnyCustomFieldResult;
+
+                    if (!hasVisibleSubRows && !hasAnyResultForThisTest) {
+                        mainRow.classList.add('row-invalid-highlight');
+
+                        if (parentInputBox) {
+                            $(`#btn-toggle-parent-${testNumber}`).hide();
+                            $(`#parent-manuscript-input-${testNumber}`).fadeIn(200);
+                            markInvalid(parentWysiwyg, `Test #${testNumber} (${testName}): Please enter a result, or select sub-tests / custom fields.`);
+                        } else {
+                            markInvalid(mainRow, `Test #${testNumber} (${testName}): Please enter a result or add primary sub-tests.`);
+                        }
+                    }
                 }
             });
 
-            form.querySelectorAll('input.custom-field-input').forEach(input => {
-                const trRow = input.closest('tr');
-                if (trRow && (trRow.classList.contains('d-none') || trRow.style.display === 'none')) return;
-                if (!input.value.trim()) {
-                    isValid = false;
-                    input.classList.add('is-invalid');
-                    if (!firstInvalid) firstInvalid = input;
-                } else {
-                    input.classList.remove('is-invalid');
+            // 2. Validate custom fields
+            form.querySelectorAll('tr.custom-field-row').forEach(cfRow => {
+                if (!isVisible(cfRow)) return;
+
+                const serial = cfRow.cells[0]?.textContent.trim() || 'Custom Field';
+                const nameInput = cfRow.querySelector('input.custom-field-input');
+                const fieldName = nameInput ? nameInput.value.trim() : (cfRow.cells[1]?.textContent.trim() || 'Custom Field');
+
+                // Custom field name
+                if (nameInput && !nameInput.value.trim()) {
+                    cfRow.classList.add('row-invalid-highlight');
+                    markInvalid(nameInput, `Row ${serial}: Custom field name cannot be empty.`);
+                }
+
+                // Custom field value
+                const valHidden = cfRow.querySelector('.wysiwyg-hidden-val, input[name$="[value]"]');
+                const valWysiwyg = cfRow.querySelector('.wysiwyg-editor-input');
+                const cfVal = valWysiwyg ? valWysiwyg.innerText.trim() : (valHidden ? valHidden.value.trim() : '');
+
+                if (!cfVal) {
+                    cfRow.classList.add('row-invalid-highlight');
+                    markInvalid(valWysiwyg || valHidden, `Row ${serial} ("${fieldName || 'Custom Field'}"): Value is required.`);
                 }
             });
 
-            return { isValid, firstInvalid };
+            // NOTE: Units are purely OPTIONAL across all rows and are NEVER validated.
+
+            return { isValid, firstInvalid, errors };
         }
 
         function submitForm(actionValue) {
@@ -1299,6 +1551,9 @@
 
             if (actionValue === 'DRAFT') {
                 form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+                form.querySelectorAll('.validation-error-badge').forEach(el => el.remove());
+                form.querySelectorAll('tr.row-invalid-highlight').forEach(el => el.classList.remove('row-invalid-highlight'));
+
                 document.getElementById('formAction').value = 'DRAFT';
                 const btnDraft = document.getElementById('btnSaveDraft');
                 if (btnDraft) {
@@ -1311,11 +1566,32 @@
 
             const validation = validateResultForm();
             if (!validation.isValid) {
+                const errorHtmlList = validation.errors.map(err => `<li class="mb-1"><em class="icon ni ni-cross-circle text-danger me-1"></em>${escapeHtml(err.message)}</li>`).join('');
+
                 Swal.fire({
                     icon: 'error',
                     title: 'Incomplete Test Results',
-                    text: 'Please fill in all selected test result values and custom fields before completing.'
+                    html: `
+                        <div class="text-start">
+                            <p class="mb-2">Please fill in all required test results before completing:</p>
+                            <div class="p-2 mb-2 bg-lighter rounded border border-danger-subtle" style="max-height: 200px; overflow-y: auto;">
+                                <ul class="ps-3 mb-0 small text-danger">
+                                    ${errorHtmlList}
+                                </ul>
+                            </div>
+                            <div class="text-muted fs-12px mt-2">
+                                <em class="icon ni ni-info text-info me-1"></em><strong>Note:</strong> Units are purely optional and not mandatory.
+                            </div>
+                        </div>
+                    `,
+                    confirmButtonText: 'Review Fields'
+                }).then(() => {
+                    if (validation.firstInvalid) {
+                        validation.firstInvalid.focus();
+                        validation.firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
                 });
+
                 if (validation.firstInvalid) {
                     validation.firstInvalid.focus();
                     validation.firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -1332,11 +1608,33 @@
 
             const validation = validateResultForm();
             if (!validation.isValid) {
+                const errorHtmlList = validation.errors.map(err => `<li class="mb-1"><em class="icon ni ni-cross-circle text-danger me-1"></em>${escapeHtml(err.message)}</li>`).join('');
+
                 Swal.fire({
                     icon: 'warning',
                     title: 'Result Entry Incomplete',
-                    html: 'Please fill in all test results and required fields before previewing.<br><br><small class="text-muted">If you cannot complete all tests now, you can click <strong>Save as Draft</strong> to save your progress and complete later.</small>'
+                    html: `
+                        <div class="text-start">
+                            <p class="mb-2">Please fill in all required test results and fields before previewing:</p>
+                            <div class="p-2 mb-2 bg-lighter rounded border border-danger-subtle" style="max-height: 200px; overflow-y: auto;">
+                                <ul class="ps-3 mb-0 small text-danger">
+                                    ${errorHtmlList}
+                                </ul>
+                            </div>
+                            <div class="text-muted fs-12px mt-2">
+                                <em class="icon ni ni-info text-info me-1"></em><strong>Note:</strong> Units are purely optional and not mandatory.
+                            </div>
+                            <small class="text-muted d-block mt-2">If you cannot complete all tests now, you can click <strong>Save as Draft</strong> to save your progress and complete later.</small>
+                        </div>
+                    `,
+                    confirmButtonText: 'Review Fields'
+                }).then(() => {
+                    if (validation.firstInvalid) {
+                        validation.firstInvalid.focus();
+                        validation.firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
                 });
+
                 if (validation.firstInvalid) {
                     validation.firstInvalid.focus();
                     validation.firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -1378,9 +1676,25 @@
                 const paramEl = tr.cells[1]?.querySelector('input.custom-field-input') || tr.cells[1];
                 const paramName = paramEl?.value ? paramEl.value.trim() : (paramEl?.textContent.trim() || '');
 
+                const parentManuscriptBox = tr.cells[2]?.querySelector('[id^="parent-manuscript-input-"]');
                 const wysiwygDiv = tr.cells[2]?.querySelector('.wysiwyg-editor-input');
                 const valInput = tr.cells[2]?.querySelector('input[name$="[value]"], input[name$="[result]"]');
                 const unitInput = tr.cells[2]?.querySelector('input[name$="[unit]"]');
+
+                const isParentBoxVisible = parentManuscriptBox ? (parentManuscriptBox.style.display !== 'none' && !parentManuscriptBox.classList.contains('d-none')) : false;
+                const hasDirectParentResult = wysiwygDiv && (!parentManuscriptBox || (isParentBoxVisible && wysiwygDiv.innerText.trim() !== ''));
+
+                if (!hasDirectParentResult && parentManuscriptBox) {
+                    $tbody.append(`
+                        <tr class="table-light border-bottom">
+                            <td class="text-center align-middle fw-bold">${serial}</td>
+                            <td class="align-middle" colspan="3">
+                                <strong class="text-dark">${escapeHtml(paramName)}</strong>
+                               </td>
+                        </tr>
+                    `);
+                    return;
+                }
 
                 if (!wysiwygDiv && !valInput) {
                     $tbody.append(`
@@ -1388,8 +1702,7 @@
                             <td class="text-center align-middle fw-bold">${serial}</td>
                             <td class="align-middle" colspan="3">
                                 <strong class="text-dark">${escapeHtml(paramName)}</strong>
-                                <span class="badge bg-light text-primary border ms-2"><em class="icon ni ni-layers me-1"></em>Configured with Sub-tests</span>
-                            </td>
+                                </td>
                         </tr>
                     `);
                     return;
@@ -1430,6 +1743,24 @@
 
 
         $(document).ready(function() {
+            // Toggle Direct Parent Result Input for manuscript template
+            $(document).on('click', '.btn-toggle-parent-manuscript', function(e) {
+                e.preventDefault();
+                const testNum = $(this).data('target');
+                $(this).hide();
+                $(`#parent-manuscript-input-${testNum}`).fadeIn(200);
+            });
+
+            $(document).on('click', '.btn-hide-parent-manuscript', function(e) {
+                e.preventDefault();
+                const testNum = $(this).data('target');
+                const $inputBox = $(`#parent-manuscript-input-${testNum}`);
+                $inputBox.find('.wysiwyg-editor-input').html('');
+                $inputBox.find('.wysiwyg-hidden-val').val('');
+                $inputBox.hide();
+                $(`#btn-toggle-parent-${testNum}`).fadeIn(200);
+            });
+
             // Focus and highlight empty date field
             const $testDate = $('input[name="test_date"]');
             const $perfDate = $('input[name="performance_date"]');
@@ -1443,6 +1774,12 @@
             // Remove highlight on input
             $testDate.on('change input', function() { $(this).removeClass('is-invalid shadow-sm border-danger'); });
             $perfDate.on('change input', function() { $(this).removeClass('is-invalid shadow-sm border-danger'); });
+
+            // Initialize serial numbers for all result tables on page load
+            $('table[id^="results_table_"]').each(function() {
+                const tn = this.id.replace('results_table_', '');
+                updateSerialNumbers(tn);
+            });
 
             let currentPrimaryModalData = [];
             let currentPrimaryContext = {};
@@ -1598,7 +1935,22 @@
                         </td>
                     </tr>`;
 
-                tableBody.append(rowHtml);
+                const lastSubRow = tableBody.find('.secondary-test-row, .custom-field-row[data-primary-test-id], .primary-test-row').last();
+                if (lastSubRow.length > 0) {
+                    lastSubRow.after(rowHtml);
+                } else {
+                    const firstTestCustom = tableBody.find('.custom-field-row:not([data-primary-test-id])').first();
+                    if (firstTestCustom.length > 0) {
+                        firstTestCustom.before(rowHtml);
+                    } else {
+                        const mainRow = tableBody.find('.test-main-row');
+                        if (mainRow.length > 0) {
+                            mainRow.after(rowHtml);
+                        } else {
+                            tableBody.append(rowHtml);
+                        }
+                    }
+                }
             }
 
             // Add Custom Field
@@ -1670,10 +2022,13 @@
                         if (type === 'test') {
                             tableBody.append(rowHtml);
                         } else if (type === 'primary') {
-                            $(`.primary-test-row[data-primary-test-id="${pId}"]`).after(rowHtml);
+                            const existingCfs = tableBody.find(`.custom-field-row[data-primary-test-id="${pId}"]:not([data-secondary-test-id])`);
+                            const targetRow = existingCfs.length > 0 ? existingCfs.last() : tableBody.find(`.primary-test-row[data-primary-test-id="${pId}"]`);
+                            targetRow.after(rowHtml);
                         } else if (type === 'secondary') {
-                            $(`.secondary-test-row[data-primary-test-id="${pId}"][data-secondary-test-id="${sId}"]`)
-                                .after(rowHtml);
+                            const existingCfs = tableBody.find(`.custom-field-row[data-secondary-test-id="${sId}"]`);
+                            const targetRow = existingCfs.length > 0 ? existingCfs.last() : tableBody.find(`.secondary-test-row[data-secondary-test-id="${sId}"]`);
+                            targetRow.after(rowHtml);
                         }
 
                         updateSerialNumbers(testNumber);
@@ -1687,7 +2042,7 @@
                 const testNumber = row.data('test-number');
                 const syncId = $(this).data('sync-id');
                 const type = $(this).data('type');
-                const id = $(this).data('id');
+                const id = $(this).data('id') || row.data('primary-test-id') || row.data('secondary-test-id');
 
                 Swal.fire({
                     title: 'Are you sure?',
@@ -1698,6 +2053,12 @@
                     confirmButtonText: 'Yes, delete it!'
                 }).then((result) => {
                     if (result.isConfirmed) {
+                        if (type === 'primary' && id) {
+                            $(`#results_table_${testNumber} tbody .secondary-test-row[data-primary-test-id="${id}"]`).remove();
+                            $(`#results_table_${testNumber} tbody .custom-field-row[data-primary-test-id="${id}"]`).remove();
+                        } else if (type === 'secondary' && id) {
+                            $(`#results_table_${testNumber} tbody .custom-field-row[data-secondary-test-id="${id}"]`).remove();
+                        }
                         row.remove();
                         updateSerialNumbers(testNumber);
                     }
@@ -1715,7 +2076,26 @@
                     $(`#results_table_${testNumber} tbody .secondary-test-row[data-primary-test-id="${pId}"]`).each(function() {
                         sCount++;
                         $(this).find('.serial-col').text(`1.${pCount}.${sCount}`);
+
+                        const sId = $(this).data('secondary-test-id');
+                        let secCfCount = 0;
+                        $(`#results_table_${testNumber} tbody .custom-field-row[data-secondary-test-id="${sId}"]`).each(function() {
+                            secCfCount++;
+                            $(this).find('.serial-col').text(`1.${pCount}.${sCount}.C${secCfCount}`);
+                        });
                     });
+
+                    let priCfCount = 0;
+                    $(`#results_table_${testNumber} tbody .custom-field-row[data-primary-test-id="${pId}"]:not([data-secondary-test-id])`).each(function() {
+                        priCfCount++;
+                        $(this).find('.serial-col').text(`1.${pCount}.C${priCfCount}`);
+                    });
+                });
+
+                let cfCount = 0;
+                $(`#results_table_${testNumber} tbody .custom-field-row:not([data-primary-test-id])`).each(function() {
+                    cfCount++;
+                    $(this).find('.serial-col').text(`1.C${cfCount}`);
                 });
             }
 
@@ -2023,6 +2403,14 @@
                 });
             }, 500); 
         @endif
+
+        // Real-time clearance of validation errors on user interaction
+        $(document).on('input keyup paste', '.wysiwyg-editor-input, input.custom-field-input', function() {
+            $(this).removeClass('is-invalid');
+            $(this).closest('td').find('.validation-error-badge').remove();
+            $(this).closest('.input-group').next('.validation-error-badge').remove();
+            $(this).closest('tr').removeClass('row-invalid-highlight');
+        });
     </script>
 
     </form>
@@ -2411,6 +2799,30 @@
             content: attr(data-placeholder);
             color: #999;
             pointer-events: none;
+        }
+        /* Prominent Validation Error Styles */
+        .wysiwyg-editor-input.is-invalid,
+        input.form-control.is-invalid,
+        input.is-invalid,
+        textarea.is-invalid {
+            border: 2px solid #e85347 !important;
+            background-color: #fff5f5 !important;
+            box-shadow: 0 0 0 0.2rem rgba(232, 83, 71, 0.25) !important;
+        }
+
+        .validation-error-badge {
+            color: #e85347;
+            font-size: 11px;
+            font-weight: 600;
+            margin-top: 4px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        tr.row-invalid-highlight {
+            background-color: #fff8f8 !important;
+            box-shadow: inset 3px 0 0 #e85347 !important;
         }
         .wysiwyg-editor-input sup {
             font-size: 75%;

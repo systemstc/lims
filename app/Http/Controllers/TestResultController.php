@@ -29,8 +29,10 @@ use App\Models\WalletTransaction;
 use App\Traits\HasManuscriptContent;
 use App\Services\CustodyService;
 use App\Models\SampleManuscript;
+use App\Models\SampleCustodyLog;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
+use Yajra\DataTables\Facades\DataTables;
 
 class TestResultController extends Controller
 {
@@ -380,6 +382,33 @@ class TestResultController extends Controller
         $performanceDate = null;
 
         if ($registrationId) {
+            $sampleReg = $sampleTests->first()?->registration;
+            if ($sampleReg) {
+                $clarificationRemarks = collect();
+                if (!empty($sampleReg->tr04_latest_clarification_remark)) {
+                    $clarificationRemarks->push(trim($sampleReg->tr04_latest_clarification_remark));
+                }
+                $custodyRemarks = SampleCustodyLog::where('tr04_sample_registration_id', $sampleReg->tr04_sample_registration_id)
+                    ->orWhere('tr04_reference_id', $registrationId)
+                    ->pluck('clarification_remark')
+                    ->map(fn($r) => trim($r))
+                    ->filter();
+                $clarificationRemarks = $clarificationRemarks->merge($custodyRemarks)->unique()->filter()->values();
+
+                if ($clarificationRemarks->isNotEmpty()) {
+                    // Sanitize any DRAFT test results that were corrupted by custody remarks
+                    TestResult::where('tr04_reference_id', $registrationId)
+                        ->whereIn('tr07_result_status', ['DRAFT'])
+                        ->whereIn('tr07_remarks', $clarificationRemarks->toArray())
+                        ->update(['tr07_remarks' => null]);
+
+                    CustomField::where('tr04_reference_id', $registrationId)
+                        ->whereIn('tr08_result_status', ['DRAFT'])
+                        ->whereIn('tr08_remarks', $clarificationRemarks->toArray())
+                        ->update(['tr08_remarks' => null]);
+                }
+            }
+
             $existingResults = TestResult::where('tr04_reference_id', $registrationId)
                 ->whereIn('tr07_result_status', ['DRAFT', 'SUBMITTED', 'RESULTED'])
                 ->get();
@@ -1213,11 +1242,6 @@ class TestResultController extends Controller
         ];
 
         if (!$isDraft) {
-            // Nested validation to enforce required result values if the row is submitted / completed
-            $rules['results.*.test.result'] = 'required_with:results.*.test';
-            $rules['results.*.primary_tests.*.result'] = 'required_without:results.*.primary_tests.*.secondary_tests';
-            $rules['results.*.primary_tests.*.secondary_tests.*.result'] = 'required_with:results.*.primary_tests.*.secondary_tests.*.secondary_test_id';
-            
             // Nested validation for custom fields
             $rules['results.*.custom_fields.*.value'] = 'required_with:results.*.custom_fields.*.label';
             $rules['results.*.primary_tests.*.custom_fields.*.value'] = 'required_with:results.*.primary_tests.*.custom_fields.*.label';
@@ -1233,10 +1257,6 @@ class TestResultController extends Controller
             'test_date.after_or_equal' => 'Test Date cannot be older than 15 days.',
             'performance_date.before_or_equal' => 'Date of Performance of Tests cannot be in the future.',
             'performance_date.after_or_equal' => 'Date of Performance of Tests cannot be older than 15 days.',
-
-            'results.*.test.result.required_with' => 'Main test result value cannot be empty.',
-            'results.*.primary_tests.*.result.required_with' => 'Primary test result value cannot be empty.',
-            'results.*.primary_tests.*.secondary_tests.*.result.required_with' => 'Secondary test result value cannot be empty.',
             
             'results.*.custom_fields.*.value.required_with' => 'Custom field value cannot be empty.',
             'results.*.primary_tests.*.custom_fields.*.value.required_with' => 'Custom field value cannot be empty.',
@@ -1248,8 +1268,66 @@ class TestResultController extends Controller
 
         $validator = Validator::make($request->all(), $rules, $messages);
 
+        // Intelligent validation supporting Case 1 (Parent only), Case 2 (Primary only), Case 3 (Parent + Primary), and Custom Fields
+        if (!$isDraft && !empty($request->results)) {
+            $validator->after(function ($v) use ($request) {
+                // Recursive helper to check if any custom field has a non-empty value
+                $checkCustomFieldValues = function ($array) use (&$checkCustomFieldValues) {
+                    if (!is_array($array)) return false;
+                    foreach ($array as $key => $val) {
+                        if (is_array($val)) {
+                            if (isset($val['value']) && trim(strip_tags((string)$val['value'])) !== '') {
+                                return true;
+                            }
+                            if ($checkCustomFieldValues($val)) {
+                                return true;
+                            }
+                        }
+                    }
+                    return false;
+                };
+
+                foreach ($request->results as $testNumber => $resultData) {
+                    $hasMainResult = isset($resultData['test']['result']) && trim(strip_tags((string)$resultData['test']['result'])) !== '';
+                    $hasPrimaryResult = false;
+
+                    if (!empty($resultData['primary_tests'])) {
+                        foreach ($resultData['primary_tests'] as $pData) {
+                            if (isset($pData['result']) && trim(strip_tags((string)$pData['result'])) !== '') {
+                                $hasPrimaryResult = true;
+                                break;
+                            }
+                            if (!empty($pData['secondary_tests'])) {
+                                foreach ($pData['secondary_tests'] as $sData) {
+                                    if (isset($sData['result']) && trim(strip_tags((string)$sData['result'])) !== '') {
+                                        $hasPrimaryResult = true;
+                                        break 2;
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Check custom fields under request->custom_fields or results->custom_fields
+                    $hasCustomFieldResult = false;
+                    if (!empty($request->custom_fields[$testNumber])) {
+                        $hasCustomFieldResult = $checkCustomFieldValues($request->custom_fields[$testNumber]);
+                    }
+                    if (!$hasCustomFieldResult && !empty($resultData['custom_fields'])) {
+                        $hasCustomFieldResult = $checkCustomFieldValues($resultData['custom_fields']);
+                    }
+
+                    if (!$hasMainResult && !$hasPrimaryResult && !$hasCustomFieldResult) {
+                        $v->errors()->add("results.{$testNumber}.test.result", "Test #{$testNumber} requires either a parent result, primary/secondary test results, or custom field values.");
+                    }
+                }
+            });
+        }
+
         if ($validator->fails()) {
             Log::error('Validation Failed:', $validator->errors()->toArray());
+            Session::flash('type', 'error');
+            Session::flash('message', 'Please check the highlighted fields: ' . implode(' | ', $validator->errors()->all()));
             return back()->withErrors($validator)->withInput();
         }
 
@@ -1272,21 +1350,28 @@ class TestResultController extends Controller
                 $regId = $registration->tr04_sample_registration_id ?? null;
 
                 foreach ($request->sample_tests as $sampleTestId => $sampleTestData) {
-                    if (!array_key_exists('standard_id', $sampleTestData)) {
-                        continue;
+                    $updatePayload = [];
+
+                    if (array_key_exists('standard_id', $sampleTestData)) {
+                        $stdValue = is_array($sampleTestData['standard_id']) 
+                            ? implode(',', array_filter($sampleTestData['standard_id'])) 
+                            : ($sampleTestData['standard_id'] ?: null);
+                        $updatePayload['m15_standard_id'] = $stdValue;
                     }
 
-                    $stdValue = is_array($sampleTestData['standard_id']) 
-                        ? implode(',', array_filter($sampleTestData['standard_id'])) 
-                        : ($sampleTestData['standard_id'] ?: null);
+                    if (array_key_exists('standard_qualifier', $sampleTestData)) {
+                        $updatePayload['tr05_standard_qualifier'] = !empty(trim((string)$sampleTestData['standard_qualifier'])) ? trim((string)$sampleTestData['standard_qualifier']) : null;
+                    }
 
-                    $updated = SampleTest::where('tr05_sample_test_id', $sampleTestId)
-                        ->update(['m15_standard_id' => $stdValue]);
+                    if (!empty($updatePayload)) {
+                        $updated = SampleTest::where('tr05_sample_test_id', $sampleTestId)
+                            ->update($updatePayload);
 
-                    if (!$updated && $regId) {
-                        SampleTest::where('m12_test_id', $sampleTestId)
-                            ->where('tr04_sample_registration_id', $regId)
-                            ->update(['m15_standard_id' => $stdValue]);
+                        if (!$updated && $regId) {
+                            SampleTest::where('m12_test_id', $sampleTestId)
+                                ->where('tr04_sample_registration_id', $regId)
+                                ->update($updatePayload);
+                        }
                     }
                 }
             }
@@ -1380,39 +1465,49 @@ class TestResultController extends Controller
                 }
             }
 
+            $sampleRegObj = SampleRegistration::where('tr04_reference_id', $request->registration_id)->first();
+            $isUnderClarification = $sampleRegObj && ($sampleRegObj->tr04_is_under_clarification || !empty($sampleRegObj->tr04_latest_clarification_remark));
+
             // Handle main test results
             if (!empty($request->results)) {
                 Log::info('Processing Results Data');
                 foreach ($request->results as $testNumber => $resultData) {
                     Log::info("Processing Test Number: $testNumber");
 
-                    // Handle main test result
+                    // Handle main test result (Case 1 or Case 3)
                     if (isset($resultData['test'])) {
-                        Log::info("Found Main Test Result for $testNumber");
                         $testResult = $resultData['test'];
-                        $manuscriptContent = $request->test_calculation[$testNumber] ?? null;
-                        $this->saveTestResult([
-                            'registration_id' => $request->registration_id,
-                            'test_number' => $testNumber,
-                            'result_data' => $testResult,
-                            'manuscript_content' => $manuscriptContent,
-                            'test_date' => $request->test_date,
-                            'performance_date' => $request->performance_date,
-                            'remarks' => $request->remarks,
-                            'action' => $request->action,
-                            'user_id' => $userId,
-                            'ro_id' => $roId
-                        ]);
+                        $cleanResult = trim(strip_tags((string)($testResult['result'] ?? '')));
+                        $hasExistingId = !empty($testResult['result_id']);
+
+                        if ($cleanResult !== '' || $hasExistingId) {
+                            Log::info("Found Main Test Result for $testNumber");
+                            $manuscriptContent = $request->test_calculation[$testNumber] ?? null;
+                            $this->saveTestResult([
+                                'registration_id' => $request->registration_id,
+                                'test_number' => $testNumber,
+                                'result_data' => $testResult,
+                                'manuscript_content' => $manuscriptContent,
+                                'test_date' => $request->test_date,
+                                'performance_date' => $request->performance_date,
+                                'remarks' => $request->remarks,
+                                'action' => $request->action,
+                                'user_id' => $userId,
+                                'ro_id' => $roId,
+                                'is_under_clarification' => $isUnderClarification,
+                            ]);
+                        }
                     }
 
-                    // Handle primary tests
+                    // Handle primary tests (Case 2 or Case 3)
                     if (isset($resultData['primary_tests'])) {
                         Log::info("Found Primary Tests for $testNumber");
                         foreach ($resultData['primary_tests'] as $primaryTestId => $primaryData) {
-                            Log::info("Processing Primary Test ID: $primaryTestId");
+                            $cleanPrimary = trim(strip_tags((string)($primaryData['result'] ?? '')));
+                            $hasExistingPrimaryId = !empty($primaryData['result_id']);
 
                             // Primary test without secondary tests (Direct result)
-                            if (isset($primaryData['result'])) {
+                            if ($cleanPrimary !== '' || $hasExistingPrimaryId) {
                                 Log::info("Saving Direct Result for Primary Test $primaryTestId");
                                 // Sub-manuscripts use the main test calculation if not specified specifically
                                 $manuscriptContent = $request->test_calculation[$testNumber]['primary_' . $primaryTestId]
@@ -1429,7 +1524,8 @@ class TestResultController extends Controller
                                     'remarks' => $request->remarks,
                                     'action' => $request->action,
                                     'user_id' => $userId,
-                                    'ro_id' => $roId
+                                    'ro_id' => $roId,
+                                    'is_under_clarification' => $isUnderClarification,
                                 ]);
                             }
 
@@ -1437,23 +1533,29 @@ class TestResultController extends Controller
                             if (isset($primaryData['secondary_tests'])) {
                                 Log::info("Found Secondary Tests for Primary Test $primaryTestId");
                                 foreach ($primaryData['secondary_tests'] as $secondaryTestId => $secondaryData) {
-                                    $manuscriptContent = $request->test_calculation[$testNumber]['primary_' . $primaryTestId]['secondary_' . $secondaryTestId]
-                                        ?? ($request->test_calculation[$testNumber] ?? null);
+                                    $cleanSec = trim(strip_tags((string)($secondaryData['result'] ?? '')));
+                                    $hasExistingSecId = !empty($secondaryData['result_id']);
 
-                                    $this->saveTestResult([
-                                        'registration_id' => $request->registration_id,
-                                        'test_number' => $testNumber,
-                                        'primary_test_id' => $primaryTestId,
-                                        'secondary_test_id' => $secondaryTestId,
-                                        'result_data' => $secondaryData,
-                                        'manuscript_content' => $manuscriptContent,
-                                        'test_date' => $request->test_date,
-                                        'performance_date' => $request->performance_date,
-                                        'remarks' => $request->remarks,
-                                        'action' => $request->action,
-                                        'user_id' => $userId,
-                                        'ro_id' => $roId
-                                    ]);
+                                    if ($cleanSec !== '' || $hasExistingSecId) {
+                                        $manuscriptContent = $request->test_calculation[$testNumber]['primary_' . $primaryTestId]['secondary_' . $secondaryTestId]
+                                            ?? ($request->test_calculation[$testNumber] ?? null);
+
+                                        $this->saveTestResult([
+                                            'registration_id' => $request->registration_id,
+                                            'test_number' => $testNumber,
+                                            'primary_test_id' => $primaryTestId,
+                                            'secondary_test_id' => $secondaryTestId,
+                                            'result_data' => $secondaryData,
+                                            'manuscript_content' => $manuscriptContent,
+                                            'test_date' => $request->test_date,
+                                            'performance_date' => $request->performance_date,
+                                            'remarks' => $request->remarks,
+                                            'action' => $request->action,
+                                            'user_id' => $userId,
+                                            'ro_id' => $roId,
+                                            'is_under_clarification' => $isUnderClarification,
+                                        ]);
+                                    }
                                 }
                             }
                         }
@@ -1488,7 +1590,8 @@ class TestResultController extends Controller
                             'remarks' => $request->remarks,
                             'action' => $request->action,
                             'user_id' => $userId,
-                            'ro_id' => $roId
+                            'ro_id' => $roId,
+                            'is_under_clarification' => $isUnderClarification,
                         ]);
                     }
 
@@ -1500,8 +1603,17 @@ class TestResultController extends Controller
                         'performance_date' => $request->performance_date,
                         'remarks' => $request->remarks,
                         'action' => $request->action,
-                        'user_id' => $userId
+                        'user_id' => $userId,
+                        'is_under_clarification' => $isUnderClarification,
                     ]);
+
+                    // Track processed ID for custom-only test
+                    $sampleTest = SampleTest::where('tr04_sample_registration_id', function ($q) use ($request) {
+                        $q->select('tr04_sample_registration_id')->from('tr04_sample_registrations')->where('tr04_reference_id', $request->registration_id);
+                    })->where('m12_test_number', $testNumber)->first();
+                    if ($sampleTest && !in_array($sampleTest->m12_test_id, $processedTestIds)) {
+                        $processedTestIds[] = $sampleTest->m12_test_id;
+                    }
                 }
             }
 
@@ -1573,7 +1685,8 @@ class TestResultController extends Controller
                         'performance_date' => $baseData['performance_date'],
                         'remarks' => $baseData['remarks'],
                         'action' => $baseData['action'],
-                        'user_id' => $baseData['user_id']
+                        'user_id' => $baseData['user_id'],
+                        'is_under_clarification' => $baseData['is_under_clarification'] ?? false,
                     ]);
                 }
             }
@@ -1636,7 +1749,29 @@ class TestResultController extends Controller
         if (!empty($fieldData['custom_field_id'])) {
             $customField = CustomField::find($fieldData['custom_field_id']);
             if ($customField) {
+                $isUnderClarification = !empty($data['is_under_clarification']);
+                $hasOldCfValue = $customField->tr08_field_value !== null && trim((string)$customField->tr08_field_value) !== '';
+
+                if (($isUnderClarification || $customField->tr08_result_status === 'REJECTED') && $hasOldCfValue) {
+                    $hasHistoricalCf = CustomField::where('tr04_reference_id', $data['registration_id'])
+                        ->where('m12_test_number', $data['test_number'])
+                        ->where('tr08_field_name', $customFieldData['tr08_field_name'])
+                        ->where('tr08_is_current', 'NO')
+                        ->exists();
+
+                    if (!$hasHistoricalCf) {
+                        $histCf = $customField->replicate();
+                        $histCf->tr08_is_current = 'NO';
+                        $histCf->tr08_result_status = 'REJECTED';
+                        $histCf->save();
+                    }
+                }
+
+                $cfStatus = ($data['action'] === 'DRAFT') ? 'DRAFT' : ($isUnderClarification ? 'REVISED' : $data['action']);
                 $customField->update(array_merge($customFieldData, [
+                    'tr08_result_status' => $cfStatus,
+                    'tr08_current_version' => ($customField->tr08_current_version ?? 1) + ($isUnderClarification ? 1 : 0),
+                    'tr08_is_current' => 'YES',
                     'm06_updated_by' => $data['user_id'],
                 ]));
                 return;
@@ -1664,7 +1799,29 @@ class TestResultController extends Controller
 
             $existingCf = $query->first();
             if ($existingCf) {
+                $isUnderClarification = !empty($data['is_under_clarification']);
+                $hasOldCfValue = $existingCf->tr08_field_value !== null && trim((string)$existingCf->tr08_field_value) !== '';
+
+                if (($isUnderClarification || $existingCf->tr08_result_status === 'REJECTED') && $hasOldCfValue) {
+                    $hasHistoricalCf = CustomField::where('tr04_reference_id', $data['registration_id'])
+                        ->where('m12_test_number', $data['test_number'])
+                        ->where('tr08_field_name', $customFieldData['tr08_field_name'])
+                        ->where('tr08_is_current', 'NO')
+                        ->exists();
+
+                    if (!$hasHistoricalCf) {
+                        $histCf = $existingCf->replicate();
+                        $histCf->tr08_is_current = 'NO';
+                        $histCf->tr08_result_status = 'REJECTED';
+                        $histCf->save();
+                    }
+                }
+
+                $cfStatus = ($data['action'] === 'DRAFT') ? 'DRAFT' : ($isUnderClarification ? 'REVISED' : $data['action']);
                 $existingCf->update(array_merge($customFieldData, [
+                    'tr08_result_status' => $cfStatus,
+                    'tr08_current_version' => ($existingCf->tr08_current_version ?? 1) + ($isUnderClarification ? 1 : 0),
+                    'tr08_is_current' => 'YES',
                     'm06_updated_by' => $data['user_id'],
                 ]));
                 return;
@@ -1785,36 +1942,12 @@ class TestResultController extends Controller
             }
         }
 
-        // Check if result_id exists (updating)
+        // Find existing result record by result_id or composite unique keys
+        $existing = null;
         if (!empty($resultData['result_id'])) {
             $existing = TestResult::find($resultData['result_id']);
-            if ($existing) {
-                $this->recordResultAudit($existing, [
-                    'tr07_result'  => $resultVal,
-                    'tr07_unit'    => $unitVal,
-                    'tr07_remarks' => $remarkText,
-                ], $data['user_id'] ?? Session::get('user_id'));
-            }
-
-            $updateData = [
-                'tr07_result' => $resultVal,
-                'tr07_unit' => $unitVal,
-                'tr07_result_status' => $data['action'],
-                'tr07_test_date' => $data['test_date'],
-                'tr07_performance_date' => $data['performance_date'],
-                'tr07_remarks' => $remarkText,
-                'm24_remark_id' => $remarkId,
-                'm06_updated_by' => $data['user_id'],
-            ];
-
-            if (isset($data['manuscript_content'])) {
-                $updateData['tr07_manuscript_content'] = $this->processManuscriptImages($data['manuscript_content']);
-            }
-
-            TestResult::where('tr07_test_result_id', $resultData['result_id'])
-                ->update($updateData);
-        } else {
-            // Check if existing record exists for this registration and test/subtest to avoid duplicates on draft
+        }
+        if (!$existing) {
             $query = TestResult::where('tr04_reference_id', $data['registration_id'])
                 ->where('m12_test_number', $data['test_number'])
                 ->where('tr07_is_current', 'YES');
@@ -1832,30 +1965,58 @@ class TestResultController extends Controller
             }
 
             $existing = $query->first();
+        }
 
-            if ($existing) {
-                $this->recordResultAudit($existing, [
-                    'tr07_result'  => $resultVal,
-                    'tr07_unit'    => $unitVal,
-                    'tr07_remarks' => $remarkText,
-                ], $data['user_id'] ?? Session::get('user_id'));
+        if ($existing) {
+            $this->recordResultAudit($existing, [
+                'tr07_result'  => $resultVal,
+                'tr07_unit'    => $unitVal,
+                'tr07_remarks' => $remarkText,
+            ], $data['user_id'] ?? Session::get('user_id'));
 
-                $updateData = [
-                    'tr07_result' => $resultVal,
-                    'tr07_unit' => $unitVal,
-                    'tr07_result_status' => $data['action'],
-                    'tr07_test_date' => $data['test_date'],
-                    'tr07_performance_date' => $data['performance_date'],
-                    'tr07_remarks' => $remarkText,
-                    'm24_remark_id' => $remarkId,
-                    'm06_updated_by' => $data['user_id'],
-                ];
-                if (isset($data['manuscript_content'])) {
-                    $updateData['tr07_manuscript_content'] = $this->processManuscriptImages($data['manuscript_content']);
+            $isUnderClarification = !empty($data['is_under_clarification']);
+            $hasOldResult = $existing->tr07_result !== null && trim((string)$existing->tr07_result) !== '';
+
+            // In case of rejected/clarification sample, archive the old result so Verification Officer can compare old vs new
+            if (($isUnderClarification || $existing->tr07_result_status === 'REJECTED') && $hasOldResult) {
+                $hasHistorical = TestResult::where('tr04_reference_id', $data['registration_id'])
+                    ->where('m12_test_number', $data['test_number'])
+                    ->where('m16_primary_test_id', $data['primary_test_id'] ?? null)
+                    ->where('m17_secondary_test_id', $data['secondary_test_id'] ?? null)
+                    ->where('tr07_is_current', 'NO')
+                    ->exists();
+
+                if (!$hasHistorical) {
+                    $historical = $existing->replicate();
+                    $historical->tr07_is_current = 'NO';
+                    $historical->tr07_result_status = 'REJECTED';
+                    $historical->save();
                 }
-                $existing->update($updateData);
-            } else {
-                // Creating new result
+            }
+
+            $newStatus = ($data['action'] === 'DRAFT') ? 'DRAFT' : ($isUnderClarification ? 'REVISED' : $data['action']);
+            $newVersion = ($existing->tr07_current_version ?? 1) + ($isUnderClarification ? 1 : 0);
+
+            $updateData = [
+                'tr07_result' => $resultVal,
+                'tr07_unit' => $unitVal,
+                'tr07_result_status' => $newStatus,
+                'tr07_current_version' => $newVersion,
+                'tr07_is_current' => 'YES',
+                'tr07_test_date' => $data['test_date'],
+                'tr07_performance_date' => $data['performance_date'],
+                'tr07_remarks' => $remarkText,
+                'm24_remark_id' => $remarkId,
+                'm06_updated_by' => $data['user_id'],
+            ];
+
+            if (isset($data['manuscript_content'])) {
+                $updateData['tr07_manuscript_content'] = $this->processManuscriptImages($data['manuscript_content']);
+            }
+
+            $existing->update($updateData);
+        } else {
+            // Creating new result
                 $createdResult = TestResult::create([
                     'm04_ro_id' => $data['ro_id'],
                     'tr04_reference_id' => $data['registration_id'],
@@ -1889,7 +2050,6 @@ class TestResultController extends Controller
                     'tr10_user_agent'     => substr(request()->userAgent() ?? '', 0, 500),
                     'tr10_created_at'     => now(),
                 ]);
-            }
         }
     }
 
@@ -1966,6 +2126,7 @@ class TestResultController extends Controller
         // Get custom fields for this sample
         $customQuery = CustomField::with(['test', 'primaryTest', 'secondaryTest'])
             ->where('tr04_reference_id', $referenceId)
+            ->where('tr08_is_current', 'YES')
             ->whereIn('tr08_result_status', ['VERIFIED', 'REPORTED', 'RESULTED', 'SUBMITTED', 'FINALIZED']);
 
         if (!$isAdmin && $userRoId && (!$sample || $sample->m04_ro_id == $userRoId)) {
@@ -2243,6 +2404,7 @@ class TestResultController extends Controller
         // Get custom fields
         $customFields = CustomField::with(['test', 'primaryTest', 'secondaryTest'])
             ->where('tr04_reference_id', $sampleId)
+            ->where('tr08_is_current', 'YES')
             ->whereIn('tr08_result_status', ['VERIFIED', 'REPORTED'])
             ->orderBy('m12_test_number')
             ->orderBy('m16_primary_test_id')
@@ -2269,13 +2431,21 @@ class TestResultController extends Controller
             $accreditedTests = [];
             $nonAccreditedTests = [];
 
-            foreach ($groupedResults as $testNumber => $results) {
+            $allTestNumbers = collect(array_merge(
+                array_keys($groupedResults->toArray()),
+                array_keys($groupedCustomFields->toArray())
+            ))->unique();
+
+            foreach ($allTestNumbers as $testNumber) {
+                $results = $groupedResults[$testNumber] ?? collect();
                 $parent = $results->first();
                 $sampleTest = $sampleTestMap[(string)$testNumber] ?? null;
-                $standardId = $sampleTest->m15_standard_id ?? $parent->test->m15_standard_id ?? null;
-                $testId = $parent->test->m12_test_id ?? null;
-                $isAccredited = $accreditations->contains(function ($acc) use ($testId, $standardId) {
-                    return $acc->m12_test_id == $testId && $acc->m15_standard_id == $standardId;
+                $standardId = $sampleTest->m15_standard_id ?? $parent?->test->m15_standard_id ?? null;
+                $testId = $sampleTest->m12_test_id ?? $parent?->test->m12_test_id ?? null;
+                $testName = $sampleTest->test->m12_name ?? $parent?->test->m12_name ?? '';
+                $isAryl = (strpos(strtolower($testName), 'banned amines') !== false || strpos(strtolower($testName), 'aryl amine') !== false || strpos(strtolower($testName), 'azo') !== false || strpos(strtolower($testName), 'amine') !== false);
+                $isAccredited = $isAryl || $accreditations->contains(function ($acc) use ($testId, $standardId) {
+                    return $acc->m12_test_id == $testId && ($acc->m15_standard_id == $standardId || empty($acc->m15_standard_id) || empty($standardId));
                 });
 
                 $item = [
@@ -2292,50 +2462,36 @@ class TestResultController extends Controller
                 }
             }
 
-            foreach ($groupedCustomFields as $testNumber => $fields) {
-                if (!isset($groupedResults[$testNumber])) {
-                    $nonAccreditedTests[] = [
-                        'type' => 'custom',
-                        'test_number' => $testNumber,
-                        'is_accredited' => false,
-                        'sort_order' => 0
-                    ];
-                }
-            }
-
             $orderedItems = array_merge($accreditedTests, $nonAccreditedTests);
             foreach ($orderedItems as $index => &$item) {
                 $item['sort_order'] = $index;
             }
+            unset($item);
         } else {
             $orderedItems = $this->normalizeReportOrder($sessionOrderedItems);
             $existingTestNumbers = collect($orderedItems)->pluck('test_number')->map(fn($n) => (string)$n)->unique()->toArray();
 
-            // Add missing tests (newly verified)
-            foreach ($groupedResults as $testNumber => $results) {
+            // Add missing tests (newly verified) from results or custom fields
+            $allTestNumbers = collect(array_merge(
+                array_keys($groupedResults->toArray()),
+                array_keys($groupedCustomFields->toArray())
+            ))->unique();
+
+            foreach ($allTestNumbers as $testNumber) {
                 if (!in_array((string)$testNumber, $existingTestNumbers)) {
+                    $results = $groupedResults[$testNumber] ?? collect();
                     $parent = $results->first();
                     $sampleTest = $sampleTestMap[(string)$testNumber] ?? null;
-                    $standardId = $sampleTest->m15_standard_id ?? $parent->test->m15_standard_id ?? null;
-                    $testId = $parent->test->m12_test_id ?? null;
+                    $standardId = $sampleTest->m15_standard_id ?? $parent?->test->m15_standard_id ?? null;
+                    $testId = $sampleTest->m12_test_id ?? $parent?->test->m12_test_id ?? null;
+                    $testName = $sampleTest->test->m12_name ?? $parent?->test->m12_name ?? '';
+                    $isAryl = (strpos(strtolower($testName), 'banned amines') !== false || strpos(strtolower($testName), 'aryl amine') !== false || strpos(strtolower($testName), 'azo') !== false || strpos(strtolower($testName), 'amine') !== false);
                     $orderedItems[] = [
                         'type' => 'test',
                         'test_number' => $testNumber,
-                        'is_accredited' => $accreditations->contains(function ($acc) use ($testId, $standardId) {
-                            return $acc->m12_test_id == $testId && $acc->m15_standard_id == $standardId;
+                        'is_accredited' => $isAryl || $accreditations->contains(function ($acc) use ($testId, $standardId) {
+                            return $acc->m12_test_id == $testId && ($acc->m15_standard_id == $standardId || empty($acc->m15_standard_id) || empty($standardId));
                         }),
-                        'sort_order' => count($orderedItems)
-                    ];
-                    $existingTestNumbers[] = (string)$testNumber;
-                }
-            }
-
-            foreach ($groupedCustomFields as $testNumber => $fields) {
-                if (!isset($groupedResults[$testNumber]) && !in_array((string)$testNumber, $existingTestNumbers)) {
-                    $orderedItems[] = [
-                        'type' => 'custom',
-                        'test_number' => $testNumber,
-                        'is_accredited' => false,
                         'sort_order' => count($orderedItems)
                     ];
                     $existingTestNumbers[] = (string)$testNumber;
@@ -2344,21 +2500,16 @@ class TestResultController extends Controller
 
             // Ensure is_accredited flag is set correctly on all items
             foreach ($orderedItems as &$item) {
-                if ($item['type'] === 'test') {
-                    $results = $groupedResults[$item['test_number']] ?? collect();
-                    if ($results->isNotEmpty()) {
-                        $sampleTest = $sampleTestMap[(string)$item['test_number']] ?? null;
-                        $standardId = $sampleTest->m15_standard_id ?? $results->first()->test->m15_standard_id ?? null;
-                        $testId = $results->first()->test->m12_test_id ?? null;
-                        $testName = $results->first()->test->m12_name ?? '';
-                        $isAryl = (strpos(strtolower($testName), 'banned amines') !== false || strpos(strtolower($testName), 'aryl amine') !== false || strpos(strtolower($testName), 'azo') !== false);
-                        $item['is_accredited'] = $isAryl || $accreditations->contains(function ($acc) use ($testId, $standardId) {
-                            return $acc->m12_test_id == $testId && ($acc->m15_standard_id == $standardId || empty($acc->m15_standard_id) || empty($standardId));
-                        });
-                    }
-                } else {
-                    $item['is_accredited'] = false;
-                }
+                $item['type'] = 'test';
+                $results = $groupedResults[$item['test_number']] ?? collect();
+                $sampleTest = $sampleTestMap[(string)$item['test_number']] ?? null;
+                $standardId = $sampleTest->m15_standard_id ?? $results->first()?->test->m15_standard_id ?? null;
+                $testId = $sampleTest->m12_test_id ?? $results->first()?->test->m12_test_id ?? null;
+                $testName = $sampleTest->test->m12_name ?? $results->first()?->test->m12_name ?? '';
+                $isAryl = (strpos(strtolower($testName), 'banned amines') !== false || strpos(strtolower($testName), 'aryl amine') !== false || strpos(strtolower($testName), 'azo') !== false || strpos(strtolower($testName), 'amine') !== false);
+                $item['is_accredited'] = $isAryl || $accreditations->contains(function ($acc) use ($testId, $standardId) {
+                    return $acc->m12_test_id == $testId && ($acc->m15_standard_id == $standardId || empty($acc->m15_standard_id) || empty($standardId));
+                });
             }
             unset($item);
         }
@@ -2432,6 +2583,7 @@ class TestResultController extends Controller
         // Check if we're generating PDF
         if (request()->has('generate_pdf')) {
             $isPartial = request()->has('generate_partial');
+            $onLetterhead = request()->boolean('letterhead', request()->boolean('on_letterhead', false));
 
             if (!$isPartial) {
                 $update = TestResult::where('tr04_reference_id', $sampleId)
@@ -2439,7 +2591,7 @@ class TestResultController extends Controller
                     ->where('tr07_is_current', 'YES')
                     ->update(['tr07_result_status' => 'REPORTED']);
             }
-            return $this->generatePdfReport($sample, $groupedResults, $groupedCustomFields, $orderedItems, $meta, $hasAccreditedTests, $isPartial);
+            return $this->generatePdfReport($sample, $groupedResults, $groupedCustomFields, $orderedItems, $meta, $hasAccreditedTests, $isPartial, $onLetterhead);
         }
 
         // Show reorder view
@@ -2454,9 +2606,9 @@ class TestResultController extends Controller
         ));
     }
 
-    private function generatePdfReport($sample, $groupedResults, $groupedCustomFields, $orderedItems, $meta, $hasAccreditedTests, $isPartial = false)
+    private function generatePdfReport($sample, $groupedResults, $groupedCustomFields, $orderedItems, $meta, $hasAccreditedTests, $isPartial = false, $onLetterhead = false)
     {
-        Log::info("=== Generating PDF Report for Sample: {$sample->tr04_reference_id}, Is Partial: " . ($isPartial ? 'YES' : 'NO') . " ===");
+        Log::info("=== Generating PDF Report for Sample: {$sample->tr04_reference_id}, Is Partial: " . ($isPartial ? 'YES' : 'NO') . ", On Letterhead: " . ($onLetterhead ? 'YES' : 'NO') . " ===");
 
         $paymentBy = strtolower($sample->tr04_payment_by);
         $selectedCustomerId = null;
@@ -2510,6 +2662,47 @@ class TestResultController extends Controller
             Log::info("No existing report found — creating a new one.");
         }
 
+        // Build report parts (Accredited Part A vs Non-accredited)
+        $reportParts = [];
+        $part1Items = [];
+        $part2Items = [];
+        $hasPart1Accredited = false;
+
+        foreach ($orderedItems as $item) {
+            $isArylAminesTest = false;
+            $results = $groupedResults[$item['test_number']] ?? collect();
+            $parent = $results->first();
+            $sampleTest = $sampleTestMap[(string)$item['test_number']] ?? null;
+            $testName = $sampleTest?->test?->m12_name ?? $parent?->test?->m12_name ?? '';
+            $isArylAminesTest = (strpos(strtolower($testName), 'banned amines') !== false || strpos(strtolower($testName), 'aryl amine') !== false || strpos(strtolower($testName), 'azo') !== false || strpos(strtolower($testName), 'amine') !== false);
+
+            if ($isArylAminesTest || !empty($item['is_accredited'])) {
+                $part1Items[] = $item;
+                $hasPart1Accredited = true;
+            } else {
+                $part2Items[] = $item;
+            }
+        }
+
+        if (count($part1Items) > 0) {
+            $reportParts[] = [
+                'title' => 'Accredited tests',
+                'items' => $part1Items,
+                'has_accredited_tests' => $hasPart1Accredited,
+                'is_aryl_amines_part' => false,
+                'part_code' => 'A'
+            ];
+        }
+        if (count($part2Items) > 0) {
+            $reportParts[] = [
+                'title' => 'Non-accredited tests',
+                'items' => $part2Items,
+                'has_accredited_tests' => false,
+                'is_aryl_amines_part' => false,
+                'part_code' => ''
+            ];
+        }
+
         // Step 2: Proceed only if new or file path missing
         // For partials, we might want to force regeneration if data changed? 
         // For now keep standard logic: if report record exists and file exists, download it.
@@ -2531,85 +2724,73 @@ class TestResultController extends Controller
             $testsData = [];
 
             foreach ($orderedItems as $item) {
-                Log::info("Processing item", ['type' => $item['type'], 'test_number' => $item['test_number']]);
+                $testNumber = $item['test_number'];
+                $results = $groupedResults[$testNumber] ?? collect();
+                $customFields = $groupedCustomFields[$testNumber] ?? collect();
+                $parent = $results->first();
+                $sampleTest = $sampleTestMap[(string)$testNumber] ?? null;
+                $testName = $sampleTest?->test?->m12_name ?? $parent?->test?->m12_name ?? ('Test #' . $testNumber);
 
-                if ($item['type'] === 'test') {
-                    $testNumber = $item['test_number'];
-                    $results = $groupedResults[$testNumber] ?? collect();
-                    Log::info("Found " . $results->count() . " result(s) for test number {$testNumber}");
+                Log::info("Processing item", ['type' => $item['type'], 'test_number' => $testNumber, 'test_name' => $testName]);
 
-                    if ($results->isNotEmpty()) {
-                        $parent = $results->first();
-                        $entry = [
-                            'type' => 'test',
-                            'test_number' => $testNumber,
-                            'test_name' => $parent->test->m12_name ?? null,
-                            'version' => $parent->tr07_current_version,
-                            'primary_tests' => []
-                        ];
+                $entry = [
+                    'type' => 'test',
+                    'test_number' => $testNumber,
+                    'test_name' => $testName,
+                    'version' => $parent?->tr07_current_version ?? 1,
+                    'primary_tests' => [],
+                    'custom_fields' => []
+                ];
 
-                        foreach ($results->groupBy('m16_primary_test_id') as $primaryTestId => $primaryResults) {
-                            $primaryTest = $primaryResults->first()->primaryTest;
-                            Log::info("Processing primary test", ['id' => $primaryTestId]);
+                if ($results->isNotEmpty()) {
+                    foreach ($results->groupBy('m16_primary_test_id') as $primaryTestId => $primaryResults) {
+                        $primaryTest = $primaryResults->first()->primaryTest;
+                        Log::info("Processing primary test", ['id' => $primaryTestId]);
 
-                            if ($primaryTest) {
-                                $primaryEntry = [
-                                    'primary_test_id' => $primaryTestId,
-                                    'primary_test_name' => $primaryTest->m16_name,
-                                    'secondary_tests' => [],
-                                    'result' => null
-                                ];
-
-                                $hasSecondaryTests = false;
-                                foreach ($primaryResults as $result) {
-                                    if ($result->m17_secondary_test_id) {
-                                        $hasSecondaryTests = true;
-                                        $primaryEntry['secondary_tests'][] = [
-                                            'secondary_test_id' => $result->m17_secondary_test_id,
-                                            'secondary_test_name' => $result->secondaryTest->m17_name ?? 'Secondary Test',
-                                            'result' => $result->tr07_result
-                                        ];
-                                    }
-                                }
-
-                                if (!$hasSecondaryTests && $primaryResults->first()->tr07_result) {
-                                    $primaryEntry['result'] = $primaryResults->first()->tr07_result;
-                                }
-
-                                $entry['primary_tests'][] = $primaryEntry;
-                            }
-                        }
-
-                        if (empty($entry['primary_tests']) && $parent->tr07_result) {
-                            $entry['result'] = $parent->tr07_result;
-                        }
-
-                        $testsData[] = $entry;
-                    }
-                } else {
-                    // Custom fields
-                    $testNumber = $item['test_number'];
-                    $customFields = $groupedCustomFields[$testNumber] ?? collect();
-                    Log::info("Found " . $customFields->count() . " custom field(s) for test number {$testNumber}");
-
-                    if ($customFields->isNotEmpty()) {
-                        $entry = [
-                            'type' => 'custom',
-                            'test_number' => $testNumber,
-                            'custom_fields' => []
-                        ];
-
-                        foreach ($customFields as $customField) {
-                            $entry['custom_fields'][] = [
-                                'field_name' => $customField->tr08_field_name,
-                                'field_value' => $customField->tr08_field_value,
-                                'field_unit' => $customField->tr08_field_unit
+                        if ($primaryTest) {
+                            $primaryEntry = [
+                                'primary_test_id' => $primaryTestId,
+                                'primary_test_name' => $primaryTest->m16_name,
+                                'secondary_tests' => [],
+                                'result' => null
                             ];
-                        }
 
-                        $testsData[] = $entry;
+                            $hasSecondaryTests = false;
+                            foreach ($primaryResults as $result) {
+                                if ($result->m17_secondary_test_id) {
+                                    $hasSecondaryTests = true;
+                                    $primaryEntry['secondary_tests'][] = [
+                                        'secondary_test_id' => $result->m17_secondary_test_id,
+                                        'secondary_test_name' => $result->secondaryTest->m17_name ?? 'Secondary Test',
+                                        'result' => $result->tr07_result
+                                    ];
+                                }
+                            }
+
+                            if (!$hasSecondaryTests && $primaryResults->first()->tr07_result) {
+                                $primaryEntry['result'] = $primaryResults->first()->tr07_result;
+                            }
+
+                            $entry['primary_tests'][] = $primaryEntry;
+                        }
+                    }
+
+                    if (empty($entry['primary_tests']) && $parent && $parent->tr07_result) {
+                        $entry['result'] = $parent->tr07_result;
                     }
                 }
+
+                if ($customFields->isNotEmpty()) {
+                    foreach ($customFields as $customField) {
+                        $entry['custom_fields'][] = [
+                            'field_name' => $customField->tr08_field_name,
+                            'field_value' => $customField->tr08_field_value,
+                            'field_unit' => $customField->tr08_field_unit
+                        ];
+                    }
+                }
+
+                $testsData[] = $entry;
             }
 
             Log::info("Total test/custom entries prepared: " . count($testsData));
@@ -2638,56 +2819,19 @@ class TestResultController extends Controller
             // Step 4: Generate PDF
             Log::info("Generating PDF file...");
 
-            $reportParts = [];
-            $part1Items = [];
-            $part2Items = [];
-            $hasPart1Accredited = false;
-
-            foreach ($orderedItems as $item) {
-                $isArylAminesTest = false;
-                if ($item['type'] === 'test') {
-                    $results = $groupedResults[$item['test_number']] ?? collect();
-                    $parent = $results->first();
-                    $testName = $parent ? ($parent->test->m12_name ?? '') : '';
-                    $isArylAminesTest = (strpos(strtolower($testName), 'banned amines') !== false || strpos(strtolower($testName), 'aryl amine') !== false || strpos(strtolower($testName), 'azo') !== false);
-                }
-
-                if ($isArylAminesTest || !empty($item['is_accredited'])) {
-                    $part1Items[] = $item;
-                    $hasPart1Accredited = true;
-                } else {
-                    $part2Items[] = $item;
-                }
-            }
-
-            if (count($part1Items) > 0) {
-                $reportParts[] = [
-                    'title' => 'Accredited tests',
-                    'items' => $part1Items,
-                    'has_accredited_tests' => $hasPart1Accredited,
-                    'is_aryl_amines_part' => false,
-                    'part_code' => 'A'
-                ];
-            }
-            if (count($part2Items) > 0) {
-                $reportParts[] = [
-                    'title' => 'Non-accredited tests',
-                    'items' => $part2Items,
-                    'has_accredited_tests' => false,
-                    'is_aryl_amines_part' => false,
-                    'part_code' => ''
-                ];
-            }
-
-            $pdf = Pdf::loadView('reports.final_report_pdf', compact(
-                'sample',
-                'groupedResults',
-                'groupedCustomFields',
-                'reportParts',
-                'meta',
-                'report',
-                'hasAccreditedTests',
-                'isPartial'
+            // Generate canonical full PDF for permanent record (plain paper version)
+            $pdf = Pdf::loadView('reports.final_report_pdf', array_merge(
+                compact(
+                    'sample',
+                    'groupedResults',
+                    'groupedCustomFields',
+                    'reportParts',
+                    'meta',
+                    'report',
+                    'hasAccreditedTests',
+                    'isPartial'
+                ),
+                ['onLetterhead' => false]
             ))->setPaper('A4', 'portrait');
 
             $pdf->setOptions(['isPhpEnabled' => true, 'isRemoteEnabled' => true]);
@@ -2709,7 +2853,41 @@ class TestResultController extends Controller
             }
         }
 
-        // Step 5: Return or error
+        // If letterhead format requested, generate and return letterhead PDF
+        if ($onLetterhead) {
+            $lhPdf = Pdf::loadView('reports.final_report_pdf', array_merge(
+                compact(
+                    'sample',
+                    'groupedResults',
+                    'groupedCustomFields',
+                    'reportParts',
+                    'meta',
+                    'report',
+                    'hasAccreditedTests',
+                    'isPartial'
+                ),
+                ['onLetterhead' => true]
+            ))->setPaper('A4', 'portrait');
+
+            $lhPdf->setOptions(['isPhpEnabled' => true, 'isRemoteEnabled' => true]);
+            $lhFileName = ($isPartial ? 'partial_' : '') . 'letterhead_report_' . $sample->tr04_reference_id . '_' . now()->timestamp . '.pdf';
+            $lhPdfPath = 'reports/' . $lhFileName;
+            $lhFullPath = storage_path('app/public/' . $lhPdfPath);
+
+            if (!file_exists(dirname($lhFullPath))) {
+                mkdir(dirname($lhFullPath), 0755, true);
+            }
+
+            try {
+                $lhPdf->save($lhFullPath);
+                Log::info("Letterhead PDF saved: {$lhPdfPath}");
+                return response()->download($lhFullPath, 'letterhead_report_' . $sample->tr04_reference_id . '.pdf');
+            } catch (\Exception $e) {
+                Log::error("Letterhead PDF generation failed: " . $e->getMessage());
+            }
+        }
+
+        // Step 5: Return canonical report
         if (!empty($report->tr09_report_file_path)) {
             Log::info("Report ready for download: {$report->tr09_report_file_path}");
             return response()->download(storage_path('app/public/' . $report->tr09_report_file_path));
@@ -2723,10 +2901,11 @@ class TestResultController extends Controller
     {
         $unique = [];
         foreach ($orderedItems as $item) {
-            if (!isset($item['type']) || !isset($item['test_number'])) {
+            if (!isset($item['test_number'])) {
                 continue;
             }
-            $key = $item['type'] . '_' . $item['test_number'];
+            $item['type'] = 'test';
+            $key = 'test_' . $item['test_number'];
             if (!isset($unique[$key])) {
                 $unique[$key] = $item;
             }
@@ -2941,6 +3120,7 @@ class TestResultController extends Controller
         // Get custom fields
         $customFields = CustomField::with(['test', 'primaryTest', 'secondaryTest'])
             ->where('tr04_reference_id', $sampleId)
+            ->where('tr08_is_current', 'YES')
             ->whereIn('tr08_result_status', ['VERIFIED', 'REPORTED'])
             ->orderBy('m12_test_number')
             ->orderBy('m16_primary_test_id')
@@ -2968,30 +3148,26 @@ class TestResultController extends Controller
             $orderedItems = $this->normalizeReportOrder($sessionOrderedItems);
             $existingTestNumbers = collect($orderedItems)->pluck('test_number')->map(fn($n) => (string)$n)->unique()->toArray();
 
-            foreach ($groupedResults as $testNumber => $results) {
+            $allTestNumbers = collect(array_merge(
+                array_keys($groupedResults->toArray()),
+                array_keys($groupedCustomFields->toArray())
+            ))->unique();
+
+            foreach ($allTestNumbers as $testNumber) {
                 if (!in_array((string)$testNumber, $existingTestNumbers)) {
+                    $results = $groupedResults[$testNumber] ?? collect();
                     $parent = $results->first();
                     $sampleTest = $sampleTestMap[(string)$testNumber] ?? null;
-                    $standardId = $sampleTest->m15_standard_id ?? $parent->test->m15_standard_id ?? null;
-                    $testId = $parent->test->m12_test_id ?? null;
+                    $standardId = $sampleTest->m15_standard_id ?? $parent?->test->m15_standard_id ?? null;
+                    $testId = $sampleTest->m12_test_id ?? $parent?->test->m12_test_id ?? null;
+                    $testName = $sampleTest->test->m12_name ?? $parent?->test->m12_name ?? '';
+                    $isAryl = (strpos(strtolower($testName), 'banned amines') !== false || strpos(strtolower($testName), 'aryl amine') !== false || strpos(strtolower($testName), 'azo') !== false || strpos(strtolower($testName), 'amine') !== false);
                     $orderedItems[] = [
                         'type' => 'test',
                         'test_number' => $testNumber,
-                        'is_accredited' => $accreditations->contains(function ($acc) use ($testId, $standardId) {
-                            return $acc->m12_test_id == $testId && $acc->m15_standard_id == $standardId;
+                        'is_accredited' => $isAryl || $accreditations->contains(function ($acc) use ($testId, $standardId) {
+                            return $acc->m12_test_id == $testId && ($acc->m15_standard_id == $standardId || empty($acc->m15_standard_id) || empty($standardId));
                         }),
-                        'sort_order' => count($orderedItems)
-                    ];
-                    $existingTestNumbers[] = (string)$testNumber;
-                }
-            }
-
-            foreach ($groupedCustomFields as $testNumber => $fields) {
-                if (!isset($groupedResults[$testNumber]) && !in_array((string)$testNumber, $existingTestNumbers)) {
-                    $orderedItems[] = [
-                        'type' => 'custom',
-                        'test_number' => $testNumber,
-                        'is_accredited' => false,
                         'sort_order' => count($orderedItems)
                     ];
                     $existingTestNumbers[] = (string)$testNumber;
@@ -2999,38 +3175,34 @@ class TestResultController extends Controller
             }
         } else {
             // Auto-sort tests: Accredited first, Non-accredited second
-            foreach ($groupedResults as $testNumber => $results) {
+            $allTestNumbers = collect(array_merge(
+                array_keys($groupedResults->toArray()),
+                array_keys($groupedCustomFields->toArray())
+            ))->unique();
+
+            foreach ($allTestNumbers as $testNumber) {
+                $results = $groupedResults[$testNumber] ?? collect();
                 $parent = $results->first();
                 $sampleTest = $sampleTestMap[(string)$testNumber] ?? null;
-                $standardId = $sampleTest->m15_standard_id ?? $parent->test->m15_standard_id ?? null;
-                $testId = $parent->test->m12_test_id ?? null;
-                $isAccredited = $accreditations->contains(function ($acc) use ($testId, $standardId) {
-                    return $acc->m12_test_id == $testId && $acc->m15_standard_id == $standardId;
+                $standardId = $sampleTest->m15_standard_id ?? $parent?->test->m15_standard_id ?? null;
+                $testId = $sampleTest->m12_test_id ?? $parent?->test->m12_test_id ?? null;
+                $testName = $sampleTest->test->m12_name ?? $parent?->test->m12_name ?? '';
+                $isAryl = (strpos(strtolower($testName), 'banned amines') !== false || strpos(strtolower($testName), 'aryl amine') !== false || strpos(strtolower($testName), 'azo') !== false || strpos(strtolower($testName), 'amine') !== false);
+                $isAccredited = $isAryl || $accreditations->contains(function ($acc) use ($testId, $standardId) {
+                    return $acc->m12_test_id == $testId && ($acc->m15_standard_id == $standardId || empty($acc->m15_standard_id) || empty($standardId));
                 });
 
                 $item = [
                     'type' => 'test',
                     'test_number' => $testNumber,
                     'is_accredited' => $isAccredited,
-                    'sort_order' => 0 // Will update later
+                    'sort_order' => 0
                 ];
 
                 if ($isAccredited) {
                     $accreditedTests[] = $item;
                 } else {
                     $nonAccreditedTests[] = $item;
-                }
-            }
-
-            // Add custom fields as non-accredited or separate
-            foreach ($groupedCustomFields as $testNumber => $fields) {
-                if (!isset($groupedResults[$testNumber])) {
-                    $nonAccreditedTests[] = [
-                        'type' => 'custom',
-                        'test_number' => $testNumber,
-                        'is_accredited' => false,
-                        'sort_order' => 0
-                    ];
                 }
             }
 
@@ -3042,21 +3214,16 @@ class TestResultController extends Controller
         // Update sort_order and ensure is_accredited flag is set correctly on all items
         foreach ($orderedItems as $index => &$item) {
             $item['sort_order'] = $index;
-            if ($item['type'] === 'test') {
-                $results = $groupedResults[$item['test_number']] ?? collect();
-                if ($results->isNotEmpty()) {
-                    $sampleTest = $sampleTestMap[(string)$item['test_number']] ?? null;
-                    $standardId = $sampleTest->m15_standard_id ?? $results->first()->test->m15_standard_id ?? null;
-                    $testId = $results->first()->test->m12_test_id ?? null;
-                    $testName = $results->first()->test->m12_name ?? '';
-                    $isAryl = (strpos(strtolower($testName), 'banned amines') !== false || strpos(strtolower($testName), 'aryl amine') !== false || strpos(strtolower($testName), 'azo') !== false);
-                    $item['is_accredited'] = $isAryl || $accreditations->contains(function ($acc) use ($testId, $standardId) {
-                        return $acc->m12_test_id == $testId && ($acc->m15_standard_id == $standardId || empty($acc->m15_standard_id) || empty($standardId));
-                    });
-                }
-            } else {
-                $item['is_accredited'] = false;
-            }
+            $item['type'] = 'test';
+            $results = $groupedResults[$item['test_number']] ?? collect();
+            $sampleTest = $sampleTestMap[(string)$item['test_number']] ?? null;
+            $standardId = $sampleTest->m15_standard_id ?? $results->first()?->test->m15_standard_id ?? null;
+            $testId = $sampleTest->m12_test_id ?? $results->first()?->test->m12_test_id ?? null;
+            $testName = $sampleTest->test->m12_name ?? $results->first()?->test->m12_name ?? '';
+            $isAryl = (strpos(strtolower($testName), 'banned amines') !== false || strpos(strtolower($testName), 'aryl amine') !== false || strpos(strtolower($testName), 'azo') !== false);
+            $item['is_accredited'] = $isAryl || $accreditations->contains(function ($acc) use ($testId, $standardId) {
+                return $acc->m12_test_id == $testId && ($acc->m15_standard_id == $standardId || empty($acc->m15_standard_id) || empty($standardId));
+            });
         }
         unset($item);
 
@@ -3125,12 +3292,11 @@ class TestResultController extends Controller
 
         foreach ($orderedItems as $item) {
             $isArylAminesTest = false;
-            if ($item['type'] === 'test') {
-                $results = $groupedResults[$item['test_number']] ?? collect();
-                $parent = $results->first();
-                $testName = $parent ? ($parent->test->m12_name ?? '') : '';
-                $isArylAminesTest = (strpos(strtolower($testName), 'banned amines') !== false || strpos(strtolower($testName), 'aryl amine') !== false || strpos(strtolower($testName), 'azo') !== false);
-            }
+            $results = $groupedResults[$item['test_number']] ?? collect();
+            $parent = $results->first();
+            $sampleTest = $sampleTestMap[(string)$item['test_number']] ?? null;
+            $testName = $sampleTest?->test?->m12_name ?? $parent?->test?->m12_name ?? '';
+            $isArylAminesTest = (strpos(strtolower($testName), 'banned amines') !== false || strpos(strtolower($testName), 'aryl amine') !== false || strpos(strtolower($testName), 'azo') !== false || strpos(strtolower($testName), 'amine') !== false);
 
             if ($isArylAminesTest || !empty($item['is_accredited'])) {
                 $part1Items[] = $item;
@@ -3159,21 +3325,27 @@ class TestResultController extends Controller
             ];
         }
 
+        $onLetterhead = request()->boolean('letterhead', request()->boolean('on_letterhead', false));
+
         // Generate PDF for preview (don't save)
-        $pdf = Pdf::loadView('reports.final_report_pdf', compact(
-            'sample',
-            'groupedResults',
-            'groupedCustomFields',
-            'reportParts',
-            'meta',
-            'report',
-            'isPartial',
-            'hasAccreditedTests'
+        $pdf = Pdf::loadView('reports.final_report_pdf', array_merge(
+            compact(
+                'sample',
+                'groupedResults',
+                'groupedCustomFields',
+                'reportParts',
+                'meta',
+                'report',
+                'isPartial',
+                'hasAccreditedTests'
+            ),
+            ['onLetterhead' => $onLetterhead]
         ))->setPaper('A4', 'portrait');
 
-        $pdf->setOptions(['isPhpEnabled' => true]);
+        $pdf->setOptions(['isPhpEnabled' => true, 'isRemoteEnabled' => true]);
 
-        return $pdf->stream('report_preview_' . $sample->tr04_reference_id . '.pdf');
+        $previewName = ($onLetterhead ? 'letterhead_preview_' : 'report_preview_') . $sample->tr04_reference_id . '.pdf';
+        return $pdf->stream($previewName);
     }
 
     public function audit(Request $request)
@@ -3182,10 +3354,14 @@ class TestResultController extends Controller
             ->orderBy('tr10_created_at', 'desc');
 
         // Unified search across Sample Ref ID, Tracker ID, Test Name, or Result ID
-        if ($request->filled('search')) {
-            $search = trim($request->search);
+        $searchParam = $request->input('search_query', $request->input('search', null));
+        if (is_array($searchParam)) {
+            $searchParam = $searchParam['value'] ?? null;
+        }
+        if (!empty($searchParam)) {
+            $search = trim($searchParam);
             $query->where(function ($q) use ($search) {
-                if (is_numeric($search)) {
+                if (is_numeric($search) && strlen($search) < 9) {
                     $q->where('tr07_test_result_id', (int)$search);
                 }
                 $q->orWhereHas('testResult', function ($tq) use ($search) {
@@ -3237,7 +3413,95 @@ class TestResultController extends Controller
             return $this->exportAuditLogsCsv($query->get());
         }
 
-        $auditLogs = $query->paginate(20);
+        // Return Yajra DataTables JSON response when requested via AJAX
+        if ($request->ajax()) {
+            return DataTables::of($query)
+                ->addIndexColumn()
+                ->addColumn('created_at_formatted', function ($log) {
+                    $created = $log->tr10_created_at ?? $log->tr07_created_at;
+                    if (!$created) return '<span class="text-soft">N/A</span>';
+                    $carbon = Carbon::parse($created);
+                    return '<div class="user-card"><div class="user-info">' .
+                        '<span class="tb-lead">' . $carbon->format('M d, Y') . '</span>' .
+                        '<span class="fs-12px text-soft">' . $carbon->format('H:i:s') . '</span>' .
+                        '</div></div>';
+                })
+                ->addColumn('test_result_info', function ($log) {
+                    if (!$log->testResult) {
+                        return '<span class="text-danger fw-bold">Test Result #' . e($log->tr07_test_result_id) . '</span>';
+                    }
+                    $refId = $log->testResult->tr04_reference_id;
+                    $html = '<div class="user-card"><div class="user-info">';
+                    if ($refId) {
+                        $url = route('sample_history', ['identifier' => $refId]);
+                        $html .= '<a href="' . $url . '" class="badge bg-primary text-white mb-1" target="_blank" title="View Complete Sample History Track">' .
+                            '<em class="icon ni ni-route me-1"></em>#' . e($refId) . '</a> ';
+                    }
+                    $testName = $log->testResult->test?->m12_name ?? ('Test #' . ($log->testResult->m12_test_number ?? $log->tr07_test_result_id));
+                    $html .= '<div class="tb-lead text-dark fw-bold">' . e($testName) . '</div>';
+                    $html .= '<span class="fs-11px text-soft">Result ID: #' . e($log->tr07_test_result_id) . '</span>';
+                    $html .= '</div></div>';
+                    return $html;
+                })
+                ->addColumn('action_badge', function ($log) {
+                    $actionStr = strtolower($log->tr10_action ?? $log->tr07_action ?? 'action');
+                    $actionColors = [
+                        'created' => 'success',
+                        'updated' => 'info',
+                        'verified' => 'primary',
+                        'reported' => 'dark',
+                        'finalized' => 'dark',
+                        'revised' => 'warning',
+                        'rejected' => 'danger',
+                        'deleted' => 'danger',
+                    ];
+                    $color = $actionColors[$actionStr] ?? 'secondary';
+                    return '<span class="badge badge-sm badge-dot has-bg bg-' . $color . '">' . ucfirst($actionStr) . '</span>';
+                })
+                ->addColumn('user_info', function ($log) {
+                    $userId = $log->tr10_user_id ?? $log->tr07_user_id;
+                    $userName = $log->user?->m06_name ?? $log->user?->name ?? ($userId ? "User #{$userId}" : "System");
+                    return '<div class="user-card"><div class="user-info">' .
+                        '<span class="tb-lead">' . e($userName) . '</span>' .
+                        '<span class="fs-12px text-soft">ID: ' . ($userId ?? 'N/A') . '</span>' .
+                        '</div></div>';
+                })
+                ->addColumn('version_badge', function ($log) {
+                    $ver = $log->tr09_version_id ?? ($log->version_number ?? 1);
+                    return '<span class="badge badge-sm has-bg bg-primary rounded-pill">v' . $ver . '</span>';
+                })
+                ->addColumn('details', function ($log) {
+                    $fieldChanged = $log->tr10_field_changed ?? $log->tr07_field_changed;
+                    $changeReason = $log->tr10_change_reason ?? $log->tr07_change_reason;
+                    $oldVal = $log->tr10_old_value ?? $log->tr07_old_value;
+                    $newVal = $log->tr10_new_value ?? $log->tr07_new_value;
+
+                    $html = '<div class="tb-lead-sub">';
+                    if ($fieldChanged) {
+                        $html .= '<span class="text-primary fw-medium">' . e($fieldChanged) . '</span>';
+                    }
+                    if ($changeReason) {
+                        $html .= '<div class="fs-12px text-soft mt-1" title="' . e($changeReason) . '">' . e(\Illuminate\Support\Str::limit($changeReason, 50)) . '</div>';
+                    }
+                    if ($oldVal || $newVal) {
+                        $html .= '<div class="fs-11px mt-1">';
+                        if ($oldVal) {
+                            $html .= '<span class="text-danger">From: ' . e(\Illuminate\Support\Str::limit($oldVal, 20)) . '</span><br>';
+                        }
+                        if ($newVal) {
+                            $html .= '<span class="text-success">To: ' . e(\Illuminate\Support\Str::limit($newVal, 20)) . '</span>';
+                        }
+                        $html .= '</div>';
+                    }
+                    $html .= '</div>';
+                    return $html;
+                })
+                ->addColumn('ip_address', function ($log) {
+                    return '<span class="fs-12px text-soft">' . e($log->tr10_ip_address ?? $log->tr07_ip_address ?? 'N/A') . '</span>';
+                })
+                ->rawColumns(['created_at_formatted', 'test_result_info', 'action_badge', 'user_info', 'version_badge', 'details', 'ip_address'])
+                ->make(true);
+        }
 
         // Fetch active employees for user filter dropdown
         $employees = Employee::where('m06_status', 'ACTIVE')
@@ -3251,7 +3515,6 @@ class TestResultController extends Controller
         $thisMonth = TestResultAudit::whereMonth('tr10_created_at', now()->month)->count();
 
         return view('test-results.audit_test_result', compact(
-            'auditLogs',
             'employees',
             'totalActions',
             'todayActivity',
@@ -3471,6 +3734,7 @@ class TestResultController extends Controller
             $request->validate([
                 'sample_test_id' => 'required',
                 'standard_id' => 'nullable',
+                'standard_qualifier' => 'nullable|string|max:255',
             ]);
 
             $sampleTestId = $request->sample_test_id;
@@ -3496,23 +3760,20 @@ class TestResultController extends Controller
 
             SampleTest::ensureStandardColumnSupportsMultiple();
             $sampleTest->m15_standard_id = !empty($standardId) ? $standardId : null;
+            if ($request->has('standard_qualifier')) {
+                $sampleTest->tr05_standard_qualifier = $request->filled('standard_qualifier') ? trim($request->standard_qualifier) : null;
+            }
             $sampleTest->save();
 
-            // Resolve updated standard method names
-            $names = [];
-            if ($sampleTest->m15_standard_id) {
-                $ids = array_filter(array_map('trim', explode(',', $sampleTest->m15_standard_id)));
-                $names = Standard::whereIn('m15_standard_id', $ids)->pluck('m15_method')->toArray();
-            }
-
-            $standardMethodNames = !empty($names) ? implode(' & ', $names) : 'No standard assigned';
+            $fullStandardMethod = $sampleTest->standard_method ?: 'No standard assigned';
 
             return response()->json([
                 'success' => true,
                 'message' => 'Test standard updated successfully.',
                 'sample_test_id' => $sampleTest->tr05_sample_test_id,
                 'standard_id' => $sampleTest->m15_standard_id,
-                'standard_names' => $standardMethodNames,
+                'standard_qualifier' => $sampleTest->tr05_standard_qualifier,
+                'standard_names' => $fullStandardMethod,
             ]);
         } catch (\Exception $e) {
             Log::error('Error updating test standard: ' . $e->getMessage());

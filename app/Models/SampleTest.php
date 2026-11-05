@@ -35,7 +35,8 @@ class SampleTest extends Model
         'tr05_accepted_at',
         'm12_transferred_from_test_id',
         'tr05_completed_at',
-        'tr05_manuscript'
+        'tr05_manuscript',
+        'tr05_standard_qualifier',
     ];
     protected $casts = [
         'tr05_alloted_at' => 'datetime',
@@ -194,17 +195,23 @@ class SampleTest extends Model
 
     public function getStandardMethodAttribute()
     {
-        if (empty($this->m15_standard_id)) {
-            return null;
+        $baseMethod = null;
+        if (!empty($this->m15_standard_id)) {
+            $ids = array_filter(array_map('trim', explode(',', $this->m15_standard_id)));
+            if (count($ids) > 1) {
+                $methods = Standard::whereIn('m15_standard_id', $ids)->pluck('m15_method')->toArray();
+                $baseMethod = !empty($methods) ? implode(' & ', $methods) : null;
+            } else {
+                $baseMethod = $this->standard->m15_method ?? Standard::where('m15_standard_id', $this->m15_standard_id)->value('m15_method');
+            }
         }
 
-        $ids = array_filter(array_map('trim', explode(',', $this->m15_standard_id)));
-        if (count($ids) > 1) {
-            $methods = Standard::whereIn('m15_standard_id', $ids)->pluck('m15_method')->toArray();
-            return !empty($methods) ? implode(' & ', $methods) : null;
+        $qualifier = trim($this->tr05_standard_qualifier ?? '');
+        if (!empty($qualifier)) {
+            return $baseMethod ? "{$baseMethod} {$qualifier}" : $qualifier;
         }
 
-        return $this->standard->m15_method ?? Standard::where('m15_standard_id', $this->m15_standard_id)->value('m15_method');
+        return $baseMethod;
     }
 
     public function getIsLabAccreditedAttribute(): bool

@@ -8,6 +8,7 @@ use App\Models\TestResult;
 use App\Observers\SampleTestObserver;
 use App\Observers\TestReportObserver;
 use App\Observers\TestResultObserver;
+use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
 
@@ -27,6 +28,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Schema::defaultStringLength(191);
+        Paginator::useBootstrapFive();
         SampleTest::observe(SampleTestObserver::class);
         TestResult::observe(TestResultObserver::class);
         TestReport::observe(TestReportObserver::class);

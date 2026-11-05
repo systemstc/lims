@@ -9,8 +9,8 @@
     <title>@yield('title', 'LIMS | Textiles Committee Laboratories')</title>
     <!-- StyleSheets  -->
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <link rel="stylesheet" href="{{ asset('backAssets/css/dashlite.css') }}">
-    <link id="skin-default" rel="stylesheet" href="{{ asset('backAssets/css/theme.css') }}">
+    <link rel="stylesheet" href="{{ asset('backAssets/css/dashlite.css') }}?v={{ file_exists(public_path('backAssets/css/dashlite.css')) ? filemtime(public_path('backAssets/css/dashlite.css')) : '1.0' }}">
+    <link id="skin-default" rel="stylesheet" href="{{ asset('backAssets/css/theme.css') }}?v={{ file_exists(public_path('backAssets/css/theme.css')) ? filemtime(public_path('backAssets/css/theme.css')) : '1.0' }}">
 
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.css" />
     <script src="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.js"></script>
@@ -288,6 +288,23 @@
 
         body.dark-mode .loader-text {
             color: #798bff;
+        }
+
+        /* ==========================================================================
+           DashLite CSS Conflict Fix:
+           In DashLite (dashlite.css:31742), legacy spacer helper classes (.gap-1, .gap-2, etc.)
+           were defined with `height: 0.75rem;` intended for empty spacer DIVs.
+           When combined with Bootstrap 5 flex containers (e.g., .d-flex.gap-2), the container's
+           height was forcefully constrained to 12px (0.75rem), squishing child buttons into
+           flat strips. This global rule ensures all flex/grid containers maintain natural height.
+           ========================================================================== */
+        .d-flex[class*="gap-"],
+        .d-inline-flex[class*="gap-"],
+        .d-grid[class*="gap-"],
+        [class*="d-flex"][class*="gap-"],
+        .form-control-wrap[class*="gap-"],
+        .btn-group[class*="gap-"] {
+            height: auto !important;
         }
     </style>
     @yield('styles')

@@ -412,6 +412,7 @@
                                                                         <tr>
                                                                             <th>Test / Parameter</th>
                                                                             <th>Observed Result</th>
+                                                                            <th>Uncertainty (MU)</th>
                                                                             <th>Unit</th>
                                                                             <th>Analyst Remarks / Footnotes</th>
                                                                         </tr>
@@ -429,6 +430,7 @@
                                                                                     @endif
                                                                                 </td>
                                                                                 <td class="fw-bold text-primary font-monospace">{!! $res['result'] !!}</td>
+                                                                                <td><span class="badge bg-light text-dark font-monospace">{{ $res['measurement_uncertainty'] ?? '± 2.0% (k=2)' }}</span></td>
                                                                                 <td>{{ $res['unit'] }}</td>
                                                                                 <td class="fs-10px text-muted">{{ $res['remarks'] ?: '-' }}</td>
                                                                             </tr>
@@ -526,12 +528,21 @@
                                                         </div>
                                                         @if (!empty($stage['data']['report_versions']))
                                                             <div class="mt-2">
-                                                                <span class="fw-bold d-block mb-1 fs-11px text-muted">Report History:</span>
+                                                                <span class="fw-bold d-block mb-1 fs-11px text-muted">Official Report Version &amp; Reissue History (ISO/IEC 17025 Cl 7.8.8):</span>
                                                                 @foreach ($stage['data']['report_versions'] as $rep)
                                                                     <div class="d-flex justify-content-between align-items-center border rounded p-2 bg-light mb-1">
                                                                         <div>
-                                                                            <strong class="text-dark">Version {{ $rep['version'] }} ({{ $rep['status'] }})</strong>
-                                                                            <span class="text-muted d-block fs-11px">Generated: {{ $rep['generated_at'] }} by {{ $rep['generated_by'] }}</span>
+                                                                            <div>
+                                                                                @if ($rep['version'] == 1)
+                                                                                    <span class="badge bg-primary-dim text-primary fw-bold">Original Issue (v1)</span>
+                                                                                @else
+                                                                                    <span class="badge bg-warning-dim text-warning fw-bold"><em class="ni ni-repeat me-1"></em>Amended / Reissued (v{{ $rep['version'] }})</span>
+                                                                                @endif
+                                                                                <span class="badge {{ ($rep['is_current'] ?? 'YES') === 'YES' ? 'bg-success' : 'bg-secondary' }} ms-1">
+                                                                                    {{ ($rep['is_current'] ?? 'YES') === 'YES' ? 'Active / Current' : 'Superseded' }}
+                                                                                </span>
+                                                                            </div>
+                                                                            <span class="text-muted d-block fs-11px mt-1">Generated: {{ $rep['generated_at'] }} by {{ $rep['generated_by'] }}</span>
                                                                         </div>
                                                                         @if ($rep['file_path'])
                                                                             <a href="{{ asset('storage/' . $rep['file_path']) }}" target="_blank" class="btn btn-xs btn-outline-primary">

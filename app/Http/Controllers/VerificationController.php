@@ -110,6 +110,7 @@ class VerificationController extends Controller
             'testResult.secondaryTest',
             'testResult.creator.role',
             'testResult.updater.role',
+            'testResult.remarkRecord',
             'labSample',
             'customFields'
         ])->where('tr04_sample_registration_id', $sample_id)
@@ -142,18 +143,21 @@ class VerificationController extends Controller
                 $currentResults = $sample->testResult->where('tr07_is_current', 'YES');
 
                 foreach ($currentResults as $result) {
+                    if ($request->action === 'verify' && $result->tr07_result_status === 'REJECTED') {
+                        // This result was rejected previously and not revised. Archive it so it does not get verified or printed on report.
+                        $result->update([
+                            'tr07_is_current' => 'NO',
+                            'm06_verified_by' => Session::get('user_id') ?? null,
+                            'tr07_verified_at' => now(),
+                        ]);
+                        continue;
+                    }
+
                     $updateData = [
                         'tr07_result_status' => $resultStatus,
                         'm06_verified_by'    => Session::get('user_id') ?? null,
                         'tr07_verified_at'   => now(),
                     ];
-
-                    // Only update test result remarks on rejection/clarification if analyst hadn't provided a remark
-                    if ($request->action !== 'verify' && $request->filled('remarks')) {
-                        if (empty($result->tr07_remarks)) {
-                            $updateData['tr07_remarks'] = $request->remarks;
-                        }
-                    }
 
                     $prevStatus = $result->tr07_result_status;
                     $result->update($updateData);
@@ -200,12 +204,6 @@ class VerificationController extends Controller
                         'tr08_updated_at'    => now(),
                     ];
 
-                    if ($request->action !== 'verify' && $request->filled('remarks')) {
-                        if (empty($customField->tr08_remarks)) {
-                            $cfUpdate['tr08_remarks'] = $request->remarks;
-                        }
-                    }
-
                     $customField->update($cfUpdate);
                 }
 
@@ -249,6 +247,38 @@ class VerificationController extends Controller
         // Get historical results for comparison (where current is NO)
         $historicalResults = $sample->testResult->where('tr07_is_current', 'NO');
 
+        // Self-heal / hydrate historical results from TestResultAudit for any test that doesn't have a tr07_is_current = 'NO' record
+        foreach ($currentResults as $curr) {
+            $hasHist = $historicalResults->contains(function ($h) use ($curr) {
+                return (string)$h->m12_test_number === (string)$curr->m12_test_number
+                    && (string)($h->m16_primary_test_id ?? '') === (string)($curr->m16_primary_test_id ?? '')
+                    && (string)($h->m17_secondary_test_id ?? '') === (string)($curr->m17_secondary_test_id ?? '');
+            });
+
+            if (!$hasHist) {
+                $audit = TestResultAudit::where('tr07_test_result_id', $curr->tr07_test_result_id)
+                    ->where('tr10_field_changed', 'Result Value')
+                    ->where('tr10_old_value', '!=', '(empty)')
+                    ->whereNotNull('tr10_old_value')
+                    ->orderBy('tr10_created_at', 'desc')
+                    ->first();
+
+                if ($audit && trim($audit->tr10_old_value) !== '') {
+                    $synth = new \App\Models\TestResult();
+                    $synth->tr07_test_result_id = $curr->tr07_test_result_id;
+                    $synth->tr04_reference_id = $curr->tr04_reference_id;
+                    $synth->m12_test_number = $curr->m12_test_number;
+                    $synth->m16_primary_test_id = $curr->m16_primary_test_id;
+                    $synth->m17_secondary_test_id = $curr->m17_secondary_test_id;
+                    $synth->tr07_result = $audit->tr10_old_value;
+                    $synth->tr07_unit = $curr->tr07_unit;
+                    $synth->tr07_is_current = 'NO';
+                    $synth->tr07_result_status = 'REJECTED';
+                    $historicalResults->push($synth);
+                }
+            }
+        }
+
         // Get custom fields
         $customFields = CustomField::where('tr04_reference_id', $sample->tr04_reference_id)
             ->where('tr08_is_current', 'YES')
@@ -257,6 +287,38 @@ class VerificationController extends Controller
         $historicalCustomFields = CustomField::where('tr04_reference_id', $sample->tr04_reference_id)
             ->where('tr08_is_current', 'NO')
             ->get();
+
+        foreach ($customFields as $cf) {
+            $hasHistCf = $historicalCustomFields->contains(function ($h) use ($cf) {
+                return (string)$h->m12_test_number === (string)$cf->m12_test_number
+                    && (string)($h->m16_primary_test_id ?? '') === (string)($cf->m16_primary_test_id ?? '')
+                    && (string)($h->m17_secondary_test_id ?? '') === (string)($cf->m17_secondary_test_id ?? '')
+                    && (string)$h->tr08_field_name === (string)$cf->tr08_field_name;
+            });
+
+            if (!$hasHistCf) {
+                $cfAudit = TestResultAudit::where('tr10_field_changed', 'like', '%' . $cf->tr08_field_name . '%')
+                    ->where('tr10_old_value', '!=', '(empty)')
+                    ->whereNotNull('tr10_old_value')
+                    ->orderBy('tr10_created_at', 'desc')
+                    ->first();
+
+                if ($cfAudit && trim($cfAudit->tr10_old_value) !== '') {
+                    $synthCf = new CustomField();
+                    $synthCf->tr08_custom_field_id = $cf->tr08_custom_field_id;
+                    $synthCf->tr04_reference_id = $cf->tr04_reference_id;
+                    $synthCf->m12_test_number = $cf->m12_test_number;
+                    $synthCf->m16_primary_test_id = $cf->m16_primary_test_id;
+                    $synthCf->m17_secondary_test_id = $cf->m17_secondary_test_id;
+                    $synthCf->tr08_field_name = $cf->tr08_field_name;
+                    $synthCf->tr08_field_value = $cfAudit->tr10_old_value;
+                    $synthCf->tr08_field_unit = $cf->tr08_field_unit;
+                    $synthCf->tr08_is_current = 'NO';
+                    $synthCf->tr08_result_status = 'REJECTED';
+                    $historicalCustomFields->push($synthCf);
+                }
+            }
+        }
 
         // Group results by test number
         $testNumbers = $currentResults->pluck('m12_test_number')->unique();

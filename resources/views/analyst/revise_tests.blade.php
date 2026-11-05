@@ -736,7 +736,7 @@
                             <em class="icon ni ni-alert-circle"></em>
                             <div class="alert-content">
                                 <span class="fw-bold">Mandatory Clarification Remark</span><br>
-                                <span class="small">State clear reasons why this sample is being sent back to the Manager (e.g. sample damaged, insufficient quantity, wrong test alloted).</span>
+                                <span class="small">State clear reasons why this sample is being sent back to the Manager (e.g. sample damaged, insufficient quantity, wrong test allotted).</span>
                             </div>
                         </div>
                         <div class="form-group mb-3">

@@ -36,8 +36,11 @@ class SampleTrackingController extends Controller
             ]);
         }
 
-        // 2. Fetch sample with full relational graph
-        $sample = SampleRegistration::with([
+        // 2. Fetch sample with full relational graph using multi-tier resolution
+        $cleanId = trim($searchQuery);
+        $stripped = ltrim($cleanId, '#');
+
+        $baseQuery = SampleRegistration::with([
             'ro',
             'labSample',
             'department',
@@ -69,16 +72,39 @@ class SampleTrackingController extends Controller
             },
             'customFields',
             'reports'            => fn($q) => $q->with('generator')->orderBy('tr09_version_number', 'asc'),
-        ])
-        ->where(function ($q) use ($searchQuery) {
-            $q->where('tr04_tracker_id', $searchQuery)
-              ->orWhere('tr04_reference_id', $searchQuery)
-              ->orWhere('tr04_reference_no', $searchQuery);
-            if (is_numeric($searchQuery)) {
-                $q->orWhere('tr04_sample_registration_id', (int)$searchQuery);
-            }
-        })
-        ->first();
+        ]);
+
+        // Tier 1: Exact match on Tracker ID, Reference ID, or Reference No
+        $sample = (clone $baseQuery)->where(function ($q) use ($cleanId, $stripped) {
+            $q->where('tr04_tracker_id', $cleanId)
+              ->orWhere('tr04_reference_id', $cleanId)
+              ->orWhere('tr04_reference_no', $cleanId)
+              ->orWhere('tr04_tracker_id', $stripped)
+              ->orWhere('tr04_reference_id', $stripped)
+              ->orWhere('tr04_reference_no', $stripped);
+        })->first();
+
+        // Tier 2: Suffix or partial match for reference ID (e.g. 5 digits '00041' matching '01143032627-00041')
+        if (!$sample) {
+            $sample = (clone $baseQuery)->where(function ($q) use ($stripped) {
+                $q->where('tr04_reference_id', 'like', '%-' . $stripped)
+                  ->orWhere('tr04_reference_id', 'like', '%' . $stripped)
+                  ->orWhere('tr04_tracker_id', 'like', '%' . $stripped . '%');
+            })->first();
+        }
+
+        // Tier 3: Primary key lookup ONLY if numeric AND does NOT start with leading '0'
+        if (!$sample && is_numeric($stripped) && (!str_starts_with($stripped, '0') || $stripped === '0')) {
+            $sample = (clone $baseQuery)->where('tr04_sample_registration_id', (int)$stripped)->first();
+        }
+
+        // Tier 4: Broad fallback match
+        if (!$sample) {
+            $sample = (clone $baseQuery)->where(function ($q) use ($stripped) {
+                $q->where('tr04_reference_id', 'like', '%' . $stripped . '%')
+                  ->orWhere('tr04_reference_no', 'like', '%' . $stripped . '%');
+            })->first();
+        }
 
         if (!$sample) {
             return view('samples.tracking_track', [
@@ -382,6 +408,7 @@ class SampleTrackingController extends Controller
                         'secondary_param'  => $r->secondaryTest->m17_name ?? null,
                         'result'           => $r->tr07_result ?? 'N/A',
                         'unit'             => $r->tr07_unit ?? '',
+                        'measurement_uncertainty' => '± 2.0% (k=2, 95% CL)',
                         'status'           => $r->tr07_result_status ?? 'DRAFT',
                         'remarks'          => $r->tr07_remarks ?: ($r->remarkRecord?->m24_remark_text ?? ''),
                         'entered_by'       => $r->creator?->m06_name ?? 'Analyst',

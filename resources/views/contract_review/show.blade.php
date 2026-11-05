@@ -334,7 +334,10 @@
                                                     <span class="text-muted fw-normal fs-11px d-block">({{ $sample->ro->lab_name_en ?? ($sample->ro->m04_name ?? 'Lab Scope') }})</span>
                                                 @endif
                                             </th>
-                                            <th class="text-end" style="width: 120px;">Fee (₹)</th>
+                                            <th>Equipment &amp; Calibration (Cl 6.4)</th>
+                                            <th>Authorized Analyst (Cl 6.2)</th>
+                                            <th>Uncertainty (Cl 7.6)</th>
+                                            <th class="text-end" style="width: 100px;">Fee (₹)</th>
                                         </tr>
                                     </thead>
                                     <tbody class="fs-13px">
@@ -376,13 +379,31 @@
                                                         <div class="text-soft fs-10px mt-1">Out of NABL scope for this lab</div>
                                                     @endif
                                                 </td>
+                                                <td>
+                                                    <div class="fw-medium fs-12px text-dark">{{ $testItem->equipment_name }}</div>
+                                                    <div class="fs-11px text-muted mt-1">
+                                                        <span class="badge bg-outline-info py-0 px-1">{{ $testItem->equipment_code }}</span>
+                                                        <span class="text-success ms-1"><em class="ni ni-check-circle me-1"></em>Due: {{ $testItem->calibration_due }}</span>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-outline-primary fs-11px">
+                                                        <em class="ni ni-user-check me-1"></em>{{ $testItem->authorized_analyst }}
+                                                    </span>
+                                                    <span class="d-block text-soft fs-10px mt-1">Competency Authorized</span>
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-light text-dark font-monospace fs-11px border">
+                                                        {{ $testItem->measurement_uncertainty }}
+                                                    </span>
+                                                </td>
                                                 <td class="text-end fw-bold">
                                                     ₹ {{ number_format($testItem->test->m12_charge ?? 0, 2) }}
                                                 </td>
                                             </tr>
                                         @empty
                                             <tr>
-                                                <td colspan="5" class="text-center py-3 text-muted">
+                                                <td colspan="8" class="text-center py-3 text-muted">
                                                     <em>No individual test parameters registered for this sample.</em>
                                                 </td>
                                             </tr>
@@ -390,22 +411,22 @@
                                     </tbody>
                                     <tfoot class="table-light">
                                         <tr>
-                                            <td colspan="4" class="text-end fw-bold">Basic Testing Total:</td>
+                                            <td colspan="7" class="text-end fw-bold">Basic Testing Total:</td>
                                             <td class="text-end fw-bold">₹ {{ number_format($sample->tr04_testing_charges ?? ($sample->tr04_total_charges / 1.18), 2) }}</td>
                                         </tr>
                                         @if(($sample->tr04_cgst ?? 0) > 0 || ($sample->tr04_sgst ?? 0) > 0)
                                             <tr>
-                                                <td colspan="4" class="text-end text-muted fs-12px">CGST (9%) + SGST (9%):</td>
+                                                <td colspan="7" class="text-end text-muted fs-12px">CGST (9%) + SGST (9%):</td>
                                                 <td class="text-end text-muted fs-12px">₹ {{ number_format(($sample->tr04_cgst ?? 0) + ($sample->tr04_sgst ?? 0), 2) }}</td>
                                             </tr>
                                         @elseif(($sample->tr04_igst ?? 0) > 0)
                                             <tr>
-                                                <td colspan="4" class="text-end text-muted fs-12px">IGST (18%):</td>
+                                                <td colspan="7" class="text-end text-muted fs-12px">IGST (18%):</td>
                                                 <td class="text-end text-muted fs-12px">₹ {{ number_format($sample->tr04_igst ?? 0, 2) }}</td>
                                             </tr>
                                         @endif
                                         <tr class="table-primary">
-                                            <td colspan="4" class="text-end fw-bold fs-14px">Grand Total Fee (Incl. Taxes):</td>
+                                            <td colspan="7" class="text-end fw-bold fs-14px">Grand Total Fee (Incl. Taxes):</td>
                                             <td class="text-end fw-bold fs-14px text-primary">₹ {{ number_format($sample->tr04_total_charges ?? 0, 2) }}</td>
                                         </tr>
                                     </tfoot>
