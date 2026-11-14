@@ -84,7 +84,7 @@ class TestResultController extends Controller
             )
             ->groupBy('tr04_reference_id')
             ->orderByDesc('last_test_date')
-            ->paginate(15);
+            ->get();
         return view('test-results.view_test_results', compact('testResults'));
     }
 
@@ -2129,10 +2129,6 @@ class TestResultController extends Controller
             ->where('tr08_is_current', 'YES')
             ->whereIn('tr08_result_status', ['VERIFIED', 'REPORTED', 'RESULTED', 'SUBMITTED', 'FINALIZED']);
 
-        if (!$isAdmin && $userRoId && (!$sample || $sample->m04_ro_id == $userRoId)) {
-            $customQuery->where('m04_ro_id', $userRoId);
-        }
-
         $customFields = $customQuery
             ->orderBy('m12_test_number')
             ->orderBy('m16_primary_test_id')
@@ -2578,7 +2574,15 @@ class TestResultController extends Controller
                 'tr09_version_number' => $latestVersion ? $latestVersion + 1 : 1,
                 'm06_generated_by' => Session::get('user_id'),
             ]);
+        } else {
+            $report->loadMissing(['generator', 'generatedBy']);
         }
+
+        $issuerName = Session::get('name')
+            ?? optional($report->generator)->m06_name
+            ?? optional($report->generatedBy)->m06_name
+            ?? (!empty($report->m06_generated_by) ? \App\Models\Employee::where('m06_employee_id', $report->m06_generated_by)->value('m06_name') : null)
+            ?? 'Authorized Signatory';
 
         // Check if we're generating PDF
         if (request()->has('generate_pdf')) {
@@ -2602,7 +2606,8 @@ class TestResultController extends Controller
             'orderedItems',
             'meta',
             'hasAccreditedTests',
-            'report'
+            'report',
+            'issuerName'
         ));
     }
 
@@ -2652,6 +2657,7 @@ class TestResultController extends Controller
         $report = $reportQuery->first();
 
         if ($report) {
+            $report->loadMissing(['generator', 'generatedBy']);
             Log::info("Existing report found", [
                 'id' => $report->id ?? null,
                 'file_path' => $report->tr09_report_file_path,
@@ -2661,6 +2667,12 @@ class TestResultController extends Controller
         } else {
             Log::info("No existing report found — creating a new one.");
         }
+
+        $issuerName = Session::get('name')
+            ?? optional($report?->generator)->m06_name
+            ?? optional($report?->generatedBy)->m06_name
+            ?? (!empty($report?->m06_generated_by) ? \App\Models\Employee::where('m06_employee_id', $report->m06_generated_by)->value('m06_name') : null)
+            ?? 'Authorized Signatory';
 
         // Build report parts (Accredited Part A vs Non-accredited)
         $reportParts = [];
@@ -2814,6 +2826,14 @@ class TestResultController extends Controller
                 'tr09_is_current' => 'YES',
             ]);
 
+            $report->loadMissing(['generator', 'generatedBy']);
+
+            $issuerName = Session::get('name')
+                ?? optional($report->generator)->m06_name
+                ?? optional($report->generatedBy)->m06_name
+                ?? (!empty($report->m06_generated_by) ? \App\Models\Employee::where('m06_employee_id', $report->m06_generated_by)->value('m06_name') : null)
+                ?? 'Authorized Signatory';
+
             Log::info("Report record created successfully with ID: {$report->id}");
 
             // Step 4: Generate PDF
@@ -2829,7 +2849,8 @@ class TestResultController extends Controller
                     'meta',
                     'report',
                     'hasAccreditedTests',
-                    'isPartial'
+                    'isPartial',
+                    'issuerName'
                 ),
                 ['onLetterhead' => false]
             ))->setPaper('A4', 'portrait');
@@ -2864,7 +2885,8 @@ class TestResultController extends Controller
                     'meta',
                     'report',
                     'hasAccreditedTests',
-                    'isPartial'
+                    'isPartial',
+                    'issuerName'
                 ),
                 ['onLetterhead' => true]
             ))->setPaper('A4', 'portrait');
@@ -3281,7 +3303,15 @@ class TestResultController extends Controller
                 'tr09_version_number' => $nextVersion,
                 'm06_generated_by' => Session::get('user_id'),
             ]);
+        } else {
+            $report->loadMissing(['generator', 'generatedBy']);
         }
+
+        $issuerName = Session::get('name')
+            ?? optional($report->generator)->m06_name
+            ?? optional($report->generatedBy)->m06_name
+            ?? (!empty($report->m06_generated_by) ? \App\Models\Employee::where('m06_employee_id', $report->m06_generated_by)->value('m06_name') : null)
+            ?? 'Authorized Signatory';
 
         $isPartial = false;
 
@@ -3337,7 +3367,8 @@ class TestResultController extends Controller
                 'meta',
                 'report',
                 'isPartial',
-                'hasAccreditedTests'
+                'hasAccreditedTests',
+                'issuerName'
             ),
             ['onLetterhead' => $onLetterhead]
         ))->setPaper('A4', 'portrait');

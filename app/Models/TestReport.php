@@ -32,6 +32,11 @@ class TestReport extends Model
         return $this->belongsTo(Employee::class, 'm06_generated_by', 'm06_employee_id');
     }
 
+    public function generatedBy()
+    {
+        return $this->belongsTo(Employee::class, 'm06_generated_by', 'm06_employee_id');
+    }
+
     public function sample()
     {
         return $this->belongsTo(SampleRegistration::class, 'tr04_reference_id', 'tr04_reference_id');

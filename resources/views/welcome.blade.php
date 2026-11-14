@@ -1065,11 +1065,10 @@
                         <span>Dashboard</span>
                     </a>
                 @else
-                    <button type="button" class="btn btn-tc-outline d-none d-sm-inline-flex align-items-center gap-1"
-                        data-bs-toggle="modal" data-bs-target="#loginModal">
+                    <a href="{{ route('user_login') }}" class="btn btn-tc-outline d-none d-sm-inline-flex align-items-center gap-1">
                         <i class="fas fa-sign-in-alt"></i>
                         <span>Access System</span>
-                    </button>
+                    </a>
                 @endif
 
                 <!-- 3TS Logo on Navbar Right -->
@@ -2048,67 +2047,6 @@
         <i class="fas fa-arrow-up"></i>
     </button>
 
-    <!-- ========================================================================= -->
-    <!-- 9. STAFF LOGIN MODAL                                                      -->
-    <!-- ========================================================================= -->
-    <div class="modal fade" id="loginModal" tabindex="-1" aria-labelledby="loginModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-0 shadow-lg" style="border-radius: 16px; overflow: hidden;">
-                <div class="modal-header text-white" style="background: linear-gradient(135deg, var(--tc-navy) 0%, var(--tc-navy-mid) 100%);">
-                    <div class="d-flex align-items-center gap-2">
-                        <img src="{{ asset('frontAssets/textiles_logo_200.png') }}" alt="Logo"
-                            style="height: 34px; background: #fff; border-radius: 50%; padding: 2px;">
-                        <div>
-                            <h5 class="modal-title fw-bold mb-0" id="loginModalLabel" style="font-size: 1.1rem;">TC-LIMS Staff Access</h5>
-                            <span class="small text-white-50" style="font-size: 0.72rem;">Authorized Laboratory Officers & Analysts</span>
-                        </div>
-                    </div>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-
-                <div class="modal-body p-4">
-                    <form id="loginForm" method="POST" action="{{ route('user_login') }}">
-                        @csrf
-                        <div class="mb-3">
-                            <label for="login_email" class="form-label small fw-bold text-dark">Official Email Address</label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-light border-end-0"><i class="fas fa-envelope text-muted"></i></span>
-                                <input type="email" class="form-control border-start-0" id="login_email" name="txt_email"
-                                    value="{{ old('txt_email') }}" placeholder="officer@textilescommittee.gov.in" required>
-                            </div>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="login_password" class="form-label small fw-bold text-dark">Password</label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-light border-end-0"><i class="fas fa-lock text-muted"></i></span>
-                                <input type="password" class="form-control border-start-0" id="login_password" name="txt_password"
-                                    placeholder="Enter your security password" required>
-                            </div>
-                        </div>
-
-                        <div class="d-flex align-items-center justify-content-between mb-3">
-                            <div class="form-check">
-                                <input type="checkbox" class="form-check-input" id="rememberMe" name="remember">
-                                <label class="form-check-label small text-muted" for="rememberMe">Remember Session</label>
-                            </div>
-                            <a href="{{ route('customer.login') }}" class="small fw-semibold text-decoration-none" style="color: var(--tc-navy-mid);">
-                                Customer Login?
-                            </a>
-                        </div>
-
-                        <button type="submit" class="btn btn-lims-primary w-100 py-2 fw-bold" id="loginSubmitBtn" style="border-radius: 8px;">
-                            <i class="fas fa-sign-in-alt me-1"></i> Secure Officer Sign In
-                        </button>
-                    </form>
-                </div>
-
-                <div class="modal-footer bg-light py-2 justify-content-center">
-                    <span class="small text-muted"><i class="fas fa-shield-alt text-success me-1"></i> Protected by GOI Cyber Security & 2FA</span>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <!-- ========================================================================= -->
     <!-- 10. SCRIPTS                                                               -->
@@ -2598,68 +2536,6 @@
                         submitBtn.disabled = true;
                         submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Submitting...';
                     }
-                });
-            }
-
-            // Staff Login Form with SweetAlert2
-            const loginForm = document.getElementById('loginForm');
-            if (loginForm) {
-                loginForm.addEventListener('submit', function(e) {
-                    e.preventDefault();
-                    const submitBtn = document.getElementById('loginSubmitBtn');
-                    const originalHtml = submitBtn.innerHTML;
-
-                    submitBtn.disabled = true;
-                    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Authenticating...';
-
-                    const formData = new FormData(loginForm);
-
-                    fetch(loginForm.action, {
-                        method: 'POST',
-                        body: formData,
-                        headers: {
-                            'X-Requested-With': 'XMLHttpRequest',
-                            'Accept': 'application/json',
-                        }
-                    })
-                    .then(response => {
-                        if (!response.ok) {
-                            return response.json().then(err => Promise.reject(err));
-                        }
-                        return response.json();
-                    })
-                    .then(data => {
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Access Granted!',
-                            text: data.success || 'Welcome to TC-LIMS portal.',
-                            confirmButtonColor: '#0e244d',
-                            showConfirmButton: false,
-                            timer: 1500,
-                            timerProgressBar: true,
-                            didClose: () => {
-                                window.location.href = data.redirect || "{{ route('dashboard') }}";
-                            }
-                        });
-                    })
-                    .catch(errors => {
-                        submitBtn.disabled = false;
-                        submitBtn.innerHTML = originalHtml;
-
-                        let msg = 'Invalid credentials. Please verify your official email and password.';
-                        if (errors && errors.errors) {
-                            msg = Object.values(errors.errors).flat().join('<br>');
-                        } else if (errors && errors.message) {
-                            msg = errors.message;
-                        }
-
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Authentication Failed',
-                            html: msg,
-                            confirmButtonColor: '#0e244d',
-                        });
-                    });
                 });
             }
 

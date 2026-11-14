@@ -155,12 +155,36 @@
                                         <div style="border-bottom: 2px solid #1c276b; margin-top: 8px; margin-bottom: 6px;"></div>
 
                                         <!-- TEST REPORT and Format No -->
+                                        @php
+                                            $isArylTestPresent = false;
+                                            if (isset($orderedItems)) {
+                                                foreach ($orderedItems as $chkItem) {
+                                                    $chkNum = $chkItem['test_number'] ?? null;
+                                                    if (!$chkNum) continue;
+                                                    $chkResults = $groupedResults[$chkNum] ?? collect();
+                                                    $chkParent = $chkResults->first();
+                                                    $chkSampleTest = $sample->sampleTests->firstWhere('m12_test_number', $chkNum);
+                                                    $chkName = $chkParent?->test?->m12_name ?? $chkSampleTest?->test?->m12_name ?? '';
+                                                    if ($chkName && (
+                                                        stripos($chkName, 'banned amines') !== false ||
+                                                        stripos($chkName, 'aryl amine') !== false ||
+                                                        stripos($chkName, 'azo') !== false ||
+                                                        stripos($chkName, 'amine') !== false
+                                                    )) {
+                                                        $isArylTestPresent = true;
+                                                        break;
+                                                    }
+                                                }
+                                            }
+                                            $displayFormatNoWeb = ($hasAccreditedTests || $isArylTestPresent) ? 'Format No. 04/26/23' : 'Format No. 04/26B/03';
+                                        @endphp
                                         <div class="d-flex justify-content-between align-items-center">
+                                            <div style="width: 140px;">&nbsp;</div>
                                             <div class="flex-grow-1 text-center">
                                                 <span style="font-size: 18px; font-weight: bold; color: #1c276b; text-decoration: underline; letter-spacing: 1px;">TEST REPORT</span>
                                             </div>
-                                            <div style="white-space: nowrap;">
-                                                <span style="font-size: 12px; font-weight: bold; color: #000;">Format No. {{ $hasAccreditedTests ? '04/26/23' : '04/26B/03' }}</span>
+                                            <div style="width: 140px; text-align: right; white-space: nowrap;">
+                                                <span style="font-size: 12px; font-weight: bold; color: #000;">{{ $displayFormatNoWeb }}</span>
                                             </div>
                                         </div>
                                     </div>
@@ -581,8 +605,16 @@
                                         </div>
                                         <div class="d-inline-block text-center">
                                             <div class="border-top border-dark pt-1" style="width: 200px;"></div>
+                                            @php
+                                                $signatoryName = $issuerName
+                                                    ?? session('name')
+                                                    ?? optional($report->generator)->m06_name
+                                                    ?? optional($report->generatedBy)->m06_name
+                                                    ?? (!empty($report->m06_generated_by) ? \App\Models\Employee::where('m06_employee_id', $report->m06_generated_by)->value('m06_name') : null)
+                                                    ?? 'Authorized Signatory';
+                                            @endphp
                                             <div class="fw-bold mt-1">
-                                                {{ optional($report->generator)->m06_name ?? 'Lab Manager JNPT' }}</div>
+                                                {{ $signatoryName }}</div>
                                             <small class="text-muted">Authorized Signatory</small>
                                         </div>
                                     </div>

@@ -577,12 +577,11 @@
                 <!-- TEST REPORT and Format No -->
                 <table style="width: 100%; border-collapse: collapse; border: none; margin: 0; padding: 0;">
                     <tr>
-                        <td style="text-align: center; border: none; padding: 0;">
+                        <td style="width: 130pt; border: none; padding: 0;">&nbsp;</td>
+                        <td style="text-align: center; border: none; padding: 0; vertical-align: middle;">
                             <span style="font-size: 14pt; font-weight: bold; color: #1c276b; text-decoration: underline; letter-spacing: 0.8px; font-family: 'DejaVu Sans', sans-serif;">TEST REPORT</span>
                         </td>
-                        <td style="width: 130pt; text-align: left; border: none; padding: 0; vertical-align: middle;">
-                            <span style="font-size: 9.5pt; font-weight: bold; color: transparent; font-family: 'DejaVu Sans', sans-serif;">&nbsp;</span>
-                        </td>
+                        <td style="width: 130pt; border: none; padding: 0;"></td>
                     </tr>
                 </table>
             </div>
@@ -1056,8 +1055,16 @@
 
 </td>
                     <td style="width: 50%; vertical-align: bottom; text-align: right; padding-right: 30px !important;">
+                        @php
+                            $signatoryName = $issuerName
+                                ?? session('name')
+                                ?? optional($report->generator)->m06_name
+                                ?? optional($report->generatedBy)->m06_name
+                                ?? (!empty($report->m06_generated_by) ? \App\Models\Employee::where('m06_employee_id', $report->m06_generated_by)->value('m06_name') : null)
+                                ?? 'Authorized Signatory';
+                        @endphp
                         <div style="font-weight: bold; font-size: 14px; color: #000;">
-                            {{ $report->generatedBy->m06_name ?? ($sample->ro->m04_name ?? 'Authorized Signatory') }}
+                            {{ $signatoryName }}
                         </div>
                         <div style="font-size: 12px; color: #333; margin-top: 2px;">Authorized Signatory</div>
                     </td>
@@ -1086,6 +1093,25 @@
         $jsPartAccredited = [];
         foreach ($reportParts as $pIdx => $p) {
             $hasAcc = !empty($p['has_accredited_tests']);
+            if (!$hasAcc && !empty($p['items'])) {
+                foreach ($p['items'] as $chkIt) {
+                    $chkNum = $chkIt['test_number'] ?? null;
+                    if (!$chkNum) continue;
+                    $chkRes = $groupedResults[$chkNum] ?? collect();
+                    $chkParent = $chkRes->first();
+                    $chkSt = $sample->sampleTests->firstWhere('m12_test_number', $chkNum);
+                    $chkName = $chkParent?->test?->m12_name ?? $chkSt?->test?->m12_name ?? '';
+                    if ($chkName && (
+                        stripos($chkName, 'banned amines') !== false ||
+                        stripos($chkName, 'aryl amine') !== false ||
+                        stripos($chkName, 'azo') !== false ||
+                        stripos($chkName, 'amine') !== false
+                    )) {
+                        $hasAcc = true;
+                        break;
+                    }
+                }
+            }
             $jsPartAccredited[$pIdx] = $hasAcc ? 1 : 0;
         }
 
@@ -1157,12 +1183,16 @@
                 }
 
                 // 1b. DYNAMIC FORMAT NUMBER RENDERING
-                // On plain paper: when NABL logo comes, Format No. 04/26/23; without NABL logo, Format No. 04/26B/03
+                // On plain paper: when NABL logo comes (accredited / amines), Format No. 04/26/23; without NABL logo, Format No. 04/26B/03
                 if (!$onLh) {
                     $fmtText = $hasAcc ? "Format No. 04/26/23" : "Format No. 04/26B/03";
-                    $fmtWidth = $fontMetrics->get_text_width($fmtText, $bold, 10.3);
-                    $pdf->text(571.28 - $fmtWidth, 149.3, $fmtText, $bold, 9.5, [0,0,0]);
+                    $fmtWidth = $fontMetrics->get_text_width($fmtText, $bold, 9.5);
+                    if (method_exists($pdf, "get_cpdf")) {
+                        $pdf->get_cpdf()->setColor([0, 0, 0], true);
+                    }
+                    $pdf->text(571.28 - $fmtWidth, 151.5, $fmtText, $bold, 9.5, [0, 0, 0]);
                 }
+
 
                 // 2. CONTINUATION BOX (on all pages EXCEPT Part 1 Page 1)
                 if (!($currentPartIndex == 0 && $partCurrentPage == 1)) {
