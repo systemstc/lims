@@ -153,7 +153,7 @@ class SampleTrackingController extends Controller
             'actor_name'  => $sample->creatorEmployee?->m06_name ?? ('User #' . $sample->tr04_created_by),
             'actor_role'  => 'Registration Officer / Front Office',
             'location'    => $sample->ro->m04_name ?? 'Branch RO',
-            'summary'     => 'Sample physically received, verified, and entered into LIMS with Reference ID & Tracker barcode.',
+            'summary'     => 'Sample physically received, verified, and entered into LIMS.',
             'data'        => [
                 'reference_id'       => $sample->tr04_reference_id,
                 'tracker_id'         => $sample->tr04_tracker_id,
@@ -231,15 +231,15 @@ class SampleTrackingController extends Controller
             'theme'       => $stage3Status === 'COMPLETED' ? 'success' : ($stage3Status === 'ALERT' ? 'danger' : 'warning'),
             'status'      => $stage3Status,
             'timestamp'   => $sample->tr04_contract_reviewed_at ?? $sample->created_at,
-            'actor_name'  => $crReviewer ?: 'Technical Manager / Quality Officer',
+            'actor_name'  => $crReviewer ?: 'Technical Manager/QA',
             'actor_role'  => $sample->tr04_contract_reviewed_by_role ?: 'Quality In-Charge',
-            'location'    => 'Quality Assurance Section',
-            'summary'     => 'Assessment of laboratory capability, test standard availability, environmental conditions, and customer turnaround commitment.',
+            'location'    => 'QA Section',
+            'summary'     => 'Assessment of laboratory capability, test standard availability and customer turnaround commitment.',
             'data'        => [
                 'review_status'      => $crStatus ?: 'COMPLETED',
                 'reviewed_by'        => $crReviewer ?: 'Verified at Registration',
                 'reviewed_at'        => $sample->tr04_contract_reviewed_at ? $sample->tr04_contract_reviewed_at->format('d M Y, h:i A') : $sample->created_at->format('d M Y, h:i A'),
-                'review_remarks'     => $sample->tr04_contract_review_remarks ?? 'All parameters within technical testing scope and feasibility verified.',
+                'review_remarks'     => $sample->tr04_contract_review_remarks ?? '',
                 'decision_rule'      => $sample->tr04_decision_rule ?? 'Standard Laboratory Rule (ISO 17025)',
                 'checklist'          => is_array($sample->tr04_feasibility_checklist) ? $sample->tr04_feasibility_checklist : [],
                 'customer_deviation' => $sample->tr04_customer_agreed_deviation ? 'Agreed' : 'None',
@@ -354,7 +354,7 @@ class SampleTrackingController extends Controller
             'timestamp'   => $manuscripts->first()?->created_at ?? $sample->sampleTests->min('tr05_completed_at') ?? $sample->created_at,
             'actor_name'  => $manuscripts->first()?->analyst_name ?? 'Bench Analysts',
             'actor_role'  => 'Analytical Bench Testing',
-            'location'    => 'Laboratory Bench / Instrument Room',
+            'location'    => 'Laboratory Bench',
             'summary'     => 'Archived physical test observation sheets, instrument printouts, and calculation records.',
             'data'        => [
                 'total_manuscripts' => $manuscripts->count(),
@@ -462,8 +462,8 @@ class SampleTrackingController extends Controller
             'timestamp'   => $testResults->first()?->tr07_verified_at ?? $custodyLogs->where('to_role', 'Issuing Officer')->first()?->created_at ?? $sample->updated_at,
             'actor_name'  => $sample->custodyLogs->where('from_role', 'Verification Officer')->first()?->from_name ?? 'Verification Officer',
             'actor_role'  => 'Verification Officer / Jr. QA',
-            'location'    => 'Verification & Quality Section',
-            'summary'     => 'Senior technical review checking calculation precision, standard method alignment, and data consistency.',
+            'location'    => 'Verification Section',
+            'summary'     => 'Technical review checking calculation precision, standards, and data consistency.',
             'data'        => [
                 'verification_status' => $isVerified ? 'VERIFIED' : ($isVerificationSentBack ? 'SENT_BACK_FOR_CLARIFICATION' : 'PENDING_VERIFICATION'),
                 'verified_count'      => $verifiedResults,
@@ -498,12 +498,13 @@ class SampleTrackingController extends Controller
             'status'      => $stage9Status,
             'timestamp'   => $latestReport?->tr09_generated_at ?? $latestReport?->created_at,
             'actor_name'  => $latestReport?->generator?->m06_name ?? 'Authorized Signatory',
-            'actor_role'  => 'Technical Manager / Authorized Signatory',
-            'location'    => 'Reporting & Issuance Cell',
-            'summary'     => 'Generation of NABL compliant Test Report with unique ULR, QR code authentication, and digital signatures.',
+            'actor_role'  => 'Technical Manager',
+            'location'    => 'Report Generation',
+            'summary'     => 'Generation of Test Report with unique ULR, QR code authentication, and digital signatures.',
             'data'        => [
                 'ulr_no'            => $sample->tr04_ulr_no ?: 'Generated on Report Finalization',
                 'report_versions'   => $reports->map(function ($rep) {
+                    $cleanPath = $rep->tr09_report_file_path ? ltrim(str_replace('storage/', '', $rep->tr09_report_file_path), '/') : null;
                     return [
                         'version'      => $rep->tr09_version_number,
                         'status'       => $rep->tr09_status,
@@ -511,16 +512,18 @@ class SampleTrackingController extends Controller
                         'generated_by' => $rep->generator?->m06_name ?? 'Authorized Signatory',
                         'generated_at' => $rep->tr09_generated_at ? Carbon::parse($rep->tr09_generated_at)->format('d M Y, h:i A') : ($rep->created_at ? $rep->created_at->format('d M Y, h:i A') : 'N/A'),
                         'file_path'    => $rep->tr09_report_file_path,
+                        'file_url'     => $cleanPath ? asset('public/storage/' . $cleanPath) : null,
                     ];
                 })->toArray(),
                 'latest_file_path'  => $latestReport?->tr09_report_file_path,
+                'latest_file_url'   => $latestReport?->tr09_report_file_path ? asset('public/storage/' . ltrim(str_replace('storage/', '', $latestReport->tr09_report_file_path), '/')) : null,
             ],
         ];
 
         // -----------------------------------------------------------------
         // STAGE 10: Dispatch & Customer Delivery
         // -----------------------------------------------------------------
-        $isDispatched  = !empty($sample->tr04_dispatch_date);
+        $isDispatched  = !empty($sample->tr04_dispatch_date) || strtoupper((string)$sample->tr04_progress) === 'DISPATCHED';
         $stage10Status = $isDispatched ? 'COMPLETED' : ($isReportDone ? 'IN_PROGRESS' : 'PENDING');
 
         $stages[] = [
@@ -531,15 +534,15 @@ class SampleTrackingController extends Controller
             'icon'        => 'ni-truck',
             'theme'       => $stage10Status === 'COMPLETED' ? 'success' : 'info',
             'status'      => $stage10Status,
-            'timestamp'   => $sample->tr04_dispatch_date ? Carbon::parse($sample->tr04_dispatch_date) : null,
+            'timestamp'   => $sample->tr04_dispatch_date ? Carbon::parse($sample->tr04_dispatch_date) : ($isDispatched ? $sample->updated_at : null),
             'actor_name'  => $sample->tr04_dispatch_person ?? 'Dispatch Cell',
             'actor_role'  => 'Logistics / Despatch Officer',
             'location'    => 'Despatch Counter',
             'summary'     => 'Formal delivery of official test certificate to customer/buyer via chosen mode.',
             'data'        => [
-                'dispatch_mode'     => $sample->tr04_dispatch_mode ?: ($isReportDone ? 'Available for Electronic Download' : 'Pending Completion'),
+                'dispatch_mode'     => $sample->tr04_dispatch_mode ?: ($isDispatched ? 'Dispatched' : ($isReportDone ? 'Available for Electronic Download' : 'Pending Completion')),
                 'dispatch_person'   => $sample->tr04_dispatch_person ?: 'Despatch In-Charge',
-                'dispatch_date'     => $sample->tr04_dispatch_date ? Carbon::parse($sample->tr04_dispatch_date)->format('d M Y, h:i A') : ($isDispatched ? 'Dispatched' : 'Pending'),
+                'dispatch_date'     => $sample->tr04_dispatch_date ? Carbon::parse($sample->tr04_dispatch_date)->format('d M Y, h:i A') : ($isDispatched ? ($sample->updated_at ? $sample->updated_at->format('d M Y, h:i A') : Carbon::now()->format('d M Y, h:i A')) : 'Pending'),
                 'article_no'        => $sample->tr04_post_article_no ?: 'N/A',
                 'report_to'         => ucwords(str_replace('_', ' ', $sample->tr04_report_to ?? 'Customer')),
             ],

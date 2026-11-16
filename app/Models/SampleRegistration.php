@@ -72,10 +72,15 @@ class SampleRegistration extends Model
         'tr04_decision_rule',
         'tr04_feasibility_checklist',
         'tr04_customer_agreed_deviation',
+        'tr04_dispatch_mode',
+        'tr04_dispatch_person',
+        'tr04_dispatch_date',
+        'tr04_post_article_no',
     ];
 
     protected $casts = [
         'tr04_contract_reviewed_at' => 'datetime',
+        'tr04_dispatch_date' => 'date',
         'tr04_feasibility_checklist' => 'array',
         'tr04_customer_agreed_deviation' => 'boolean',
     ];

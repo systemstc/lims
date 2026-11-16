@@ -1,17 +1,15 @@
 @extends('layouts.app_back')
 
 @section('content')
-<div class="nk-content ">
     <div class="container-fluid">
         <div class="nk-content-inner">
             <div class="nk-content-body">
 
                 {{-- Page Header --}}
-                <div class="nk-block-head nk-block-head-sm mb-3">
+                <div class="nk-block-head nk-block-head-sm">
                     <div class="nk-block-between align-items-center">
                         <div class="nk-block-head-content">
                             <h3 class="nk-block-title page-title d-flex align-items-center">
-                                <em class="icon ni ni-route text-primary me-2" style="font-size: 1.8rem;"></em>
                                 <span>Sample Journey &amp; History Track</span>
                             </h3>
                             <div class="nk-block-des text-soft">
@@ -20,13 +18,14 @@
                         </div>
                         <div class="nk-block-head-content">
                             <div class="d-flex align-items-center gap-2">
-                                <button type="button" class="btn btn-outline-light bg-white text-dark btn-sm" onclick="window.print()">
+                                <button type="button" class="btn btn-outline-primary btn-sm" onclick="window.print()">
                                     <em class="icon ni ni-printer me-1"></em><span>Print Track</span>
                                 </button>
                                 @if ($sample && $sample->reports->isNotEmpty())
                                     @php
                                         $latestRep = $sample->reports->first();
-                                        $repUrl = $latestRep->tr09_report_file_path ? asset('storage/' . $latestRep->tr09_report_file_path) : '#';
+                                        $cleanRepPath = $latestRep?->tr09_report_file_path ? ltrim(str_replace('storage/', '', $latestRep->tr09_report_file_path), '/') : null;
+                                        $repUrl = $cleanRepPath ? asset('public/storage/' . $cleanRepPath) : '#';
                                     @endphp
                                     <a href="{{ $repUrl }}" target="_blank" class="btn btn-primary btn-sm">
                                         <em class="icon ni ni-file-pdf me-1"></em><span>Download Report</span>
@@ -38,7 +37,7 @@
                 </div>
 
                 {{-- Search Bar Card --}}
-                <div class="card card-bordered mb-4 shadow-sm" style="background: linear-gradient(135deg, #f8faff 0%, #ffffff 100%); border-top: 3px solid #6576ff;">
+                <div class="card card-bordered shadow-sm" style="background: linear-gradient(135deg, #f8faff 0%, #ffffff 100%); border-top: 3px solid #6576ff;">
                     <div class="card-inner py-3">
                         <form action="{{ route('sample_history') }}" method="GET" class="row g-2 align-items-center">
                             <div class="col-md-9 col-sm-8">
@@ -67,7 +66,7 @@
                         {{-- Quick sample suggestion pills --}}
                         @if ($recentSamples->isNotEmpty())
                             <div class="d-flex align-items-center flex-wrap gap-1 mt-2 pt-2 border-top">
-                                <span class="fs-12px text-muted me-1 fw-bold"><em class="icon ni ni-spark text-warning me-1"></em>Quick Track:</span>
+                                <span class=" text-muted me-1 fw-bold"><em class="icon ni ni-spark text-warning me-1"></em>Quick Track:</span>
                                 @foreach ($recentSamples as $rs)
                                     <a href="{{ route('sample_history', ['identifier' => $rs->tr04_reference_id]) }}"
                                        class="badge badge-dim {{ ($searchedQuery == $rs->tr04_reference_id || $searchedQuery == $rs->tr04_tracker_id) ? 'bg-primary text-white' : 'bg-outline-light text-dark' }} px-2 py-1 fs-11px text-decoration-none">
@@ -94,7 +93,7 @@
                 {{-- If Sample is Loaded --}}
                 @if ($sample)
                     {{-- Hero Summary Card --}}
-                    <div class="card card-bordered mb-4 shadow-sm">
+                    <div class="card card-bordered shadow-sm">
                         <div class="card-inner">
                             <div class="row g-3 align-items-center">
                                 <div class="col-lg-8 col-md-12">
@@ -229,13 +228,13 @@
                                             </div>
 
                                             {{-- Meta Actor & Location Bar --}}
-                                            <div class="card-inner py-1 px-3 bg-light border-bottom d-flex justify-content-between align-items-center fs-11px text-muted flex-wrap">
-                                                <div>
+                                            <div class="card-inner py-1 px-3 bg-white border-bottom d-flex justify-content-between align-items-center fs-11px text-muted flex-wrap">
+                                                <div class="fs-6">
                                                     <span class="fw-bold text-dark">Handled By:</span>
                                                     <span class="text-primary">{{ $stage['actor_name'] }}</span>
-                                                    <span class="badge bg-dim-secondary ms-1">{{ $stage['actor_role'] }}</span>
+                                                    <span class="badge bg-light ms-1">{{ $stage['actor_role'] }}</span>
                                                 </div>
-                                                <div>
+                                                <div class="fs-6">
                                                     <span class="fw-bold text-dark">Location:</span>
                                                     <span>{{ $stage['location'] }}</span>
                                                 </div>
@@ -243,11 +242,11 @@
 
                                             {{-- Card Body Summary & Data --}}
                                             <div class="card-inner py-3 px-3">
-                                                <p class="text-soft fs-12px mb-3">{{ $stage['summary'] }}</p>
+                                                <p class="text-soft  mb-3">{{ $stage['summary'] }}</p>
 
                                                 {{-- STAGE 1: Registration Specific Details --}}
                                                 @if ($stage['slug'] === 'registration')
-                                                    <div class="row g-2 fs-12px">
+                                                    <div class="row g-2 ">
                                                         <div class="col-sm-6">
                                                             <span class="text-muted">Test Memo / Forwarding Letter:</span>
                                                             <strong class="d-block">{{ $stage['data']['reference_no'] }} (Dated: {{ $stage['data']['reference_date'] }})</strong>
@@ -269,7 +268,7 @@
 
                                                 {{-- STAGE 2: Billing & Commercial Details --}}
                                                 @if ($stage['slug'] === 'billing')
-                                                    <div class="row g-2 fs-12px mb-2">
+                                                    <div class="row g-2  mb-2">
                                                         <div class="col-sm-4">
                                                             <span class="text-muted">Testing Charges:</span>
                                                             <strong class="d-block text-dark">₹{{ $stage['data']['testing_charges'] }}</strong>
@@ -298,7 +297,7 @@
 
                                                 {{-- STAGE 3: Contract Review Details --}}
                                                 @if ($stage['slug'] === 'contract_review')
-                                                    <div class="fs-12px">
+                                                    <div class="">
                                                         <div class="d-flex justify-content-between mb-1">
                                                             <span class="text-muted">Review Decision:</span>
                                                             <strong class="badge bg-outline-success">{{ $stage['data']['review_status'] }}</strong>
@@ -371,13 +370,13 @@
                                                             @endforeach
                                                         </div>
                                                     @else
-                                                        <div class="fs-12px text-muted">Currently residing with: <strong class="text-dark">{{ $stage['data']['current_custody'] }}</strong></div>
+                                                        <div class=" text-muted">Currently residing with: <strong class="text-dark">{{ $stage['data']['current_custody'] }}</strong></div>
                                                     @endif
                                                 @endif
 
                                                 {{-- STAGE 6: Manuscripts Details --}}
                                                 @if ($stage['slug'] === 'manuscripts')
-                                                    <div class="fs-12px">
+                                                    <div class="">
                                                         <div class="d-flex justify-content-between mb-2">
                                                             <span>Archived Paper Worksheets:</span>
                                                             <strong class="badge bg-info">{{ $stage['data']['total_manuscripts'] }} Sheet(s)</strong>
@@ -400,7 +399,7 @@
                                                     {{-- Results list accordion --}}
                                                     <div class="mb-3">
                                                         <div class="d-flex justify-content-between align-items-center mb-1">
-                                                            <span class="fw-bold fs-12px text-dark">Analytical Observations ({{ $stage['data']['results_count'] }} Parameters):</span>
+                                                            <span class="fw-bold  text-dark">Analytical Observations ({{ $stage['data']['results_count'] }} Parameters):</span>
                                                             <button class="btn btn-xs btn-outline-light" type="button" data-bs-toggle="collapse" data-bs-target="#resultsCollapse{{ $stage['id'] }}">
                                                                 <span>View Parameters</span>
                                                             </button>
@@ -412,7 +411,7 @@
                                                                         <tr>
                                                                             <th>Test / Parameter</th>
                                                                             <th>Observed Result</th>
-                                                                            <th>Uncertainty (MU)</th>
+                                                                            {{-- <th>Uncertainty (MU)</th> --}}
                                                                             <th>Unit</th>
                                                                             <th>Analyst Remarks / Footnotes</th>
                                                                         </tr>
@@ -430,7 +429,7 @@
                                                                                     @endif
                                                                                 </td>
                                                                                 <td class="fw-bold text-primary font-monospace">{!! $res['result'] !!}</td>
-                                                                                <td><span class="badge bg-light text-dark font-monospace">{{ $res['measurement_uncertainty'] ?? '± 2.0% (k=2)' }}</span></td>
+                                                                                {{-- <td><span class="badge bg-light text-dark font-monospace">{{ $res['measurement_uncertainty'] ?? '± 2.0% (k=2)' }}</span></td> --}}
                                                                                 <td>{{ $res['unit'] }}</td>
                                                                                 <td class="fs-10px text-muted">{{ $res['remarks'] ?: '-' }}</td>
                                                                             </tr>
@@ -442,9 +441,9 @@
                                                     </div>
 
                                                     {{-- AUDIT TRAIL: Who edited what, when, old value vs new value --}}
-                                                    <div class="audit-trail-box border rounded p-2 bg-light">
+                                                    <div class="audit-trail-box border rounded bg-light">
                                                         <div class="d-flex justify-content-between align-items-center mb-1">
-                                                            <span class="fw-bold fs-12px text-danger d-flex align-items-center">
+                                                            <span class="fw-bold  text-danger d-flex align-items-center">
                                                                 <em class="icon ni ni-histroy me-1"></em>
                                                                 Result Modification &amp; Edit Audit Trail
                                                             </span>
@@ -458,11 +457,11 @@
                                                                         <tr>
                                                                             <th>Date &amp; Time</th>
                                                                             <th>Parameter</th>
-                                                                            <th>Field Changed</th>
+                                                                            {{-- <th>Field Changed</th> --}}
                                                                             <th>Previous Value</th>
                                                                             <th>New Value</th>
                                                                             <th>Edited By</th>
-                                                                            <th>Reason</th>
+                                                                            {{-- <th>Reason</th> --}}
                                                                         </tr>
                                                                     </thead>
                                                                     <tbody>
@@ -470,7 +469,7 @@
                                                                             <tr>
                                                                                 <td>{{ $aud['timestamp'] }}</td>
                                                                                 <td><strong>{{ $aud['test_name'] }}</strong></td>
-                                                                                <td><span class="badge bg-light text-dark">{{ $aud['field_changed'] }}</span></td>
+                                                                                {{-- <td><span class="badge bg-light text-dark">{{ $aud['field_changed'] }}</span></td> --}}
                                                                                 <td><del class="text-danger font-monospace">{{ $aud['old_value'] }}</del></td>
                                                                                 <td><strong class="text-success font-monospace">{{ $aud['new_value'] }}</strong></td>
                                                                                 <td>
@@ -479,7 +478,7 @@
                                                                                         <span class="d-block text-muted fs-9px">IP: {{ $aud['ip_address'] }}</span>
                                                                                     @endif
                                                                                 </td>
-                                                                                <td>{{ $aud['change_reason'] }}</td>
+                                                                                {{-- <td>{{ $aud['change_reason'] }}</td> --}}
                                                                             </tr>
                                                                         @endforeach
                                                                     </tbody>
@@ -496,7 +495,7 @@
 
                                                 {{-- STAGE 8: Verification Details --}}
                                                 @if ($stage['slug'] === 'verification')
-                                                    <div class="fs-12px">
+                                                    <div class="">
                                                         <div class="d-flex justify-content-between mb-1">
                                                             <span class="text-muted">Technical Review Status:</span>
                                                             <strong class="badge bg-success">{{ $stage['data']['verification_status'] }}</strong>
@@ -521,7 +520,7 @@
 
                                                 {{-- STAGE 9: Report & ULR Details --}}
                                                 @if ($stage['slug'] === 'reporting')
-                                                    <div class="fs-12px">
+                                                    <div class="">
                                                         <div class="d-flex justify-content-between mb-1">
                                                             <span class="text-muted">NABL ULR Number:</span>
                                                             <strong class="text-success font-monospace">{{ $stage['data']['ulr_no'] }}</strong>
@@ -544,8 +543,12 @@
                                                                             </div>
                                                                             <span class="text-muted d-block fs-11px mt-1">Generated: {{ $rep['generated_at'] }} by {{ $rep['generated_by'] }}</span>
                                                                         </div>
-                                                                        @if ($rep['file_path'])
-                                                                            <a href="{{ asset('storage/' . $rep['file_path']) }}" target="_blank" class="btn btn-xs btn-outline-primary">
+                                                                        @php
+                                                                            $cleanRepPath = !empty($rep['file_path']) ? ltrim(str_replace('storage/', '', $rep['file_path']), '/') : null;
+                                                                            $pdfUrl = $rep['file_url'] ?? ($cleanRepPath ? asset('public/storage/' . $cleanRepPath) : null);
+                                                                        @endphp
+                                                                        @if ($pdfUrl)
+                                                                            <a href="{{ $pdfUrl }}" target="_blank" class="btn btn-xs btn-outline-primary">
                                                                                 <em class="icon ni ni-file-pdf me-1"></em><span>View PDF</span>
                                                                             </a>
                                                                         @endif
@@ -560,7 +563,7 @@
 
                                                 {{-- STAGE 10: Dispatch Details --}}
                                                 @if ($stage['slug'] === 'dispatch')
-                                                    <div class="fs-12px">
+                                                    <div class="">
                                                         <div class="d-flex justify-content-between mb-1">
                                                             <span class="text-muted">Delivery Mode:</span>
                                                             <strong>{{ $stage['data']['dispatch_mode'] }}</strong>
@@ -589,14 +592,13 @@
             </div>
         </div>
     </div>
-</div>
 
 {{-- ZIG-ZAG TRACK STYLES --}}
 <style>
 /* Zig-Zag Central Container */
 .zigzag-wrapper {
     position: relative;
-    max-width: 1080px;
+    /* max-width: 1080px; */
     margin: 0 auto;
     padding: 20px 0;
 }

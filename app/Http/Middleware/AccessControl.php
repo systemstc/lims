@@ -165,6 +165,22 @@ class AccessControl
             'sample.custody.send_back',
             'sample.custody.forward',
             'sample.custody.timeline',
+
+            // Contract Review Helpers
+            'contract_standards_by_test',
+            'contract_tests_by_group',
+
+            // General utility & helper endpoints
+            'contact_support',
+            'admin_logout',
+            'dashboard.date.samples',
+            'get_all_samples_data',
+            'get_manuscripts',
+            'get_test_standards',
+            'get_remark_suggestions',
+            'save_remark_library',
+            'save_remark_to_library',
+            'check_test_exists',
         ];
 
         if (in_array($routeName, $skipPermissionRoutes)) {
@@ -179,17 +195,33 @@ class AccessControl
             'm05_route_delete' => 'm05_role_delete',
         ];
 
-        $isAllowed = false;
-        foreach ($routeMap as $routeField => $roleField) {
-            $exists = DB::table('m05_menus')
-                ->where('m05_status', 'ACTIVE')
-                ->where($routeField, $routeName)
-                ->whereRaw("FIND_IN_SET(?, {$roleField})", [$roleId])
-                ->exists();
+        // Map sub-routes / actions to parent menu routes so permissions are properly inherited
+        $routeAliases = [
+            'contract_review_decision' => ['edit_contract_details', 'show_contract', 'view_contract_reviews'],
+            'update_contract_details'  => ['edit_contract_details'],
+            'print_contract_review'    => ['show_contract', 'view_contract_reviews'],
+            'view-version'             => ['view_test_results'],
+            'compare-versions'         => ['view_test_results'],
+            'test-results.audit'       => ['view_test_results'],
+            'show_manuscript'          => ['view_manuscript'],
+            'edit_manuscript'          => ['update_manuscript', 'create_manuscript'],
+        ];
 
-            if ($exists) {
-                $isAllowed = true;
-                break;
+        $checkRoutes = (array) ($routeAliases[$routeName] ?? [$routeName]);
+
+        $isAllowed = false;
+        foreach ($checkRoutes as $routeToCheck) {
+            foreach ($routeMap as $routeField => $roleField) {
+                $exists = DB::table('m05_menus')
+                    ->where('m05_status', 'ACTIVE')
+                    ->where($routeField, $routeToCheck)
+                    ->whereRaw("FIND_IN_SET(?, {$roleField})", [$roleId])
+                    ->exists();
+
+                if ($exists) {
+                    $isAllowed = true;
+                    break 2;
+                }
             }
         }
 
