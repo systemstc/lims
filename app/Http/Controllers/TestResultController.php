@@ -604,9 +604,28 @@ class TestResultController extends Controller
             }
 
             if (empty($uploadedFiles)) {
+                $maxUpload = ini_get('upload_max_filesize') ?: '64M';
+                $maxPost = ini_get('post_max_size') ?: '64M';
+                $errorMessage = 'No file was received. Please select at least one document or photo to upload.';
+
+                $rawFiles = $_FILES['result_file'] ?? ($_FILES['result_files'] ?? null);
+                $errorCode = null;
+                if ($rawFiles && isset($rawFiles['error'])) {
+                    $errorCode = is_array($rawFiles['error']) ? ($rawFiles['error'][0] ?? null) : $rawFiles['error'];
+                }
+
+                $contentLength = (int) ($request->server('CONTENT_LENGTH') ?? 0);
+                if ($errorCode === UPLOAD_ERR_INI_SIZE || $errorCode === UPLOAD_ERR_FORM_SIZE) {
+                    $errorMessage = "The uploaded file exceeds the server upload limit ({$maxUpload}). Please compress the file or contact administrator.";
+                } elseif ($contentLength > 0 && empty($_POST) && empty($_FILES)) {
+                    $errorMessage = "The total upload payload exceeds post_max_size ({$maxPost}). Please compress the file before uploading.";
+                } elseif ($errorCode === UPLOAD_ERR_PARTIAL) {
+                    $errorMessage = 'The file was only partially uploaded. Please check your connection and try again.';
+                }
+
                 Session::flash('swal_icon', 'error');
                 Session::flash('swal_title', 'Upload Failed');
-                Session::flash('swal_message', 'No file was received. Please select at least one document or photo to upload.');
+                Session::flash('swal_message', $errorMessage);
                 return back();
             }
 
@@ -811,6 +830,10 @@ class TestResultController extends Controller
             Session::flash('swal_icon', 'success');
             Session::flash('swal_title', 'Uploaded Successfully');
             Session::flash('swal_message', "Manuscript sheet(s) for {$targetAnalystName} uploaded and attached to all allotted tests{$pageMsg}.");
+
+            if ($request->filled('redirect_to_result')) {
+                return redirect()->route('template_manuscript', $registration->tr04_sample_registration_id);
+            }
 
             return back();
         } catch (\Exception $e) {

@@ -208,13 +208,22 @@
                             Please upload the photo or scanned PDF of the manuscript calculation paper completed by the analyst. Once uploaded, you will be taken directly to the result entry page.
                         </p>
                         <div class="mb-3">
-                            <label class="form-label fw-bold">Select Manuscript File (JPG, PNG, PDF)</label>
-                            <input type="file" name="result_file" class="form-control form-control-lg" accept=".jpg,.jpeg,.png,.webp,.pdf,.doc,.docx" required>
+                            <label class="form-label fw-bold">Select Manuscript File(s) (JPG, PNG, PDF)</label>
+                            <input type="file" id="deoManuscriptInput" name="result_files[]" class="form-control form-control-lg" accept=".jpg,.jpeg,.png,.webp,.pdf,.doc,.docx" multiple required>
+                            <div class="form-text text-muted small mt-1">
+                                <em class="icon ni ni-spark me-1 text-primary"></em> High-resolution photos are automatically compressed in your browser before upload to keep file size under 2 MB while preserving laboratory sharpness.
+                            </div>
+                        </div>
+
+                        <!-- Live File Info / Compression Status Box -->
+                        <div id="deoFileStatusBox" class="border rounded p-2 bg-light d-none mb-3">
+                            <div class="fw-bold text-dark fs-12px mb-1" id="deoFileCountBadge">Selected File(s):</div>
+                            <ul class="list-unstyled mb-0 small text-muted" id="deoFileListNames" style="max-height: 140px; overflow-y: auto;"></ul>
                         </div>
                     </div>
                     <div class="modal-footer bg-light">
                         <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary">
+                        <button type="submit" id="deoUploadSubmitBtn" class="btn btn-primary">
                             <em class="icon ni ni-upload me-1"></em> Upload & Proceed to Result Entry
                         </button>
                     </div>
@@ -325,6 +334,161 @@
                 const modal = new bootstrap.Modal(modalElement);
                 modal.show();
             }
+        });
+
+        // In-browser image compressor: keeps images strictly under 2MB while preserving crisp laboratory text
+        function compressImageForUpload(file, maxDimension = 2048, initialQuality = 0.82) {
+            if (!file.type || !file.type.match(/^image\//i)) {
+                return Promise.resolve(file); // PDFs and non-images bypass without alteration
+            }
+
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = new Image();
+                    img.onload = function() {
+                        let width = img.width;
+                        let height = img.height;
+
+                        if (width > maxDimension || height > maxDimension) {
+                            if (width > height) {
+                                height = Math.round((height * maxDimension) / width);
+                                width = maxDimension;
+                            } else {
+                                width = Math.round((width * maxDimension) / height);
+                                height = maxDimension;
+                            }
+                        }
+
+                        const canvas = document.createElement('canvas');
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+
+                        function exportBlob(quality) {
+                            canvas.toBlob(function(blob) {
+                                if (!blob) {
+                                    return resolve(file);
+                                }
+
+                                // Target strictly under 2 MB (1.8 MB ceiling for safety)
+                                if (blob.size > 1.8 * 1024 * 1024 && quality > 0.45) {
+                                    exportBlob(quality - 0.15);
+                                    return;
+                                }
+
+                                const cleanName = file.name.replace(/\.[^/.]+$/, "") + ".jpg";
+                                const compressedFile = new File([blob], cleanName, {
+                                    type: 'image/jpeg',
+                                    lastModified: Date.now()
+                                });
+                                resolve(compressedFile);
+                            }, 'image/jpeg', quality);
+                        }
+
+                        exportBlob(initialQuality);
+                    };
+                    img.onerror = function() { resolve(file); };
+                    img.src = e.target.result;
+                };
+                reader.onerror = function() { resolve(file); };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // Auto-compress photos and show real-time feedback when files are chosen
+        $('#deoManuscriptInput').on('change', async function() {
+            const files = this.files;
+            const $summaryBox = $('#deoFileStatusBox');
+            const $listEl = $('#deoFileListNames');
+            const $countBadge = $('#deoFileCountBadge');
+            const $submitBtn = $('#deoUploadSubmitBtn');
+
+            if (!files || files.length === 0) {
+                $summaryBox.addClass('d-none');
+                return;
+            }
+
+            $summaryBox.removeClass('d-none');
+            $listEl.html('<li class="py-1 text-primary"><span class="spinner-border spinner-border-sm me-1"></span> Preparing & optimizing file(s)...</li>');
+            $submitBtn.prop('disabled', true);
+
+            $countBadge.text(`Selected ${files.length} File(s):`);
+
+            let dt = null;
+            if (window.DataTransfer) {
+                try { dt = new DataTransfer(); } catch (err) { dt = null; }
+            }
+
+            let html = '';
+
+            for (let i = 0; i < files.length; i++) {
+                const origFile = files[i];
+                const origSizeKb = (origFile.size / 1024).toFixed(1);
+                const origSizeMb = (origFile.size / (1024 * 1024)).toFixed(2);
+
+                if (origFile.type && origFile.type.match(/^image\//i)) {
+                    const compressed = await compressImageForUpload(origFile);
+                    if (dt) dt.items.add(compressed);
+
+                    const compSizeKb = (compressed.size / 1024).toFixed(1);
+                    const compSizeMb = (compressed.size / (1024 * 1024)).toFixed(2);
+                    const sizeLabel = compressed.size >= 1024 * 1024 ? `${compSizeMb} MB` : `${compSizeKb} KB`;
+                    const savedPct = Math.max(0, Math.round((1 - (compressed.size / origFile.size)) * 100));
+
+                    html += `<li class="d-flex justify-content-between align-items-center py-1 border-bottom border-light">
+                        <span>
+                            <em class="icon ni ni-img me-1 text-primary"></em>
+                            <strong>Page ${i + 1}:</strong> ${origFile.name}
+                            <small class="text-muted">(${origSizeMb >= 1 ? origSizeMb + ' MB' : origSizeKb + ' KB'})</small>
+                        </span>
+                        <span class="badge bg-success-dim text-success">
+                            <em class="icon ni ni-check me-1"></em> Compressed: ${sizeLabel} (-${savedPct}%)
+                        </span>
+                    </li>`;
+                } else {
+                    if (dt) dt.items.add(origFile);
+
+                    const isPdf = origFile.name.toLowerCase().endsWith('.pdf');
+                    const icon = isPdf ? 'ni-file-pdf text-danger' : 'ni-file-text text-primary';
+                    const sizeDisplay = origSizeMb >= 1 ? `${origSizeMb} MB` : `${origSizeKb} KB`;
+
+                    html += `<li class="d-flex justify-content-between align-items-center py-1 border-bottom border-light">
+                        <span>
+                            <em class="icon ni ${icon} me-1"></em>
+                            <strong>${origFile.name}</strong>
+                        </span>
+                        <span class="badge bg-info-dim text-info">${sizeDisplay} (Ready)</span>
+                    </li>`;
+                }
+            }
+
+            $listEl.html(html);
+
+            if (dt) {
+                try {
+                    this.files = dt.files;
+                } catch (e) {
+                    console.warn('DataTransfer files assignment skipped:', e);
+                }
+            }
+
+            $submitBtn.prop('disabled', false);
+        });
+
+        // UI spinner on submit
+        $('#deoUploadManuscriptForm').on('submit', function() {
+            const $submitBtn = $('#deoUploadSubmitBtn');
+            $submitBtn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Uploading Document...');
+        });
+
+        // Reset modal state on close
+        $('#uploadManuscriptModal').on('hidden.bs.modal', function() {
+            $('#deoManuscriptInput').val('');
+            $('#deoFileStatusBox').addClass('d-none');
+            $('#deoFileListNames').empty();
+            $('#deoUploadSubmitBtn').prop('disabled', false).html('<em class="icon ni ni-upload me-1"></em> Upload & Proceed to Result Entry');
         });
     });
 </script>
